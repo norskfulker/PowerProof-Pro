@@ -1,7 +1,7 @@
 "use client";
 
-import { useId, useRef, useState } from "react";
-import { AlertTriangle, Loader2, Plus, Trash2, Upload } from "lucide-react";
+import { useId } from "react";
+import { AlertTriangle, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,7 +11,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Segmented } from "@/components/pp/segmented";
 import type { RenderContext } from "@/lib/api";
 import { PALETTES } from "@/lib/store-themes";
-import { checkMedia, MEDIA_LIMITS, putAsset, type MediaKind } from "@/lib/pages/media";
+import { MediaUploader as SharedUploader } from "@/components/media/media-uploader";
+import type { MediaKind } from "@/lib/media/store";
 import type { Background, BlockStyle } from "@/lib/pages/schema";
 import { cn } from "@/lib/utils";
 import { contrastWarning } from "./renderer";
@@ -116,82 +117,34 @@ export function ColorField({ label, value, onChange }: { label: string; value: s
 /* ------------------------------------------------------------------ */
 
 /**
- * Upload (checked against the size limits), pick a product cover, or paste an https link.
- * Uploads stay in this browser in this frontend-only build.
+ * The shared uploader (Part 6A: progress, library, AI, limits) adapted to the page builder's plain
+ * `src` strings. A product's cover can also be used ("product:<id>").
  */
 export function MediaUploader({ label, value, onChange, kinds, context }: { label: string; value: string; onChange: (src: string) => void; kinds: MediaKind[]; context: RenderContext }) {
-  const id = useId();
-  const input = useRef<HTMLInputElement>(null);
-  const [error, setError] = useState<string>();
-  const [busy, setBusy] = useState(false);
-  const [url, setUrl] = useState(value.startsWith("https://") ? value : "");
-  const accept = kinds.flatMap((k) => MEDIA_LIMITS[k].types).join(",");
-  const current = value.startsWith("asset:") ? "Uploaded file" : value.startsWith("product:") ? context.products.find((p) => `product:${p.id}` === value)?.title ?? "Product cover" : value.startsWith("https://") ? "Link" : "Nothing yet";
-
-  async function onFile(f?: File) {
-    if (!f) return;
-    const problem = checkMedia(f, kinds);
-    if (problem) return setError(problem);
-    setBusy(true);
-    setError(undefined);
-    try {
-      onChange(await putAsset(f));
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Couldn't save the file.");
-    } finally {
-      setBusy(false);
-    }
-  }
-
+  const usingCover = value.startsWith("product:");
+  const kind: MediaKind = kinds.includes("video") && !kinds.includes("image") ? "video" : kinds.includes("gif") && !kinds.includes("image") ? "gif" : "image";
   return (
-    <fieldset className="flex flex-col gap-2 rounded-control border p-3" aria-describedby={error ? `${id}-err` : `${id}-hint`}>
-      <legend className="px-1 text-sm font-medium">{label}</legend>
-      <p className="text-xs text-muted-foreground">
-        Now: <span className="font-medium text-foreground">{current}</span>
-      </p>
-      <input ref={input} id={`${id}-file`} type="file" accept={accept} className="sr-only" tabIndex={-1} aria-label={`Upload ${label}`} onChange={(e) => onFile(e.target.files?.[0])} />
-      <div className="flex flex-wrap gap-2">
-        <Button type="button" variant="secondary" size="sm" onClick={() => input.current?.click()} disabled={busy}>
-          {busy ? <Loader2 className="animate-spin" aria-hidden /> : <Upload aria-hidden />} Upload
-        </Button>
-        {value && (
-          <Button type="button" variant="ghost" size="sm" onClick={() => onChange("")}>
-            <Trash2 aria-hidden /> Remove
-          </Button>
-        )}
-      </div>
-      <p id={`${id}-hint`} className="text-xs text-muted-foreground">{kinds.map((k) => MEDIA_LIMITS[k].label).join(" · ")}</p>
+    <div className="flex flex-col gap-3 rounded-control border p-3">
+      <SharedUploader
+        compact
+        label={label}
+        kinds={kinds}
+        withAlt={false}
+        withFocal={false}
+        withPoster={false}
+        aiPurpose={kinds.includes("image") ? "hero_banner" : undefined}
+        value={value && !usingCover ? { src: value, alt: "", kind } : undefined}
+        onChange={(m) => onChange(m?.src ?? "")}
+      />
       {kinds.includes("image") && context.products.length > 0 && (
         <SelectField
           label="Or use a product cover"
-          value={value.startsWith("product:") ? value : "none"}
-          onChange={(v) => v !== "none" && onChange(v)}
-          options={[{ value: "none", label: "Pick a product" }, ...context.products.map((p) => ({ value: `product:${p.id}`, label: p.title }))]}
+          value={usingCover ? value : "none"}
+          onChange={(v) => onChange(v === "none" ? "" : v)}
+          options={[{ value: "none", label: usingCover ? "Stop using the cover" : "Pick a product" }, ...context.products.map((p) => ({ value: `product:${p.id}`, label: p.title }))]}
         />
       )}
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor={`${id}-url`}>Or a link</Label>
-        <div className="flex gap-2">
-          <Input id={`${id}-url`} value={url} placeholder="https://" onChange={(e) => setUrl(e.target.value)} />
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={() => {
-              if (!/^https:\/\/\S+$/.test(url.trim())) return setError("Links must start with https://");
-              setError(undefined);
-              onChange(url.trim());
-            }}
-          >
-            Use
-          </Button>
-        </div>
-      </div>
-      {error && (
-        <p id={`${id}-err`} role="alert" className="flex items-start gap-1.5 text-sm font-medium text-danger">
-          <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden /> {error}
-        </p>
-      )}
-    </fieldset>
+    </div>
   );
 }
 

@@ -61,7 +61,7 @@ Small calls made while building the frontend, so the founder can check them in o
 
 ## Design system
 
-- Tokens are in `app/globals.css`. Components use tokens only. **Exceptions** (all creator data or places CSS variables can't reach): product cover and image-maker palettes, the store brand colour, email templates (`emails/theme.ts` keeps a literal copy of the tokens because email clients ignore CSS variables), the HTML editor's default buy-button style inside the sandbox, and `themeColor` in the root layout.
+- Tokens are in `app/globals.css`. Components use tokens only. **Exceptions** (all creator data or places CSS variables can't reach): product cover and tile palettes (`lib/palettes.ts`), the store brand colour, email templates (`emails/theme.ts` keeps a literal copy of the tokens because email clients ignore CSS variables), the HTML editor's default buy-button style inside the sandbox, and `themeColor` in the root layout.
 - **Contrast fixes beyond the brief:** small brass text uses `--accent-ink` (#7A5C20), warning text uses `--warning-ink` (#8A5A12), and input borders use `--input` (#8F9B95, 3:1 against white). Brass #A9823A / #C9A24F stays for large numbers and fills.
 - Radius tokens: `rounded-control` 10px, `rounded-media` 12px, `rounded-card` 16px, `rounded-dialog` 20px; pills are the only `rounded-full`.
 - **Dialogs only for destructive actions**, plus the withdraw dialog the brief asks for. Template previews, bank forms, SKU and tax-code editing, the image maker and the payment hand-off use sheets.
@@ -192,3 +192,52 @@ Real auth and route guards, file storage and signed URLs, the gateway integratio
 3. **Price floors** exist in the data model, but there's no field in the product form yet. Add one there, or keep floors out of the UI for now?
 4. **Visual pages and SEO:** pages have their own title and description. Should published pages go into the store's sitemap by default?
 5. **Uploads:** 5 MB images and 10 MB videos, as specified. Video hosting gets expensive; should video backgrounds be a paid-plan feature?
+
+# Part 6: media, AI images, several stores, plans, save bar, getting started
+
+## Media (6A, 6B)
+
+- **One uploader** (`components/media/media-uploader.tsx`) everywhere, including the page builder (through a thin adapter that keeps its plain `src` strings). Limits are shown before picking: JPG, PNG or WebP up to 5 MB, GIF up to 5 MB, MP4 or WebM up to 10 MB. Errors name the file and say what to do.
+- **Uploads are mocked** in `lib/api/media.ts`: progress in ten steps, then the file is kept in this browser's IndexedDB as `asset:<id>`. WebKit sometimes refuses to keep a Blob in IndexedDB, so the store falls back to raw bytes. A backend upload returns a CDN URL instead; nothing else changes.
+- **Every upload goes into the library** (`/media`), which shows where each file is used across all of the creator's stores. Deleting a used file asks first and leaves an empty placeholder where it was.
+- **Products:** up to 8 images and 1 video, reordered with up and down buttons (no drag and drop, so it works the same with a keyboard and on phones). The first image is the cover.
+- **Backgrounds** are colour or image (the hero also takes a looping muted video with a poster). The contrast check samples the picture's average colour and offers the smallest overlay that makes text readable. Phones and reduced-motion users see the poster. Visual pages also have a page-level background behind every section.
+- **Review photos** are buyers' own uploads, so they're checked against the same limits but kept out of the creator's library.
+
+## AI images (6E)
+
+- Every screen calls `generateImage()` and `transformImage()` in `lib/api/ai.ts`. The mock draws pictures on a canvas after a 3 to 6 second wait. A real provider replaces the bodies of those two functions; no provider is named in the UI or the code.
+- **Credits:** 1 per generation (4 variations) or per edit. Free gets 10 a month and Pro 200, set in `lib/plans.ts`. Running out opens the Upgrade dialog.
+- **Safety:** a note under the prompt about real brands, logos and people, and **Report image** on every result, which hides it from history.
+
+## Several stores (6C)
+
+- The mock keeps the active store in the top-level fields and the others in `ownedStores`. Switching swaps them, so every existing API works unchanged. A backend scopes each request by store id instead.
+- About, FAQ and policies belong to one store each. New stores get default text marked **Not edited yet** until it's saved once.
+
+## Plans (6D)
+
+- **Free:** 1 store, 1 product, 10 AI credits a month, $0. **Pro:** no store or product limit, 200 AI credits, $20 a month with the first month free. **Both pay the same 3% per sale.**
+- Limits are checked in the API (`LimitError`, code `limit`) and before navigating (`GuardedLink`, `plan.guard`). Either way the creator sees the Upgrade dialog, never a disabled button with no explanation.
+- **Over the limit after a downgrade:** nothing is deleted or hidden; only creating more is blocked.
+
+## Save bar (6F)
+
+- `useDirtyForm` compares what's on screen with the last saved values, so changing something back hides the bar. `useFormSaveBar` adapts it to react-hook-form.
+- The bar sits above the tab bar on phones and at the top right of its card on larger screens. On phones, toasts move to the top so they never cover it.
+- Leaving with unsaved changes: in-app links ask first ("Leave without saving?"); refresh and closing the tab use the browser's own warning.
+- Sheets for new items (a new coupon, collection or SKU) keep a single **Add** button; the save bar is for changing something that already exists.
+- The visual page editor keeps its autosave. **Publish** shows only when the draft differs from the live page; otherwise it says **Live**.
+
+## Getting started (6G)
+
+- Ten steps; business details and analytics are optional. States are worked out from real data (a product exists, a payout method exists, the store is live) plus a few flags the data can't show (email verified, link shared, a coach mark seen). The flags are kept per account in local storage, so progress resumes after logging out.
+- The sample store predates the tracker, so it starts fully set up.
+- **Next step** links carry `?coach=<step>`; the coach mark points at the exact control and is never shown again for a finished step or after **Skip tour**.
+
+## Questions for the founder (Part 6)
+
+1. **Free plan:** is 1 product right, or would 3 let creators try bundles and deal paths before paying?
+2. **AI credits:** 10 and 200 a month are placeholders. What does a generation cost with the chosen provider?
+3. **Video backgrounds** are on both plans. Should they be Pro-only, given hosting costs?
+4. **Downgrades:** a creator with 5 products who drops to Free keeps selling all 5 and can't add more. Is that the policy, or should extra products be unpublished?

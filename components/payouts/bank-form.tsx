@@ -8,6 +8,8 @@ import { Lock } from "lucide-react";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { FormError } from "@/components/auth/auth-card";
+import { SaveBar } from "@/components/save/save-bar";
+import { useFormSaveBar } from "@/hooks/use-dirty-form";
 import { addBankAccount } from "@/lib/api";
 import { IFSC_RE } from "@/lib/india";
 import type { PayoutMethod } from "@/lib/types";
@@ -25,17 +27,22 @@ export const bankSchema = z
   })
   .refine((v) => v.accountNumber === v.confirm, { path: ["confirm"], message: "The account numbers don't match." });
 
-/** Shared by onboarding and the payouts page. Renders a <form id={formId}> so the caller owns the buttons. */
+/**
+ * Shared by onboarding and the payouts page. Renders a <form id={formId}> so the caller owns the
+ * buttons, or, with `saveBar`, shows the standard save bar once something has been typed.
+ */
 export function BankForm({
   formId,
   defaultName = "",
   onSaved,
   onPendingChange,
+  saveBar,
 }: {
   formId: string;
   defaultName?: string;
   onSaved: (m: PayoutMethod) => void;
   onPendingChange?: (pending: boolean) => void;
+  saveBar?: boolean;
 }) {
   const [error, setError] = useState<string>();
   const form = useForm<z.infer<typeof bankSchema>>({
@@ -43,6 +50,14 @@ export function BankForm({
     defaultValues: { holderName: defaultName, accountNumber: "", confirm: "", ifsc: "" },
     mode: "onTouched",
   });
+  const bar = useFormSaveBar(
+    form,
+    async (raw) => {
+      const v = bankSchema.parse(raw);
+      onSaved(await addBankAccount({ holderName: v.holderName, accountNumber: v.accountNumber, ifsc: v.ifsc }));
+    },
+    "Bank account verified"
+  );
 
   return (
     <Form {...form}>
@@ -50,7 +65,7 @@ export function BankForm({
         id={formId}
         noValidate
         className="flex flex-col gap-4"
-        onSubmit={form.handleSubmit(async (v) => {
+        onSubmit={saveBar ? (e) => { e.preventDefault(); bar.save(); } : form.handleSubmit(async (v) => {
           setError(undefined);
           onPendingChange?.(true);
           try {
@@ -129,6 +144,7 @@ export function BankForm({
           <Lock className="mt-0.5 size-4 shrink-0" aria-hidden />
           We send ₹1 to check the account. Your details are encrypted and only used for payouts.
         </p>
+        {saveBar && <SaveBar state={bar} label="Bank account not saved yet" bottomOffset="none" className="max-md:sticky max-md:bottom-0" />}
       </form>
     </Form>
   );

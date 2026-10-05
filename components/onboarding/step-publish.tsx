@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { CopyField } from "@/components/pp/copy-field";
 import { MoneyText } from "@/components/pp/money-text";
 import { ProductImageView } from "@/components/pp/product-cover";
-import { updateProduct, updateStore } from "@/lib/api";
+import { updateProduct, updateStore, markLinkShared } from "@/lib/api";
 import { SITE_URL } from "@/lib/format";
 import type { Product, Store } from "@/lib/types";
 import { StepFrame } from "./step-frame";
@@ -40,7 +40,7 @@ export function StepPublish({
         <h1 className="mt-5 text-[2rem]">You&apos;re open for business.</h1>
         <p className="mx-auto mt-2 max-w-sm text-muted-foreground">Share the link anywhere. The first sale tends to feel unreal; the tenth feels normal.</p>
         <div className="mx-auto mt-6 max-w-md text-left">
-          <CopyField label="Your store link" value={`https://${link}`} display={link} />
+          <CopyField label="Your store link" value={`https://${link}`} display={link} onCopied={markLinkShared} />
         </div>
         <div className="mt-4 flex flex-wrap justify-center gap-2">
           <Button asChild variant="secondary" size="sm">

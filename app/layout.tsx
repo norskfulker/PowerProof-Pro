@@ -70,7 +70,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
     <html lang="en" className={`${bricolage.variable} ${hanken.variable} ${plexMono.variable} ${fraunces.variable} ${spaceGrotesk.variable} ${plexSans.variable} ${INDIC}`}>
       <body>
         <TooltipProvider delayDuration={200}>{children}</TooltipProvider>
-        <Toaster position="bottom-center" mobileOffset={{ bottom: 88 }} />
+        <Toaster position="bottom-center" />
       </body>
     </html>
   );

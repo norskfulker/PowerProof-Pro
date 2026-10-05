@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { checkMedia, MEDIA_LIMITS, putAsset } from "@/lib/media/store";
 import type { ProductImage, Review } from "@/lib/types";
 import { ProductImageView } from "./product-cover";
 import { StarInput } from "./stars";
@@ -25,6 +26,25 @@ export function ReviewForm({ productTitle, onSubmit, idPrefix = "rf" }: { produc
   const [photos, setPhotos] = useState<ProductImage[]>([]);
   const [errors, setErrors] = useState<{ rating?: string; body?: string; form?: string }>({});
   const [pending, setPending] = useState(false);
+  const [photoError, setPhotoError] = useState<string>();
+
+  async function addPhotos(files: File[]) {
+    setPhotoError(undefined);
+    const added: ProductImage[] = [];
+    for (const f of files) {
+      const problem = checkMedia(f, ["image", "gif"]);
+      if (problem) {
+        setPhotoError(problem);
+        continue;
+      }
+      try {
+        added.push({ id: `ph_${Math.random().toString(36).slice(2, 8)}`, alt: "", src: await putAsset(f) });
+      } catch {
+        setPhotoError(`${f.name} didn't upload. Try again.`);
+      }
+    }
+    setPhotos((ps) => [...ps, ...added].slice(0, 3));
+  }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -35,7 +55,7 @@ export function ReviewForm({ productTitle, onSubmit, idPrefix = "rf" }: { produc
     if (next.rating || next.body) return;
     setPending(true);
     try {
-      await onSubmit({ rating: rating as Review["rating"], title, body, photos });
+      await onSubmit({ rating: rating as Review["rating"], title, body, photos: photos.map((p, i) => ({ ...p, alt: p.alt.trim() || `Photo ${i + 1} from a buyer of ${productTitle}` })) });
     } catch (err) {
       setErrors({ form: err instanceof Error ? err.message : "Couldn't post your review." });
     } finally {
@@ -62,13 +82,17 @@ export function ReviewForm({ productTitle, onSubmit, idPrefix = "rf" }: { produc
       </div>
       <div className="flex flex-col gap-2">
         <span className="text-sm font-medium">Photos (up to 3)</span>
-        <div className="flex flex-wrap gap-2">
-          {photos.map((p) => (
-            <span key={p.id} className="relative w-24">
-              <ProductImageView image={p} size="xs" />
-              <button type="button" onClick={() => setPhotos(photos.filter((x) => x.id !== p.id))} aria-label={`Remove ${p.alt}`} className="absolute -top-2 -right-2 grid size-7 place-items-center rounded-full border bg-surface">
-                <X className="size-3.5" aria-hidden />
-              </button>
+        <span className="-mt-1 text-xs text-muted-foreground">{MEDIA_LIMITS.image.label}, or a GIF up to 5 MB</span>
+        <div className="flex flex-wrap gap-3">
+          {photos.map((p, i) => (
+            <span key={p.id} className="flex w-32 flex-col gap-1.5">
+              <span className="relative">
+                <ProductImageView image={{ ...p, alt: p.alt || `Photo ${i + 1}` }} size="xs" />
+                <button type="button" onClick={() => setPhotos(photos.filter((x) => x.id !== p.id))} aria-label={`Remove photo ${i + 1}`} className="absolute -top-2 -right-2 grid size-7 place-items-center rounded-full border bg-surface">
+                  <X className="size-3.5" aria-hidden />
+                </button>
+              </span>
+              <Input aria-label={`Describe photo ${i + 1}`} placeholder="What's in it?" maxLength={120} value={p.alt} onChange={(e) => setPhotos(photos.map((x) => (x.id === p.id ? { ...x, alt: e.target.value } : x)))} className="h-9 text-xs" />
             </span>
           ))}
           {photos.length < 3 && (
@@ -77,18 +101,18 @@ export function ReviewForm({ productTitle, onSubmit, idPrefix = "rf" }: { produc
               <span className="sr-only">Add a photo</span>
               <input
                 type="file"
-                accept="image/*"
+                accept={[...MEDIA_LIMITS.image.types, ...MEDIA_LIMITS.gif.types].join(",")}
                 multiple
                 className="sr-only"
                 onChange={(e) => {
-                  const files = Array.from(e.target.files ?? []).slice(0, 3 - photos.length);
-                  setPhotos([...photos, ...files.map((f) => ({ id: `ph_${Math.random().toString(36).slice(2, 8)}`, alt: f.name, src: URL.createObjectURL(f) }))]);
+                  addPhotos(Array.from(e.target.files ?? []).slice(0, 3 - photos.length));
                   e.target.value = "";
                 }}
               />
             </label>
           )}
         </div>
+        {photoError && <p role="alert" className="text-sm font-medium text-danger">{photoError}</p>}
       </div>
       <Button type="submit" disabled={pending} className="self-start">
         {pending && <Loader2 className="animate-spin" aria-hidden />}

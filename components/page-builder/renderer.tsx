@@ -11,7 +11,7 @@ import { ScrollRegion } from "@/components/pp/scroll-region";
 import { StoreProductCard } from "@/components/pp/store-product-card";
 import type { RenderContext } from "@/lib/api";
 import { contrast } from "@/lib/color";
-import { assetUrl } from "@/lib/pages/media";
+import { assetUrl } from "@/lib/media/store";
 import { paragraphs, parseInline } from "@/lib/pages/rich-text";
 import { HIGHLIGHT_ICONS, type Background, type BlockProps, type BlockStyle, type PageDoc, type PageNode } from "@/lib/pages/schema";
 import type { CurrencyCode } from "@/lib/types";
@@ -149,6 +149,11 @@ function BackgroundLayer({ bg, overlay, overlayColor }: { bg: Background; overla
       {overlay > 0 && <div className="absolute inset-0" style={{ background: overlayColor, opacity: overlay }} />}
     </div>
   );
+}
+
+function pageInk(style: BlockStyle): string | undefined {
+  const tone = style.tone === "auto" ? autoTone(style) : style.tone;
+  return tone === "light" ? LIGHT : tone === "dark" ? DARK : undefined;
 }
 
 function backgroundCss(bg: Background): React.CSSProperties | undefined {
@@ -589,7 +594,8 @@ export function PageRenderer({ doc, context, env, className }: { doc: PageDoc; c
       <Ctx.Provider value={context}>
        <Anchors.Provider value={productAnchors(doc.blocks)}>
         <div
-          className={cn("@container/page w-full min-w-0 overflow-x-hidden", className)}
+          className={cn("@container/page relative isolate w-full min-w-0 overflow-x-hidden", className)}
+          style={doc.style ? { ...backgroundCss(doc.style.background), color: pageInk(doc.style) } : undefined}
           onClickCapture={
             editing
               ? (e) => {
@@ -603,6 +609,7 @@ export function PageRenderer({ doc, context, env, className }: { doc: PageDoc; c
               : undefined
           }
         >
+          {doc.style && <BackgroundLayer bg={doc.style.background} overlay={doc.style.overlay} overlayColor={doc.style.overlayColor} />}
           {doc.blocks.length === 0 ? (
             <div className="grid min-h-64 place-items-center p-8 text-center text-sm text-muted-foreground">{editing ? "Add a section to start." : "This page is empty."}</div>
           ) : (

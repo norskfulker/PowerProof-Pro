@@ -8,6 +8,7 @@ import {
   makeNode,
   parentType,
   sectionOf,
+  styleSchema,
   type BlockLayout,
   type BlockStyle,
   type BlockType,
@@ -57,6 +58,8 @@ export interface EditorState {
   updateStyle: (id: string, patch: Partial<BlockStyle>, coalesceKey?: string) => void;
   updateLayout: (id: string, patch: Partial<BlockLayout>) => void;
   updateVisibility: (id: string, patch: Partial<PageNode["visibility"]>) => void;
+  /** The page-level background */
+  updatePageStyle: (patch: Partial<BlockStyle>, coalesceKey?: string) => void;
 }
 
 const HISTORY = 100;
@@ -228,6 +231,7 @@ export function createEditorStore(initial: PageDoc) {
       updateStyle: (id, patch, coalesceKey) => commit(docWith(mapNode(blocks(), id, (n) => ({ ...n, style: { ...n.style, ...patch } }))), coalesceKey ? `${id}:style:${coalesceKey}` : undefined),
       updateLayout: (id, patch) => commit(docWith(mapNode(blocks(), id, (n) => ({ ...n, layout: { ...n.layout, ...patch } })))),
       updateVisibility: (id, patch) => commit(docWith(mapNode(blocks(), id, (n) => ({ ...n, visibility: { ...n.visibility, ...patch } })))),
+      updatePageStyle: (patch, coalesceKey) => commit({ ...get().doc, style: { ...(get().doc.style ?? styleSchema.parse({})), ...patch } }, coalesceKey ? `page:style:${coalesceKey}` : undefined),
     };
   });
 }

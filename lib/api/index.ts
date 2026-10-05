@@ -18,3 +18,7 @@ export * from "./demo";
 export * from "./search";
 export * from "./deal-rules";
 export * from "./visual-pages";
+export * from "./account";
+export * from "./media";
+export * from "./ai";
+export * from "./getting-started";

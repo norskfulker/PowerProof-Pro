@@ -69,7 +69,7 @@ export default function CustomersPage() {
             <MoneyText value={c.totalSpent} className="font-semibold" />
           </Link>
         )}
-        empty={<EmptyState icon={Users} title="No customers yet." body="People who buy from you land here, with everything they've bought." />}
+        empty={<EmptyState nextStep icon={Users} title="No customers yet." body="People who buy from you land here, with everything they've bought." />}
       />
     </>
   );

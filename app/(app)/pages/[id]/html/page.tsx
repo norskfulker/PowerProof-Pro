@@ -2,13 +2,13 @@
 
 import { use, useState } from "react";
 import { Copy } from "lucide-react";
-import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { EditorBar, EditorSkeletonOrError } from "@/components/pages/editor-bar";
 import { copyText, CopyField } from "@/components/pp/copy-field";
 import { findBuyButtons, HtmlPasteEditor } from "@/components/pp/html-paste-editor";
 import { MoneyText } from "@/components/pp/money-text";
 import { useApi } from "@/hooks/use-api";
+import { useDirtyForm } from "@/hooks/use-dirty-form";
 import { getPage, getProducts, getStore, STARTER_HTML, updatePage } from "@/lib/api";
 import { SITE_URL } from "@/lib/format";
 import type { Page } from "@/lib/types";
@@ -19,42 +19,37 @@ export default function HtmlEditorPage({ params }: { params: Promise<{ id: strin
   const products = useApi(() => getProducts(), []);
   const store = useApi(getStore, []);
   const [draft, setDraft] = useState<Page>();
-  const [saving, setSaving] = useState(false);
+  const names = Object.fromEntries((products.data ?? []).map((p) => [p.id, p.title]));
+  const current = draft ?? (saved.data ? { ...saved.data, html: saved.data.html || STARTER_HTML } : undefined);
+  const bar = useDirtyForm({
+    value: current,
+    saved: saved.data,
+    onSave: async (p) => {
+      if (!p) return;
+      const wired = findBuyButtons(p.html);
+      const unknown = wired.filter((w) => !names[w]);
+      if (unknown.length) throw new Error(`Some buy buttons point nowhere. Unknown product ID: ${unknown.join(", ")}`);
+      // Pasted <script> tags are stripped before publishing; buy buttons are wired by us.
+      const html = p.html.replace(/<script[\s\S]*?<\/script>/gi, "");
+      saved.setData(await updatePage(p.id, { ...p, mode: "html", html, productIds: wired.length ? [...new Set(wired)] : p.productIds }));
+      setDraft(undefined);
+    },
+    onDiscard: () => setDraft(undefined),
+    savedMessage: "Saved. Buy buttons are wired.",
+  });
 
   if (!saved.data || saved.error) return <EditorSkeletonOrError error={saved.error} onRetry={saved.reload} />;
 
-  const page = draft ?? { ...saved.data, html: saved.data.html || STARTER_HTML };
-  const dirty = !!draft && JSON.stringify(draft) !== JSON.stringify(saved.data);
+  const page = current ?? saved.data;
   const change = (p: Partial<Page>) => setDraft({ ...page, ...p });
-  const names = Object.fromEntries((products.data ?? []).map((p) => [p.id, p.title]));
   const wired = findBuyButtons(page.html);
   const unknown = wired.filter((w) => !names[w]);
   const embed = `<script src="https://${SITE_URL}/embed.js" data-store="${store.data?.slug ?? "your-store"}" async></script>`;
 
-  async function save() {
-    if (unknown.length) {
-      toast.error("Some buy buttons point nowhere", { description: `Unknown product ID: ${unknown.join(", ")}` });
-      return;
-    }
-    setSaving(true);
-    try {
-      // Pasted <script> tags are stripped before publishing; buy buttons are wired by us.
-      const html = page.html.replace(/<script[\s\S]*?<\/script>/gi, "");
-      const out = await updatePage(page.id, { ...page, mode: "html", html, productIds: wired.length ? [...new Set(wired)] : page.productIds });
-      saved.setData(out);
-      setDraft(undefined);
-      toast.success("Saved", { description: `${wired.length} buy button${wired.length === 1 ? "" : "s"} wired.` });
-    } catch (e) {
-      toast.error("Couldn't save", { description: e instanceof Error ? e.message : undefined });
-    } finally {
-      setSaving(false);
-    }
-  }
-
   return (
     <>
       <h1 className="sr-only">Edit HTML: {page.title}</h1>
-      <EditorBar page={page} products={products.data ?? []} dirty={dirty || !saved.data.html} saving={saving} onChange={change} onSave={save} modeSwitch={{ href: `/pages/${page.id}/edit`, label: "Visual editor" }} />
+      <EditorBar page={page} products={products.data ?? []} bar={bar} onChange={change} modeSwitch={{ href: `/pages/${page.id}/edit`, label: "Visual editor" }} />
       <HtmlPasteEditor value={page.html} onChange={(html) => change({ html })} productNames={names} />
 
       {unknown.length > 0 && (

@@ -2,18 +2,19 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { GuardedLink } from "@/components/plan/plan-context";
 import { ExternalLink, Plus, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Segmented } from "@/components/pp/segmented";
 import { ChartCard, RevenueBars, ShareBars } from "@/components/pp/chart-card";
 import { MoneyText } from "@/components/pp/money-text";
 import { PageHeader } from "@/components/pp/page-header";
-import { GettingStarted } from "@/components/dashboard/getting-started";
+import { GettingStartedCard } from "@/components/getting-started/getting-started-card";
 import { Glance } from "@/components/dashboard/glance";
 import { LiveFeed } from "@/components/dashboard/live-feed";
 import { QuickActions } from "@/components/dashboard/quick-actions";
 import { useApi } from "@/hooks/use-api";
-import { getBalance, getIntegrations, getPayoutMethods, getPlan, getProducts, getStore, getSummary } from "@/lib/api";
+import { getBalance, getPlan, getProducts, getStore, getSummary } from "@/lib/api";
 import { formatDate, sourceLabel } from "@/lib/format";
 import type { RangeKey } from "@/lib/types";
 
@@ -28,8 +29,6 @@ export default function DashboardPage() {
   const summary = useApi(() => getSummary(range), [range], { live: true });
   const balance = useApi(getBalance, [], { live: true });
   const products = useApi(() => getProducts(), [], { live: true });
-  const methods = useApi(getPayoutMethods, []);
-  const integrations = useApi(getIntegrations, []);
   const plan = useApi(getPlan, []);
 
   const isNew = products.data !== undefined && balance.data !== undefined && products.data.every((p) => p.salesCount === 0) && balance.data.available.amount === 0 && balance.data.pending.amount === 0;
@@ -51,9 +50,9 @@ export default function DashboardPage() {
               </Button>
             )}
             <Button asChild>
-              <Link href="/products/new">
+              <GuardedLink kind="products" href="/products/new" data-coach="new-product">
                 <Plus aria-hidden /> Add product
-              </Link>
+              </GuardedLink>
             </Button>
           </>
         }
@@ -72,17 +71,7 @@ export default function DashboardPage() {
       )}
 
       <div className="flex flex-col gap-6">
-        {isNew && store.data && (
-          <GettingStarted
-            storeName={store.data.name}
-            items={[
-              { label: "Add a product", body: "Upload a file, paste a link or build a page.", href: "/products/new", done: (products.data?.length ?? 0) > 0 },
-              { label: "Publish it", body: "Drafts don't show on your store.", href: "/products", done: !!products.data?.some((p) => p.status === "published") },
-              { label: "Add your bank account", body: "So money has somewhere to go.", href: "/payouts", done: !!methods.data?.some((m) => m.kind === "bank") },
-              { label: "Connect analytics", body: "Google Analytics or Clarity, one ID each.", href: "/integrations", done: !!integrations.data?.some((i) => i.connected) },
-            ]}
-          />
-        )}
+        <GettingStartedCard />
 
         {!isNew && (
           <section aria-labelledby="glance-h" className="flex flex-col gap-4">

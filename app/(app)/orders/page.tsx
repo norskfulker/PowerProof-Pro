@@ -116,7 +116,7 @@ function OrdersTable() {
           </span>
         </Link>
       )}
-      empty={<EmptyState icon={Receipt} title="Nothing sold yet." body="Your first sale will show up here. Share your store link to get things going." action={<Button asChild><Link href="/dashboard">Get your store link</Link></Button>} />}
+      empty={<EmptyState nextStep icon={Receipt} title="Nothing sold yet." body="Your first sale will show up here. Share your store link to get things going." action={<Button asChild><Link href="/dashboard">Get your store link</Link></Button>} />}
     />
   );
 }

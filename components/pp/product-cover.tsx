@@ -1,7 +1,9 @@
-/* eslint-disable @next/next/no-img-element */
+"use client";
+
 import { ImageOff } from "lucide-react";
 import { readableOn } from "@/lib/color";
-import type { CoverSpec, ProductImage } from "@/lib/types";
+import type { CoverSpec, ProductImage, TileBackground } from "@/lib/types";
+import { MediaImg, TileBackgroundView } from "@/components/media/tile-background";
 import { cn } from "@/lib/utils";
 
 /**
@@ -52,10 +54,10 @@ export function CoverArt({ cover, className, size = "md", label }: { cover: Cove
   );
 }
 
-export function ProductImageView({ image, className, size }: { image?: ProductImage; className?: string; size?: "xs" | "sm" | "md" | "lg" }) {
-  if (!image) return <ImagePlaceholder className={className} />;
+export function ProductImageView({ image, className, size, fallback, fallbackLabel }: { image?: ProductImage; className?: string; size?: "xs" | "sm" | "md" | "lg"; /** Tile colour or image when there's no image */ fallback?: TileBackground; fallbackLabel?: string }) {
+  if (!image) return fallback ? <TileBackgroundView bg={fallback} label={fallbackLabel ?? "Product"} className={cn("aspect-[4/3] w-full rounded-media", className)} /> : <ImagePlaceholder className={className} />;
   if (image.src) {
-    return <img src={image.src} alt={image.alt} loading="lazy" className={cn("aspect-[4/3] w-full rounded-media bg-muted object-cover", className)} />;
+    return <MediaImg src={image.src} alt={image.alt} focal={image.focal} className={cn("aspect-[4/3] w-full rounded-media bg-muted", className)} />;
   }
   if (image.cover) return <CoverArt cover={image.cover} className={className} size={size} label={image.alt} />;
   return <ImagePlaceholder className={className} />;

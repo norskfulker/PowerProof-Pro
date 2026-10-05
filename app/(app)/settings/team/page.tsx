@@ -75,7 +75,7 @@ export default function TeamPage() {
           {data.map((m) => (
             <li key={m.id} className="flex flex-wrap items-center gap-3 py-3">
               <Avatar className="size-10"><AvatarFallback className="bg-primary-soft text-sm font-semibold text-primary">{initials(m.name)}</AvatarFallback></Avatar>
-              <span className="min-w-0 flex-1">
+              <span className="min-w-0 flex-1 basis-40">
                 <span className="block font-medium">{m.name}</span>
                 <span className="block truncate text-sm text-muted-foreground">{m.email} · {ROLES[m.role]}</span>
               </span>

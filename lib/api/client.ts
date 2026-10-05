@@ -3,7 +3,7 @@ import { getDemo } from "../mock/db";
 export class ApiError extends Error {
   constructor(
     message: string,
-    public code: "network" | "not_found" | "validation" | "conflict" = "network"
+    public code: "network" | "not_found" | "validation" | "conflict" | "limit" = "network"
   ) {
     super(message);
     this.name = "ApiError";

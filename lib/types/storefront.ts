@@ -1,4 +1,5 @@
 import type { ISODate, Money } from "./money";
+import type { MediaRef, TileBackground } from "./media";
 import type { CoverSpec, ProductImage } from "./product";
 
 /* ---------------------------------------------------------------- */
@@ -44,6 +45,8 @@ export interface HeroContent {
   /** Product ids whose covers make the image or collage. */
   imageProductIds: string[];
   videoUrl?: string;
+  /** Uploaded image, GIF or looping video behind the hero. Phones and reduced motion get the poster. */
+  background?: TileBackground;
 }
 
 export interface Announcement {
@@ -64,6 +67,7 @@ export interface AboutContent {
   initials: string;
   story: string;
   location: string;
+  photo?: MediaRef;
 }
 
 export interface StoreDesign {
@@ -87,12 +91,17 @@ export interface FaqItem {
   a: string;
 }
 
+export type StorePageKey = "about" | "faq" | "refund" | "terms" | "privacy";
+
+/** Each store's own About, FAQ and policies. Nothing is shared between stores. */
 export interface StorePages {
   faq: FaqItem[];
   refund: string;
   terms: string;
   privacy: string;
   contactNote: string;
+  /** Which pages the creator has changed from the default text ("Not edited yet" until then) */
+  edited?: Partial<Record<StorePageKey, boolean>>;
 }
 
 /* ---------------------------------------------------------------- */
@@ -106,6 +115,8 @@ export interface Collection {
   description: string;
   productIds: string[];
   cover: CoverSpec;
+  /** Tile colour or image chosen by the creator; the cover is the fallback */
+  background?: TileBackground;
 }
 
 export interface Coupon {

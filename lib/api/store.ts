@@ -1,4 +1,5 @@
 import { commit, db } from "../mock/db";
+import { writeProgress } from "../mock/progress";
 import { slugify, uid } from "../mock/random";
 import type {
   BillingInvoice,
@@ -33,6 +34,7 @@ export function updateStore(patch: Partial<Store>): Promise<Store> {
       patch.slug = s;
     }
     commit((d) => Object.assign(d.store, patch));
+    if (patch.name !== undefined || patch.slug !== undefined || patch.onboarded) writeProgress({ storeConfirmed: true });
     return db().store;
   });
 }

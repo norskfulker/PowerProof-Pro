@@ -5,12 +5,13 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { ExternalLink } from "lucide-react";
-import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
-import { SaveButton, SettingsLoading, SettingsSection } from "@/components/settings/settings-section";
+import { SaveBar } from "@/components/save/save-bar";
+import { SettingsLoading, SettingsSection } from "@/components/settings/settings-section";
+import { useFormSaveBar } from "@/hooks/use-dirty-form";
 import { TaxCodes } from "@/components/settings/tax-codes";
 import { useApi } from "@/hooks/use-api";
 import { getInvoiceSettings, getOrders, getTaxCodes, updateInvoiceSettings } from "@/lib/api";
@@ -28,27 +29,29 @@ type Values = z.input<typeof schema>;
 
 function InvoiceForm({ settings, sampleOrderId }: { settings: InvoiceSettings; sampleOrderId?: string }) {
   const form = useForm<Values>({ resolver: zodResolver(schema), defaultValues: settings, mode: "onTouched" });
+  const bar = useFormSaveBar(
+    form,
+    async (raw) => {
+      const v = schema.parse(raw);
+      await updateInvoiceSettings({ ...v, prefix: v.prefix.toUpperCase() });
+    },
+    "Invoice settings saved"
+  );
   return (
     <Form {...form}>
       <form
         id="invoice"
         noValidate
-        onSubmit={form.handleSubmit(async (raw) => {
-          const v = schema.parse(raw);
-          const s = await updateInvoiceSettings({ ...v, prefix: v.prefix.toUpperCase() });
-          form.reset(s);
-          toast.success("Invoice settings saved");
-        })}
+        onSubmit={(e) => {
+          e.preventDefault();
+          bar.save();
+        }}
       >
         <SettingsSection
           title="Tax invoices"
           description="Every paid order gets a numbered invoice. Numbers never repeat or go backwards."
-          footer={
-            <>
-              {sampleOrderId && <Button asChild variant="ghost"><Link href={`/invoice/${sampleOrderId}`} target="_blank">Preview an invoice <ExternalLink aria-hidden /></Link></Button>}
-              <SaveButton form="invoice" pending={form.formState.isSubmitting} dirty={form.formState.isDirty} />
-            </>
-          }
+          saveBar={<SaveBar state={bar} />}
+          footer={sampleOrderId ? <Button asChild variant="ghost"><Link href={`/invoice/${sampleOrderId}`} target="_blank">Preview an invoice <ExternalLink aria-hidden /></Link></Button> : undefined}
         >
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <FormField control={form.control} name="prefix" render={({ field }) => (

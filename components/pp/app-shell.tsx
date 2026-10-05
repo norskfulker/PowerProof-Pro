@@ -2,7 +2,10 @@
 
 import { useState } from "react";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
+import { SidebarProgress } from "@/components/getting-started/getting-started-card";
+import { PlanUsage } from "@/components/plan/plan-usage";
 import { cn } from "@/lib/utils";
+import { CreatorProviders } from "./creator-providers";
 import { MobileTabBar } from "./mobile-tab-bar";
 import { ADMIN_NAV, ADMIN_TABS, CREATOR_NAV, MOBILE_TABS } from "./nav-config";
 import { SidebarNav } from "./sidebar-nav";
@@ -24,11 +27,19 @@ export function AppShell({ children, variant = "creator" }: { children: React.Re
   const admin = variant === "admin";
   const groups = admin ? ADMIN_NAV : CREATOR_NAV;
 
+  const footer = admin ? undefined : (
+    <div className="flex flex-col gap-2">
+      <SidebarProgress />
+      <PlanUsage />
+    </div>
+  );
+
   return (
+    <CreatorProviders tracker={!admin}>
     <div className="min-h-dvh md:grid md:grid-cols-[248px_minmax(0,1fr)]">
       <SkipLink />
       <aside className={cn("sticky top-0 hidden h-dvh border-r md:block", admin && "border-transparent")}>
-        <SidebarNav groups={groups} tone={admin ? "admin" : "light"} />
+        <SidebarNav groups={groups} tone={admin ? "admin" : "light"} footer={footer} />
       </aside>
       <div className="flex min-w-0 flex-col">
         <Topbar admin={admin} />
@@ -40,9 +51,10 @@ export function AppShell({ children, variant = "creator" }: { children: React.Re
       <Sheet open={more} onOpenChange={setMore}>
         <SheetContent side="left" className="w-[86vw] max-w-xs p-0">
           <SheetTitle className="sr-only">Menu</SheetTitle>
-          <SidebarNav groups={groups} tone={admin ? "admin" : "light"} onNavigate={() => setMore(false)} />
+          <SidebarNav groups={groups} tone={admin ? "admin" : "light"} onNavigate={() => setMore(false)} footer={footer} />
         </SheetContent>
       </Sheet>
     </div>
+    </CreatorProviders>
   );
 }

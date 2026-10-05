@@ -159,3 +159,8 @@ export function setSessionRaw(s: Session | null) {
 }
 
 export type { Db };
+
+/** Tells every subscribed screen (and other tabs) that something changed outside the database. */
+export function notifyChange() {
+  commit();
+}

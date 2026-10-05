@@ -52,6 +52,12 @@ Want a full store instead? Log in at `/login` with any email and an 8+ character
 - **Global search.** In the founder admin (`/admin`) press **Ctrl K** (or use the search box). Try `#1042`, an email, `+91 98`, or `@inkwell`. Buyer emails and phones are masked; highlight a result, press **Ctrl Enter**, choose **Reveal email**, give a reason, and see it logged at `/admin/audit`. `/admin/search?q=...` has every result in tabs. Creators get the same palette inside the app, limited to their own store.
 - **Deal paths.** Buy *Second Brain for Founders* on `/s/ananya`. At checkout the **Build your deal** panel offers the Pricing Playbook at 25% off together and a free gift over ₹1,500. Add, remove, pick a gift, or say **No thanks**. Creators manage rules at `/store/offers/deal-paths` (wizard with a live test mode, and stats).
 - **Visual page editor.** `/store/pages` lists each store's visual pages (three per store). Open one to edit: add blocks, change backgrounds, switch phone/tablet/desktop, undo with Ctrl Z, then **Publish changes**. Published pages live at `/s/<store>/p/<slug>` and are linked from the store footer. About, FAQ and policies moved to `/store/info`.
+- **Media.** Any image field takes a drop, a click or a paste, shows progress and limits, and has Replace, Library, Remove, a focal point, alt text and **Create with AI**. Try the store hero (`/store/design` › Hero › Background), a product's images and video, a collection tile, the store logo and the About photo. Everything lands in `/media` (search, filter, rename, delete, where used).
+- **AI images.** `/images`, or **Create with AI** next to any image field. Four variations per generation; regenerate, vary, edit by instruction, remove or replace the background, upscale, add text, download, report. The generator is a mock with a 3 to 6 second wait; credits per plan are in `lib/plans.ts`.
+- **Several stores.** The store switcher in the top bar lists your stores (the sample account has two). Each has its own products, design, About, FAQ and policies at `/store/<id>/pages/...`; new stores start with default text marked **Not edited yet**.
+- **Free and Pro.** `/design` › Plans flips the demo account between Free (1 store, 1 product) and Pro. On Free, a second product or store opens the Upgrade dialog. Usage is in the sidebar and on `/settings/billing`; the comparison is on `/pricing`.
+- **Save bar.** Change anything on a settings, product, design, page, offer, deal path, collection or payout screen: the bar appears with Save and Discard, and it disappears again if you change the field back. Leaving with unsaved changes asks first.
+- **Getting started.** Sign up with a new email to see the tracker at 0%: the welcome dialog, the dashboard card, the sidebar ring, and **Next step** with a coach mark on arrival. Progress is kept per account, so it resumes after you log out and back in.
 - **Stress data.** **Avatar menu › Demo data › Load stress data** fills the store with very long and unbroken text, Hindi, Tamil, Telugu and Kannada titles, 500 products and orders, and 5,000 reviews.
 
 ## Where things are
@@ -61,13 +67,14 @@ app/
   (marketing)/      / , /pricing, /how-it-works, /templates
   (auth)/           /login, /signup, /forgot-password, /verify-email
   onboarding/       5-step setup
-  (app)/            creator app: dashboard, products, images, pages, orders,
+  (app)/            creator app: dashboard, products, media, images (AI), pages, orders,
                     customers, payouts, analytics, integrations, settings/*
   (buyer)/          /s/[store] (home, products, c/[collection], [product], about,
                     faq, contact, policies/*), /checkout, /success, /order/[token],
                     /lookup, /invoice
   (app)/store/      store design, collections, offers (+ deal-paths), reviews, questions,
-                    pages (visual pages list, versions), info, SEO, domain
+                    pages (visual pages list, versions), [id]/pages/* (per-store About,
+                    FAQ, policies), SEO, domain
   (editor)/         full-screen visual page editor: /store/pages/[id]/edit
   admin/            founder admin (darker shell), search, audit log
   emails/           React Email previews
@@ -77,17 +84,24 @@ components/
   pp/               product components (MoneyText, DataTable, StatCard, store and checkout pieces, ...)
   storefront/       the store shell, home sections and product page parts
   search/           global search palette, result rows, audited quick actions
+  media/            MediaUploader, BackgroundPicker, focal point, library dialog
+  ai/               AI image maker and its side panel
+  plan/             plan limits, Upgrade dialog, usage meters, Free vs Pro table
+  save/             SaveBar and the unsaved-changes guard
+  getting-started/  checklist, progress ring, coach marks, welcome dialog
   page-builder/     visual editor (EditorShell, Canvas, panels) and the shared PageRenderer
   <area>/           screen pieces per area (dashboard, products, buyer, ...)
 emails/             React Email templates
-hooks/              useApi, useBuyerCurrency, useNow, useScrollFocus
+hooks/              useApi, useDirtyForm, useMediaUrl, useBuyerCurrency, useNow, useScrollFocus
 tests/
   unit/             component tests (Testing Library); lib tests sit next to their code
   e2e/              Playwright specs: layout, a11y, flows, stress, visual
 lib/
   api/              the only data door for pages; swap bodies for fetch()
   mock/             in-browser mock database, seed and stress data
-  pages/            page schema (zod), templates, editor store (zustand), media limits
+  pages/            page schema (zod), templates, editor store (zustand)
+  media/            upload limits, the in-browser file store, contrast maths
+  plans.ts          Free and Pro limits, AI credits, prices (one place to change them)
   pricing/          prices, coupons, bundles, and deals.ts (deal paths engine)
   types/            domain types (Money is integer minor units + currency)
   money.ts          formatting, conversion, fee maths

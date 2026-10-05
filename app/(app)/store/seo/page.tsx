@@ -2,8 +2,6 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Loader2 } from "lucide-react";
-import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,6 +9,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { ErrorState } from "@/components/pp/empty-state";
 import { PageHeader } from "@/components/pp/page-header";
+import { SaveBar } from "@/components/save/save-bar";
+import { useDirtyForm } from "@/hooks/use-dirty-form";
 import { useApi } from "@/hooks/use-api";
 import { getStore, getStoreDesign, updateStoreDesign } from "@/lib/api";
 import { SITE_URL } from "@/lib/format";
@@ -22,7 +22,17 @@ export default function StoreSeoPage() {
   const saved = useApi(getStoreDesign, []);
   const store = useApi(getStore, []);
   const [draft, setDraft] = useState<StoreDesign>();
-  const [saving, setSaving] = useState(false);
+  const bar = useDirtyForm({
+    value: draft ?? saved.data,
+    saved: saved.data,
+    onSave: async (d) => {
+      if (!d) return;
+      saved.setData(await updateStoreDesign(d));
+      setDraft(undefined);
+    },
+    onDiscard: () => setDraft(undefined),
+    savedMessage: "Search and social details saved",
+  });
   if (saved.error) return <ErrorState message={saved.error} onRetry={saved.reload} />;
   if (!saved.data || !store.data) return <Skeleton className="h-[520px] rounded-card" />;
   const d = draft ?? saved.data;
@@ -35,21 +45,9 @@ export default function StoreSeoPage() {
         title="Search and social"
         description="How your store looks in Google and when someone shares the link."
         actions={
-          <>
-            <Button asChild variant="ghost"><Link href="/store/domain">Custom domain</Link></Button>
-            <Button disabled={!draft || saving} onClick={async () => {
-              setSaving(true);
-              try {
-                saved.setData(await updateStoreDesign(d));
-                setDraft(undefined);
-                toast.success("Saved");
-              } finally {
-                setSaving(false);
-              }
-            }}>{saving && <Loader2 className="animate-spin" aria-hidden />}{draft ? "Save" : "Saved"}</Button>
-          </>
-        }
+<Button asChild variant="ghost"><Link href="/store/domain">Custom domain</Link></Button>}
       />
+      <SaveBar state={bar} className="mb-4 md:ml-auto md:w-fit" />
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <section aria-label="Search listing" className="flex flex-col gap-4 rounded-card border bg-surface p-5">
           <div className="flex flex-col gap-1.5">

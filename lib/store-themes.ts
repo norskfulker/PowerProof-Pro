@@ -1,3 +1,4 @@
+import { readableOn } from "./color";
 import type { FontPairId, HeroStyle, PaletteId, SectionId, StoreTheme } from "./types";
 
 /**
@@ -72,6 +73,8 @@ export function themeVars(theme: StoreTheme): Record<string, string> {
     "--primary-soft": p.primarySoft,
     "--ring": p.primary,
     "--accent": accent,
+    // A creator's own accent can be dark: keep text on it readable
+    "--accent-foreground": /^#[0-9a-f]{6}$/i.test(accent) ? readableOn(accent) : "#0C1F1B",
     "--accent-strong": `color-mix(in oklab, ${accent} 82%, black)`,
     "--accent-ink": `color-mix(in oklab, ${accent} 52%, black)`,
     "--accent-soft": `color-mix(in oklab, ${accent} 14%, white)`,

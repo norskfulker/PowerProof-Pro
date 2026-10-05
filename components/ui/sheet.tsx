@@ -74,7 +74,7 @@ function SheetContent({
       >
         {children}
         {showCloseButton && (
-          <SheetPrimitive.Close className="absolute top-4 right-4 rounded-control p-1.5 opacity-70 transition-opacity hover:opacity-100 hover:bg-muted">
+          <SheetPrimitive.Close className="absolute top-4 right-4 grid place-items-center rounded-control p-1.5 opacity-70 transition-opacity hover:opacity-100 hover:bg-muted pointer-coarse:top-2 pointer-coarse:right-2 pointer-coarse:size-11">
             <XIcon className="size-4" />
             <span className="sr-only">Close</span>
           </SheetPrimitive.Close>

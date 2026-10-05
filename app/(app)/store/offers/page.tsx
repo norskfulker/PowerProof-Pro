@@ -6,6 +6,9 @@ import { Layers, Loader2, Plus, Sparkles, Ticket, Timer, Trash2 } from "lucide-r
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { SaveBar } from "@/components/save/save-bar";
+import { useUnsavedGuard } from "@/components/save/unsaved-guard";
+import { useDirtyForm } from "@/hooks/use-dirty-form";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ConfirmDialog } from "@/components/pp/confirm-dialog";
@@ -41,32 +44,31 @@ export default function OffersPage() {
   const { data, loading, error, reload, setData } = useApi(getOffers, []);
   const products = useApi(() => getProducts({ status: "published" }), []);
   const [editing, setEditing] = useState<Editing | null>(null);
-  const [formError, setFormError] = useState<string>();
-  const [pending, setPending] = useState(false);
+  const [original, setOriginal] = useState<Editing | null>(null);
+  const unsaved = useUnsavedGuard();
   const [toDelete, setToDelete] = useState<{ kind: "coupon" | "bundle" | "deal"; id: string; name: string } | null>(null);
   const ps = products.data ?? [];
   const [now] = useState(() => Date.now());
 
-  async function save() {
-    if (!editing) return;
-    setPending(true);
-    setFormError(undefined);
-    try {
+  const bar = useDirtyForm({
+    value: editing,
+    saved: original,
+    onSave: async (e) => {
+      if (!e) return;
       let out: Offers;
-      if (editing.kind === "coupon") out = await saveCoupon(editing.d);
-      else if (editing.kind === "bundle") out = await saveBundle(editing.d);
-      else out = await saveDeal(editing.d);
+      if (e.kind === "coupon") out = await saveCoupon(e.d);
+      else if (e.kind === "bundle") out = await saveBundle(e.d);
+      else out = await saveDeal(e.d);
       setData(out);
       setEditing(null);
-      toast.success("Offer saved", { description: "Live on your store straight away." });
-    } catch (e) {
-      setFormError(e instanceof Error ? e.message : "Couldn't save.");
-    } finally {
-      setPending(false);
-    }
-  }
+      setOriginal(null);
+    },
+    onDiscard: () => setEditing(original),
+    savedMessage: "Offer saved. It's live on your store straight away.",
+  });
+  const isNew = !editing?.d.id;
 
-  const start = (e: Editing) => { setEditing(e); setFormError(undefined); };
+  const start = (e: Editing) => { setEditing(e); setOriginal(e); };
   const newCoupon = (): Editing => ({ kind: "coupon", d: { code: "", kind: "percent", value: 10, scope: "store", productIds: [], active: true } });
   const newBundle = (): Editing => ({ kind: "bundle", d: { name: "", productIds: [], pricing: { kind: "percent", percent: 30 }, active: true } });
   const newDeal = (): Editing => ({ kind: "deal", d: { name: "", productIds: [], percentOff: 25, startsAt: new Date(now).toISOString(), endsAt: new Date(now + 48 * 3600000).toISOString() } });
@@ -143,16 +145,24 @@ export default function OffersPage() {
         </Tabs>
       )}
 
-      <Sheet open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
+      <Sheet open={!!editing} onOpenChange={(o) => !o && (bar.dirty ? unsaved.confirmLeave(() => setEditing(null)) : setEditing(null))}>
         <SheetContent className="w-full overflow-y-auto sm:max-w-md">
           <SheetHeader><SheetTitle className="font-display text-2xl">{editing?.d.id ? "Edit" : "New"} {editing?.kind}</SheetTitle></SheetHeader>
-          <form id="offer" noValidate className="flex flex-col gap-4 px-4" onSubmit={(e) => { e.preventDefault(); save(); }}>
-            {formError && <p role="alert" className="rounded-control bg-danger-soft px-3.5 py-2.5 text-sm font-medium text-danger">{formError}</p>}
+          <form id="offer" noValidate className="flex flex-col gap-4 px-4" onSubmit={(e) => { e.preventDefault(); bar.save(); }}>
+            {isNew && bar.error && <p role="alert" className="rounded-control bg-danger-soft px-3.5 py-2.5 text-sm font-medium text-danger">{bar.error}</p>}
             {editing?.kind === "coupon" && <CouponEditor draft={editing.d} products={ps} onChange={(d) => setEditing({ kind: "coupon", d })} />}
             {editing?.kind === "bundle" && <BundleEditor draft={editing.d} products={ps} onChange={(d) => setEditing({ kind: "bundle", d })} />}
             {editing?.kind === "deal" && <DealEditor draft={editing.d} products={ps} onChange={(d) => setEditing({ kind: "deal", d })} />}
           </form>
-          <SheetFooter><Button type="submit" form="offer" disabled={pending}>{pending && <Loader2 className="animate-spin" aria-hidden />} Save</Button></SheetFooter>
+          <SheetFooter>
+            {isNew ? (
+              <>
+                <Button type="submit" form="offer" disabled={bar.saving}>{bar.saving && <Loader2 className="animate-spin" aria-hidden />} Add {editing?.kind}</Button>
+              </>
+            ) : (
+              <SaveBar state={bar} bottomOffset="none" className="max-md:static max-md:border-0 max-md:p-0 max-md:shadow-none md:border-0 md:p-0" />
+            )}
+          </SheetFooter>
         </SheetContent>
       </Sheet>
 

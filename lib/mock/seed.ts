@@ -5,6 +5,7 @@ import { CUSTOMER_SEEDS, PRODUCT_SEEDS, SOURCE_WEIGHTS, TAX_CODES } from "./cata
 import { ANANYA_COLLECTIONS, EXTRA_ANANYA_PRODUCTS, GRIDGRAIN, INKWELL } from "./catalog-stores";
 import { buildOtherStore, productsFromRows } from "./other-stores";
 import { DAY, rng, slugify } from "./random";
+import { buildSecondStore } from "./second-store";
 import { buildCollections, buildDealRules, buildDesign, buildOffers, buildVisualPages, buildQuestions, buildReviews, defaultPages } from "./storefront-seed";
 
 const ANANYA_COLORS = [
@@ -228,6 +229,10 @@ export function seedDb(now: number = Date.now()): Db {
   return {
     version: DB_VERSION,
     mode: "seeded",
+    ownedStores: [buildSecondStore(now)],
+    media: [],
+    aiHistory: [],
+    aiCreditsUsed: { month: iso(now).slice(0, 7), used: 12 },
     ledger: { opening: 12480_50 - settledNet, since: iso(now) },
     store,
     company: baseCompany(),
@@ -266,7 +271,7 @@ function storefront(store: Db["store"], products: Product[], now: number) {
       dealEndsAt: offers.deals[0].endsAt,
       bumpProduct: products[9],
     }),
-    storePages: defaultPages(store),
+    storePages: { ...defaultPages(store), edited: { about: true, faq: true, refund: true, terms: true, privacy: true } },
     collections: buildCollections(products, ANANYA_COLLECTIONS, ANANYA_COLORS),
     visualPages: buildVisualPages(store, products, buildCollections(products, ANANYA_COLLECTIONS, ANANYA_COLORS), now, [
       ["sale", "Diwali sale", "diwali-sale", true],

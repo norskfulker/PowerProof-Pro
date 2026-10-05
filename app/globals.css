@@ -183,6 +183,12 @@
   :where(h1, h2, h3, h4, p, li, dd, dt, td, th, label, figcaption, blockquote, a, span, legend) {
     overflow-wrap: anywhere;
   }
+  /* Getting started: the element a coach-mark points at */
+  [data-coach-active="true"] {
+    outline: 3px solid var(--accent);
+    outline-offset: 4px;
+    border-radius: var(--radius-control);
+  }
   /* Links and buttons in table cells get a full touch target on touch screens */
   @media (pointer: coarse) {
     :where([data-slot="table"]) :where(td a, td button) {

@@ -8,7 +8,9 @@ import { toast } from "sonner";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
-import { SaveButton, SettingsLoading, SettingsSection } from "@/components/settings/settings-section";
+import { SaveBar } from "@/components/save/save-bar";
+import { SettingsLoading, SettingsSection } from "@/components/settings/settings-section";
+import { useFormSaveBar } from "@/hooks/use-dirty-form";
 import { useApi } from "@/hooks/use-api";
 import { getStore, updateStore } from "@/lib/api";
 import type { Store } from "@/lib/types";
@@ -24,19 +26,18 @@ const pwSchema = z
 
 function ProfileForm({ store, onSaved }: { store: Store; onSaved: (s: Store) => void }) {
   const form = useForm<z.infer<typeof schema>>({ resolver: zodResolver(schema), defaultValues: { ownerName: store.ownerName, ownerEmail: store.ownerEmail }, mode: "onTouched" });
+  const bar = useFormSaveBar(form, async (v) => onSaved(await updateStore(v)), "Profile saved");
   return (
     <Form {...form}>
       <form
         id="profile"
         noValidate
-        onSubmit={form.handleSubmit(async (v) => {
-          const s = await updateStore(v);
-          onSaved(s);
-          form.reset(v);
-          toast.success("Profile saved");
-        })}
+        onSubmit={(e) => {
+          e.preventDefault();
+          bar.save();
+        }}
       >
-        <SettingsSection title="Profile" description="How we address you and where we send account emails." footer={<SaveButton form="profile" pending={form.formState.isSubmitting} dirty={form.formState.isDirty} />}>
+        <SettingsSection title="Profile" description="How we address you and where we send account emails." saveBar={<SaveBar state={bar} />}>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <FormField control={form.control} name="ownerName" render={({ field }) => (
               <FormItem><FormLabel>Your name</FormLabel><FormControl><Input autoComplete="name" {...field} /></FormControl><FormMessage /></FormItem>
@@ -53,18 +54,26 @@ function ProfileForm({ store, onSaved }: { store: Store; onSaved: (s: Store) => 
 
 function PasswordForm() {
   const form = useForm<z.infer<typeof pwSchema>>({ resolver: zodResolver(pwSchema), defaultValues: { current: "", next: "", confirm: "" }, mode: "onTouched" });
+  const bar = useFormSaveBar(
+    form,
+    async () => {
+      await new Promise((r) => setTimeout(r, 500));
+      // Passwords are never kept as the "saved" value: clear the fields after changing it
+      setTimeout(() => form.reset({ current: "", next: "", confirm: "" }), 0);
+    },
+    "Password changed. Other devices have been logged out."
+  );
   return (
     <Form {...form}>
       <form
         id="password"
         noValidate
-        onSubmit={form.handleSubmit(async () => {
-          await new Promise((r) => setTimeout(r, 500));
-          form.reset();
-          toast.success("Password changed", { description: "Other devices have been logged out." });
-        })}
+        onSubmit={(e) => {
+          e.preventDefault();
+          bar.save();
+        }}
       >
-        <SettingsSection title="Password" footer={<SaveButton form="password" pending={form.formState.isSubmitting} dirty={form.formState.isDirty} />}>
+        <SettingsSection title="Password" saveBar={<SaveBar state={bar} label="New password not saved" />}>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             {(["current", "next", "confirm"] as const).map((n) => (
               <FormField key={n} control={form.control} name={n} render={({ field }) => (

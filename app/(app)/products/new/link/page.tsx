@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PageHeader } from "@/components/pp/page-header";
+import { usePlan } from "@/components/plan/plan-context";
 import { ProductForm } from "@/components/products/product-form";
 import { toInput, toValues } from "@/components/products/to-values";
 import { autofillFromLink, createProduct } from "@/lib/api";
@@ -18,6 +19,7 @@ const EXAMPLES = ["https://gumroad.com/l/notion-content-calendar", "https://www.
 
 export default function LinkProductPage() {
   const router = useRouter();
+  const plan = usePlan();
   const [url, setUrl] = useState("");
   const [error, setError] = useState<string>();
   const [loading, setLoading] = useState(false);
@@ -135,9 +137,14 @@ export default function LinkProductPage() {
             })}
             submitLabel="Create product"
             onSubmit={async (v) => {
-              const p = await createProduct(toInput(v));
-              toast.success(p.status === "published" ? "Product is live" : "Saved as a draft", { description: p.title });
-              router.push("/products");
+              try {
+                const p = await createProduct(toInput(v));
+                toast.success(p.status === "published" ? "Product is live" : "Saved as a draft", { description: p.title });
+                router.push("/products");
+              } catch (e) {
+                if (!plan.handleLimitError(e)) toast.error("Couldn't create it", { description: e instanceof Error ? e.message : undefined });
+                throw e;
+              }
             }}
           />
         </>

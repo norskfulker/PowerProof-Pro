@@ -176,6 +176,8 @@ export const pageDocSchema = z
   .object({
     version: z.literal(1),
     blocks: z.array(nodeSchema).max(40, "Up to 40 sections on a page."),
+    /** Behind every section (Part 6B). Sections with their own background sit on top. */
+    style: styleSchema.optional(),
   })
   .superRefine((d, ctx) => {
     d.blocks.forEach((b, i) => {

@@ -27,7 +27,7 @@ export function Stars({ value, size = "sm", className }: { value: number; size?:
 export function StarInput({ value, onChange, invalid }: { value: number; onChange: (v: 1 | 2 | 3 | 4 | 5) => void; invalid?: boolean }) {
   const labels = ["Poor", "Not great", "Okay", "Good", "Loved it"];
   return (
-    <div role="radiogroup" aria-label="Your rating" aria-invalid={invalid || undefined} className="flex items-center gap-1">
+    <div role="radiogroup" aria-label="Your rating" aria-invalid={invalid || undefined} className="flex flex-wrap items-center gap-1">
       {([1, 2, 3, 4, 5] as const).map((i) => (
         <button
           key={i}
@@ -41,7 +41,7 @@ export function StarInput({ value, onChange, invalid }: { value: number; onChang
             if (e.key === "ArrowRight" || e.key === "ArrowUp") onChange(Math.min(5, (value || 0) + 1) as 1);
             if (e.key === "ArrowLeft" || e.key === "ArrowDown") onChange(Math.max(1, (value || 2) - 1) as 1);
           }}
-          className="grid size-11 place-items-center rounded-control hover:bg-muted"
+          className="grid size-11 shrink-0 place-items-center rounded-control hover:bg-muted"
         >
           <Star className={cn("size-7", i <= value ? "text-accent" : "text-border-strong")} fill="currentColor" strokeWidth={0} />
         </button>

@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import { GuardedLink } from "@/components/plan/plan-context";
 import type { ColumnDef } from "@tanstack/react-table";
 import { Copy, ExternalLink, MoreHorizontal, Package, Pencil, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
@@ -97,9 +98,9 @@ export default function ProductsPage() {
         description="Everything you sell. Drafts stay hidden until you publish."
         actions={
           <Button asChild>
-            <Link href="/products/new">
+            <GuardedLink kind="products" href="/products/new">
               <Plus aria-hidden /> Add product
-            </Link>
+            </GuardedLink>
           </Button>
         }
       />
@@ -118,7 +119,7 @@ export default function ProductsPage() {
         rowHref={(p) => `/products/${p.id}`}
         mobileCard={(p) => (
           <Link href={`/products/${p.id}`} className="flex items-center gap-3 rounded-card border bg-surface p-3">
-            <ProductImageView image={p.images[0]} size="xs" className="w-20 shrink-0 rounded-[8px]" />
+            <ProductImageView image={p.images[0]} fallback={p.tileBackground} fallbackLabel={p.title} size="xs" className="w-20 shrink-0 rounded-[8px]" />
             <span className="min-w-0 flex-1">
               <span className="block truncate font-semibold">{p.title}</span>
               <span className="mt-1 flex items-center gap-2">
@@ -131,12 +132,13 @@ export default function ProductsPage() {
         )}
         empty={
           <EmptyState
+            nextStep
             icon={Package}
             title="No products yet."
             body="Paste a link, upload a file or build a page. Your first one takes about a minute."
             action={
               <Button asChild>
-                <Link href="/products/new"><Plus aria-hidden /> Add your first product</Link>
+                <GuardedLink kind="products" href="/products/new"><Plus aria-hidden /> Add your first product</GuardedLink>
               </Button>
             }
           />

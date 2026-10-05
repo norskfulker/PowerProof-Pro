@@ -193,6 +193,9 @@ test.describe("visual editor @flow", () => {
 
     await page.getByRole("button", { name: /Publish changes/ }).click();
     await expect(page.getByText("Published", { exact: true }).first()).toBeVisible();
+    // Part 6F: Publish only shows while the draft differs from the live page
+    await expect(page.getByRole("status").filter({ hasText: "Live" })).toBeVisible();
+    await expect(page.getByRole("button", { name: /^Publish/ })).toHaveCount(0);
 
     await page.goto("/s/ananya/p/about-ananya");
     await settle(page);

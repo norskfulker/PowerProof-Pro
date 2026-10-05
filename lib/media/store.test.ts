@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { MB, checkMedia, mediaKindOf } from "./media";
+import { MB, checkMedia, mediaKindOf } from "./store";
 
 const f = (name: string, type: string, size: number) => ({ name, type, size });
 

@@ -28,7 +28,6 @@ import { StatusPill } from "@/components/pp/status-pill";
 import { StepProgress } from "@/components/pp/step-progress";
 import { SystemPage } from "@/components/pp/system-page";
 import { TemplateCard } from "@/components/pp/template-card";
-import { ImageMaker } from "@/components/pp/image-maker";
 import { HtmlPasteEditor, findBuyButtons } from "@/components/pp/html-paste-editor";
 import { TEMPLATES } from "@/lib/templates";
 import { contrast } from "@/lib/color";
@@ -363,9 +362,3 @@ describe("HtmlPasteEditor", () => {
   });
 });
 
-describe("ImageMaker", () => {
-  it("renders the cover maker", () => {
-    render(<ImageMaker initial={PRODUCT.images[0].cover} />);
-    expect(screen.getAllByRole("button").length).toBeGreaterThan(1);
-  });
-});

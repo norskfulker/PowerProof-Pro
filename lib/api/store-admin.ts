@@ -1,4 +1,5 @@
 import { commit, db } from "../mock/db";
+import { writeProgress } from "../mock/progress";
 import { slugify, uid } from "../mock/random";
 import type { Bundle, Collection, Coupon, Deal, Question, Review, StoreDesign, StorePages } from "../types";
 import { ApiError, call, notFound } from "./client";
@@ -12,7 +13,17 @@ export function getStoreDesign(): Promise<StoreDesign> {
 export function updateStoreDesign(design: StoreDesign): Promise<StoreDesign> {
   return call(() => {
     if (!design.hero.headline.trim()) throw new ApiError("The hero needs a headline.", "validation");
+    const before = db().design;
     commit((d) => (d.design = design));
+    // Getting started: note which parts of the store the creator has made their own
+    const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
+    writeProgress((p) => ({
+      customized: {
+        hero: p.customized.hero || !same(before.hero, design.hero),
+        colors: p.customized.colors || !same(before.theme, design.theme),
+        about: p.customized.about || !same(before.about, design.about),
+      },
+    }));
     return db().design;
   });
 }

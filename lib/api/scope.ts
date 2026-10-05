@@ -6,7 +6,13 @@ import { notFound } from "./client";
 /** Internal helpers: every public store, the creator's own one first. Not exported from the api index. */
 export function allScopes(): StoreScope[] {
   const d = db();
-  return [d, ...d.otherStores];
+  return [d, ...(d.ownedStores ?? []), ...d.otherStores];
+}
+
+/** The signed-in creator's stores: the active one first */
+export function ownedScopes(): StoreScope[] {
+  const d = db();
+  return [d, ...(d.ownedStores ?? [])];
 }
 
 export function scopeBySlug(slug: string): StoreScope {

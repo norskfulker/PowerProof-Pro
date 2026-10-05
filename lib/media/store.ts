@@ -7,7 +7,7 @@
 export const MB = 1024 * 1024;
 
 export const MEDIA_LIMITS = {
-  image: { max: 5 * MB, types: ["image/jpeg", "image/png", "image/webp", "image/avif"], label: "JPG, PNG, WebP or AVIF up to 5 MB" },
+  image: { max: 5 * MB, types: ["image/jpeg", "image/png", "image/webp"], label: "JPG, PNG or WebP up to 5 MB" },
   gif: { max: 5 * MB, types: ["image/gif"], label: "GIF up to 5 MB" },
   video: { max: 10 * MB, types: ["video/mp4", "video/webm"], label: "MP4 or WebM up to 10 MB" },
 } as const;
@@ -44,16 +44,39 @@ function open(): Promise<IDBDatabase> {
   });
 }
 
+interface AssetRecord {
+  name: string;
+  type: string;
+  /** Most browsers keep the file itself */
+  blob?: Blob;
+  /** Some (WebKit in certain modes) can't keep a Blob in IndexedDB; the raw bytes always work */
+  bytes?: ArrayBuffer;
+}
+
+function write(db: IDBDatabase, id: string, rec: AssetRecord): Promise<void> {
+  return new Promise<void>((resolve, reject) => {
+    try {
+      const tx = db.transaction(STORE, "readwrite");
+      tx.objectStore(STORE).put(rec, id);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error ?? new Error("Couldn't save the file. Your browser storage may be full."));
+      tx.onabort = () => reject(tx.error ?? new Error("Couldn't save the file."));
+    } catch (e) {
+      reject(e);
+    }
+  });
+}
+
 export async function putAsset(file: File): Promise<string> {
   const id = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
   const db = await open();
-  await new Promise<void>((resolve, reject) => {
-    const tx = db.transaction(STORE, "readwrite");
-    tx.objectStore(STORE).put({ blob: file, name: file.name, type: file.type }, id);
-    tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(tx.error ?? new Error("Couldn't save the file. Your browser storage may be full."));
-  });
-  db.close();
+  try {
+    await write(db, id, { blob: file, name: file.name, type: file.type });
+  } catch {
+    await write(db, id, { bytes: await file.arrayBuffer(), name: file.name, type: file.type });
+  } finally {
+    db.close();
+  }
   return `asset:${id}`;
 }
 
@@ -66,17 +89,64 @@ export async function assetUrl(src: string): Promise<string | undefined> {
   if (urls.has(id)) return urls.get(id);
   try {
     const db = await open();
-    const rec = await new Promise<{ blob: Blob } | undefined>((resolve, reject) => {
+    const rec = await new Promise<AssetRecord | undefined>((resolve, reject) => {
       const req = db.transaction(STORE).objectStore(STORE).get(id);
-      req.onsuccess = () => resolve(req.result as { blob: Blob } | undefined);
+      req.onsuccess = () => resolve(req.result as AssetRecord | undefined);
       req.onerror = () => reject(req.error);
     });
     db.close();
-    if (!rec) return undefined;
-    const url = URL.createObjectURL(rec.blob);
+    const blob = rec?.blob ?? (rec?.bytes ? new Blob([rec.bytes], { type: rec.type }) : undefined);
+    if (!blob) return undefined;
+    const url = URL.createObjectURL(blob);
     urls.set(id, url);
     return url;
   } catch {
     return undefined;
+  }
+}
+
+/** Removes an uploaded file from this browser. Remote URLs are left alone. */
+export async function deleteAsset(src: string): Promise<void> {
+  if (!src.startsWith("asset:")) return;
+  const id = src.slice(6);
+  const url = urls.get(id);
+  if (url) URL.revokeObjectURL(url);
+  urls.delete(id);
+  try {
+    const db = await open();
+    await new Promise<void>((resolve) => {
+      const tx = db.transaction(STORE, "readwrite");
+      tx.objectStore(STORE).delete(id);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => resolve();
+    });
+    db.close();
+  } catch {
+    /* storage unavailable: nothing to delete */
+  }
+}
+
+/** Width and height of an image or video file, when the browser can read them. */
+export async function measureMedia(file: Blob, kind: MediaKind): Promise<{ width?: number; height?: number }> {
+  try {
+    if (kind === "video") {
+      const url = URL.createObjectURL(file);
+      const v = document.createElement("video");
+      v.preload = "metadata";
+      v.src = url;
+      await new Promise<void>((resolve, reject) => {
+        v.onloadedmetadata = () => resolve();
+        v.onerror = () => reject(new Error("unreadable"));
+        setTimeout(() => resolve(), 3000);
+      });
+      URL.revokeObjectURL(url);
+      return { width: v.videoWidth || undefined, height: v.videoHeight || undefined };
+    }
+    const bmp = await createImageBitmap(file);
+    const out = { width: bmp.width, height: bmp.height };
+    bmp.close();
+    return out;
+  } catch {
+    return {};
   }
 }

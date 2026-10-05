@@ -148,7 +148,7 @@ export function ProductComponents() {
       <Section id="editors" title="Editors" description="HtmlPasteEditor wires any data-pp-buy button. The image maker lives at /images.">
         <HtmlPasteEditor value={html} onChange={setHtml} productNames={{ demo: "Second Brain for Founders" }} />
         <Button asChild variant="secondary" className="mt-4">
-          <Link href="/images">Open the image maker</Link>
+          <Link href="/images">Open AI images</Link>
         </Button>
       </Section>
     </>

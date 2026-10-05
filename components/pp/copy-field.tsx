@@ -25,7 +25,10 @@ export function CopyField({
   toastText = "Link copied",
   className,
   multiline,
+  onCopied,
 }: {
+  /** Runs after a successful copy (e.g. marking the store link as shared) */
+  onCopied?: () => void;
   value: string;
   label?: string;
   display?: string;
@@ -49,6 +52,7 @@ export function CopyField({
           className="h-auto min-h-11 rounded-none border-l border-border-strong px-4"
           onClick={async () => {
             if (await copyText(value, toastText)) {
+              onCopied?.();
               setDone(true);
               setTimeout(() => setDone(false), 1600);
             }

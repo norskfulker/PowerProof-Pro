@@ -6,6 +6,7 @@ import { Foundations } from "./_foundations";
 import { Overlays } from "./_overlays";
 import { ProductComponents } from "./_product";
 import { Part4Components } from "./_part4";
+import { Part6Components } from "./_part6";
 import { StoreComponents } from "./_store";
 
 export const metadata: Metadata = { title: "Design system" };
@@ -34,6 +35,10 @@ const TOC = [
   ["deals", "Deal paths"],
   ["search", "Search"],
   ["builder", "Page builder"],
+  ["plans", "Plans"],
+  ["media", "Media"],
+  ["savebar", "Save bar"],
+  ["getting-started", "Getting started"],
 ];
 
 export default function DesignPage() {
@@ -71,6 +76,7 @@ export default function DesignPage() {
             <ProductComponents />
             <StoreComponents />
             <Part4Components />
+            <Part6Components />
           </div>
         </main>
       </div>

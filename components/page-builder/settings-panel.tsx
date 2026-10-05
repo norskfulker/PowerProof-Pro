@@ -5,9 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { RenderContext } from "@/lib/api";
 import { BLOCK_LABELS } from "@/lib/pages/editor-store";
-import { HIGHLIGHT_ICONS, findNode, PROPS, type BlockProps, type PageNode } from "@/lib/pages/schema";
+import { HIGHLIGHT_ICONS, findNode, PROPS, styleSchema, type BlockProps, type PageNode } from "@/lib/pages/schema";
 import { ChoiceField, MediaUploader, SelectField, SwitchField, TableEditor, TextField, BackgroundPicker, RangeField } from "./controls";
 import { useEditor } from "./editor-context";
+
+const DEFAULT_STYLE = styleSchema.parse({});
 
 type Patch = (patch: Record<string, unknown>, coalesceKey?: string) => void;
 
@@ -327,12 +329,21 @@ export function SettingsPanel({ context }: { context: RenderContext }) {
   const updateStyle = useEditor((s) => s.updateStyle);
   const updateLayout = useEditor((s) => s.updateLayout);
   const updateVisibility = useEditor((s) => s.updateVisibility);
+  const updatePageStyle = useEditor((s) => s.updatePageStyle);
+  const pageStyle = useEditor((s) => s.doc.style);
 
   if (!selectedId || !node) {
     return (
-      <div className="flex flex-col items-center gap-2 px-4 py-10 text-center text-sm text-muted-foreground">
-        <MousePointer2 className="size-5" aria-hidden />
-        Select a block on the page or in Layers to change it.
+      <div className="flex flex-col gap-6">
+        <div className="flex flex-col items-center gap-2 px-4 pt-6 text-center text-sm text-muted-foreground">
+          <MousePointer2 className="size-5" aria-hidden />
+          Select a block on the page or in Layers to change it.
+        </div>
+        <section aria-labelledby="page-bg-h" className="flex flex-col gap-3 border-t pt-4">
+          <h3 id="page-bg-h" className="font-sans text-sm font-semibold tracking-normal">Page background</h3>
+          <p className="-mt-1 text-xs text-muted-foreground">Behind every section. Sections with their own background sit on top.</p>
+          <BackgroundPicker style={pageStyle ?? DEFAULT_STYLE} context={context} onChange={(patch, key) => updatePageStyle(patch, key)} />
+        </section>
       </div>
     );
   }

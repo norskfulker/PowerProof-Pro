@@ -84,7 +84,7 @@ export function CurrencyInput({
           if (!Number.isNaN(n)) onChange({ amount: Math.round(n * 100), currency });
         }}
       />
-      <span className="pr-3.5 font-mono text-[0.6875rem] text-muted-foreground">{currency}</span>
+      <span className="shrink-0 pr-3.5 font-mono text-[0.6875rem] whitespace-nowrap text-muted-foreground [overflow-wrap:normal]">{currency}</span>
     </div>
   );
 }

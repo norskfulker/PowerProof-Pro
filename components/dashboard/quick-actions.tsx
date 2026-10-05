@@ -1,8 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import { GuardedLink } from "@/components/plan/plan-context";
 import { ArrowUpRight, Link2, Plus, Wallet } from "lucide-react";
 import { copyText } from "@/components/pp/copy-field";
+import { markLinkShared } from "@/lib/api";
 import { SITE_URL } from "@/lib/format";
 import type { Store } from "@/lib/types";
 
@@ -12,17 +14,20 @@ const tile =
 export function QuickActions({ store }: { store?: Store }) {
   return (
     <nav aria-label="Quick actions" className="grid grid-cols-3 gap-3">
-      <Link href="/products/new" className={tile}>
+      <GuardedLink kind="products" href="/products/new" className={tile}>
         <span className="grid size-9 place-items-center rounded-control bg-primary text-primary-foreground">
           <Plus className="size-4" aria-hidden />
         </span>
         <span className="text-sm font-semibold">Add product</span>
-      </Link>
+      </GuardedLink>
       <button
         type="button"
         className={tile}
         disabled={!store}
-        onClick={() => store && copyText(`https://${SITE_URL}/${store.slug}`, "Store link copied")}
+        data-coach="share-link"
+        onClick={async () => {
+          if (store && (await copyText(`https://${SITE_URL}/${store.slug}`, "Store link copied"))) markLinkShared();
+        }}
       >
         <span className="grid size-9 place-items-center rounded-control bg-primary-soft text-primary">
           <Link2 className="size-4" aria-hidden />

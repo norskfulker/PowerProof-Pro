@@ -3,11 +3,29 @@
 import { useState } from "react";
 import { PlayCircle, ZoomIn, ZoomOut } from "lucide-react";
 import { ProductImageView } from "@/components/pp/product-cover";
-import type { ProductImage } from "@/lib/types";
+import { useMediaUrl } from "@/hooks/use-media-url";
+import type { MediaRef, ProductImage, TileBackground } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 /** Gallery with click-to-zoom (follows the pointer) and an optional preview video slot. */
-export function ProductGallery({ images, title, hasVideo }: { images: ProductImage[]; title: string; hasVideo?: boolean }) {
+function GalleryVideo({ video, title }: { video: MediaRef; title: string }) {
+  const v = useMediaUrl(video.src);
+  const poster = useMediaUrl(video.poster);
+  if (!v.url) {
+    return (
+      <div className="grid aspect-[4/3] place-items-center bg-foreground text-center text-primary-foreground">
+        <span className="flex flex-col items-center gap-2 px-6">
+          <PlayCircle className="size-12" aria-hidden />
+          <span className="font-semibold">{v.missing ? "Video not available" : "Loading video…"}</span>
+        </span>
+      </div>
+    );
+  }
+  return <video src={v.url} poster={poster.url} controls playsInline preload="metadata" aria-label={`${title} video`} className="aspect-[4/3] w-full bg-black object-contain" />;
+}
+
+export function ProductGallery({ images, title, hasVideo, video, fallback }: { images: ProductImage[]; title: string; hasVideo?: boolean; video?: MediaRef; fallback?: TileBackground }) {
+  hasVideo = hasVideo || !!video?.src;
   const [active, setActive] = useState(0);
   const [zoom, setZoom] = useState(false);
   const [origin, setOrigin] = useState("50% 50%");
@@ -17,13 +35,17 @@ export function ProductGallery({ images, title, hasVideo }: { images: ProductIma
     <div className="flex flex-col gap-3">
       <div className="relative overflow-hidden rounded-card border bg-surface">
         {showingVideo ? (
-          <div className="grid aspect-[4/3] place-items-center bg-foreground text-center text-primary-foreground">
-            <span className="flex flex-col items-center gap-2 px-6">
-              <PlayCircle className="size-12" aria-hidden />
-              <span className="font-semibold">Preview video</span>
-              <span className="text-sm opacity-80">The creator&apos;s walkthrough plays here.</span>
-            </span>
-          </div>
+          video?.src ? (
+            <GalleryVideo video={video} title={title} />
+          ) : (
+            <div className="grid aspect-[4/3] place-items-center bg-foreground text-center text-primary-foreground">
+              <span className="flex flex-col items-center gap-2 px-6">
+                <PlayCircle className="size-12" aria-hidden />
+                <span className="font-semibold">Preview video</span>
+                <span className="text-sm opacity-80">The creator&apos;s walkthrough plays here.</span>
+              </span>
+            </div>
+          )
         ) : (
           <button
             type="button"
@@ -37,7 +59,7 @@ export function ProductGallery({ images, title, hasVideo }: { images: ProductIma
             className={cn("block w-full", zoom ? "cursor-zoom-out" : "cursor-zoom-in")}
           >
             <span className="block transition-transform duration-200 ease-out" style={{ transform: zoom ? "scale(2)" : "scale(1)", transformOrigin: origin }}>
-              <ProductImageView image={images[active]} size="lg" className="rounded-none" />
+              <ProductImageView image={images[active]} fallback={fallback} fallbackLabel={title} size="lg" className="rounded-none" />
             </span>
             <span className="absolute right-3 bottom-3 grid size-9 place-items-center rounded-full bg-surface/90 text-foreground" aria-hidden>
               {zoom ? <ZoomOut className="size-4" /> : <ZoomIn className="size-4" />}

@@ -41,6 +41,8 @@ export async function prepare(page: Page, testInfo: TestInfo, opts: PrepareOptio
       if (/preload|was preloaded/i.test(t)) return;
       // Playwright's init script is injected into sandboxed srcdoc frames (email previews) and blocked there
       if (/Blocked script execution in 'about:srcdoc'/.test(t)) return;
+      // Firefox's own performance hint while an iframe preview is still loading its stylesheet
+      if (/Layout was forced before the page was fully loaded/.test(t)) return;
       errors.push(`${m.type()}: ${t}`);
     }
   });

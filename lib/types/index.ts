@@ -14,3 +14,4 @@ export * from "./session";
 export * from "./storefront";
 export * from "./search";
 export * from "./deals";
+export * from "./media";

@@ -1,7 +1,13 @@
+"use client";
+
 import Link from "next/link";
 import { ArrowRight, PlayCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { HeroContent, HeroStyle, ProductImage } from "@/lib/types";
+import { TileBackgroundView } from "@/components/media/tile-background";
+import { useImageAverage } from "@/hooks/use-image-average";
+import { tileTextColor } from "@/lib/media/contrast";
+import type { TileBackground } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { ProductImageView } from "./product-cover";
 
@@ -18,7 +24,22 @@ function Collage({ images, className }: { images: ProductImage[]; className?: st
   );
 }
 
-/** Store hero in three layouts. One main button. */
+/** Hero over an uploaded image, GIF or looping video (Part 6A/6B). Text colour follows the picture. */
+function BackgroundHero({ hero, bg, cta, centered }: { hero: HeroContent; bg: TileBackground; cta: React.ReactNode; centered: boolean }) {
+  const avg = useImageAverage(bg.kind === "image" ? bg.src : bg.kind === "video" ? bg.poster : undefined);
+  const color = tileTextColor(bg, avg);
+  return (
+    <TileBackgroundView bg={bg} className="min-h-[26rem] md:min-h-[32rem]">
+      <section aria-label="Introduction" className={cn("relative mx-auto flex max-w-[1200px] flex-col gap-5 px-4 py-20 md:px-6 md:py-28", centered ? "items-center text-center" : "items-start")} style={{ color }}>
+        <h1 className="max-w-3xl text-[2.5rem] leading-[1.05] md:text-6xl">{hero.headline}</h1>
+        <p className="max-w-xl text-lg opacity-90">{hero.subtext}</p>
+        {cta}
+      </section>
+    </TileBackgroundView>
+  );
+}
+
+/** Store hero in three layouts, or over a background image or video. One main button. */
 export function HeroSection({
   hero,
   style,
@@ -46,6 +67,9 @@ export function HeroSection({
       )}
     </div>
   );
+
+  const bg = hero.background;
+  if (bg && (bg.kind === "color" || bg.src)) return <BackgroundHero hero={hero} bg={bg} cta={cta} centered={style === "centered"} />;
 
   if (style === "full") {
     return (

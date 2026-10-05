@@ -1,5 +1,7 @@
 "use client";
 
+import { BackgroundPicker } from "@/components/media/background-picker";
+import { TileBackgroundView } from "@/components/media/tile-background";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -24,7 +26,7 @@ export function HeroEditor({ design, products, collections, onChange }: { design
   const set = (p: Partial<StoreDesign["hero"]>) => onChange({ ...design, hero: { ...hero, ...p } });
   const live = products.filter((p) => p.status === "published");
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-4" data-coach="design-hero">
       <Field id="h-head" label="Headline"><Input id="h-head" value={hero.headline} maxLength={70} onChange={(e) => set({ headline: e.target.value })} /></Field>
       <Field id="h-sub" label="Subtext"><Textarea id="h-sub" rows={2} value={hero.subtext} maxLength={160} onChange={(e) => set({ subtext: e.target.value })} /></Field>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -59,6 +61,31 @@ export function HeroEditor({ design, products, collections, onChange }: { design
             );
           })}
         </ul>
+      </fieldset>
+      <fieldset className="flex flex-col gap-3 rounded-control border p-3">
+        <legend className="px-1 text-sm font-medium">Background</legend>
+        <label className="flex min-h-11 cursor-pointer items-center justify-between gap-3 text-sm">
+          Put the hero over an image, GIF or video
+          <Switch
+            checked={!!hero.background}
+            onCheckedChange={(on) => set({ background: on ? { kind: "image", src: "", alt: "", focal: { x: 50, y: 50 }, overlay: 0.35 } : undefined })}
+            aria-label="Hero background image or video"
+          />
+        </label>
+        {hero.background && (
+          <BackgroundPicker
+            label="Hero background"
+            modes={["image", "video", "color"]}
+            aiPurpose="hero_banner"
+            value={hero.background}
+            onChange={(background) => set({ background })}
+            preview={(bg, text) => (
+              <TileBackgroundView bg={bg} className="grid aspect-video place-items-center rounded-media p-4">
+                <span className="text-center font-display text-xl leading-tight [overflow-wrap:anywhere]" style={{ color: text }}>{hero.headline || "Your headline"}</span>
+              </TileBackgroundView>
+            )}
+          />
+        )}
       </fieldset>
       <Field id="h-video" label="Intro video link (optional)" hint="YouTube or Vimeo. Shows a second button.">
         <Input id="h-video" type="url" placeholder="https://youtube.com/watch?v=…" value={hero.videoUrl ?? ""} onChange={(e) => set({ videoUrl: e.target.value || undefined })} />

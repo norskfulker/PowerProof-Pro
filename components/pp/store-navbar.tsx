@@ -1,5 +1,6 @@
 "use client";
 
+import { MediaImg } from "@/components/media/tile-background";
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -13,7 +14,11 @@ import { CurrencyPicker } from "@/components/buyer/buyer-shell";
 export function StoreLogo({ store }: { store: Store }) {
   return (
     <span className="flex min-w-0 items-center gap-2.5">
-      <span className="grid size-9 shrink-0 place-items-center rounded-[10px] bg-primary font-mono text-xs font-semibold text-primary-foreground">{store.logoText}</span>
+      {store.logo?.src ? (
+        <span className="relative size-9 shrink-0 overflow-hidden rounded-[10px]"><MediaImg src={store.logo.src} alt="" decorative className="absolute inset-0" /></span>
+      ) : (
+        <span className="grid size-9 shrink-0 place-items-center rounded-[10px] bg-primary font-mono text-xs font-semibold text-primary-foreground">{store.logoText}</span>
+      )}
       <span className="truncate font-display text-lg">{store.name}</span>
     </span>
   );

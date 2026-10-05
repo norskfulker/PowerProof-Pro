@@ -9,7 +9,11 @@ export const productSchema = z
     kind: z.enum(["ebook", "template", "preset", "notion", "course", "audio", "other"]),
     price: money.refine((m) => m.amount >= 1000, "₹10.00 is the minimum price.").refine((m) => m.amount <= 50000000, "That's over ₹5,00,000. Talk to us for big tickets."),
     compareAt: money.optional(),
-    images: z.array(z.object({ id: z.string(), alt: z.string(), src: z.string().optional(), cover: z.any().optional() })),
+    images: z
+      .array(z.object({ id: z.string(), alt: z.string(), src: z.string().optional(), cover: z.any().optional(), focal: z.object({ x: z.number(), y: z.number() }).optional() }))
+      .max(8, "Up to 8 images. Remove one to add another."),
+    video: z.object({ src: z.string(), alt: z.string(), poster: z.string().optional(), kind: z.enum(["image", "gif", "video"]).optional(), focal: z.object({ x: z.number(), y: z.number() }).optional() }).optional(),
+    tileBackground: z.any().optional(),
     files: z.array(z.object({ id: z.string(), name: z.string(), size: z.number(), mime: z.string() })),
     sku: z
       .string()

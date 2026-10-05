@@ -36,7 +36,7 @@ export function StoreProductCard({
   return (
     <article className={cn("group flex h-full flex-col rounded-card border bg-surface p-3 transition-[border-color] duration-150 hover:border-border-strong", className)}>
       <Link href={href} className="relative block rounded-media" tabIndex={-1} aria-hidden>
-        <ProductImageView image={product.images[0]} />
+        <ProductImageView image={product.images[0]} fallback={product.tileBackground} fallbackLabel={product.title} />
         <span className="absolute top-2 left-2 flex flex-wrap gap-1">
           {info.dealEndsAt && (
             <span className="inline-flex items-center gap-1 rounded-full bg-accent px-2 py-0.5 text-[0.6875rem] font-semibold text-accent-foreground">

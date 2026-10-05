@@ -1,7 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -16,6 +18,11 @@ import { kindLabel } from "@/components/pp/product-card";
 import { useApi } from "@/hooks/use-api";
 import { getTaxCodes } from "@/lib/api";
 import { money } from "@/lib/money";
+import { BackgroundPicker } from "@/components/media/background-picker";
+import { MediaUploader } from "@/components/media/media-uploader";
+import { TileBackgroundView } from "@/components/media/tile-background";
+import { SaveBar } from "@/components/save/save-bar";
+import { useDirtyForm } from "@/hooks/use-dirty-form";
 import { ImageGalleryField } from "./image-gallery-field";
 import { productSchema, type ProductValues } from "./product-schema";
 
@@ -36,10 +43,13 @@ export function ProductForm({
   onSubmit,
   submitLabel = "Save",
   aside,
+  mode = "create",
 }: {
   initial: ProductValues;
   onSubmit: (v: ProductValues) => Promise<void>;
   submitLabel?: string;
+  /** "edit": the save bar appears only when something changed (Part 6F). "create": a Create button is always there. */
+  mode?: "create" | "edit";
   /** Extra panels at the bottom of the sidebar (share link, danger zone). */
   aside?: React.ReactNode;
 }) {
@@ -49,6 +59,26 @@ export function ProductForm({
   const title = useWatch({ control: form.control, name: "title" });
   const pending = form.formState.isSubmitting;
   const dirty = form.formState.isDirty;
+  const images = useWatch({ control: form.control, name: "images" });
+  const values = useWatch({ control: form.control }) as ProductValues;
+  const [saved, setSaved] = useState<ProductValues>(initial);
+  const bar = useDirtyForm({
+    value: values,
+    saved,
+    validate: async () => {
+      const ok = await form.trigger();
+      if (!ok) toast.error("Fix the highlighted fields, then save.");
+      return ok;
+    },
+    onSave: async () => {
+      const v = form.getValues();
+      await onSubmit(v);
+      setSaved(v);
+      form.reset(v);
+    },
+    onDiscard: () => form.reset(saved),
+    savedMessage: "Product saved",
+  });
 
   return (
     <Form {...form}>
@@ -87,11 +117,38 @@ export function ProductForm({
             />
           </Panel>
 
-          <Panel title="Images" description="The first one is the cover on your store and in link previews.">
+          <Panel title="Images" description="Up to 8. The first one is the cover on your store and in link previews.">
             <Controller
               control={form.control}
               name="images"
               render={({ field }) => <ImageGalleryField images={field.value} onChange={field.onChange} title={title} />}
+            />
+            {(!images || images.length === 0) && (
+              <Controller
+                control={form.control}
+                name="tileBackground"
+                render={({ field }) => (
+                  <BackgroundPicker
+                    label="Card background until you add an image"
+                    value={field.value ?? { kind: "color", color: "#0F3D33" }}
+                    onChange={field.onChange}
+                    aiPurpose="product_cover"
+                    preview={(bg, text) => (
+                      <TileBackgroundView bg={bg} className="grid aspect-[4/3] place-items-end rounded-media p-3">
+                        <span className="font-display text-lg leading-tight [overflow-wrap:anywhere]" style={{ color: text }}>{title || "Your product"}</span>
+                      </TileBackgroundView>
+                    )}
+                  />
+                )}
+              />
+            )}
+          </Panel>
+
+          <Panel title="Video" description="Optional. Shown in the product gallery after the images.">
+            <Controller
+              control={form.control}
+              name="video"
+              render={({ field }) => <MediaUploader label="Product video" kinds={["video"]} aspect="16:9" value={field.value} onChange={field.onChange} />}
             />
           </Panel>
 
@@ -211,6 +268,9 @@ export function ProductForm({
           {aside}
         </div>
 
+        {mode === "edit" ? (
+          <SaveBar state={bar} className="md:fixed md:right-6 md:bottom-6 md:z-40 md:bg-surface md:shadow-pop" />
+        ) : (
         <div className="fixed inset-x-0 bottom-[calc(56px+env(safe-area-inset-bottom))] z-30 border-t bg-surface px-4 py-3 md:bottom-0 md:left-[248px] lg:static lg:col-span-2 lg:rounded-card lg:border lg:px-6">
           <div className="mx-auto flex max-w-[1280px] items-center justify-end gap-3">
             <p className="mr-auto text-sm text-muted-foreground" aria-live="polite">{dirty ? "Unsaved changes" : "All changes saved"}</p>
@@ -221,6 +281,7 @@ export function ProductForm({
             </Button>
           </div>
         </div>
+        )}
       </form>
     </Form>
   );

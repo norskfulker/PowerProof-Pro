@@ -1,10 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, Check, CloudOff, ExternalLink, History, Layers, Loader2, Plus, Redo2, Settings2, Undo2 } from "lucide-react";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/pp/confirm-dialog";
+import { useUnsavedGuard } from "@/components/save/unsaved-guard";
 import { Segmented } from "@/components/pp/segmented";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -102,6 +103,14 @@ function Inner({ page, context }: { page: StorePageDoc; context: RenderContext }
     const t = setTimeout(flush, AUTOSAVE_MS);
     return () => clearTimeout(t);
   }, [rev, savedRev, flush]);
+
+  // In-app links ask before leaving while an autosave is still pending
+  const unsaved = useUnsavedGuard();
+  const guardId = useId();
+  useEffect(() => {
+    unsaved.set(guardId, rev !== savedRev);
+    return () => unsaved.set(guardId, false);
+  }, [unsaved, guardId, rev, savedRev]);
 
   // Warn before leaving with unsaved changes
   useEffect(() => {
@@ -239,10 +248,16 @@ function Inner({ page, context }: { page: StorePageDoc; context: RenderContext }
               Discard
             </Button>
           )}
-          <Button type="button" onClick={publish} disabled={publishing || (status === "published" && rev === savedRev)}>
-            {publishing ? <Loader2 className="animate-spin" aria-hidden /> : status === "published" && rev === savedRev ? <Check aria-hidden /> : null}
-            {status === "draft" ? "Publish" : status === "published" && rev === savedRev ? "Published" : "Publish changes"}
-          </Button>
+          {status === "published" && rev === savedRev && !publishing ? (
+            <span className="inline-flex min-h-9 items-center gap-1.5 px-2 text-sm font-medium text-success" role="status">
+              <Check className="size-4" aria-hidden /> Live
+            </span>
+          ) : (
+            <Button type="button" onClick={publish} disabled={publishing}>
+              {publishing && <Loader2 className="animate-spin" aria-hidden />}
+              {status === "draft" ? "Publish" : "Publish changes"}
+            </Button>
+          )}
         </div>
       </header>
 

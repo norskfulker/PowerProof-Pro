@@ -1,4 +1,4 @@
-import { AlertOctagon, BarChart3, Banknote, Box, Flag, Image as ImageIcon, LayoutDashboard, MonitorPlay, Package, PanelsTopLeft, Plug, Receipt, Settings, Store, Truck, Users, Wallet, GraduationCap, FileText, FolderOpen, MessagesSquare, Palette, Search, Star, Ticket, type LucideIcon, ScrollText, Info } from "lucide-react";
+import { AlertOctagon, BarChart3, Banknote, Box, Flag, Images, LayoutDashboard, MonitorPlay, Package, PanelsTopLeft, Plug, Receipt, Settings, Store, Truck, Users, Wallet, GraduationCap, FileText, FolderOpen, MessagesSquare, Palette, Search, Star, Ticket, type LucideIcon, ScrollText, Info, Sparkles } from "lucide-react";
 
 export interface NavItem {
   href: string;
@@ -19,7 +19,8 @@ export const CREATOR_NAV: NavGroup[] = [
     items: [
       { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
       { href: "/products", label: "Products", icon: Package, match: "/products" },
-      { href: "/images", label: "Image maker", icon: ImageIcon },
+      { href: "/media", label: "Media", icon: Images },
+      { href: "/images", label: "AI images", icon: Sparkles },
     ],
   },
   {

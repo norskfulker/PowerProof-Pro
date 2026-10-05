@@ -1,5 +1,6 @@
 import { AlertTriangle, RotateCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { NextStepHint } from "@/components/getting-started/getting-started-card";
 import { cn } from "@/lib/utils";
 
 export function EmptyState({
@@ -9,6 +10,7 @@ export function EmptyState({
   action,
   className,
   compact,
+  nextStep,
 }: {
   icon?: React.ComponentType<{ className?: string }>;
   title: string;
@@ -16,6 +18,8 @@ export function EmptyState({
   action?: React.ReactNode;
   className?: string;
   compact?: boolean;
+  /** Creator screens: point to the next getting-started step */
+  nextStep?: boolean;
 }) {
   return (
     <div
@@ -33,6 +37,7 @@ export function EmptyState({
       <p className="font-display text-lg font-extrabold tracking-[-0.02em]">{title}</p>
       {body && <p className="max-w-sm text-sm text-muted-foreground">{body}</p>}
       {action && <div className="mt-2 flex flex-wrap justify-center gap-2">{action}</div>}
+      {nextStep && <NextStepHint />}
     </div>
   );
 }

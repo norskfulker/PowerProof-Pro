@@ -68,7 +68,7 @@ export default function ProductPage({ params }: { params: Promise<{ store: strin
       </nav>
 
       <div className="grid grid-cols-1 gap-8 md:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] md:gap-12">
-        <ProductGallery images={product.images} title={product.title} hasVideo={hasVideo} />
+        <ProductGallery images={product.images} title={product.title} hasVideo={hasVideo} video={product.video} fallback={product.tileBackground} />
         <div className="flex flex-col gap-6">
           <ProductBuyBox product={product} store={view.store} creatorName={creator} currency={currency} onBuy={onBuy} buying={buying === product.id} />
           {bundles.map((b) => (

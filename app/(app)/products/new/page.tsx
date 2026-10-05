@@ -1,5 +1,5 @@
-import Link from "next/link";
 import { ArrowRight, FileUp, LayoutTemplate, Link2 } from "lucide-react";
+import { GuardedLink, LimitNotice } from "@/components/plan/plan-context";
 import { PageHeader } from "@/components/pp/page-header";
 
 const WAYS = [
@@ -31,10 +31,12 @@ export default function NewProductPage() {
   return (
     <>
       <PageHeader back={{ href: "/products", label: "Products" }} title="Add a product" description="Three ways in. They all end in the same place: a product you can sell." />
+      <LimitNotice kind="products" />
       <ul className="grid grid-cols-1 gap-4 md:grid-cols-3">
         {WAYS.map((w) => (
-          <li key={w.href}>
-            <Link
+          <li key={w.href} data-coach={w.primary ? "new-product" : undefined}>
+            <GuardedLink
+              kind="products"
               href={w.href}
               className="group flex h-full flex-col rounded-card border bg-surface p-6 transition-[border-color,transform] duration-150 hover:-translate-y-0.5 hover:border-primary"
             >
@@ -47,7 +49,7 @@ export default function NewProductPage() {
                 <span className="eyebrow">{w.meta}</span>
                 <ArrowRight className="size-4 text-primary transition-transform group-hover:translate-x-1" aria-hidden />
               </span>
-            </Link>
+            </GuardedLink>
           </li>
         ))}
       </ul>
