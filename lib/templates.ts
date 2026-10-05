@@ -1,4 +1,4 @@
-import type { PageTemplate } from "./types";
+import type { PageBlock, PageTemplate } from "./types";
 
 export interface TemplateMeta {
   id: PageTemplate;
@@ -22,3 +22,33 @@ export const TEMPLATES: TemplateMeta[] = [
 export function templateMeta(id: PageTemplate): TemplateMeta {
   return TEMPLATES.find((t) => t.id === id) ?? TEMPLATES[0];
 }
+
+/** Starting blocks for each template. */
+export const TEMPLATE_BLOCKS: Record<PageTemplate, Omit<PageBlock, "id">[]> = {
+  launch: [
+    { type: "hero", heading: "Your headline goes here", body: "One sentence on who it's for and what changes for them." },
+    { type: "features", heading: "What's inside", body: "First thing\nSecond thing\nThird thing" },
+    { type: "testimonial", heading: "“Short quote from a happy buyer.”", body: "Name, what they do" },
+    { type: "faq", heading: "Questions", body: "How do I get it?|Right after paying, on screen and by email.\nCan I get a refund?|Yes, within 7 days." },
+    { type: "buy", heading: "Get it now", body: "Instant download." },
+  ],
+  minimal: [
+    { type: "hero", heading: "Say it in one line.", body: "And one more for the details." },
+    { type: "buy", heading: "Buy", body: "Instant download." },
+  ],
+  bundle: [
+    { type: "hero", heading: "Everything, one price.", body: "All my kits in one bundle." },
+    { type: "features", heading: "In the bundle", body: "Kit one\nKit two\nKit three" },
+    { type: "buy", heading: "Get the bundle", body: "Save 40% versus buying separately." },
+  ],
+  creator: [
+    { type: "hero", heading: "Hi, I'm [your name].", body: "I make things for people who make things." },
+    { type: "text", heading: "About me", body: "Two or three lines about you." },
+    { type: "buy", heading: "My products", body: "Pick one." },
+  ],
+  waitlist: [
+    { type: "hero", heading: "Coming soon.", body: "Pre-order now and get it first." },
+    { type: "buy", heading: "Pre-order", body: "You're charged today, it lands on launch day." },
+  ],
+  blank: [{ type: "text", heading: "Start here", body: "Add blocks from the left." }],
+};
