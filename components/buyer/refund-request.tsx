@@ -44,7 +44,7 @@ export function RefundRequest({ order, store, onDone }: { order: Order; store: S
             if (reason.trim().length < 5) return setError("A few words help the creator sort it out faster.");
             setPending(true);
             try {
-              const o = await requestRefund(order.id, reason.trim());
+              const o = await requestRefund(order.token, reason.trim());
               onDone(o);
               setOpen(false);
               toast.success("Request sent", { description: `${store.name} will reply by email.` });

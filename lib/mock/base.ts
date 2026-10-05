@@ -17,27 +17,50 @@ import type {
   Store,
   TaxCode,
   TeamMember,
+  Bundle,
+  Collection,
+  Coupon,
+  Deal,
+  Question,
+  Review,
+  StoreDesign,
+  StorePages,
 } from "../types";
+import { buildDesign, defaultPages } from "./storefront-seed";
 import { TAX_CODES } from "./catalog";
 import { DAY } from "./random";
 
 const iso = (t: number) => new Date(t).toISOString();
 
-/** Shape of the mock database, plus the pieces shared by the seeded and the fresh store. */
-export interface Db {
-  version: number;
-  mode: "seeded" | "fresh";
+/** Everything a public store needs. The creator's own store is the Db itself; demo stores live in otherStores. */
+export interface StoreScope {
   store: Store;
   company: Company;
   invoice: InvoiceSettings;
   products: Product[];
   orders: Order[];
   customers: Customer[];
+  taxCodes: TaxCode[];
+  design: StoreDesign;
+  storePages: StorePages;
+  collections: Collection[];
+  coupons: Coupon[];
+  bundles: Bundle[];
+  deals: Deal[];
+  reviews: Review[];
+  questions: Question[];
+  subscribers: string[];
+}
+
+/** Shape of the mock database, plus the pieces shared by the seeded and the fresh store. */
+export interface Db extends StoreScope {
+  version: number;
+  mode: "seeded" | "fresh";
+  otherStores: StoreScope[];
   payouts: Payout[];
   payoutMethods: PayoutMethod[];
   pages: Page[];
   skus: Sku[];
-  taxCodes: TaxCode[];
   integrations: Integration[];
   team: TeamMember[];
   plan: Plan;
@@ -47,7 +70,7 @@ export interface Db {
   ledger: { opening: number; since: ISODate };
 }
 
-export const DB_VERSION = 3;
+export const DB_VERSION = 4;
 /** Money settles two days after payment (T+2). */
 export const SETTLE_MS = 2 * 24 * 60 * 60 * 1000;
 
@@ -123,9 +146,29 @@ export function basePlan(now: number, storeCreated: number): Plan {
   };
 }
 
-export function freshDb(now: number, store: Partial<Store>): Db {
+export function freshDb(now: number, store: Partial<Store>, otherStores: StoreScope[]): Db {
   const s = baseStore(now, { createdAt: iso(now), onboarded: false, ...store });
   return {
+    otherStores,
+    design: { ...buildDesign({
+      store: s,
+      palette: "emerald",
+      fonts: "modern",
+      heroStyle: "left",
+      hero: { headline: s.name, subtext: s.tagline, cta: "Shop now" },
+      heroProductIds: [],
+      story: `Hi, I'm ${s.ownerName.split(" ")[0]}. I make things for people who make things.`,
+      city: "India",
+      dealEndsAt: iso(now),
+    }), announcement: { text: "Welcome! New products are on the way." } },
+    storePages: defaultPages(s),
+    collections: [],
+    coupons: [],
+    bundles: [],
+    deals: [],
+    reviews: [],
+    questions: [],
+    subscribers: [],
     version: DB_VERSION,
     mode: "fresh",
     store: s,

@@ -39,7 +39,7 @@ export const EMAILS: EmailDef[] = [
         paid={c.order ? formatMoney(c.order.buyerTotal) : "₹0.00"}
         date={c.order ? formatDate(c.order.paidAt ?? c.order.createdAt, { time: true }) : ""}
         method={(c.order?.paymentMethod ?? "upi").toUpperCase()}
-        downloadUrl={`${c.origin}/download/${c.order?.id ?? ""}`}
+        downloadUrl={`${c.origin}/order/${c.order?.token ?? ""}`}
         invoiceUrl={`${c.origin}/invoice/${c.order?.id ?? ""}`}
         refundDays={c.store.refundDays}
       />

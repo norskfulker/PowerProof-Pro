@@ -37,6 +37,9 @@ const STEPS = [
 
 const EXAMPLE: Order = {
   id: "x",
+  token: "tok_demo",
+  storeId: "store_ananya",
+  items: [{ productId: "x", title: "Monsoon Moods: 12 Lightroom Presets", price: { amount: 79900, currency: "INR" }, kind: "product" }],
   number: "PP-1081",
   productId: "x",
   productTitle: "Monsoon Moods: 12 Lightroom Presets",

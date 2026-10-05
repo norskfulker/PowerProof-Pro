@@ -2,7 +2,17 @@ import { feeBreakdown, fromMajor, localPrice, money, sum } from "../money";
 import type { BillingInvoice, Customer, Notification, Order, OrderStatus, Page, Payout, PayoutMethod, Product, Sku, TeamMember } from "../types";
 import { baseCompany, baseIntegrations, basePlan, baseStore, DB_VERSION, SETTLE_MS, type Db } from "./base";
 import { CUSTOMER_SEEDS, PRODUCT_SEEDS, SOURCE_WEIGHTS, TAX_CODES } from "./catalog";
+import { ANANYA_COLLECTIONS, EXTRA_ANANYA_PRODUCTS, GRIDGRAIN, INKWELL } from "./catalog-stores";
+import { buildOtherStore, productsFromRows } from "./other-stores";
 import { DAY, rng, slugify } from "./random";
+import { buildCollections, buildDesign, buildOffers, buildQuestions, buildReviews, defaultPages } from "./storefront-seed";
+
+const ANANYA_COLORS = [
+  { bg: "#0F3D33", fg: "#F5F6F4", accent: "#C9A24F" },
+  { bg: "#C9A24F", fg: "#0C1F1B", accent: "#0F3D33" },
+  { bg: "#1D5C7A", fg: "#F5F6F4", accent: "#C9A24F" },
+  { bg: "#F6EFDF", fg: "#0C1F1B", accent: "#A9823A" },
+];
 
 export { DB_VERSION, SETTLE_MS, freshDb, type Db } from "./base";
 
@@ -39,6 +49,8 @@ export function seedDb(now: number = Date.now()): Db {
     };
   });
 
+  products.push(...productsFromRows(EXTRA_ANANYA_PRODUCTS, "prod", ANANYA_COLORS, now, 12, 3).map((p) => ({ ...p, sku: `AM-EXT-${p.id.slice(-2)}`, salesCount: 0, revenue: money(0) })));
+
   /* Customers (stats filled after orders) */
   const customers: Customer[] = CUSTOMER_SEEDS.map(([name, country, cc, currency], i) => ({
     id: `cus_${String(i + 1).padStart(2, "0")}`,
@@ -54,8 +66,9 @@ export function seedDb(now: number = Date.now()): Db {
   }));
 
   /* Orders: 40, spread over 30 days, 5 of them today */
-  const sellable = products.filter((p) => PRODUCT_SEEDS[products.indexOf(p)].weight > 0);
-  const weights = sellable.map((p) => [p, PRODUCT_SEEDS[products.indexOf(p)].weight] as [Product, number]);
+  const weightOf = (p: Product) => PRODUCT_SEEDS[products.indexOf(p)]?.weight ?? 3;
+  const sellable = products.filter((p) => weightOf(p) > 0);
+  const weights = sellable.map((p) => [p, weightOf(p)] as [Product, number]);
   const statusFor = (i: number): OrderStatus =>
     i === 3 ? "refund_requested" : i === 17 ? "refund_requested" : i === 11 || i === 29 ? "refunded" : i === 22 ? "failed" : i === 1 ? "pending" : "paid";
 
@@ -69,6 +82,9 @@ export function seedDb(now: number = Date.now()): Db {
     const n = 1041 + (40 - i);
     return {
       id: `ord_${n}`,
+      token: `tok_${n}_${(n * 7919).toString(36)}`,
+      storeId: store.id,
+      items: [{ productId: product.id, title: product.title, price: product.price, kind: "product" as const }],
       number: `PP-${n}`,
       productId: product.id,
       productTitle: product.title,
@@ -229,5 +245,32 @@ export function seedDb(now: number = Date.now()): Db {
     plan: basePlan(now, now - 64 * DAY),
     billing,
     notifications,
+    ...storefront(store, products, now),
+    otherStores: [buildOtherStore(INKWELL, now, 11), buildOtherStore(GRIDGRAIN, now, 23)],
+  };
+}
+
+function storefront(store: Db["store"], products: Product[], now: number) {
+  const live = products.filter((p) => p.status === "published");
+  const offers = buildOffers(live, now, "ananya");
+  return {
+    design: buildDesign({
+      store,
+      palette: "emerald",
+      fonts: "modern",
+      heroStyle: "left",
+      hero: { headline: "Tools for people who make things.", subtext: "Notion kits, Lightroom presets and short playbooks. Download straight after paying.", cta: "Shop everything" },
+      heroProductIds: [products[0].id, products[1].id, products[3].id],
+      story: "I'm Ananya, a designer and part-time photographer in Mumbai. Everything here started as something I made for myself, then for friends, then for anyone who asked.",
+      city: "Mumbai",
+      dealEndsAt: offers.deals[0].endsAt,
+      bumpProduct: products[9],
+    }),
+    storePages: defaultPages(store),
+    collections: buildCollections(products, ANANYA_COLLECTIONS, ANANYA_COLORS),
+    ...offers,
+    reviews: buildReviews(live, now, 5, "ananya", ANANYA_COLORS),
+    questions: buildQuestions(live, now, 7, "ananya", store.ownerName.split(" ")[0]),
+    subscribers: ["fan1@example.com", "fan2@example.com"],
   };
 }

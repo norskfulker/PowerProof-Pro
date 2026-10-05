@@ -6,7 +6,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { SkipLink } from "@/components/pp/app-shell";
 import { LogoMark } from "@/components/pp/logo";
 import { CURRENCIES } from "@/lib/money";
-import type { CurrencyCode, Store } from "@/lib/types";
+import type { CurrencyCode, Store, StoreTheme } from "@/lib/types";
+import { StoreThemeScope } from "@/components/pp/store-theme";
 import { cn } from "@/lib/utils";
 
 export function CurrencyPicker({ value, onChange }: { value: CurrencyCode; onChange: (c: CurrencyCode) => void }) {
@@ -51,21 +52,24 @@ export function BuyerShell({
   onCurrency,
   children,
   narrow,
+  theme,
 }: {
   store?: Store;
   currency?: CurrencyCode;
   onCurrency?: (c: CurrencyCode) => void;
   children: React.ReactNode;
   narrow?: boolean;
+  /** The store's theme, so checkout and order pages match the store. */
+  theme?: StoreTheme;
 }) {
-  return (
+  const body = (
     <div className="flex min-h-dvh flex-col">
       <SkipLink />
       <header className="border-b bg-surface">
         <div className={cn("mx-auto flex h-16 items-center gap-3 px-4 md:px-6", narrow ? "max-w-[640px]" : "max-w-[1120px]")}>
           {store ? (
             <Link href={`/s/${store.slug}`} className="flex min-h-11 min-w-0 items-center gap-2.5 rounded-control">
-              <span className="grid size-9 shrink-0 place-items-center rounded-[10px] font-mono text-xs font-semibold text-primary-foreground" style={{ background: store.brandColor }}>
+              <span className="grid size-9 shrink-0 place-items-center rounded-[10px] bg-primary font-mono text-xs font-semibold text-primary-foreground">
                 {store.logoText}
               </span>
               <span className="truncate font-display text-lg">{store.name}</span>
@@ -87,7 +91,7 @@ export function BuyerShell({
         <div className={cn("mx-auto flex flex-col gap-3 px-4 py-6 text-sm md:flex-row md:items-center md:px-6", narrow ? "max-w-[640px]" : "max-w-[1120px]")}>
           <nav aria-label="Help" className="flex flex-wrap gap-x-5 gap-y-1">
             <Link href="/lookup" className="inline-flex min-h-11 items-center font-medium underline-offset-4 hover:underline">Find my order</Link>
-            <Link href="/lookup#help" className="inline-flex min-h-11 items-center font-medium underline-offset-4 hover:underline">Refunds and support</Link>
+            {store ? <Link href={`/s/${store.slug}/policies/refund`} className="inline-flex min-h-11 items-center font-medium underline-offset-4 hover:underline">Refunds and support</Link> : <Link href="/lookup#help" className="inline-flex min-h-11 items-center font-medium underline-offset-4 hover:underline">Refunds and support</Link>}
             {store && <a href={`mailto:${store.supportEmail}`} className="inline-flex min-h-11 items-center text-muted-foreground underline-offset-4 hover:underline">{store.supportEmail}</a>}
           </nav>
           <Link href="/" className="inline-flex min-h-11 items-center gap-1.5 text-xs text-muted-foreground md:ml-auto">
@@ -97,6 +101,7 @@ export function BuyerShell({
       </footer>
     </div>
   );
+  return theme ? <StoreThemeScope theme={theme}>{body}</StoreThemeScope> : body;
 }
 
 export function ConversionNote({ currency, className }: { currency: CurrencyCode; className?: string }) {

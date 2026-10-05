@@ -77,7 +77,7 @@ export function commit(mutator?: (d: Db) => void) {
 }
 
 export function resetDb(mode: "seeded" | "fresh", store?: Partial<Store>) {
-  memory = mode === "seeded" ? seedDb() : freshDb(Date.now(), store ?? {});
+  memory = mode === "seeded" ? seedDb() : freshDb(Date.now(), store ?? {}, (memory ?? db()).otherStores);
   write(KEY, memory);
   bumpRev();
   listeners.forEach((l) => l());
