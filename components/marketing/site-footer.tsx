@@ -20,10 +20,10 @@ export function SiteFooter() {
         {COLS.map(([title, links]) => (
           <nav key={title} aria-label={title}>
             <p className="eyebrow mb-3">{title}</p>
-            <ul className="flex flex-col gap-1">
+            <ul className="flex flex-col">
               {links.map(([label, href]) => (
                 <li key={href}>
-                  <Link href={href} className="inline-flex min-h-9 items-center text-sm text-foreground/80 hover:text-foreground hover:underline hover:underline-offset-4">
+                  <Link href={href} className="inline-flex min-h-11 min-w-11 items-center text-sm text-foreground/80 hover:text-foreground hover:underline hover:underline-offset-4">
                     {label}
                   </Link>
                 </li>

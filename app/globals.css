@@ -104,29 +104,29 @@
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
 
-  --font-display: var(--font-bricolage), ui-sans-serif, system-ui, sans-serif;
-  --font-sans: var(--font-hanken), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-bricolage), var(--font-noto-deva), var(--font-noto-tamil), var(--font-noto-telugu), var(--font-noto-kannada), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-hanken), var(--font-noto-deva), var(--font-noto-tamil), var(--font-noto-telugu), var(--font-noto-kannada), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-plex-mono), ui-monospace, monospace;
 
 
   /* Type scale: 12, 14, 16, 18, 22, 28, 36, 48, 64 */
-  --text-xs: 12px;
+  --text-xs: 0.75rem;
   --text-xs--line-height: 1.5;
-  --text-sm: 14px;
+  --text-sm: 0.875rem;
   --text-sm--line-height: 1.5;
-  --text-base: 16px;
+  --text-base: 1rem;
   --text-base--line-height: 1.5;
-  --text-lg: 18px;
+  --text-lg: 1.125rem;
   --text-lg--line-height: 1.45;
-  --text-xl: 22px;
+  --text-xl: 1.375rem;
   --text-xl--line-height: 1.25;
-  --text-2xl: 28px;
+  --text-2xl: clamp(1.5rem, 1.25rem + 1vw, 1.75rem);
   --text-2xl--line-height: 1.15;
-  --text-3xl: 36px;
+  --text-3xl: clamp(1.75rem, 1.4rem + 1.6vw, 2.25rem);
   --text-3xl--line-height: 1.1;
-  --text-4xl: 48px;
+  --text-4xl: clamp(2.125rem, 1.5rem + 2.8vw, 3rem);
   --text-4xl--line-height: 1.1;
-  --text-5xl: 64px;
+  --text-5xl: clamp(2.5rem, 1.4rem + 4.6vw, 4rem);
   --text-5xl--line-height: 1.05;
 }
 
@@ -153,7 +153,7 @@
     background: var(--background);
     color: var(--foreground);
     font-family: var(--font-sans);
-    font-size: 16px;
+    font-size: 1rem;
     line-height: 1.5;
     -webkit-font-smoothing: antialiased;
   }
@@ -178,17 +178,41 @@
   [role="button"]:not(:disabled) {
     cursor: pointer;
   }
+  /* Creator-entered text (titles, emails, codes) can be one very long word. Let it wrap anywhere
+     instead of widening the page. Zero specificity, so any utility still wins. */
+  :where(h1, h2, h3, h4, p, li, dd, dt, td, th, label, figcaption, blockquote, a, span, legend) {
+    overflow-wrap: anywhere;
+  }
+  /* Getting started: the element a coach-mark points at */
+  [data-coach-active="true"] {
+    outline: 3px solid var(--accent);
+    outline-offset: 4px;
+    border-radius: var(--radius-control);
+  }
+  /* Links and buttons in table cells get a full touch target on touch screens */
+  @media (pointer: coarse) {
+    :where([data-slot="table"]) :where(td a, td button) {
+      min-height: 2.75rem;
+      min-width: 2.75rem;
+      display: inline-flex;
+      align-items: center;
+    }
+  }
 }
 
-@layer utilities {
+/* Components layer so text-* utilities can recolour it (e.g. on the dark admin sidebar) */
+@layer components {
   .eyebrow {
     font-family: var(--font-mono);
-    font-size: 11px;
+    font-size: 0.6875rem;
     line-height: 1.4;
     letter-spacing: 0.08em;
     text-transform: uppercase;
     color: var(--muted-foreground);
   }
+}
+
+@layer utilities {
   .tabular {
     font-variant-numeric: tabular-nums;
   }

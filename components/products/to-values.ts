@@ -14,6 +14,8 @@ export function toValues(p: Pick<Product, keyof ProductInput> & { sourceUrl?: st
     taxCode: p.taxCode,
     status: p.status,
     sourceUrl: p.sourceUrl,
+    video: p.video,
+    tileBackground: p.tileBackground,
   };
 }
 
@@ -21,6 +23,8 @@ export function toInput(v: ProductValues): ProductInput {
   return {
     ...v,
     images: v.images as ProductInput["images"],
+    video: v.video as ProductInput["video"],
+    tileBackground: v.tileBackground as ProductInput["tileBackground"],
   };
 }
 

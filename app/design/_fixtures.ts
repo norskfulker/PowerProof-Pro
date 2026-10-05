@@ -28,6 +28,9 @@ export const SAMPLE_PRODUCT: Product = {
 
 export const SAMPLE_ORDER: Order = {
   id: "ord_demo",
+  token: "tok_demo",
+  storeId: "store_ananya",
+  items: [{ productId: "x", title: "Second Brain for Founders", price: { amount: 149900, currency: "INR" }, kind: "product" }],
   number: "PP-1081",
   productId: "demo",
   productTitle: "Second Brain for Founders",

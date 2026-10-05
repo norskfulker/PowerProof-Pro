@@ -44,7 +44,7 @@ export function ProductCard({
         className
       )}
     >
-      <ProductImageView image={product.images[0]} />
+      <ProductImageView image={product.images[0]} fallback={product.tileBackground} fallbackLabel={product.title} />
       <div className="flex flex-1 flex-col gap-1 px-1 pb-1">
         <div className="flex items-center justify-between gap-2">
           <span className="eyebrow">{KIND_LABEL[product.kind]}</span>

@@ -1,5 +1,6 @@
 import type { Session } from "../types";
 import { DB_VERSION, freshDb, seedDb, type Db } from "./seed";
+import { stressDb } from "./stress";
 import type { Store } from "../types";
 
 /**
@@ -12,6 +13,8 @@ const KEY = "pp:db";
 const SESSION_KEY = "pp:session";
 const DEMO_KEY = "pp:demo";
 const REV_KEY = "pp:rev";
+/** "stress" swaps the seed for the QA stress dataset */
+const SEED_KEY = "pp:seed";
 
 export interface DemoSettings {
   /** Force every API call to fail, to review error states. */
@@ -51,8 +54,10 @@ function write(key: string, value: unknown) {
 export function db(): Db {
   if (memory) return memory;
   const stored = read<Db>(KEY);
-  memory = stored && stored.version === DB_VERSION ? stored : seedDb();
-  if (!stored) write(KEY, memory);
+  const stress = seedMode() === "stress";
+  const usable = stored && stored.version === DB_VERSION && (stored.mode === "stress") === stress;
+  memory = usable ? stored : stress ? stressDb() : seedDb();
+  if (!usable) write(KEY, memory);
   return memory;
 }
 
@@ -76,8 +81,25 @@ export function commit(mutator?: (d: Db) => void) {
   listeners.forEach((l) => l());
 }
 
-export function resetDb(mode: "seeded" | "fresh", store?: Partial<Store>) {
-  memory = mode === "seeded" ? seedDb() : freshDb(Date.now(), store ?? {});
+function seedMode(): "stress" | "seeded" {
+  if (!canStore()) return "seeded";
+  try {
+    return window.localStorage.getItem(SEED_KEY) === "stress" ? "stress" : "seeded";
+  } catch {
+    return "seeded";
+  }
+}
+
+export function resetDb(mode: "seeded" | "fresh" | "stress", store?: Partial<Store>) {
+  if (canStore()) {
+    try {
+      if (mode === "stress") window.localStorage.setItem(SEED_KEY, "stress");
+      else window.localStorage.removeItem(SEED_KEY);
+    } catch {
+      /* private mode */
+    }
+  }
+  memory = mode === "stress" ? stressDb() : mode === "seeded" ? seedDb() : freshDb(Date.now(), store ?? {}, (memory ?? db()).otherStores);
   write(KEY, memory);
   bumpRev();
   listeners.forEach((l) => l());
@@ -137,3 +159,8 @@ export function setSessionRaw(s: Session | null) {
 }
 
 export type { Db };
+
+/** Tells every subscribed screen (and other tabs) that something changed outside the database. */
+export function notifyChange() {
+  commit();
+}

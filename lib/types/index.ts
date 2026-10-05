@@ -11,3 +11,7 @@ export * from "./content";
 export * from "./analytics";
 export * from "./admin";
 export * from "./session";
+export * from "./storefront";
+export * from "./search";
+export * from "./deals";
+export * from "./media";

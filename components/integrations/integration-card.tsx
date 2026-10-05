@@ -50,7 +50,7 @@ export function IntegrationCard({ integration, onChange }: { integration: Integr
   }
 
   return (
-    <section aria-labelledby={`${inputId}-h`} className="flex flex-col rounded-card border bg-surface">
+    <section data-coach={`integration-${integration.id}`} aria-labelledby={`${inputId}-h`} className="flex flex-col rounded-card border bg-surface">
       <div className="flex items-start gap-4 p-5 md:p-6">
         <span className="grid size-12 shrink-0 place-items-center rounded-control bg-primary-soft text-primary">
           <meta.icon className="size-5" aria-hidden />

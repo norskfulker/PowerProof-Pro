@@ -28,7 +28,7 @@ export default function AdminDisputesPage() {
 
   const columns = useMemo<ColumnDef<Dispute, unknown>[]>(
     () => [
-      { accessorKey: "orderNumber", header: "Order", cell: ({ getValue }) => <span className="font-mono text-[13px]">{getValue() as string}</span> },
+      { accessorKey: "orderNumber", header: "Order", cell: ({ getValue }) => <span className="font-mono text-[0.8125rem]">{getValue() as string}</span> },
       { accessorKey: "storeName", header: "Store" },
       { accessorKey: "reason", header: "Reason", cell: ({ getValue }) => REASON[getValue() as Dispute["reason"]] },
       { id: "amount", accessorFn: (d) => d.amount.amount, header: "Amount", meta: { align: "right" }, cell: ({ row }) => <MoneyText value={row.original.amount} mono /> },

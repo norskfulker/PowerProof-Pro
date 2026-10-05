@@ -9,7 +9,7 @@ export default function TemplatesPage() {
     <>
       <section className="gutter mx-auto max-w-[1200px] pt-12 md:pt-16">
         <p className="eyebrow">Templates</p>
-        <h1 className="mt-3 max-w-3xl text-[40px] sm:text-5xl">Pages that sell, without a designer on call.</h1>
+        <h1 className="mt-3 max-w-3xl text-[2.5rem] sm:text-5xl">Pages that sell, without a designer on call.</h1>
         <p className="mt-4 max-w-xl text-lg text-muted-foreground">
           Every template is fast on a phone, works with your colours and has the buy button wired. Or paste your own HTML.
         </p>

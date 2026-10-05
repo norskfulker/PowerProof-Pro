@@ -71,17 +71,13 @@ export default function ProductEditorPage({ params }: { params: Promise<{ id: st
         }
       />
       <ProductForm
-        key={p.updatedAt}
+        key={p.id}
+        mode="edit"
         initial={toValues(p)}
         onSubmit={async (v) => {
-          try {
-            const saved = await updateProduct(p.id, toInput(v));
-            toast.success(saved.status === "published" ? "Saved and live" : "Saved");
-            product.setData(saved);
-          } catch (e) {
-            toast.error("Couldn't save", { description: e instanceof Error ? e.message : undefined });
-            throw e;
-          }
+          // Errors stay in the save bar; success shows a short Saved toast
+          const saved = await updateProduct(p.id, toInput(v));
+          product.setData(saved);
         }}
         aside={
           <>

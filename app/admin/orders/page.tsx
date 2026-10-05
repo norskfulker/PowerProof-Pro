@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo } from "react";
+import { Suspense, useMemo } from "react";
+import { useSearchParams } from "next/navigation";
 import type { ColumnDef } from "@tanstack/react-table";
 import { DataTable } from "@/components/pp/data-table";
 import { MoneyText } from "@/components/pp/money-text";
@@ -14,10 +15,19 @@ import type { Order } from "@/lib/types";
 type Row = Order & { storeName: string };
 
 export default function AdminOrdersPage() {
+  return (
+    <Suspense>
+      <AdminOrdersPageInner />
+    </Suspense>
+  );
+}
+
+function AdminOrdersPageInner() {
+  const q = useSearchParams().get("q") ?? "";
   const { data, loading, error, reload } = useApi(getPlatformOrders, [], { live: true });
   const columns = useMemo<ColumnDef<Row, unknown>[]>(
     () => [
-      { accessorKey: "number", header: "Order", cell: ({ getValue }) => <span className="font-mono text-[13px]">{getValue() as string}</span> },
+      { accessorKey: "number", header: "Order", cell: ({ getValue }) => <span className="font-mono text-[0.8125rem]">{getValue() as string}</span> },
       { accessorKey: "storeName", header: "Store" },
       { id: "buyer", accessorFn: (o) => `${o.buyerName} ${o.buyerEmail}`, header: "Buyer", cell: ({ row }) => <span className="flex flex-col"><span>{row.original.buyerName || "—"}</span><span className="text-xs text-muted-foreground">{countryShort(row.original.countryCode)}</span></span> },
       { accessorKey: "status", header: "Status", filterFn: "equals", cell: ({ getValue }) => <StatusPill status={getValue() as string} /> },
@@ -31,6 +41,8 @@ export default function AdminOrdersPage() {
     <>
       <PageHeader title="Orders" description="Every order across every store. Read-only; creators handle refunds unless there's a dispute." />
       <DataTable
+        key={q}
+        initialSearch={q}
         label="Platform orders"
         columns={columns}
         data={data}

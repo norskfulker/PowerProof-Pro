@@ -5,6 +5,7 @@ import { Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BuyerShell } from "@/components/buyer/buyer-shell";
 import { BuyerStatus } from "@/components/buyer/buyer-states";
+import { ScrollRegion } from "@/components/pp/scroll-region";
 import { LogoMark } from "@/components/pp/logo";
 import { MoneyText } from "@/components/pp/money-text";
 import { useApi } from "@/hooks/use-api";
@@ -67,7 +68,7 @@ export default function InvoicePage({ params }: { params: Promise<{ orderId: str
           </div>
         </div>
 
-        <div className="overflow-x-auto py-5">
+        <ScrollRegion label="Invoice items" className="overflow-x-auto py-5">
           <table className="w-full min-w-[440px]">
             <thead>
               <tr className="eyebrow text-left">
@@ -89,7 +90,7 @@ export default function InvoicePage({ params }: { params: Promise<{ orderId: str
               </tr>
             </tbody>
           </table>
-        </div>
+        </ScrollRegion>
 
         <dl className="ml-auto flex max-w-xs flex-col gap-2 border-t pt-4">
           <Row label="Taxable value"><MoneyText value={tax.taxable} mono /></Row>
@@ -101,7 +102,7 @@ export default function InvoicePage({ params }: { params: Promise<{ orderId: str
           )}
           {tax.kind === "inter" && <Row label={`IGST ${tax.rate}%`}><MoneyText value={tax.igst} mono /></Row>}
           <Row label="Total" strong><MoneyText value={tax.total} mono /></Row>
-          {converted && <Row label="Paid by buyer"><span className="font-mono text-[13px]">{formatMoney(order.buyerTotal)}</span></Row>}
+          {converted && <Row label="Paid by buyer"><span className="font-mono text-[0.8125rem]">{formatMoney(order.buyerTotal)}</span></Row>}
         </dl>
 
         <footer className="mt-6 flex flex-col gap-1 border-t pt-4 text-xs text-muted-foreground">

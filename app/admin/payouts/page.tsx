@@ -34,7 +34,7 @@ export default function AdminPayoutsPage() {
         const p = row.original;
         if (p.status === "sent") return null;
         return (
-          <span className="flex justify-end gap-1">
+          <span className="flex justify-end gap-2">
             <Button size="sm" variant="secondary" onClick={async () => { apply(await setPayoutStatus(p.id, "sent")); toast.success("Payout released", { description: `${p.storeName}` }); }}>
               <Send aria-hidden /> {p.status === "failed" ? "Retry" : "Release"}
             </Button>

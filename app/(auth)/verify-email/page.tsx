@@ -49,7 +49,7 @@ function VerifyForm() {
       title="Check your email"
       description={<>We sent a 6-digit code to <strong className="text-foreground">{email}</strong>.</>}
     >
-      <form noValidate onSubmit={submit} className="flex flex-col gap-4">
+      <form noValidate onSubmit={submit} className="flex flex-col gap-4" data-coach="verify-code">
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="code">Code</Label>
           <Input

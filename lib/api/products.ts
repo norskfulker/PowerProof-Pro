@@ -2,6 +2,7 @@ import { fromMajor, money } from "../money";
 import { commit, db } from "../mock/db";
 import { slugify, uid } from "../mock/random";
 import type { LinkAutofill, Product, ProductInput, ProductKind, ProductStatus } from "../types";
+import { assertWithinLimit } from "./account";
 import { call, notFound } from "./client";
 
 export interface ProductQuery {
@@ -28,6 +29,7 @@ export function getProduct(id: string): Promise<Product> {
 
 export function createProduct(input: ProductInput): Promise<Product> {
   return call(() => {
+    assertWithinLimit("products");
     const now = new Date().toISOString();
     const d = db();
     let slug = slugify(input.title) || "product";
@@ -74,6 +76,7 @@ export function deleteProduct(id: string): Promise<void> {
 
 export function duplicateProduct(id: string): Promise<Product> {
   return call(() => {
+    assertWithinLimit("products");
     const src = db().products.find((p) => p.id === id) ?? notFound("Product");
     const copy: Product = {
       ...JSON.parse(JSON.stringify(src)),

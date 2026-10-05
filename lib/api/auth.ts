@@ -1,4 +1,5 @@
 import { db, getSessionRaw, resetDb, setSessionRaw } from "../mock/db";
+import { seedCompleteProgress, writeProgress } from "../mock/progress";
 import { slugify } from "../mock/random";
 import type { Session } from "../types";
 import { ApiError, call } from "./client";
@@ -18,6 +19,8 @@ export function login(email: string, password: string): Promise<Session> {
     const d = db();
     const s: Session = { name: d.store.ownerName, email: email.toLowerCase(), storeId: d.store.id };
     setSessionRaw(s);
+    // The sample store predates the getting-started tracker: start it fully set up
+    if (d.mode !== "fresh" && typeof window !== "undefined" && !window.localStorage.getItem(`pp:progress:${s.email}`)) seedCompleteProgress(s.email);
     return s;
   });
 }
@@ -43,6 +46,8 @@ export function signup(name: string, email: string): Promise<Session> {
     });
     const s: Session = { name: name.trim(), email: email.toLowerCase(), storeId: db().store.id };
     setSessionRaw(s);
+    // A new account starts the checklist from zero
+    writeProgress({ emailVerified: false, storeConfirmed: false, shared: false, customized: { hero: false, colors: false, about: false }, skipped: [], coachSeen: [], tourSkipped: false, welcomed: false, dismissed: false }, s.email);
     return s;
   });
 }
@@ -51,6 +56,7 @@ export function verifyEmail(code: string): Promise<void> {
   return call(() => {
     if (!/^\d{6}$/.test(code)) throw new ApiError("Codes are 6 digits. Check the email we sent.", "validation");
     if (code === "000000") throw new ApiError("That code has expired. We've sent a fresh one.", "validation");
+    writeProgress({ emailVerified: true });
   });
 }
 

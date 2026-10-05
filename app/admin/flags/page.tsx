@@ -5,7 +5,7 @@ import { Flag as FlagIcon } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Segmented } from "@/components/pp/segmented";
 import { ConfirmDialog } from "@/components/pp/confirm-dialog";
 import { EmptyState, ErrorState } from "@/components/pp/empty-state";
 import { PageHeader } from "@/components/pp/page-header";
@@ -28,12 +28,7 @@ export default function AdminFlagsPage() {
         title="Flagged content"
         description="Reports from buyers, rights holders and automatic checks. Remove what breaks the rules; dismiss the rest."
         actions={
-          <Tabs value={tab} onValueChange={(v) => setTab(v as "open" | "closed")}>
-            <TabsList>
-              <TabsTrigger value="open">Open {data && `(${data.filter((f) => f.status === "open").length})`}</TabsTrigger>
-              <TabsTrigger value="closed">Closed</TabsTrigger>
-            </TabsList>
-          </Tabs>
+          <Segmented label="Flag status" value={tab} onChange={setTab} options={[{ value: "open", label: `Open${data ? ` (${data.filter((f) => f.status === "open").length})` : ""}` }, { value: "closed", label: "Closed" }]} />
         }
       />
       {error ? (

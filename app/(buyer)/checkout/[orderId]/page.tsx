@@ -1,143 +1,180 @@
 "use client";
 
 import { use, useEffect, useState } from "react";
+import { DealPanel } from "@/components/pp/deal-panel";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import { ArrowLeft, CreditCard, Landmark, Lock, Smartphone } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { ArrowLeft } from "lucide-react";
+import { toast } from "sonner";
 import { FormError } from "@/components/auth/auth-card";
 import { BuyerShell, ConversionNote, TrustBar } from "@/components/buyer/buyer-shell";
 import { BuyerStatus } from "@/components/buyer/buyer-states";
+import { CheckoutSummary, CouponField } from "@/components/buyer/checkout-summary";
 import { MockGateway } from "@/components/buyer/mock-gateway";
-import { MoneyText } from "@/components/pp/money-text";
-import { ProductImageView } from "@/components/pp/product-cover";
+import { CheckoutForm, type CheckoutValues } from "@/components/pp/checkout-form";
+import { MobilePayBar } from "@/components/pp/mobile-pay-bar";
+import { OrderBump } from "@/components/pp/order-bump";
 import { useApi } from "@/hooks/use-api";
-import { getDelivery, payOrder } from "@/lib/api";
-import type { Order } from "@/lib/types";
-import { cn } from "@/lib/utils";
-
-const schema = z.object({
-  email: z.string().min(1, "We need an email to send your file to.").email("That email looks off. Check for typos."),
-  name: z.string().trim().min(2, "Enter your name for the receipt."),
-});
+import { applyCoupon, getCheckout, payOrder, removeCoupon, setOrderBump, trackDealViews, updateDeals } from "@/lib/api";
+import { checkoutLines } from "@/lib/pricing";
+import { localPrice } from "@/lib/money";
 
 export default function CheckoutPage({ params }: { params: Promise<{ orderId: string }> }) {
   const { orderId } = use(params);
   const router = useRouter();
-  const { data, error, reload } = useApi(() => getDelivery(orderId), [orderId]);
-  const [method, setMethod] = useState<Order["paymentMethod"]>("upi");
-  const [gateway, setGateway] = useState(false);
+  const { data, error, reload, setData } = useApi(() => getCheckout(orderId), [orderId]);
+  const [values, setValues] = useState<CheckoutValues>();
   const [paying, setPaying] = useState(false);
   const [payError, setPayError] = useState<string>();
-  const form = useForm<z.infer<typeof schema>>({ resolver: zodResolver(schema), defaultValues: { email: "", name: "" }, mode: "onTouched" });
+  const [bumpPending, setBumpPending] = useState(false);
+  const [dealPending, setDealPending] = useState(false);
+  const [tracked, setTracked] = useState(false);
 
   const paid = data?.order.status === "paid";
   useEffect(() => {
     if (paid) router.replace(`/success/${orderId}`);
   }, [paid, orderId, router]);
 
-  if (!data) return <BuyerStatus error={error} onRetry={reload} kind="order" />;
-  const { order, product, store } = data;
-  const intl = order.buyerTotal.currency !== "INR";
-  const methods: { id: Order["paymentMethod"]; label: string; icon: React.ComponentType<{ className?: string }> }[] = intl
-    ? [{ id: "card", label: "Card", icon: CreditCard }]
-    : [
-        { id: "upi", label: "UPI", icon: Smartphone },
-        { id: "card", label: "Card", icon: CreditCard },
-        { id: "netbanking", label: "Netbanking", icon: Landmark },
-      ];
-  const activeMethod = methods.some((m) => m.id === method) ? method : methods[0].id;
+  // One view per checkout visit for each rule the panel offers (stats for the creator)
+  const offeredKey = data?.deals && !data.deals.skipped ? [...new Set(data.deals.offers.map((o) => o.ruleId))].join(",") : "";
+  useEffect(() => {
+    if (tracked || !offeredKey) return;
+    const t = setTimeout(() => {
+      setTracked(true);
+      trackDealViews(orderId, offeredKey.split(",")).catch(() => {});
+    }, 0);
+    return () => clearTimeout(t);
+  }, [tracked, offeredKey, orderId]);
 
-  async function pay(fail: boolean) {
-    const v = form.getValues();
+  async function changeDeals(change: Parameters<typeof updateDeals>[1]) {
+    setDealPending(true);
+    try {
+      setData(await updateDeals(orderId, change));
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "That didn't work. Try again.");
+    } finally {
+      setDealPending(false);
+    }
+  }
+
+  if (!data) return <BuyerStatus error={error} onRetry={reload} kind="order" />;
+  const { order, store, design, products, bump } = data;
+  const intl = order.buyerTotal.currency !== "INR";
+  const bumpOn = order.items.some((i) => i.kind === "bump");
+  const firstProduct = products.find((p) => p.id === order.productId);
+
+  async function claimFree(v: CheckoutValues) {
     setPaying(true);
     setPayError(undefined);
     try {
-      await payOrder({ orderId, name: v.name, email: v.email, method: activeMethod, simulateFailure: fail });
+      await payOrder({ orderId, name: v.name, email: v.email, phone: `${v.dial} ${v.phone}`, method: v.method, free: true });
+      router.push(`/success/${orderId}`);
+    } catch (e) {
+      setPayError(e instanceof Error ? e.message : "That didn't go through. Try again.");
+      setPaying(false);
+    }
+  }
+
+  async function pay(fail: boolean) {
+    if (!values) return;
+    setPaying(true);
+    setPayError(undefined);
+    try {
+      await payOrder({ orderId, name: values.name, email: values.email, phone: `${values.dial} ${values.phone}`, method: values.method, simulateFailure: fail });
       router.push(`/success/${orderId}`);
     } catch (e) {
       setPayError(e instanceof Error ? e.message : "The payment didn't go through.");
-      setGateway(false);
+      setValues(undefined);
       setPaying(false);
     }
   }
 
   return (
-    <BuyerShell store={store} narrow>
-      <title>{`Checkout · ${product.title}`}</title>
-      <Link href={`/s/${store.slug}/${product.slug}`} className="-ml-1 mb-4 inline-flex min-h-11 items-center gap-1.5 px-1 text-sm font-medium text-muted-foreground hover:text-foreground">
-        <ArrowLeft className="size-4" aria-hidden /> Back to product
-      </Link>
-      <h1 className="text-[28px]">Checkout</h1>
+    <BuyerShell store={store} theme={design.theme} bottomBar>
+      <title>{`Checkout · ${order.productTitle}`}</title>
+      {firstProduct && (
+        <Link href={`/s/${store.slug}/${firstProduct.slug}`} className="-ml-1 mb-3 inline-flex min-h-11 items-center gap-1.5 px-1 text-sm font-medium text-muted-foreground hover:text-foreground">
+          <ArrowLeft className="size-4" aria-hidden /> Back to product
+        </Link>
+      )}
+      <h1 className="text-[2rem]">Checkout</h1>
+      <p className="mt-1 text-muted-foreground">One step. Your files arrive the moment you pay.</p>
 
-      <section aria-label="Order summary" className="mt-5 flex gap-4 rounded-card border bg-surface p-4">
-        <ProductImageView image={product.images[0]} size="xs" className="w-24 shrink-0" />
-        <div className="min-w-0 flex-1">
-          <p className="truncate font-semibold">{product.title}</p>
-          <p className="text-sm text-muted-foreground">Instant download · {store.name}</p>
-        </div>
-        <div className="text-right">
-          <MoneyText value={order.buyerTotal} className="font-display text-xl" />
-          {intl && <p className="font-mono text-[11px] text-muted-foreground">≈ <MoneyText value={order.total} /></p>}
-        </div>
-      </section>
-      {intl && <ConversionNote currency={order.buyerTotal.currency} className="mt-2" />}
-
-      <Form {...form}>
-        <form noValidate className="mt-6 flex flex-col gap-5" onSubmit={form.handleSubmit(() => setGateway(true))}>
+      <div className="mt-6 grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_400px]">
+        <div className="order-2 flex flex-col gap-5 lg:order-1">
           <FormError message={payError} />
-          <FormField control={form.control} name="email" render={({ field }) => (
-            <FormItem>
-              <FormLabel>Email</FormLabel>
-              <FormControl><Input type="email" inputMode="email" autoComplete="email" {...field} /></FormControl>
-              <FormDescription>Your file and receipt go here. No account needed.</FormDescription>
-              <FormMessage />
-            </FormItem>
-          )} />
-          <FormField control={form.control} name="name" render={({ field }) => (
-            <FormItem>
-              <FormLabel>Name</FormLabel>
-              <FormControl><Input autoComplete="name" {...field} /></FormControl>
-              <FormMessage />
-            </FormItem>
-          )} />
-          <fieldset>
-            <legend className="mb-2 text-sm font-medium">Pay with</legend>
-            <RadioGroup
-              value={activeMethod}
-              onValueChange={(v) => setMethod(v as Order["paymentMethod"])}
-              className={cn("grid gap-2", methods.length > 1 ? "grid-cols-3" : "grid-cols-1")}
-              aria-label="Payment method"
-            >
-              {methods.map((m) => (
-                <label
-                  key={m.id}
-                  className="relative flex min-h-14 cursor-pointer flex-col items-center justify-center gap-1 rounded-control border bg-surface text-sm font-medium hover:border-border-strong has-[[data-state=checked]]:border-primary has-[[data-state=checked]]:bg-primary-soft has-[[data-state=checked]]:text-primary has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-primary"
-                >
-                  <RadioGroupItem value={m.id} className="sr-only" />
-                  <m.icon className="size-5" aria-hidden /> {m.label}
-                </label>
-              ))}
-            </RadioGroup>
-            {intl && <p className="mt-2 text-xs text-muted-foreground">International buyers pay by card. UPI and netbanking are for Indian accounts.</p>}
-          </fieldset>
-          <Button type="submit" size="lg" className="w-full">
-            <Lock aria-hidden /> Pay <MoneyText value={order.buyerTotal} />
-          </Button>
-          <p className="text-center text-xs text-muted-foreground">
-            By paying you accept {store.name}&apos;s refund policy: {store.refundDays ? `${store.refundDays} days` : "no refunds"}. Prices include any GST that applies.
-          </p>
-        </form>
-      </Form>
-      <TrustBar refundDays={store.refundDays} className="mt-6" />
+          <CheckoutForm
+            key={intl ? "intl" : "in"}
+            international={intl}
+            total={order.buyerTotal}
+            termsHref={`/s/${store.slug}/policies/terms`}
+            refundHref={`/s/${store.slug}/policies/refund`}
+            couponSlot={
+              <CouponField
+                applied={order.couponCode}
+                onApply={async (code) => {
+                  const v = await applyCoupon(orderId, code);
+                  setData(v);
+                  toast.success("Code applied");
+                }}
+                onRemove={async () => setData(await removeCoupon(orderId))}
+              />
+            }
+            pending={paying}
+            onPay={(v) => (order.buyerTotal.amount === 0 ? claimFree(v) : setValues(v))}
+          />
+          <TrustBar refundDays={store.refundDays} />
+        </div>
 
-      <MockGateway open={gateway} onOpenChange={setGateway} amount={order.buyerTotal} method={activeMethod} pending={paying} onApprove={() => pay(false)} onDecline={() => pay(true)} />
+        <aside className="order-1 flex flex-col gap-4 lg:sticky lg:top-6 lg:order-2 lg:self-start">
+          <CheckoutSummary order={order} products={[...products, ...(bump ? [bump.product] : []), ...(data.deals?.products ?? [])]} />
+          {data.deals && (
+            <DealPanel
+              deals={data.deals}
+              items={order.items}
+              added={order.dealAdds ?? []}
+              giftChoices={order.giftChoices}
+              currency={order.buyerTotal.currency}
+              busy={dealPending}
+              onAdd={(ids) => ids.reduce((p, id) => p.then(() => changeDeals({ add: id })), Promise.resolve())}
+              onRemove={(id) => changeDeals({ remove: id })}
+              onGift={(ruleId, productId) => changeDeals({ gift: { ruleId, productId } })}
+              onSkip={(skip) => changeDeals({ skip })}
+            />
+          )}
+          {intl && <ConversionNote currency={order.buyerTotal.currency} />}
+          {bump && (
+            <OrderBump
+              label={bump.label}
+              description="Add it now and get it in the same download. One tap, no second checkout."
+              image={bump.product.images[0]}
+              price={localPrice(bump.price, order.buyerTotal.currency)}
+              checked={bumpOn}
+              disabled={bumpPending}
+              onChange={async (on) => {
+                setBumpPending(true);
+                try {
+                  setData(await setOrderBump(orderId, on));
+                } finally {
+                  setBumpPending(false);
+                }
+              }}
+            />
+          )}
+        </aside>
+      </div>
+
+      <MobilePayBar total={order.buyerTotal} pending={paying} savings={(() => { const l = checkoutLines(order); return { ...l.dealSaving, amount: l.dealSaving.amount + l.discount.amount }; })()} />
+
+      <MockGateway
+        open={!!values}
+        onOpenChange={(o) => !o && setValues(undefined)}
+        amount={order.buyerTotal}
+        method={values?.method ?? "upi"}
+        pending={paying}
+        onApprove={() => pay(false)}
+        onDecline={() => pay(true)}
+      />
     </BuyerShell>
   );
 }

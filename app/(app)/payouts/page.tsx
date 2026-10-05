@@ -6,7 +6,8 @@ import type { ColumnDef } from "@tanstack/react-table";
 import { ArrowUpRight, Clock, Landmark, Plus, Wallet } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { useUnsavedGuard } from "@/components/save/unsaved-guard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DataTable } from "@/components/pp/data-table";
 import { EmptyState, ErrorState } from "@/components/pp/empty-state";
@@ -32,7 +33,7 @@ function PayoutsInner() {
   const store = useApi(getStore, []);
   const [withdrawOpen, setWithdrawOpen] = useState(params.get("withdraw") === "1");
   const [bankOpen, setBankOpen] = useState(false);
-  const [bankPending, setBankPending] = useState(false);
+  const unsaved = useUnsavedGuard();
 
   const allMethods = methods.data?.some((m) => m.kind === "usdt") ? methods.data : [...(methods.data ?? []), usdtPlaceholder()];
   const hasBank = !!methods.data?.some((m) => m.kind === "bank");
@@ -76,19 +77,19 @@ function PayoutsInner() {
         <section aria-label="Balance" className="grid grid-cols-1 overflow-hidden rounded-card border bg-surface md:grid-cols-[1.3fr_1fr_1fr]">
           <div className="flex flex-col gap-1 border-b p-6 md:border-r md:border-b-0">
             <p className="eyebrow flex items-center gap-1.5"><Wallet className="size-3.5" aria-hidden /> Available now</p>
-            {balance.data ? <MoneyText value={balance.data.available} className="font-display text-[40px] leading-tight text-accent-strong" /> : <Skeleton className="h-12 w-48" />}
+            {balance.data ? <MoneyText value={balance.data.available} className="font-display text-[2.5rem] leading-tight text-accent-strong" /> : <Skeleton className="h-12 w-48" />}
             <p className="text-sm text-muted-foreground">Yours to withdraw today.</p>
           </div>
           <div className="flex flex-col gap-1 border-b p-6 md:border-r md:border-b-0">
             <p className="eyebrow flex items-center gap-1.5"><Clock className="size-3.5" aria-hidden /> Pending</p>
-            {balance.data ? <MoneyText value={balance.data.pending} className="font-display text-[28px] leading-tight" /> : <Skeleton className="h-9 w-36" />}
+            {balance.data ? <MoneyText value={balance.data.pending} className="font-display text-[1.75rem] leading-tight" /> : <Skeleton className="h-9 w-36" />}
             <p className="text-sm text-muted-foreground">
               {balance.data?.nextReleaseAt ? `Next release ${formatDate(balance.data.nextReleaseAt)}. Includes refund requests on hold.` : "Recent sales wait two days before release."}
             </p>
           </div>
           <div className="flex flex-col gap-1 p-6">
             <p className="eyebrow">Paid out so far</p>
-            {balance.data ? <MoneyText value={balance.data.lifetimePaidOut} className="font-display text-[28px] leading-tight" /> : <Skeleton className="h-9 w-36" />}
+            {balance.data ? <MoneyText value={balance.data.lifetimePaidOut} className="font-display text-[1.75rem] leading-tight" /> : <Skeleton className="h-9 w-36" />}
             <p className="text-sm text-muted-foreground">Since {store.data ? formatDate(store.data.createdAt) : "you started"}.</p>
           </div>
         </section>
@@ -97,7 +98,7 @@ function PayoutsInner() {
       <section aria-labelledby="methods-h" className="mt-8">
         <div className="mb-3 flex items-center justify-between">
           <h2 id="methods-h" className="text-xl">Where money goes</h2>
-          <Button variant="secondary" size="sm" onClick={() => setBankOpen(true)}><Plus aria-hidden /> {hasBank ? "Change bank" : "Add bank account"}</Button>
+          <Button variant="secondary" size="sm" data-coach="add-payout-method" onClick={() => setBankOpen(true)}><Plus aria-hidden /> {hasBank ? "Change bank" : "Add bank account"}</Button>
         </div>
         {methods.loading && !methods.data ? (
           <Skeleton className="h-20 rounded-card" />
@@ -134,7 +135,7 @@ function PayoutsInner() {
               <StatusPill status={p.status} />
             </div>
           )}
-          empty={<EmptyState icon={Wallet} title="No payouts yet." body="When you withdraw, it shows up here with the bank reference." compact />}
+          empty={<EmptyState nextStep icon={Wallet} title="No payouts yet." body="When you withdraw, it shows up here with the bank reference." compact />}
         />
       </section>
 
@@ -156,7 +157,7 @@ function PayoutsInner() {
         />
       )}
 
-      <Sheet open={bankOpen} onOpenChange={setBankOpen}>
+      <Sheet open={bankOpen} onOpenChange={(o) => (o ? setBankOpen(true) : unsaved.confirmLeave(() => setBankOpen(false)))}>
         <SheetContent className="w-full overflow-y-auto sm:max-w-md">
           <SheetHeader>
             <SheetTitle className="font-display text-2xl">Bank account</SheetTitle>
@@ -166,16 +167,10 @@ function PayoutsInner() {
             <BankForm
               formId="payout-bank"
               defaultName={store.data?.ownerName}
-              onPendingChange={setBankPending}
-              onSaved={(m) => {
-                setBankOpen(false);
-                toast.success("Bank account verified", { description: `${m.label} ····${m.last4}` });
-              }}
+              saveBar
+              onSaved={() => setBankOpen(false)}
             />
           </div>
-          <SheetFooter>
-            <Button type="submit" form="payout-bank" disabled={bankPending}>Verify and save</Button>
-          </SheetFooter>
         </SheetContent>
       </Sheet>
     </>

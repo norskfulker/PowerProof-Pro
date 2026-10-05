@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Plug } from "lucide-react";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Segmented } from "@/components/pp/segmented";
 import { ChartCard, RevenueBars, ShareBars, VisitorsArea } from "@/components/pp/chart-card";
 import { MoneyText } from "@/components/pp/money-text";
 import { PageHeader } from "@/components/pp/page-header";
@@ -29,13 +29,7 @@ export default function AnalyticsPage() {
         title="Analytics"
         description="Built in, no setup. Connect Google Analytics or Clarity for the deep stuff."
         actions={
-          <Tabs value={range} onValueChange={(v) => setRange(v as RangeKey)}>
-            <TabsList>
-              <TabsTrigger value="7d">7 days</TabsTrigger>
-              <TabsTrigger value="30d">30 days</TabsTrigger>
-              <TabsTrigger value="90d">90 days</TabsTrigger>
-            </TabsList>
-          </Tabs>
+          <Segmented label="Date range" value={range} onChange={setRange} options={[{ value: "7d", label: "7 days" }, { value: "30d", label: "30 days" }, { value: "90d", label: "90 days" }]} />
         }
       />
 
@@ -68,8 +62,8 @@ export default function AnalyticsPage() {
             <tbody className="divide-y">
               {s?.topProducts.map((p) => (
                 <tr key={p.productId}>
-                  <td className="py-2.5 pr-3"><Link href={`/products/${p.productId}`} className="inline-flex min-h-11 items-center font-medium hover:underline md:min-h-0">{p.title}</Link></td>
-                  <td className="py-2.5 text-right font-mono text-[13px]">{p.sales}</td>
+                  <td className="py-2.5 pr-3"><Link href={`/products/${p.productId}`} className="inline-flex pointer-coarse:min-h-11 items-center font-medium hover:underline">{p.title}</Link></td>
+                  <td className="py-2.5 text-right font-mono text-[0.8125rem]">{p.sales}</td>
                   <td className="py-2.5 text-right"><MoneyText value={p.revenue} mono /></td>
                 </tr>
               ))}

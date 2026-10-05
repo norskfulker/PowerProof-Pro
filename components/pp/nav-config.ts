@@ -1,24 +1,4 @@
-import {
-  AlertOctagon,
-  BarChart3,
-  Banknote,
-  Box,
-  Flag,
-  Image as ImageIcon,
-  LayoutDashboard,
-  MonitorPlay,
-  Package,
-  PanelsTopLeft,
-  Plug,
-  Receipt,
-  Settings,
-  Store,
-  Truck,
-  Users,
-  Wallet,
-  GraduationCap,
-  type LucideIcon,
-} from "lucide-react";
+import { AlertOctagon, BarChart3, Banknote, Box, Flag, Images, LayoutDashboard, MonitorPlay, Package, PanelsTopLeft, Plug, Receipt, Settings, Store, Truck, Users, Wallet, GraduationCap, FileText, FolderOpen, MessagesSquare, Palette, Search, Star, Ticket, type LucideIcon, ScrollText, Info, Sparkles } from "lucide-react";
 
 export interface NavItem {
   href: string;
@@ -39,8 +19,22 @@ export const CREATOR_NAV: NavGroup[] = [
     items: [
       { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
       { href: "/products", label: "Products", icon: Package, match: "/products" },
-      { href: "/images", label: "Image maker", icon: ImageIcon },
-      { href: "/pages", label: "Pages", icon: PanelsTopLeft, match: "/pages" },
+      { href: "/media", label: "Media", icon: Images },
+      { href: "/images", label: "AI images", icon: Sparkles },
+    ],
+  },
+  {
+    label: "Store",
+    items: [
+      { href: "/store/design", label: "Design", icon: Palette },
+      { href: "/store/collections", label: "Collections", icon: FolderOpen },
+      { href: "/store/offers", label: "Offers", icon: Ticket },
+      { href: "/store/reviews", label: "Reviews", icon: Star },
+      { href: "/store/questions", label: "Questions", icon: MessagesSquare },
+      { href: "/store/pages", label: "Store pages", icon: FileText, match: "/store/pages" },
+      { href: "/store/info", label: "About, FAQ, policies", icon: Info },
+      { href: "/pages", label: "Sales pages", icon: PanelsTopLeft, match: "/pages" },
+      { href: "/store/seo", label: "SEO and domain", icon: Search, match: "/store/seo" },
     ],
   },
   {
@@ -53,7 +47,7 @@ export const CREATOR_NAV: NavGroup[] = [
     ],
   },
   {
-    label: "Store",
+    label: "Setup",
     items: [
       { href: "/integrations", label: "Integrations", icon: Plug },
       { href: "/settings/profile", label: "Settings", icon: Settings, match: "/settings" },
@@ -85,6 +79,8 @@ export const ADMIN_NAV: NavGroup[] = [
       { href: "/admin/disputes", label: "Disputes", icon: AlertOctagon },
       { href: "/admin/payouts", label: "Payouts queue", icon: Banknote },
       { href: "/admin/flags", label: "Flagged content", icon: Flag },
+      { href: "/admin/search", label: "Search", icon: Search },
+      { href: "/admin/audit", label: "Audit log", icon: ScrollText },
     ],
   },
   { label: "Switch", items: [{ href: "/dashboard", label: "Creator app", icon: Box }] },

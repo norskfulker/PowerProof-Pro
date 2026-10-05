@@ -37,6 +37,9 @@ const STEPS = [
 
 const EXAMPLE: Order = {
   id: "x",
+  token: "tok_demo",
+  storeId: "store_ananya",
+  items: [{ productId: "x", title: "Monsoon Moods: 12 Lightroom Presets", price: { amount: 79900, currency: "INR" }, kind: "product" }],
   number: "PP-1081",
   productId: "x",
   productTitle: "Monsoon Moods: 12 Lightroom Presets",
@@ -63,7 +66,7 @@ export default function HowItWorksPage() {
     <>
       <section className="gutter mx-auto max-w-[1200px] pt-12 md:pt-16">
         <p className="eyebrow">How it works</p>
-        <h1 className="mt-3 max-w-3xl text-[40px] sm:text-5xl">From nothing to a working store in under three minutes.</h1>
+        <h1 className="mt-3 max-w-3xl text-[2.5rem] sm:text-5xl">From nothing to a working store in under three minutes.</h1>
         <p className="mt-4 max-w-xl text-lg text-muted-foreground">Four steps for you. Everything after that is our job.</p>
       </section>
 

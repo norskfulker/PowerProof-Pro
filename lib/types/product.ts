@@ -1,3 +1,4 @@
+import type { Focal, MediaRef, TileBackground } from "./media";
 import type { ISODate, Money } from "./money";
 
 export type ProductStatus = "published" | "draft" | "archived";
@@ -17,10 +18,12 @@ export interface CoverSpec {
 export interface ProductImage {
   id: string;
   alt: string;
-  /** A real image URL (object URL or remote). */
+  /** An uploaded image ("asset:<id>") or a remote https URL */
   src?: string;
   /** Or a generated cover. */
   cover?: CoverSpec;
+  /** Where to keep in frame when the image is cropped */
+  focal?: Focal;
 }
 
 export interface ProductFile {
@@ -39,7 +42,14 @@ export interface Product {
   kind: ProductKind;
   price: Money;
   compareAt?: Money;
+  /** Lowest price deal paths may discount this product to. None = no floor. */
+  priceFloor?: Money;
+  /** Up to 8. The first one is the cover. */
   images: ProductImage[];
+  /** One optional video, shown in the product gallery after the images */
+  video?: MediaRef;
+  /** Colour or image for cards when the product has no images */
+  tileBackground?: TileBackground;
   files: ProductFile[];
   sku: string;
   taxCode: string;
@@ -55,7 +65,7 @@ export interface Product {
 
 export type ProductInput = Pick<
   Product,
-  "title" | "description" | "kind" | "price" | "images" | "files" | "sku" | "taxCode" | "status"
+  "title" | "description" | "kind" | "price" | "images" | "files" | "sku" | "taxCode" | "status" | "video" | "tileBackground"
 > & { sourceUrl?: string; compareAt?: Money };
 
 export interface LinkAutofill {

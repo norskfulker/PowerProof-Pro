@@ -57,7 +57,7 @@ export default function PagesListPage() {
               <Link href={editHref(p)} className="relative block h-48 overflow-hidden border-b bg-background" aria-label={`Edit ${p.title}`}>
                 {p.mode === "html" ? (
                   <div className="grid h-full place-items-center bg-foreground p-4">
-                    <pre className="line-clamp-6 w-full font-mono text-[11px] leading-5 whitespace-pre-wrap text-primary-foreground/80">{p.html}</pre>
+                    <pre className="line-clamp-6 w-full font-mono text-[0.6875rem] leading-5 whitespace-pre-wrap text-primary-foreground/80">{p.html}</pre>
                   </div>
                 ) : (
                   <div className="pointer-events-none origin-top-left scale-[0.55]" style={{ width: "182%" }}>
@@ -67,7 +67,7 @@ export default function PagesListPage() {
               </Link>
               <div className="flex flex-1 flex-col gap-2 p-4">
                 <div className="flex items-start justify-between gap-2">
-                  <Link href={editHref(p)} className="font-semibold hover:underline">{p.title}</Link>
+                  <Link href={editHref(p)} className="inline-flex min-h-11 items-center font-semibold hover:underline">{p.title}</Link>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="ghost" size="icon-sm" aria-label={`Actions for ${p.title}`}><MoreHorizontal /></Button>

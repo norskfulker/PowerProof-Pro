@@ -95,7 +95,7 @@ export function StepStore({ initial, onDone }: { initial: { name: string; slug: 
               <FormItem>
                 <FormLabel>Store link</FormLabel>
                 <div className="flex items-stretch overflow-hidden rounded-control border border-input bg-surface focus-within:border-primary focus-within:outline-2 focus-within:outline-primary">
-                  <span className="flex items-center border-r bg-surface-sunken px-3 font-mono text-[13px] text-muted-foreground">{SITE_URL}/</span>
+                  <span className="flex min-w-0 shrink items-center truncate border-r bg-surface-sunken px-3 font-mono text-[0.8125rem] whitespace-nowrap text-muted-foreground [overflow-wrap:normal]" title={`${SITE_URL}/`}>{SITE_URL}/</span>
                   <FormControl>
                     <input
                       {...field}
@@ -105,7 +105,7 @@ export function StepStore({ initial, onDone }: { initial: { name: string; slug: 
                       }}
                       autoCapitalize="none"
                       spellCheck={false}
-                      className="h-11 min-w-0 flex-1 bg-transparent px-3 font-mono text-[15px] outline-none"
+                      className="h-11 min-w-[9rem] flex-1 bg-transparent px-3 font-mono text-[0.9375rem] outline-none"
                     />
                   </FormControl>
                   <span className="flex w-11 items-center justify-center" aria-hidden>

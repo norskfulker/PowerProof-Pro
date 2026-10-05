@@ -52,7 +52,7 @@ export function LiveFeed() {
             <span className="relative inline-flex size-2 rounded-full bg-success" />
           </span>
         </h2>
-        <Link href="/orders" className="inline-flex min-h-11 items-center text-sm font-medium text-primary underline-offset-4 hover:underline md:min-h-0">
+        <Link href="/orders" className="inline-flex pointer-coarse:min-h-11 items-center text-sm font-medium text-primary underline-offset-4 hover:underline">
           All orders
         </Link>
       </header>
@@ -83,7 +83,7 @@ export function LiveFeed() {
                   fresh.has(o.id) && "bg-accent-soft"
                 )}
               >
-                <span className="grid size-9 shrink-0 place-items-center rounded-full bg-primary-soft font-mono text-[11px] font-semibold text-primary">
+                <span className="grid size-9 shrink-0 place-items-center rounded-full bg-primary-soft font-mono text-[0.6875rem] font-semibold text-primary">
                   {o.countryCode}
                 </span>
                 <span className="min-w-0 flex-1">

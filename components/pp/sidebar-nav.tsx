@@ -26,12 +26,12 @@ export function SidebarNav({
     <div className={cn("flex h-full flex-col", admin ? "bg-sidebar-admin text-primary-foreground" : "bg-surface", className)}>
       <div className="flex h-16 shrink-0 items-center px-5">
         <Logo href={admin ? "/admin" : "/dashboard"} inverted={admin} />
-        {admin && <span className="ml-2 rounded-full bg-accent px-2 py-0.5 font-mono text-[10px] font-semibold text-accent-foreground uppercase">Admin</span>}
+        {admin && <span className="ml-2 rounded-full bg-accent px-2 py-0.5 font-mono text-[0.625rem] font-semibold text-accent-foreground uppercase">Admin</span>}
       </div>
       <nav aria-label="Main" className="flex-1 overflow-y-auto px-3 pb-4">
         {groups.map((g, gi) => (
           <div key={gi} className="mt-4 first:mt-1">
-            {g.label && <p className={cn("eyebrow mb-1.5 px-3", admin && "text-primary-foreground/60")}>{g.label}</p>}
+            {g.label && <p className={cn("eyebrow mb-1.5 px-3", admin && "text-primary-foreground/80")}>{g.label}</p>}
             <ul className="flex flex-col gap-0.5">
               {g.items.map((item) => {
                 const active = !item.soon && isActive(pathname, item);
@@ -48,7 +48,7 @@ export function SidebarNav({
                       >
                         <Icon className="size-[18px]" strokeWidth={1.5} aria-hidden />
                         {item.label}
-                        <span className="ml-auto rounded-full bg-accent-soft px-1.5 py-px font-mono text-[10px] text-accent-ink">SOON</span>
+                        <span className="ml-auto rounded-full bg-accent-soft px-1.5 py-px font-mono text-[0.625rem] text-accent-ink">SOON</span>
                       </span>
                     </li>
                   );
@@ -60,7 +60,7 @@ export function SidebarNav({
                       onClick={onNavigate}
                       aria-current={active ? "page" : undefined}
                       className={cn(
-                        "relative flex min-h-10 items-center gap-3 rounded-control px-3 text-sm font-medium transition-colors duration-150 max-md:min-h-11",
+                        "relative flex min-h-10 items-center gap-3 rounded-control px-3 text-sm font-medium transition-colors duration-150 pointer-coarse:min-h-11",
                         admin
                           ? active
                             ? "bg-primary-foreground/12 text-primary-foreground"

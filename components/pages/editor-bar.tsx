@@ -1,29 +1,27 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
+import { SaveBar } from "@/components/save/save-bar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import type { DirtyForm } from "@/hooks/use-dirty-form";
 import type { Page, Product } from "@/lib/types";
 
 /** Shared top bar for the visual and HTML editors. */
 export function EditorBar({
   page,
   products,
-  dirty,
-  saving,
+  bar,
   onChange,
-  onSave,
   modeSwitch,
 }: {
   page: Page;
   products: Product[];
-  dirty: boolean;
-  saving: boolean;
+  bar: DirtyForm;
   onChange: (p: Partial<Page>) => void;
-  onSave: () => void;
   modeSwitch: { href: string; label: string };
 }) {
   return (
@@ -33,15 +31,12 @@ export function EditorBar({
           <Link href="/pages"><ArrowLeft /></Link>
         </Button>
         <label htmlFor="pg-name" className="sr-only">Page name</label>
-        <Input id="pg-name" value={page.title} onChange={(e) => onChange({ title: e.target.value })} className="h-10 max-w-sm flex-1 font-display text-lg font-extrabold" />
+        <Input id="pg-name" value={page.title} onChange={(e) => onChange({ title: e.target.value })} className="h-11 max-w-sm min-w-0 flex-[1_1_12rem] font-display text-lg font-extrabold" />
         <div className="ml-auto flex flex-wrap items-center gap-2">
           <Button asChild variant="ghost" size="sm"><Link href={modeSwitch.href}>{modeSwitch.label}</Link></Button>
-          <Button onClick={onSave} disabled={saving || !dirty}>
-            {saving && <Loader2 className="animate-spin" aria-hidden />}
-            {dirty ? "Save" : "Saved"}
-          </Button>
         </div>
       </div>
+      <SaveBar state={bar} className="md:ml-auto md:w-fit" />
       <div className="flex flex-col gap-3 border-t pt-4 sm:flex-row sm:items-center">
         <div className="flex items-center gap-2">
           <label htmlFor="pg-prod" className="text-sm text-muted-foreground">Sells</label>

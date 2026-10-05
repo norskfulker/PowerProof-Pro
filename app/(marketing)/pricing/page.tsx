@@ -5,22 +5,26 @@ import { Button } from "@/components/ui/button";
 import { CtaBand } from "@/components/marketing/cta-band";
 import { Faq } from "@/components/marketing/faq";
 import { FeeCalculator } from "@/components/marketing/fee-calculator";
+import { PlanComparisonTable } from "@/components/plan/plan-usage";
+import { PLAN_LIMITS, PRO_PRICE_USD } from "@/lib/plans";
 
 export const metadata: Metadata = { title: "Pricing" };
 
 const INCLUDED = [
-  "Unlimited products and pages",
+  "Unlimited stores and products",
+  `${PLAN_LIMITS.pro.aiCredits} AI image credits a month`,
   "Instant delivery and download links",
   "GST-ready invoices with HSN/SAC",
   "Buyers pay in their own currency",
   "Payouts to your bank, two days after each sale",
   "Google Analytics and Microsoft Clarity",
-  "Product image maker and page templates",
+  "Page templates and the visual page editor",
   "Team seats for support and design help",
 ];
 
 const PRICING_FAQ: [string, string][] = [
-  ["Is the first month really free?", "Yes. No card to start. The 3% per-sale fee still applies, so we only earn when you do."],
+  ["What can I do on Free?", `Everything, for ${PLAN_LIMITS.free.stores} store and ${PLAN_LIMITS.free.products} product, with ${PLAN_LIMITS.free.aiCredits} AI image credits a month. When you want more, Pro removes the limits.`],
+  ["Is Pro's first month really free?", "Yes. No card to start. The 3% per-sale fee is the same on both plans, so we only earn when you do."],
   ["What's the ~2% gateway fee?", "The payment gateway charges it to move money. It's about 2% for Indian cards and UPI and can be a little higher for international cards."],
   ["Do you charge GST on fees?", "Fees are shown before GST. If GST applies to your account, it appears on your monthly PowerProof invoice."],
   ["Can I cancel?", "Any time, from Settings. Your store stays up until the end of the month you paid for."],
@@ -31,17 +35,18 @@ export default function PricingPage() {
     <>
       <section className="gutter mx-auto max-w-[1200px] pt-12 md:pt-16">
         <p className="eyebrow">Pricing</p>
-        <h1 className="mt-3 max-w-3xl text-[40px] sm:text-5xl">One plan. You&apos;ll know what you keep before you sell.</h1>
+        <h1 className="mt-3 max-w-3xl text-[2.5rem] sm:text-5xl">Start free. You&apos;ll know what you keep before you sell.</h1>
+        <p className="mt-4 max-w-2xl text-lg text-muted-foreground">Free covers one store and one product. Pro removes the limits for ${PRO_PRICE_USD} a month. Both pay the same 3% per sale.</p>
       </section>
 
       <section className="gutter mx-auto mt-10 grid grid-cols-1 max-w-[1200px] gap-6 lg:grid-cols-[380px_minmax(0,1fr)]" aria-label="Plan">
         <div className="flex flex-col rounded-dialog border-2 border-primary bg-surface p-6 md:p-8">
           <div className="flex items-center justify-between">
-            <p className="font-semibold">PowerProof</p>
+            <p className="font-semibold">Pro</p>
             <span className="rounded-full bg-accent-soft px-2.5 py-0.5 text-xs font-semibold text-accent-ink">First month free</span>
           </div>
           <p className="mt-6 flex items-baseline gap-2">
-            <span className="font-display text-5xl">$20</span>
+            <span className="font-display text-5xl">${PRO_PRICE_USD}</span>
             <span className="text-muted-foreground">/ month</span>
           </p>
           <dl className="mt-6 grid grid-cols-[1fr_auto] gap-y-3 border-y py-5 text-sm">
@@ -68,6 +73,17 @@ export default function PricingPage() {
           <h2 className="mb-4 text-2xl">From sale price to what you keep</h2>
           <FeeCalculator />
         </div>
+      </section>
+
+      <section className="gutter mx-auto mt-20 max-w-[1200px]" aria-labelledby="compare-h">
+        <h2 id="compare-h" className="mb-2 text-3xl">Free and Pro, side by side</h2>
+        <p className="mb-6 text-muted-foreground">On Free, you&apos;ll see an upgrade option when you reach a limit. Nothing stops working.</p>
+        <div className="overflow-x-auto rounded-card border bg-surface">
+          <PlanComparisonTable />
+        </div>
+        <Button asChild variant="secondary" className="mt-6">
+          <Link href="/signup">Start on Free</Link>
+        </Button>
       </section>
 
       <section className="gutter mx-auto mt-24 max-w-[820px]" aria-labelledby="pfaq">

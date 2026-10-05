@@ -6,13 +6,16 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { MoneyText } from "@/components/pp/money-text";
 import { StatusPill } from "@/components/pp/status-pill";
+import { usePlan } from "@/components/plan/plan-context";
+import { PlanComparisonTable, PlanUsage } from "@/components/plan/plan-usage";
 import { SettingsLoading, SettingsSection } from "@/components/settings/settings-section";
 import { useApi } from "@/hooks/use-api";
 import { getPlan } from "@/lib/api";
 import { formatDate } from "@/lib/format";
 
 export default function BillingPage() {
-  const { data, error, reload } = useApi(getPlan, []);
+  const { data, error, reload } = useApi(getPlan, [], { live: true });
+  const planCtx = usePlan();
   if (!data) return <SettingsLoading error={error} onRetry={reload} />;
   const { plan, invoices } = data;
   const trial = plan.status === "trial";
@@ -40,6 +43,25 @@ export default function BillingPage() {
           ) : (
             <p className="text-sm text-muted-foreground md:w-72">Renews on the 1st. Fees for the month are billed with it.</p>
           )}
+        </div>
+      </SettingsSection>
+
+      <SettingsSection
+        title="Usage and limits"
+        description={planCtx.state?.tier === "free" ? "Free includes one store and one product. You'll be asked before anything stops." : "Pro has no limits on stores or products."}
+      >
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
+          <PlanUsage tone="card" className="lg:w-72" />
+          <div className="min-w-0 flex-1">
+            <div className="overflow-x-auto rounded-card border">
+              <PlanComparisonTable current={planCtx.state?.tier} />
+            </div>
+            {planCtx.state?.tier === "free" && (
+              <Button className="mt-4" onClick={() => planCtx.upgrade()}>
+                <Sparkles aria-hidden /> Upgrade to Pro, first month free
+              </Button>
+            )}
+          </div>
         </div>
       </SettingsSection>
 

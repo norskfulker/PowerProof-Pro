@@ -2,12 +2,12 @@
 
 import { use, useState } from "react";
 import { Monitor, Smartphone } from "lucide-react";
-import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { BlockInspector, BlockList } from "@/components/pages/block-panel";
 import { EditorBar, EditorSkeletonOrError } from "@/components/pages/editor-bar";
 import { PageRenderer } from "@/components/pages/page-renderer";
 import { useApi } from "@/hooks/use-api";
+import { useDirtyForm } from "@/hooks/use-dirty-form";
 import { getPage, getProducts, getStore, updatePage } from "@/lib/api";
 import type { Page } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -20,29 +20,24 @@ export default function VisualEditorPage({ params }: { params: Promise<{ id: str
   const [draft, setDraft] = useState<Page>();
   const [selected, setSelected] = useState<string>();
   const [device, setDevice] = useState<"desktop" | "mobile">("desktop");
-  const [saving, setSaving] = useState(false);
+  const bar = useDirtyForm({
+    value: draft ?? saved.data,
+    saved: saved.data,
+    onSave: async (p) => {
+      if (!p) return;
+      saved.setData(await updatePage(p.id, p));
+      setDraft(undefined);
+    },
+    onDiscard: () => setDraft(undefined),
+    savedMessage: (draft ?? saved.data)?.status === "live" ? "Saved. The page is live." : "Saved as a draft",
+  });
 
   if (!saved.data || saved.error) return <EditorSkeletonOrError error={saved.error} onRetry={saved.reload} />;
 
   const page = draft ?? saved.data;
-  const dirty = !!draft && JSON.stringify(draft) !== JSON.stringify(saved.data);
   const change = (p: Partial<Page>) => setDraft({ ...page, ...p });
   const product = products.data?.find((p) => p.id === page.productIds[0]);
   const block = page.blocks.find((b) => b.id === selected);
-
-  async function save() {
-    setSaving(true);
-    try {
-      const out = await updatePage(page.id, page);
-      saved.setData(out);
-      setDraft(undefined);
-      toast.success(out.status === "live" ? "Saved. The page is live." : "Saved as a draft");
-    } catch (e) {
-      toast.error("Couldn't save", { description: e instanceof Error ? e.message : undefined });
-    } finally {
-      setSaving(false);
-    }
-  }
 
   return (
     <>
@@ -50,10 +45,8 @@ export default function VisualEditorPage({ params }: { params: Promise<{ id: str
       <EditorBar
         page={page}
         products={products.data ?? []}
-        dirty={dirty}
-        saving={saving}
+        bar={bar}
         onChange={change}
-        onSave={save}
         modeSwitch={{ href: `/pages/${page.id}/html`, label: "HTML and embed" }}
       />
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[300px_minmax(0,1fr)]">
@@ -78,7 +71,7 @@ export default function VisualEditorPage({ params }: { params: Promise<{ id: str
         <section aria-label="Preview" className="flex flex-col overflow-hidden rounded-card border bg-surface-sunken">
           <div className="flex items-center justify-between border-b bg-surface px-4 py-2">
             <p className="eyebrow">Preview · buy button opens checkout{product ? ` for ${product.title}` : ""}</p>
-            <div className="flex gap-1" role="group" aria-label="Preview size">
+            <div className="flex gap-2" role="group" aria-label="Preview size">
               <Button size="icon-sm" variant={device === "desktop" ? "secondary" : "ghost"} aria-pressed={device === "desktop"} onClick={() => setDevice("desktop")} aria-label="Desktop preview"><Monitor /></Button>
               <Button size="icon-sm" variant={device === "mobile" ? "secondary" : "ghost"} aria-pressed={device === "mobile"} onClick={() => setDevice("mobile")} aria-label="Phone preview"><Smartphone /></Button>
             </div>

@@ -38,7 +38,7 @@ function Preview({ slug }: { slug: string }) {
       <nav aria-label="Emails" className="flex gap-2 overflow-x-auto lg:flex-col">
         {EMAILS.map((e) => (
           <Link key={e.slug} href={`/emails/${e.slug}`} aria-current={e.slug === slug ? "page" : undefined}
-            className={cn("shrink-0 rounded-control px-3 py-2.5 text-sm font-medium", e.slug === slug ? "bg-primary-soft text-primary" : "hover:bg-muted")}>
+            className={cn("inline-flex min-h-11 shrink-0 items-center rounded-control px-3 text-sm font-medium", e.slug === slug ? "bg-primary-soft text-primary" : "hover:bg-muted")}>
             {e.name}
           </Link>
         ))}
@@ -49,7 +49,7 @@ function Preview({ slug }: { slug: string }) {
             <p className="truncate"><span className="text-muted-foreground">Subject:</span> <strong>{ctx ? def.subject(ctx) : "…"}</strong></p>
             <p className="truncate text-muted-foreground">To: {def.to === "Buyer" ? ctx?.order?.buyerEmail : ctx?.store.ownerEmail} · From: {def.to === "Buyer" ? ctx?.store.name : "PowerProof"} &lt;hello@powerproof.store&gt;</p>
           </div>
-          <div className="flex gap-1" role="group" aria-label="Preview size">
+          <div className="flex gap-2" role="group" aria-label="Preview size">
             <Button size="icon-sm" variant={device === "desktop" ? "secondary" : "ghost"} aria-pressed={device === "desktop"} onClick={() => setDevice("desktop")} aria-label="Desktop"><Monitor /></Button>
             <Button size="icon-sm" variant={device === "mobile" ? "secondary" : "ghost"} aria-pressed={device === "mobile"} onClick={() => setDevice("mobile")} aria-label="Phone"><Smartphone /></Button>
           </div>

@@ -29,7 +29,7 @@ export default function CustomersPage() {
         accessorFn: (c) => `${c.name} ${c.email}`,
         header: "Customer",
         cell: ({ row }) => (
-          <Link href={`/customers/${row.original.id}`} className="flex items-center gap-3">
+          <Link href={`/customers/${row.original.id}`} className="flex min-h-11 min-w-0 items-center gap-3">
             <Avatar className="size-9"><AvatarFallback className="bg-primary-soft text-xs font-semibold text-primary">{initials(row.original.name)}</AvatarFallback></Avatar>
             <span className="flex flex-col">
               <span className="font-medium hover:underline">{row.original.name}</span>
@@ -39,7 +39,7 @@ export default function CustomersPage() {
         ),
       },
       { accessorKey: "countryCode", header: "Country", filterFn: "equals", cell: ({ getValue }) => countryShort(getValue() as string) },
-      { accessorKey: "ordersCount", header: "Orders", enableSorting: true, meta: { align: "right" }, cell: ({ getValue }) => <span className="font-mono text-[13px]">{getValue() as number}</span> },
+      { accessorKey: "ordersCount", header: "Orders", enableSorting: true, meta: { align: "right" }, cell: ({ getValue }) => <span className="font-mono text-[0.8125rem]">{getValue() as number}</span> },
       { id: "spent", accessorFn: (c) => c.totalSpent.amount, header: "Spent", enableSorting: true, meta: { align: "right" }, cell: ({ row }) => <MoneyText value={row.original.totalSpent} mono /> },
       { id: "last", accessorFn: (c) => c.lastOrderAt, header: "Last order", enableSorting: true, cell: ({ row }) => timeAgo(row.original.lastOrderAt) },
     ],
@@ -69,7 +69,7 @@ export default function CustomersPage() {
             <MoneyText value={c.totalSpent} className="font-semibold" />
           </Link>
         )}
-        empty={<EmptyState icon={Users} title="No customers yet." body="People who buy from you land here, with everything they've bought." />}
+        empty={<EmptyState nextStep icon={Users} title="No customers yet." body="People who buy from you land here, with everything they've bought." />}
       />
     </>
   );

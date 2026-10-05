@@ -47,7 +47,7 @@ function OrdersTable() {
 
   const columns = useMemo<ColumnDef<Order, unknown>[]>(
     () => [
-      { accessorKey: "number", header: "Order", cell: ({ row }) => <Link href={`/orders/${row.original.id}`} className="font-mono text-[13px] font-medium hover:underline">{row.original.number}</Link> },
+      { accessorKey: "number", header: "Order", cell: ({ row }) => <Link href={`/orders/${row.original.id}`} className="font-mono text-[0.8125rem] font-medium hover:underline">{row.original.number}</Link> },
       { id: "date", accessorFn: (o) => o.createdAt, header: "Date", enableSorting: true, cell: ({ row }) => <span title={formatDate(row.original.createdAt, { time: true })}>{timeAgo(row.original.createdAt)}</span> },
       {
         id: "buyer",
@@ -116,7 +116,7 @@ function OrdersTable() {
           </span>
         </Link>
       )}
-      empty={<EmptyState icon={Receipt} title="Nothing sold yet." body="Your first sale will show up here. Share your store link to get things going." action={<Button asChild><Link href="/dashboard">Get your store link</Link></Button>} />}
+      empty={<EmptyState nextStep icon={Receipt} title="Nothing sold yet." body="Your first sale will show up here. Share your store link to get things going." action={<Button asChild><Link href="/dashboard">Get your store link</Link></Button>} />}
     />
   );
 }

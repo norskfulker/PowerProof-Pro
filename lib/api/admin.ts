@@ -1,11 +1,11 @@
-import { seedAdmin } from "../mock/admin";
-import { db } from "../mock/db";
+import { adminDb } from "../mock/admin";
 import { money } from "../money";
 import type { AdminCreator, AdminPayout, Dispute, Flag, Order } from "../types";
+import { commit } from "../mock/db";
 import { call } from "./client";
+import { allScopes } from "./scope";
 
-let admin: ReturnType<typeof seedAdmin> | null = null;
-const A = () => (admin ??= seedAdmin());
+const A = adminDb;
 
 export interface PlatformStats {
   gmv30d: ReturnType<typeof money>;
@@ -48,9 +48,13 @@ export function setCreatorPlan(id: string, plan: AdminCreator["plan"]): Promise<
   });
 }
 
-/** All orders across the platform: the demo store's real orders plus nothing else, labelled. */
+/** All orders across the platform, every store, newest first, labelled with the store. */
 export function getPlatformOrders(): Promise<(Order & { storeName: string })[]> {
-  return call(() => db().orders.map((o) => ({ ...o, storeName: db().store.name })));
+  return call(() =>
+    allScopes()
+      .flatMap((sc) => sc.orders.map((o) => ({ ...o, storeName: sc.store.name })))
+      .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt))
+  );
 }
 
 export function getDisputes(): Promise<Dispute[]> {
@@ -77,12 +81,39 @@ export function setPayoutStatus(id: string, status: AdminPayout["status"]): Prom
   });
 }
 
+/** Reported reviews and questions from every store, as flags. */
+function contentFlags(): Flag[] {
+  const out: Flag[] = [];
+  for (const sc of allScopes()) {
+    for (const r of sc.reviews.filter((x) => x.reported)) {
+      out.push({ id: `flag:review:${r.id}`, kind: "review", target: `“${r.title}” by ${r.author}`, storeName: sc.store.name, reason: "Reported by a visitor", reporter: "Report button", status: r.hidden ? "removed" : "open", createdAt: r.createdAt });
+    }
+    for (const q of sc.questions.filter((x) => x.reported)) {
+      out.push({ id: `flag:question:${q.id}`, kind: "question", target: `“${q.body.slice(0, 60)}”`, storeName: sc.store.name, reason: "Reported by a visitor", reporter: "Report button", status: q.hidden ? "removed" : "open", createdAt: q.createdAt });
+    }
+  }
+  return out;
+}
+
 export function getFlags(): Promise<Flag[]> {
-  return call(() => A().flags);
+  return call(() => [...contentFlags(), ...A().flags]);
 }
 
 export function setFlagStatus(id: string, status: Flag["status"]): Promise<Flag> {
   return call(() => {
+    if (id.startsWith("flag:")) {
+      const [, kind, itemId] = id.split(":");
+      commit(() => {
+        for (const sc of allScopes()) {
+          const item = kind === "review" ? sc.reviews.find((r) => r.id === itemId) : sc.questions.find((q) => q.id === itemId);
+          if (!item) continue;
+          if (status === "removed") item.hidden = true;
+          if (status === "dismissed") item.reported = false;
+        }
+      });
+      const f = contentFlags().find((x) => x.id === id);
+      return f ?? { id, kind: kind as Flag["kind"], target: "", storeName: "", reason: "", reporter: "", status, createdAt: new Date().toISOString() };
+    }
     const f = A().flags.find((x) => x.id === id)!;
     f.status = status;
     return f;

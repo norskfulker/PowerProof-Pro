@@ -46,7 +46,7 @@ export default function HomePage() {
       <section className="gutter mx-auto grid grid-cols-1 max-w-[1200px] items-center gap-14 pt-10 pb-16 md:pt-16 lg:grid-cols-[1.1fr_1fr] lg:gap-10">
         <div>
           <p className="eyebrow">For creators selling digital products</p>
-          <h1 className="mt-4 text-[44px] leading-[1.02] sm:text-5xl lg:text-[64px]">
+          <h1 className="mt-4 text-[2.75rem] leading-[1.02] sm:text-5xl lg:text-[4rem]">
             Add a product.
             <br />
             Share a link.

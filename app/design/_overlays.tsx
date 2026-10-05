@@ -144,7 +144,7 @@ export function Overlays() {
               <BreadcrumbList>
                 <BreadcrumbItem><BreadcrumbLink href="#">Products</BreadcrumbLink></BreadcrumbItem>
                 <BreadcrumbSeparator />
-                <BreadcrumbPage>Second Brain</BreadcrumbPage>
+                <BreadcrumbItem><BreadcrumbPage>Second Brain</BreadcrumbPage></BreadcrumbItem>
               </BreadcrumbList>
             </Breadcrumb>
             <Pagination>

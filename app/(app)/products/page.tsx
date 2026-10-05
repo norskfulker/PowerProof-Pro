@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import { GuardedLink } from "@/components/plan/plan-context";
 import type { ColumnDef } from "@tanstack/react-table";
 import { Copy, ExternalLink, MoreHorizontal, Package, Pencil, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
@@ -37,11 +38,11 @@ export default function ProductsPage() {
         header: "Product",
         enableSorting: true,
         cell: ({ row }) => (
-          <Link href={`/products/${row.original.id}`} className="flex items-center gap-3 font-semibold hover:underline">
+          <Link href={`/products/${row.original.id}`} className="flex min-h-11 min-w-0 items-center gap-3 font-semibold hover:underline">
             <ProductImageView image={row.original.images[0]} size="xs" className="w-14 shrink-0 rounded-[8px]" />
             <span className="flex min-w-0 flex-col">
               <span className="max-w-[280px] truncate">{row.original.title}</span>
-              <span className="font-mono text-[11px] font-normal text-muted-foreground">{row.original.sku}</span>
+              <span className="font-mono text-[0.6875rem] font-normal text-muted-foreground">{row.original.sku}</span>
             </span>
           </Link>
         ),
@@ -49,7 +50,7 @@ export default function ProductsPage() {
       { accessorKey: "kind", header: "Type", cell: ({ getValue }) => kindLabel(getValue() as Product["kind"]), filterFn: "equals" },
       { accessorKey: "status", header: "Status", cell: ({ getValue }) => <StatusPill status={getValue() as string} />, filterFn: "equals" },
       { id: "price", accessorFn: (p) => p.price.amount, header: "Price", enableSorting: true, meta: { align: "right" }, cell: ({ row }) => <MoneyText value={row.original.price} mono /> },
-      { accessorKey: "salesCount", header: "Sales", enableSorting: true, meta: { align: "right" }, cell: ({ getValue }) => <span className="font-mono text-[13px]">{getValue() as number}</span> },
+      { accessorKey: "salesCount", header: "Sales", enableSorting: true, meta: { align: "right" }, cell: ({ getValue }) => <span className="font-mono text-[0.8125rem]">{getValue() as number}</span> },
       { id: "revenue", accessorFn: (p) => p.revenue.amount, header: "Revenue", enableSorting: true, meta: { align: "right" }, cell: ({ row }) => <MoneyText value={row.original.revenue} mono /> },
       {
         id: "actions",
@@ -97,9 +98,9 @@ export default function ProductsPage() {
         description="Everything you sell. Drafts stay hidden until you publish."
         actions={
           <Button asChild>
-            <Link href="/products/new">
+            <GuardedLink kind="products" href="/products/new">
               <Plus aria-hidden /> Add product
-            </Link>
+            </GuardedLink>
           </Button>
         }
       />
@@ -118,7 +119,7 @@ export default function ProductsPage() {
         rowHref={(p) => `/products/${p.id}`}
         mobileCard={(p) => (
           <Link href={`/products/${p.id}`} className="flex items-center gap-3 rounded-card border bg-surface p-3">
-            <ProductImageView image={p.images[0]} size="xs" className="w-20 shrink-0 rounded-[8px]" />
+            <ProductImageView image={p.images[0]} fallback={p.tileBackground} fallbackLabel={p.title} size="xs" className="w-20 shrink-0 rounded-[8px]" />
             <span className="min-w-0 flex-1">
               <span className="block truncate font-semibold">{p.title}</span>
               <span className="mt-1 flex items-center gap-2">
@@ -131,12 +132,13 @@ export default function ProductsPage() {
         )}
         empty={
           <EmptyState
+            nextStep
             icon={Package}
             title="No products yet."
             body="Paste a link, upload a file or build a page. Your first one takes about a minute."
             action={
               <Button asChild>
-                <Link href="/products/new"><Plus aria-hidden /> Add your first product</Link>
+                <GuardedLink kind="products" href="/products/new"><Plus aria-hidden /> Add your first product</GuardedLink>
               </Button>
             }
           />

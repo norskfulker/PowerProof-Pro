@@ -1,5 +1,6 @@
 "use client";
 
+import { ScrollRegion } from "@/components/pp/scroll-region";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRight, Loader2 } from "lucide-react";
@@ -54,9 +55,9 @@ export default function NewPagePage() {
         <aside className="flex flex-col gap-4 lg:sticky lg:top-24 lg:self-start">
           <div className="overflow-hidden rounded-card border bg-surface">
             <p className="eyebrow border-b px-4 py-2.5">Preview</p>
-            <div className="max-h-80 overflow-y-auto">
+            <ScrollRegion label="Template preview" className="max-h-80 overflow-y-auto">
               <TemplatePreview template={template} />
-            </div>
+            </ScrollRegion>
           </div>
           <div className="flex flex-col gap-4 rounded-card border bg-surface p-5">
             <div className="flex flex-col gap-1.5">

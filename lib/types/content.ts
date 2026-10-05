@@ -72,6 +72,8 @@ export interface BillingInvoice {
 }
 
 export interface Plan {
+  /** Free: 1 store, 1 product. Pro: no limits. See lib/plans.ts */
+  tier: "free" | "pro";
   name: string;
   monthly: Money;
   platformFeePct: number;

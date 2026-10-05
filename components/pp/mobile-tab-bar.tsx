@@ -23,7 +23,7 @@ export function MobileTabBar({ tabs, onMore }: { tabs: NavItem[]; onMore: () => 
                 href={t.href}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "flex min-h-14 flex-col items-center justify-center gap-1 text-[11px] font-medium",
+                  "flex min-h-14 flex-col items-center justify-center gap-1 text-[0.6875rem] font-medium",
                   active ? "text-primary" : "text-muted-foreground"
                 )}
               >
@@ -39,7 +39,7 @@ export function MobileTabBar({ tabs, onMore }: { tabs: NavItem[]; onMore: () => 
           <button
             type="button"
             onClick={onMore}
-            className="flex min-h-14 w-full flex-col items-center justify-center gap-1 text-[11px] font-medium text-muted-foreground"
+            className="flex min-h-14 w-full flex-col items-center justify-center gap-1 text-[0.6875rem] font-medium text-muted-foreground"
           >
             <span className="grid h-7 w-12 place-items-center">
               <Menu className="size-5" strokeWidth={1.5} aria-hidden />

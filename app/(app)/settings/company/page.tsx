@@ -3,11 +3,12 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { toast } from "sonner";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { SaveButton, SettingsLoading, SettingsSection } from "@/components/settings/settings-section";
+import { SaveBar } from "@/components/save/save-bar";
+import { SettingsLoading, SettingsSection } from "@/components/settings/settings-section";
+import { useFormSaveBar } from "@/hooks/use-dirty-form";
 import { useApi } from "@/hooks/use-api";
 import { getCompany, updateCompany } from "@/lib/api";
 import { BUSINESS_TYPES, GSTIN_RE, INDIAN_STATES, PAN_RE, PINCODE_RE } from "@/lib/india";
@@ -38,6 +39,14 @@ function CompanyForm({ company, onSaved }: { company: Company; onSaved: (c: Comp
     defaultValues: { ...company, gstin: company.gstin ?? "", pan: company.pan ?? "", address2: company.address2 ?? "" },
     mode: "onTouched",
   });
+  const bar = useFormSaveBar(
+    form,
+    async (raw) => {
+      const v = schema.parse(raw);
+      onSaved(await updateCompany({ ...v, gstin: v.gstin || undefined, pan: v.pan || undefined }));
+    },
+    "Company details saved. New invoices use them straight away."
+  );
   const text = (name: keyof Values, label: string, opts: { mono?: boolean; desc?: string; span?: boolean; auto?: string; max?: number } = {}) => (
     <FormField control={form.control} name={name} render={({ field }) => (
       <FormItem className={opts.span ? "sm:col-span-2" : undefined}>
@@ -54,15 +63,13 @@ function CompanyForm({ company, onSaved }: { company: Company; onSaved: (c: Comp
       <form
         id="company"
         noValidate
-        onSubmit={form.handleSubmit(async (raw) => {
-          const v = schema.parse(raw);
-          const c = await updateCompany({ ...v, gstin: v.gstin || undefined, pan: v.pan || undefined });
-          onSaved(c);
-          form.reset({ ...c, gstin: c.gstin ?? "", pan: c.pan ?? "", address2: c.address2 ?? "" });
-          toast.success("Company details saved", { description: "New invoices use them straight away." });
-        })}
+        data-coach="company-form"
+        onSubmit={(e) => {
+          e.preventDefault();
+          bar.save();
+        }}
       >
-        <SettingsSection title="Company details" description="Printed on every tax invoice. Leave GSTIN blank if you're not registered." footer={<SaveButton form="company" pending={form.formState.isSubmitting} dirty={form.formState.isDirty} />}>
+        <SettingsSection title="Company details" description="Printed on every tax invoice. Leave GSTIN blank if you're not registered." saveBar={<SaveBar state={bar} />}>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             {text("legalName", "Legal name", { span: true, auto: "organization" })}
             <FormField control={form.control} name="businessType" render={({ field }) => (

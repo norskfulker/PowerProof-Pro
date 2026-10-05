@@ -20,7 +20,7 @@ export function MoneyText({
   const text = formatMoney(value, { compact, signed });
   return (
     <span
-      className={cn("tabular whitespace-nowrap", mono && "font-mono text-[13px]", className)}
+      className={cn("tabular whitespace-nowrap", mono && "font-mono text-[0.8125rem]", className)}
       title={compact ? formatMoney(value) : undefined}
     >
       {text}

@@ -51,7 +51,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
       <PageHeader
         back={{ href: "/orders", label: "Orders" }}
         eyebrow={formatDate(o.createdAt, { time: true })}
-        title={<span className="flex flex-wrap items-center gap-3"><span className="font-mono text-[28px] tracking-tight">{o.number}</span> <StatusPill status={o.status} /></span>}
+        title={<span className="flex flex-wrap items-center gap-3"><span className="font-mono text-[1.75rem] tracking-tight">{o.number}</span> <StatusPill status={o.status} /></span>}
         actions={
           <>
             {o.invoiceNumber && (
@@ -96,7 +96,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
             <div>
               <p className="eyebrow">Buyer</p>
               {o.customerId ? (
-                <Link href={`/customers/${o.customerId}`} className="mt-1 flex min-h-11 items-center font-semibold hover:underline md:min-h-0">{o.buyerName}</Link>
+                <Link href={`/customers/${o.customerId}`} className="mt-1 flex pointer-coarse:min-h-11 items-center font-semibold hover:underline">{o.buyerName}</Link>
               ) : (
                 <p className="mt-1 text-muted-foreground">Not paid yet</p>
               )}
@@ -105,7 +105,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
             </div>
             <div>
               <p className="eyebrow">Product</p>
-              <Link href={`/products/${o.productId}`} className="mt-1 flex min-h-11 items-center font-semibold hover:underline md:min-h-0">{o.productTitle}</Link>
+              <Link href={`/products/${o.productId}`} className="mt-1 flex pointer-coarse:min-h-11 items-center font-semibold hover:underline">{o.productTitle}</Link>
               <p className="text-sm text-muted-foreground">Downloaded {o.downloads} time{o.downloads === 1 ? "" : "s"}</p>
             </div>
           </section>

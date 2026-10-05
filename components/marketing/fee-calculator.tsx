@@ -46,7 +46,7 @@ export function FeeCalculator() {
             onChange={(e) => setCount(Number(e.target.value))}
             className="h-11 w-full cursor-pointer accent-primary"
           />
-          <div className="flex justify-between font-mono text-[11px] text-muted-foreground">
+          <div className="flex justify-between font-mono text-[0.6875rem] text-muted-foreground">
             <span>1</span>
             <span>500</span>
           </div>
@@ -83,7 +83,7 @@ export function FeeCalculator() {
         </dl>
         <div className="mt-auto border-t border-dashed border-border-strong pt-4">
           <p className="text-sm font-semibold">You keep each month</p>
-          <MoneyText value={keep} className="font-display text-[40px] leading-tight text-accent-strong" />
+          <MoneyText value={keep} className="font-display text-[2.5rem] leading-tight text-accent-strong" />
           <p className="mt-1 text-xs text-muted-foreground">
             $20 shown at ₹83.40 per dollar. International cards may cost a little more at the gateway.
           </p>

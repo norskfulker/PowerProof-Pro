@@ -7,12 +7,23 @@ import {
   OctagonXIcon,
   TriangleAlertIcon,
 } from "lucide-react"
+import { useSyncExternalStore } from "react"
 import { Toaster as Sonner, type ToasterProps } from "sonner"
 
-const Toaster = ({ ...props }: ToasterProps) => {
+const PHONE = "(max-width: 767px)"
+const subscribe = (cb: () => void) => {
+  const m = window.matchMedia(PHONE)
+  m.addEventListener("change", cb)
+  return () => m.removeEventListener("change", cb)
+}
+
+/** On phones toasts sit at the top, clear of the tab bar and the save bar at the bottom. */
+const Toaster = ({ position, ...props }: ToasterProps) => {
+  const phone = useSyncExternalStore(subscribe, () => window.matchMedia(PHONE).matches, () => false)
   return (
     <Sonner
       theme="light"
+      position={phone ? "top-center" : position}
       className="toaster group"
       icons={{
         success: <CircleCheckIcon className="size-4 text-success" />,

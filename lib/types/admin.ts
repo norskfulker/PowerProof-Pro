@@ -39,7 +39,7 @@ export interface AdminPayout {
 
 export interface Flag {
   id: string;
-  kind: "product" | "page" | "store";
+  kind: "product" | "page" | "store" | "review" | "question";
   target: string;
   storeName: string;
   reason: string;

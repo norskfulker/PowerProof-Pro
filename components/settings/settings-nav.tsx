@@ -9,7 +9,7 @@ export function SettingsNav() {
   const pathname = usePathname();
   return (
     <nav aria-label="Settings" className="-mx-4 overflow-x-auto px-4 lg:mx-0 lg:overflow-visible lg:px-0">
-      <ul className="flex gap-1 lg:sticky lg:top-24 lg:flex-col">
+      <ul className="flex gap-2 lg:gap-1 lg:sticky lg:top-24 lg:flex-col">
         {SETTINGS_NAV.map((i) => {
           const active = pathname === i.href;
           return (

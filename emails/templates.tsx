@@ -91,3 +91,35 @@ export function LoginLinkEmail(props: { email: string; url: string; code: string
     </EmailLayout>
   );
 }
+
+/* 5. Buyer: review request (sent a few days after purchase) ----------------- */
+export function ReviewRequestEmail(props: { brand: Brand; buyerName: string; productTitle: string; reviewUrl: string; days: number }) {
+  return (
+    <EmailLayout preview={`How's ${props.productTitle} working out?`} brand={props.brand} footer={<Text style={muted}>This link is private to your order. No account needed.</Text>}>
+      <Text style={eyebrow}>{props.days} days in</Text>
+      <Heading as="h1" style={h1}>How&apos;s it going, {props.buyerName.split(" ")[0]}?</Heading>
+      <Text style={p}>You bought <strong>{props.productTitle}</strong> from {props.brand.name}. A few honest lines help the next person decide, and they mean a lot to an independent creator.</Text>
+      <Section style={{ margin: "8px 0 16px" }}>
+        <Button href={props.reviewUrl} style={button}>Write a review</Button>
+      </Section>
+      <Text style={muted}>Takes about a minute. Your review shows your first name and initial, marked as a verified buyer.</Text>
+    </EmailLayout>
+  );
+}
+
+/* 6. Asker: your question was answered ----------------------------------- */
+export function QuestionAnsweredEmail(props: { brand: Brand; asker: string; question: string; answer: string; answeredBy: string; productTitle: string; productUrl: string }) {
+  return (
+    <EmailLayout preview={`${props.answeredBy} answered your question`} brand={props.brand}>
+      <Text style={eyebrow}>Answer posted</Text>
+      <Heading as="h1" style={h1}>{props.asker}, you&apos;ve got an answer.</Heading>
+      <Text style={{ ...muted, margin: "0 0 6px" }}>You asked about {props.productTitle}:</Text>
+      <Text style={{ ...p, fontWeight: 600 }}>“{props.question}”</Text>
+      <Section style={{ backgroundColor: t.emeraldSoft, borderRadius: t.radiusControl, padding: "14px 16px", margin: "0 0 20px" }}>
+        <Text style={{ ...eyebrow, margin: 0 }}>{props.answeredBy}</Text>
+        <Text style={{ ...p, margin: "4px 0 0" }}>{props.answer}</Text>
+      </Section>
+      <Button href={props.productUrl} style={button}>See the product</Button>
+    </EmailLayout>
+  );
+}

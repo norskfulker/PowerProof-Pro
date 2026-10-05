@@ -29,7 +29,7 @@ export function StepFrame({
     <section aria-labelledby={`${formId}-title`} className="rounded-dialog border bg-surface">
       <div className="p-6 sm:p-8">
         {timeLeft && <p className="eyebrow mb-3">{timeLeft}</p>}
-        <h1 id={`${formId}-title`} className="text-[28px]">
+        <h1 id={`${formId}-title`} className="text-[1.75rem]">
           {title}
         </h1>
         {description && <p className="mt-2 text-muted-foreground">{description}</p>}

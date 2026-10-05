@@ -14,7 +14,10 @@ export interface Store {
   refundPolicy: string;
   refundDays: number;
   createdAt: ISODate;
+  /** Set when the creator publishes the store (end of onboarding) */
   onboarded: boolean;
+  /** Uploaded logo; logoText is the fallback */
+  logo?: { src: string; alt: string };
 }
 
 export interface Company {

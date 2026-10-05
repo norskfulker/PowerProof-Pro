@@ -62,7 +62,7 @@ export function TemplateCard({
       <div className="px-1 pb-1">
         <div className="flex items-center justify-between gap-2">
           <p className="font-semibold">{template.name}</p>
-          {template.popular && <span className="rounded-full bg-accent-soft px-2 py-0.5 text-[11px] font-semibold text-accent-ink">Popular</span>}
+          {template.popular && <span className="rounded-full bg-accent-soft px-2 py-0.5 text-[0.6875rem] font-semibold text-accent-ink">Popular</span>}
         </div>
         <p className="mt-1 text-sm text-muted-foreground">{template.description}</p>
         <p className="eyebrow mt-2">Best for {template.bestFor}</p>
