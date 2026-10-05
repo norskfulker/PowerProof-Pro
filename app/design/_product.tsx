@@ -51,7 +51,7 @@ export function ProductComponents() {
       </Section>
 
       <Section id="numbers" title="Numbers and money" description="Money is integer minor units + currency. MoneyText formats all of it: symbol, two decimals, Indian grouping for rupees.">
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
           <StatCard label="Revenue today" value={<MoneyText value={{ amount: 485000, currency: "INR" }} />} delta={18.2} hint="vs yesterday" emphasis />
           <StatCard label="Sales" value="6" delta={-4.1} hint="vs yesterday" />
           <StatCard label="Visitors" loading />
@@ -63,7 +63,7 @@ export function ProductComponents() {
             <MoneyText value={{ amount: 15240050, currency: "INR" }} compact />
           </Specimen>
         </div>
-        <div className="mt-4 grid gap-4 md:grid-cols-2">
+        <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
           <Specimen label="CurrencyInput">
             <label htmlFor="d-price" className="text-sm font-medium">Price</label>
             <CurrencyInput id="d-price" value={price} onChange={setPrice} />
@@ -81,19 +81,19 @@ export function ProductComponents() {
       </Section>
 
       <Section id="states" title="Empty, error, loading" description="Every list and screen has all four states. Voice: short, plain, a little witty.">
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <EmptyState icon={Package} title="Nothing sold yet." body="Your first sale will show up here." action={<Button>Share your store</Button>} />
           <ErrorState message="We couldn't reach PowerProof. Check your connection and try again." onRetry={() => {}} />
         </div>
       </Section>
 
       <Section id="cards" title="Product, receipt, payout">
-        <div className="grid items-start gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 items-start gap-4 md:grid-cols-2 lg:grid-cols-3">
           <ProductCard product={SAMPLE_PRODUCT} href="#" />
           <ProductCard product={SAMPLE_PRODUCT} href="#" variant="buyer" currency="USD" />
           <ProofReceipt order={SAMPLE_ORDER} storeName="Ananya Makes" showFees />
         </div>
-        <div className="mt-4 grid gap-3 md:grid-cols-2">
+        <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
           {SAMPLE_METHODS.map((m) => (
             <PayoutMethodCard key={m.id} method={m} selected={method === m.id} onSelect={() => setMethod(m.id)} />
           ))}
@@ -111,7 +111,7 @@ export function ProductComponents() {
       </Section>
 
       <Section id="templates" title="Template cards">
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {TEMPLATES.slice(0, 3).map((t) => (
             <TemplateCard key={t.id} template={t} selected={tpl === t.id} onSelect={() => setTpl(t.id)} />
           ))}
@@ -119,7 +119,7 @@ export function ProductComponents() {
       </Section>
 
       <Section id="charts" title="Charts" description="Recharts with brand colours. Emerald for money, brass for traffic.">
-        <div className="grid gap-4 lg:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           <ChartCard title="Revenue" description="Last 7 days"><RevenueBars data={SAMPLE_SERIES} /></ChartCard>
           <ChartCard title="Visitors" description="Last 7 days"><VisitorsArea data={SAMPLE_SERIES} /></ChartCard>
           <ChartCard title="Sources" height={160}>

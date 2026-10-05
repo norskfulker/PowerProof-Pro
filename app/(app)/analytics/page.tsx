@@ -46,7 +46,7 @@ export default function AnalyticsPage() {
         <StatCard label="Conversion" loading={busy} value={s && `${s.conversion.toFixed(2)}%`} delta={s?.deltas.conversion} />
       </div>
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-2">
+      <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
         <ChartCard title="Revenue" description={LABEL[range]} loading={busy} error={error} onRetry={reload} empty={s?.revenue.amount === 0} emptyText="No sales in this range.">
           {s && <RevenueBars data={s.series} />}
         </ChartCard>
@@ -55,7 +55,7 @@ export default function AnalyticsPage() {
         </ChartCard>
       </div>
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-3">
+      <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
         <ChartCard title="Top products" className="lg:col-span-2" loading={busy} error={error} onRetry={reload} height={200} empty={s?.topProducts.length === 0} emptyText="Sell something and it'll rank here.">
           <table className="w-full text-sm" aria-label="Top products">
             <thead>
@@ -68,7 +68,7 @@ export default function AnalyticsPage() {
             <tbody className="divide-y">
               {s?.topProducts.map((p) => (
                 <tr key={p.productId}>
-                  <td className="py-2.5 pr-3"><Link href={`/products/${p.productId}`} className="font-medium hover:underline">{p.title}</Link></td>
+                  <td className="py-2.5 pr-3"><Link href={`/products/${p.productId}`} className="inline-flex min-h-11 items-center font-medium hover:underline md:min-h-0">{p.title}</Link></td>
                   <td className="py-2.5 text-right font-mono text-[13px]">{p.sales}</td>
                   <td className="py-2.5 text-right"><MoneyText value={p.revenue} mono /></td>
                 </tr>
@@ -81,7 +81,7 @@ export default function AnalyticsPage() {
         </ChartCard>
       </div>
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-3">
+      <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
         <ChartCard title="Funnel" description="Visit to payment" className="lg:col-span-2" loading={busy} error={error} onRetry={reload} height={180}>
           {s && <ShareBars rows={s.funnel.map((f) => ({ label: f.label, value: f.value, share: (f.value / funnelTop) * 100 }))} />}
         </ChartCard>

@@ -90,7 +90,7 @@ export function BuyerShell({
             <Link href="/lookup#help" className="inline-flex min-h-11 items-center font-medium underline-offset-4 hover:underline">Refunds and support</Link>
             {store && <a href={`mailto:${store.supportEmail}`} className="inline-flex min-h-11 items-center text-muted-foreground underline-offset-4 hover:underline">{store.supportEmail}</a>}
           </nav>
-          <Link href="/" className="inline-flex items-center gap-1.5 text-xs text-muted-foreground md:ml-auto">
+          <Link href="/" className="inline-flex min-h-11 items-center gap-1.5 text-xs text-muted-foreground md:ml-auto">
             <LogoMark className="size-4" /> Sold with PowerProof
           </Link>
         </div>

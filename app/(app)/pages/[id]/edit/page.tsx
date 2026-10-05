@@ -56,7 +56,7 @@ export default function VisualEditorPage({ params }: { params: Promise<{ id: str
         onSave={save}
         modeSwitch={{ href: `/pages/${page.id}/html`, label: "HTML and embed" }}
       />
-      <div className="grid gap-6 lg:grid-cols-[300px_minmax(0,1fr)]">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[300px_minmax(0,1fr)]">
         <aside className="flex flex-col gap-6 rounded-card border bg-surface p-4 lg:sticky lg:top-24 lg:max-h-[calc(100dvh-120px)] lg:self-start lg:overflow-y-auto">
           <BlockList blocks={page.blocks} selectedId={selected} onSelect={setSelected} onChange={(blocks) => change({ blocks })} />
           <div className="border-t pt-4">

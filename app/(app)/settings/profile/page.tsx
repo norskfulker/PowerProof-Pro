@@ -37,7 +37,7 @@ function ProfileForm({ store, onSaved }: { store: Store; onSaved: (s: Store) => 
         })}
       >
         <SettingsSection title="Profile" description="How we address you and where we send account emails." footer={<SaveButton form="profile" pending={form.formState.isSubmitting} dirty={form.formState.isDirty} />}>
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <FormField control={form.control} name="ownerName" render={({ field }) => (
               <FormItem><FormLabel>Your name</FormLabel><FormControl><Input autoComplete="name" {...field} /></FormControl><FormMessage /></FormItem>
             )} />
@@ -65,7 +65,7 @@ function PasswordForm() {
         })}
       >
         <SettingsSection title="Password" footer={<SaveButton form="password" pending={form.formState.isSubmitting} dirty={form.formState.isDirty} />}>
-          <div className="grid gap-4 sm:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             {(["current", "next", "confirm"] as const).map((n) => (
               <FormField key={n} control={form.control} name={n} render={({ field }) => (
                 <FormItem>

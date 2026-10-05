@@ -63,7 +63,7 @@ export default function HtmlEditorPage({ params }: { params: Promise<{ id: strin
         </p>
       )}
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-2">
+      <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
         <section aria-labelledby="ids-h" className="rounded-card border bg-surface p-5 md:p-6">
           <h2 id="ids-h" className="font-sans text-base font-semibold tracking-normal">Your product IDs</h2>
           <p className="mt-1 text-sm text-muted-foreground">

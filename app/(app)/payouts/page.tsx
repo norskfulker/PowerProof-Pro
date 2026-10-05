@@ -73,7 +73,7 @@ function PayoutsInner() {
       {balance.error ? (
         <ErrorState message={balance.error} onRetry={balance.reload} />
       ) : (
-        <section aria-label="Balance" className="grid overflow-hidden rounded-card border bg-surface md:grid-cols-[1.3fr_1fr_1fr]">
+        <section aria-label="Balance" className="grid grid-cols-1 overflow-hidden rounded-card border bg-surface md:grid-cols-[1.3fr_1fr_1fr]">
           <div className="flex flex-col gap-1 border-b p-6 md:border-r md:border-b-0">
             <p className="eyebrow flex items-center gap-1.5"><Wallet className="size-3.5" aria-hidden /> Available now</p>
             {balance.data ? <MoneyText value={balance.data.available} className="font-display text-[40px] leading-tight text-accent-strong" /> : <Skeleton className="h-12 w-48" />}
@@ -102,7 +102,7 @@ function PayoutsInner() {
         {methods.loading && !methods.data ? (
           <Skeleton className="h-20 rounded-card" />
         ) : (
-          <div className="grid gap-3 md:grid-cols-2">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
             {!hasBank && (
               <button type="button" onClick={() => setBankOpen(true)} className="flex min-h-20 items-center gap-4 rounded-card border-2 border-dashed border-border-strong bg-surface p-4 text-left hover:border-primary">
                 <span className="grid size-11 place-items-center rounded-control bg-primary-soft text-primary"><Landmark className="size-5" aria-hidden /></span>

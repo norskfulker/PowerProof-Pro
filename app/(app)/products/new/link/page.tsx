@@ -93,7 +93,7 @@ export default function LinkProductPage() {
       </form>
 
       {loading && (
-        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]" aria-busy="true" aria-label="Reading the page">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_340px]" aria-busy="true" aria-label="Reading the page">
           <div className="flex flex-col gap-4 rounded-card border bg-surface p-6">
             <Skeleton className="h-5 w-40" />
             <Skeleton className="h-11 w-full" />

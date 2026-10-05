@@ -82,7 +82,7 @@ export function StepBusiness({
               <FormItem>
                 <FormLabel>What are you?</FormLabel>
                 <FormControl>
-                  <RadioGroup value={field.value} onValueChange={field.onChange} className="grid gap-2 sm:grid-cols-2">
+                  <RadioGroup value={field.value} onValueChange={field.onChange} className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                     {BUSINESS_TYPES.map((t) => (
                       <label
                         key={t.value}
@@ -113,7 +113,7 @@ export function StepBusiness({
               </FormItem>
             )}
           />
-          <div className="grid gap-5 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
             <FormField
               control={form.control}
               name="gstin"

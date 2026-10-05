@@ -1,36 +1,71 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# PowerProof frontend
 
-## Getting Started
+Instant stores for creators selling digital products: add a product, share a link, get paid. This repo is the complete frontend. **There is no backend yet.** Every screen runs on a typed mock data layer that lives in the browser.
 
-First, run the development server:
+## Run it
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open http://localhost:3000.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+| Script | What it does |
+| --- | --- |
+| `npm run dev` | Dev server |
+| `npm run build` | Production build (also typechecks) |
+| `npm run lint` | ESLint |
+| `npx tsc --noEmit` | Typecheck only |
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Deploy: push to Vercel. No environment variables are needed.
 
-## Learn More
+## Walk the main flow
 
-To learn more about Next.js, take a look at the following resources:
+1. **Sign up** at `/signup` (any name and email, 8+ character password). The code on `/verify-email` is any 6 digits.
+2. **Onboarding** (`/onboarding`): name your store, skip or fill business details, add a bank account (`HDFC0000123` works as an IFSC), add your first product, publish.
+3. **Buyer:** open your store at `/s/<your-slug>` in another tab. Buy, fill email and name, tap **Approve payment** in the test-mode sheet.
+4. **Buyer downloads** from the success page.
+5. **Creator sees the sale** appear in *Live orders* on `/dashboard`, without reloading.
+6. **Creator opens payouts** at `/payouts`. New sales are pending for two days; the sample store has money available to withdraw.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Want a full store instead? Log in at `/login` with any email and an 8+ character password, or use **Avatar menu › Demo data › Load sample data**. The same menu can empty the store or make every request fail, to review error states.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Where things are
 
-## Deploy on Vercel
+```
+app/
+  (marketing)/      / , /pricing, /how-it-works, /templates
+  (auth)/           /login, /signup, /forgot-password, /verify-email
+  onboarding/       5-step setup
+  (app)/            creator app: dashboard, products, images, pages, orders,
+                    customers, payouts, analytics, integrations, settings/*
+  (buyer)/          /s/[store], /s/[store]/[product], /checkout, /success,
+                    /download, /lookup, /invoice
+  admin/            founder admin (darker shell)
+  emails/           React Email previews
+  design/           design system reference (kitchen sink)
+components/
+  ui/               shadcn components, restyled with PowerProof tokens
+  pp/               product components (MoneyText, DataTable, StatCard, ...)
+  <area>/           screen pieces per area (dashboard, products, buyer, ...)
+emails/             React Email templates
+hooks/              useApi, useBuyerCurrency
+lib/
+  api/              the only data door for pages; swap bodies for fetch()
+  mock/             in-browser mock database and seed data
+  types/            domain types (Money is integer minor units + currency)
+  money.ts          formatting, conversion, fee maths
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Connecting the backend
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Pages call `@/lib/api` only. Each function there (for example `getProducts`, `createProduct`, `payOrder`) currently reads and writes `lib/mock`. Replace the body with a request to the real API and keep the signature. `lib/api/client.ts` is where latency and simulated failures live; drop it when the real client lands.
+
+## Design system
+
+Tokens are CSS variables in `app/globals.css`: porcelain, ink, emerald (actions) and brass (emphasis), plus status colours, radii and type scale. Bricolage Grotesque 800 for headings, Hanken Grotesk for body, IBM Plex Mono for labels and amounts. Browse `/design` for every component and state.
+
+## More
+
+`DECISIONS.md` lists the assumptions behind this build and the questions still open for the founder.

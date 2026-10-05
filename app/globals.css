@@ -37,6 +37,7 @@
   --warning-ink: #8a5a12;
   --warning-soft: #f7efe2;
   --danger: #b42318;
+  --danger-foreground: #ffffff;
   --danger-soft: #f7e7e5;
   --info: #1d5c7a;
   --info-soft: #e5eef2;
@@ -90,6 +91,7 @@
   --color-warning-ink: var(--warning-ink);
   --color-warning-soft: var(--warning-soft);
   --color-danger: var(--danger);
+  --color-danger-foreground: var(--danger-foreground);
   --color-danger-soft: var(--danger-soft);
   --color-destructive: var(--danger);
   --color-info: var(--info);

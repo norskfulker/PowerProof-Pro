@@ -10,7 +10,7 @@ const COLS: [string, [string, string][]][] = [
 export function SiteFooter() {
   return (
     <footer className="mt-24 border-t bg-surface">
-      <div className="gutter mx-auto grid max-w-[1200px] gap-10 py-14 md:grid-cols-[1.4fr_repeat(3,1fr)]">
+      <div className="gutter mx-auto grid grid-cols-1 max-w-[1200px] gap-10 py-14 md:grid-cols-[1.4fr_repeat(3,1fr)]">
         <div>
           <Logo />
           <p className="mt-4 max-w-xs text-sm text-muted-foreground">

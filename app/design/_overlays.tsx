@@ -54,7 +54,7 @@ export function Overlays() {
       </Section>
 
       <Section id="feedback" title="Feedback" description="Toasts for quick confirmation. Dialogs only for destructive actions.">
-        <div className="grid gap-4 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
           <Specimen label="Toasts">
             <div className="flex flex-wrap gap-2">
               <Button variant="secondary" onClick={() => toast.success("Product published", { description: "It's live on your store." })}>Success</Button>

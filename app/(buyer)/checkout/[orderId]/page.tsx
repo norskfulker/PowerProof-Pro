@@ -10,6 +10,7 @@ import { ArrowLeft, CreditCard, Landmark, Lock, Smartphone } from "lucide-react"
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { FormError } from "@/components/auth/auth-card";
 import { BuyerShell, ConversionNote, TrustBar } from "@/components/buyer/buyer-shell";
 import { BuyerStatus } from "@/components/buyer/buyer-states";
@@ -108,14 +109,22 @@ export default function CheckoutPage({ params }: { params: Promise<{ orderId: st
           )} />
           <fieldset>
             <legend className="mb-2 text-sm font-medium">Pay with</legend>
-            <div className={cn("grid gap-2", methods.length > 1 ? "grid-cols-3" : "grid-cols-1")} role="radiogroup" aria-label="Payment method">
+            <RadioGroup
+              value={activeMethod}
+              onValueChange={(v) => setMethod(v as Order["paymentMethod"])}
+              className={cn("grid gap-2", methods.length > 1 ? "grid-cols-3" : "grid-cols-1")}
+              aria-label="Payment method"
+            >
               {methods.map((m) => (
-                <button key={m.id} type="button" role="radio" aria-checked={activeMethod === m.id} onClick={() => setMethod(m.id)}
-                  className={cn("flex min-h-14 flex-col items-center justify-center gap-1 rounded-control border bg-surface text-sm font-medium", activeMethod === m.id ? "border-primary bg-primary-soft text-primary outline-2 outline-primary" : "hover:border-border-strong")}>
+                <label
+                  key={m.id}
+                  className="relative flex min-h-14 cursor-pointer flex-col items-center justify-center gap-1 rounded-control border bg-surface text-sm font-medium hover:border-border-strong has-[[data-state=checked]]:border-primary has-[[data-state=checked]]:bg-primary-soft has-[[data-state=checked]]:text-primary has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-primary"
+                >
+                  <RadioGroupItem value={m.id} className="sr-only" />
                   <m.icon className="size-5" aria-hidden /> {m.label}
-                </button>
+                </label>
               ))}
-            </div>
+            </RadioGroup>
             {intl && <p className="mt-2 text-xs text-muted-foreground">International buyers pay by card. UPI and netbanking are for Indian accounts.</p>}
           </fieldset>
           <Button type="submit" size="lg" className="w-full">

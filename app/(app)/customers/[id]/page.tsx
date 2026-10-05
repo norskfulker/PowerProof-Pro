@@ -32,7 +32,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
     return (
       <div className="flex flex-col gap-6">
         <Skeleton className="h-16 w-80" />
-        <div className="grid gap-4 md:grid-cols-3">{[0, 1, 2].map((i) => <Skeleton key={i} className="h-28 rounded-card" />)}</div>
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">{[0, 1, 2].map((i) => <Skeleton key={i} className="h-28 rounded-card" />)}</div>
         <Skeleton className="h-80 rounded-card" />
       </div>
     );
@@ -56,7 +56,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
           </Button>
         }
       />
-      <div className="mb-6 grid gap-4 md:grid-cols-3">
+      <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-3">
         <StatCard label="Total spent" value={<MoneyText value={c.totalSpent} />} emphasis />
         <StatCard label="Orders" value={c.ordersCount} />
         <StatCard label="Customer since" value={formatDate(c.firstOrderAt)} />

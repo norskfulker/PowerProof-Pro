@@ -33,5 +33,5 @@ export function HtmlPageFrame({ html, title, onBuy }: { html: string; title: str
   }, [onBuy]);
 
   const doc = `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body style="margin:0">${html.replace(/<script[\s\S]*?<\/script>/gi, "")}${WIRE}</body></html>`;
-  return <iframe ref={ref} title={title} sandbox="allow-scripts" srcDoc={doc} style={{ height }} className="w-full rounded-card border bg-white" />;
+  return <iframe ref={ref} title={title} sandbox="allow-scripts" srcDoc={doc} style={{ height }} className="w-full rounded-card border bg-surface" />;
 }

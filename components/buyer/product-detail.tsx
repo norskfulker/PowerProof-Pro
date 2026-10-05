@@ -36,7 +36,7 @@ export function ProductDetail({
   const [active, setActive] = useState(0);
   const price = localPrice(product.price, currency);
   return (
-    <div className="grid gap-8 pb-24 md:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] md:gap-10 md:pb-0">
+    <div className="grid grid-cols-1 gap-8 pb-24 md:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] md:gap-10 md:pb-0">
       <div className="flex flex-col gap-3">
         <ProductImageView image={product.images[active]} size="lg" className="rounded-card" />
         {product.images.length > 1 && (

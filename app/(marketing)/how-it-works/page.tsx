@@ -68,7 +68,7 @@ export default function HowItWorksPage() {
       </section>
 
       <section className="gutter mx-auto mt-12 max-w-[1200px]" aria-label="Setup steps">
-        <ol className="grid gap-4 md:grid-cols-2">
+        <ol className="grid grid-cols-1 gap-4 md:grid-cols-2">
           {STEPS.map((s) => (
             <li key={s.n} className="flex flex-col rounded-card border bg-surface p-6 md:p-8">
               <div className="flex items-center justify-between">
@@ -84,7 +84,7 @@ export default function HowItWorksPage() {
         </ol>
       </section>
 
-      <section className="gutter mx-auto mt-24 grid max-w-[1200px] items-start gap-10 lg:grid-cols-2" aria-labelledby="buyer">
+      <section className="gutter mx-auto mt-24 grid grid-cols-1 max-w-[1200px] items-start gap-10 lg:grid-cols-2" aria-labelledby="buyer">
         <div>
           <p className="eyebrow">The buyer&apos;s side</p>
           <h2 id="buyer" className="mt-3 text-3xl md:text-4xl">They pay, they download, they get a proof.</h2>
@@ -106,7 +106,7 @@ export default function HowItWorksPage() {
       <section className="gutter mx-auto mt-24 max-w-[1200px]" aria-labelledby="money-flow">
         <p className="eyebrow">Where the money goes</p>
         <h2 id="money-flow" className="mt-3 max-w-2xl text-3xl md:text-4xl">Pending for two days, then yours to withdraw.</h2>
-        <div className="mt-8 grid gap-4 md:grid-cols-3">
+        <div className="mt-8 grid grid-cols-1 gap-4 md:grid-cols-3">
           {[
             ["Day 0", "Sale", "Shows on your dashboard as pending, with the fee split."],
             ["Day 2", "Available", "Moves to your available balance. Refund window is still open for the buyer."],

@@ -100,7 +100,7 @@ export default function DashboardPage() {
           </section>
         )}
 
-        <div className="grid gap-6 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
           <div className="flex flex-col gap-6">
             <QuickActions store={store.data} />
             {!isNew && (
@@ -117,13 +117,13 @@ export default function DashboardPage() {
               </ChartCard>
             )}
             {!isNew && (
-              <div className="grid gap-6 md:grid-cols-2">
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                 <ChartCard title="Top products" loading={summary.loading && !summary.data} height={180} empty={summary.data?.topProducts.length === 0}>
                   <ol className="flex flex-col gap-3">
                     {summary.data?.topProducts.slice(0, 4).map((p, i) => (
                       <li key={p.productId} className="flex items-center gap-3 text-sm">
                         <span className="font-mono text-xs text-muted-foreground">{i + 1}</span>
-                        <Link href={`/products/${p.productId}`} className="min-w-0 flex-1 truncate font-medium hover:underline">
+                        <Link href={`/products/${p.productId}`} className="flex min-h-11 min-w-0 flex-1 items-center truncate font-medium hover:underline md:min-h-0">
                           {p.title}
                         </Link>
                         <MoneyText value={p.revenue} mono />

@@ -39,7 +39,7 @@ export default function ProductEditorPage({ params }: { params: Promise<{ id: st
     return (
       <>
         <Skeleton className="mb-8 h-12 w-72" />
-        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
           <Skeleton className="h-[520px] rounded-card" />
           <Skeleton className="h-[520px] rounded-card" />
         </div>

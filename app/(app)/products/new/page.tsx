@@ -31,7 +31,7 @@ export default function NewProductPage() {
   return (
     <>
       <PageHeader back={{ href: "/products", label: "Products" }} title="Add a product" description="Three ways in. They all end in the same place: a product you can sell." />
-      <ul className="grid gap-4 md:grid-cols-3">
+      <ul className="grid grid-cols-1 gap-4 md:grid-cols-3">
         {WAYS.map((w) => (
           <li key={w.href}>
             <Link

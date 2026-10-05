@@ -63,7 +63,7 @@ function CompanyForm({ company, onSaved }: { company: Company; onSaved: (c: Comp
         })}
       >
         <SettingsSection title="Company details" description="Printed on every tax invoice. Leave GSTIN blank if you're not registered." footer={<SaveButton form="company" pending={form.formState.isSubmitting} dirty={form.formState.isDirty} />}>
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             {text("legalName", "Legal name", { span: true, auto: "organization" })}
             <FormField control={form.control} name="businessType" render={({ field }) => (
               <FormItem>

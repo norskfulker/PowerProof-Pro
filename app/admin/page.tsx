@@ -36,7 +36,7 @@ export default function AdminOverviewPage() {
         <StatCard label="Needs a look" loading={!s} value={s && s.openDisputes + s.queuedPayouts + s.openFlags} hint="disputes, payouts, flags" />
       </div>
 
-      <ul className="mt-6 grid gap-3 md:grid-cols-3">
+      <ul className="mt-6 grid grid-cols-1 gap-3 md:grid-cols-3">
         {needs.map((n) => (
           <li key={n.href}>
             <Link href={n.href} className="group flex items-center gap-4 rounded-card border bg-surface p-5 hover:border-border-strong">
@@ -48,7 +48,7 @@ export default function AdminOverviewPage() {
         ))}
       </ul>
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-2">
+      <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
         <section aria-labelledby="new-h" className="rounded-card border bg-surface">
           <h2 id="new-h" className="border-b px-5 py-4 font-sans text-base font-semibold tracking-normal">Newest creators</h2>
           {!creators.data ? <Skeleton className="m-5 h-40" /> : (

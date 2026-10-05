@@ -58,7 +58,7 @@ export function ProductForm({
           await onSubmit(v);
           form.reset(v);
         })}
-        className="grid gap-6 pb-24 lg:grid-cols-[minmax(0,1fr)_340px] lg:pb-0"
+        className="grid grid-cols-1 gap-6 pb-24 lg:grid-cols-[minmax(0,1fr)_340px] lg:pb-0"
       >
         <div className="flex flex-col gap-6">
           <Panel title="Details">

@@ -34,7 +34,7 @@ export default function PricingPage() {
         <h1 className="mt-3 max-w-3xl text-[40px] sm:text-5xl">One plan. You&apos;ll know what you keep before you sell.</h1>
       </section>
 
-      <section className="gutter mx-auto mt-10 grid max-w-[1200px] gap-6 lg:grid-cols-[380px_minmax(0,1fr)]" aria-label="Plan">
+      <section className="gutter mx-auto mt-10 grid grid-cols-1 max-w-[1200px] gap-6 lg:grid-cols-[380px_minmax(0,1fr)]" aria-label="Plan">
         <div className="flex flex-col rounded-dialog border-2 border-primary bg-surface p-6 md:p-8">
           <div className="flex items-center justify-between">
             <p className="font-semibold">PowerProof</p>

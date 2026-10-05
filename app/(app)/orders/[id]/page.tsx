@@ -36,7 +36,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
   }
   if (!order.data) {
     return (
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
         <Skeleton className="h-96 rounded-card" />
         <Skeleton className="h-96 rounded-card" />
       </div>
@@ -86,17 +86,17 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
         </div>
       )}
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
         <div className="flex flex-col gap-6">
           <section className="rounded-card border bg-surface p-5 md:p-6" aria-labelledby="tl-h">
             <h2 id="tl-h" className="font-sans text-base font-semibold tracking-normal">What happened</h2>
             <OrderTimeline order={o} />
           </section>
-          <section className="grid gap-4 rounded-card border bg-surface p-5 sm:grid-cols-2 md:p-6" aria-label="Buyer and product">
+          <section className="grid grid-cols-1 gap-4 rounded-card border bg-surface p-5 sm:grid-cols-2 md:p-6" aria-label="Buyer and product">
             <div>
               <p className="eyebrow">Buyer</p>
               {o.customerId ? (
-                <Link href={`/customers/${o.customerId}`} className="mt-1 block font-semibold hover:underline">{o.buyerName}</Link>
+                <Link href={`/customers/${o.customerId}`} className="mt-1 flex min-h-11 items-center font-semibold hover:underline md:min-h-0">{o.buyerName}</Link>
               ) : (
                 <p className="mt-1 text-muted-foreground">Not paid yet</p>
               )}
@@ -105,7 +105,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
             </div>
             <div>
               <p className="eyebrow">Product</p>
-              <Link href={`/products/${o.productId}`} className="mt-1 block font-semibold hover:underline">{o.productTitle}</Link>
+              <Link href={`/products/${o.productId}`} className="mt-1 flex min-h-11 items-center font-semibold hover:underline md:min-h-0">{o.productTitle}</Link>
               <p className="text-sm text-muted-foreground">Downloaded {o.downloads} time{o.downloads === 1 ? "" : "s"}</p>
             </div>
           </section>

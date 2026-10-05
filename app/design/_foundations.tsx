@@ -55,7 +55,7 @@ export function Foundations() {
             </li>
           ))}
         </ul>
-        <div className="mt-4 grid gap-3 sm:grid-cols-4">
+        <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-4">
           {["success", "warning", "danger", "info"].map((s) => (
             <div key={s} className={`rounded-card p-4 bg-${s}-soft`}>
               <p className={`font-semibold capitalize ${s === "warning" ? "text-warning-ink" : `text-${s}`}`}>{s} on tint</p>
@@ -85,7 +85,7 @@ export function Foundations() {
       </Section>
 
       <Section id="shape" title="Shape, space, depth" description="Sharp, not bubbly. 4px grid. Flat with 1px borders; one soft shadow, only for popovers and dialogs.">
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
           {RADII.map(([label, cls, use]) => (
             <div key={label} className="flex flex-col gap-3">
               <div className={`h-24 border-2 border-primary bg-primary-soft ${cls}`} />
@@ -94,7 +94,7 @@ export function Foundations() {
             </div>
           ))}
         </div>
-        <div className="mt-6 grid gap-3 sm:grid-cols-2">
+        <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div className="rounded-card border bg-surface p-6">
             <p className="font-semibold">Flat card</p>
             <p className="text-sm text-muted-foreground">1px border, no shadow. Padding 24px.</p>

@@ -52,7 +52,7 @@ export function LiveFeed() {
             <span className="relative inline-flex size-2 rounded-full bg-success" />
           </span>
         </h2>
-        <Link href="/orders" className="text-sm font-medium text-primary underline-offset-4 hover:underline">
+        <Link href="/orders" className="inline-flex min-h-11 items-center text-sm font-medium text-primary underline-offset-4 hover:underline md:min-h-0">
           All orders
         </Link>
       </header>

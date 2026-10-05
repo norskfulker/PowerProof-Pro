@@ -72,7 +72,7 @@ export default function ProductPage({ params }: { params: Promise<{ store: strin
       {more.length > 0 && (
         <section aria-labelledby="more-h" className="mt-16">
           <h2 id="more-h" className="mb-4 text-2xl">More from {store.name}</h2>
-          <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {more.map((p) => (
               <li key={p.id}><ProductCard product={p} href={`/s/${store.slug}/${p.slug}`} currency={currency} variant="buyer" className="h-full" /></li>
             ))}

@@ -43,7 +43,7 @@ const INDIA = [
 export default function HomePage() {
   return (
     <>
-      <section className="gutter mx-auto grid max-w-[1200px] items-center gap-14 pt-10 pb-16 md:pt-16 lg:grid-cols-[1.1fr_1fr] lg:gap-10">
+      <section className="gutter mx-auto grid grid-cols-1 max-w-[1200px] items-center gap-14 pt-10 pb-16 md:pt-16 lg:grid-cols-[1.1fr_1fr] lg:gap-10">
         <div>
           <p className="eyebrow">For creators selling digital products</p>
           <h1 className="mt-4 text-[44px] leading-[1.02] sm:text-5xl lg:text-[64px]">
@@ -78,7 +78,7 @@ export default function HomePage() {
       <section className="gutter mx-auto max-w-[1200px]" aria-labelledby="ways">
         <p className="eyebrow">Step one is the only step</p>
         <h2 id="ways" className="mt-3 max-w-xl text-3xl md:text-4xl">Three ways to put something up for sale.</h2>
-        <ul className="mt-8 grid gap-4 md:grid-cols-3">
+        <ul className="mt-8 grid grid-cols-1 gap-4 md:grid-cols-3">
           {WAYS.map((w, i) => (
             <li key={w.title} className="rounded-card border bg-surface p-6">
               <div className="flex items-center justify-between">
@@ -95,7 +95,7 @@ export default function HomePage() {
       </section>
 
       <section className="gutter mx-auto mt-24 max-w-[1200px]" aria-labelledby="after">
-        <div className="grid gap-10 lg:grid-cols-[1fr_1.4fr]">
+        <div className="grid grid-cols-1 gap-10 lg:grid-cols-[1fr_1.4fr]">
           <div>
             <p className="eyebrow">Then it runs itself</p>
             <h2 id="after" className="mt-3 text-3xl md:text-4xl">What happens when someone buys.</h2>
@@ -120,7 +120,7 @@ export default function HomePage() {
       <section className="gutter mx-auto mt-24 max-w-[1200px]" aria-labelledby="india">
         <p className="eyebrow">Made in India, sold everywhere</p>
         <h2 id="india" className="mt-3 max-w-2xl text-3xl md:text-4xl">The boring parts, already done properly.</h2>
-        <ul className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <ul className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {INDIA.map((f) => (
             <li key={f.title} className="rounded-card border bg-surface p-6">
               <f.icon className="size-5 text-primary" aria-hidden />
@@ -131,7 +131,7 @@ export default function HomePage() {
         </ul>
       </section>
 
-      <section className="gutter mx-auto mt-24 grid max-w-[1200px] items-center gap-10 lg:grid-cols-2" aria-labelledby="money">
+      <section className="gutter mx-auto mt-24 grid grid-cols-1 max-w-[1200px] items-center gap-10 lg:grid-cols-2" aria-labelledby="money">
         <div>
           <p className="eyebrow">Pricing, in one breath</p>
           <h2 id="money" className="mt-3 text-3xl md:text-4xl">No setup fee. No tiers. No surprises.</h2>

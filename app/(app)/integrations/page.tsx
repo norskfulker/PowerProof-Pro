@@ -15,12 +15,12 @@ export default function IntegrationsPage() {
       {error ? (
         <ErrorState message={error} onRetry={reload} />
       ) : loading && !data ? (
-        <div className="grid gap-6 lg:grid-cols-2">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           <Skeleton className="h-96 rounded-card" />
           <Skeleton className="h-96 rounded-card" />
         </div>
       ) : (
-        <div className="grid gap-6 lg:grid-cols-2">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           {data?.map((i) => (
             <IntegrationCard key={i.id} integration={i} onChange={(next) => setData(data.map((x) => (x.id === next.id ? next : x)))} />
           ))}

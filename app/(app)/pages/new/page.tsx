@@ -45,8 +45,8 @@ export default function NewPagePage() {
   return (
     <>
       <PageHeader back={{ href: "/pages", label: "Pages" }} title="Pick a template" description="Start close to done. Everything is editable, and Blank lets you paste your own HTML." />
-      <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_380px]">
-        <div className="grid content-start gap-4 sm:grid-cols-2 xl:grid-cols-3">
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_380px]">
+        <div className="grid grid-cols-1 content-start gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {TEMPLATES.map((t) => (
             <TemplateCard key={t.id} template={t} selected={template === t.id} onSelect={() => setTemplate(t.id)} />
           ))}

@@ -51,7 +51,7 @@ export default function TeamPage() {
   return (
     <div className="flex flex-col gap-6">
       <SettingsSection title="Invite someone" description="An assistant, a designer, your CA. They get their own login; you keep control.">
-        <form onSubmit={invite} noValidate className="grid gap-3 sm:grid-cols-[1fr_220px_auto] sm:items-end">
+        <form onSubmit={invite} noValidate className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_220px_auto] sm:items-end">
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="inv-email">Email</Label>
             <Input id="inv-email" type="email" value={email} onChange={(e) => { setEmail(e.target.value); setFormError(undefined); }} aria-invalid={!!formError || undefined} aria-describedby="inv-err" />

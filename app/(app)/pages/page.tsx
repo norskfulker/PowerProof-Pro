@@ -40,7 +40,7 @@ export default function PagesListPage() {
       {error ? (
         <ErrorState message={error} onRetry={reload} />
       ) : loading && !data ? (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-80 rounded-card" />)}
         </div>
       ) : data?.length === 0 ? (
@@ -51,7 +51,7 @@ export default function PagesListPage() {
           action={<Button asChild><Link href="/pages/new"><Plus aria-hidden /> Make a page</Link></Button>}
         />
       ) : (
-        <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {data?.map((p) => (
             <li key={p.id} className="flex flex-col overflow-hidden rounded-card border bg-surface">
               <Link href={editHref(p)} className="relative block h-48 overflow-hidden border-b bg-background" aria-label={`Edit ${p.title}`}>

@@ -1,0 +1,13 @@
+/**
+ * Domain types shared by the mock layer and (later) the real backend.
+ * Money is always integer minor units plus an ISO currency code.
+ */
+export * from "./money";
+export * from "./store";
+export * from "./product";
+export * from "./order";
+export * from "./payout";
+export * from "./content";
+export * from "./analytics";
+export * from "./admin";
+export * from "./session";

@@ -70,7 +70,7 @@ export function Controls() {
   return (
     <>
       <Section id="buttons" title="Buttons" description="Primary (emerald) for the one main action. Secondary for everything else. Brass is rare. 44px tall on touch.">
-        <div className="grid gap-4 lg:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           <Specimen label="Variants">
             <div className="flex flex-wrap gap-2">
               <Button>Primary</Button>
@@ -112,7 +112,7 @@ export function Controls() {
       </Section>
 
       <Section id="inputs" title="Inputs and forms" description="Labels on every field. Errors appear under the field in plain language after the field is touched.">
-        <div className="grid gap-4 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
           <Specimen label="Text">
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="d-name">Store name</Label>

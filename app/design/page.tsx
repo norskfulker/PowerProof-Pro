@@ -38,7 +38,7 @@ export default function DesignPage() {
           <Link href="/" className="ml-auto text-sm font-medium underline-offset-4 hover:underline">Back to site</Link>
         </div>
       </header>
-      <div className="gutter mx-auto grid max-w-[1280px] gap-10 py-10 lg:grid-cols-[180px_minmax(0,1fr)]">
+      <div className="gutter mx-auto grid grid-cols-1 max-w-[1280px] gap-10 py-10 lg:grid-cols-[180px_minmax(0,1fr)]">
         <nav aria-label="Sections" className="hidden lg:block">
           <ul className="sticky top-24 flex flex-col gap-0.5">
             {TOC.map(([id, label]) => (

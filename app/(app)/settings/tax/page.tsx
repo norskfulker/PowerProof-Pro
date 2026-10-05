@@ -50,7 +50,7 @@ function InvoiceForm({ settings, sampleOrderId }: { settings: InvoiceSettings; s
             </>
           }
         >
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <FormField control={form.control} name="prefix" render={({ field }) => (
               <FormItem><FormLabel>Number prefix</FormLabel><FormControl><Input className="font-mono uppercase" {...field} /></FormControl><FormMessage /></FormItem>
             )} />

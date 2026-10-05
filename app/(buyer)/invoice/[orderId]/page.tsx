@@ -49,7 +49,7 @@ export default function InvoicePage({ params }: { params: Promise<{ orderId: str
           <LogoMark className="size-9" />
         </header>
 
-        <div className="grid gap-6 border-b py-5 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-6 border-b py-5 sm:grid-cols-2">
           <div>
             <p className="eyebrow mb-1">From</p>
             <p className="font-semibold">{seller}</p>

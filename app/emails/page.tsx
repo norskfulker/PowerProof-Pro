@@ -7,7 +7,7 @@ export default function EmailsIndexPage() {
   return (
     <>
       <PageHeader title="Emails" description="Every email PowerProof sends, rendered with React Email from your store's live mock data." />
-      <ul className="grid gap-4 sm:grid-cols-2">
+      <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         {EMAILS.map((e) => (
           <li key={e.slug}>
             <Link href={`/emails/${e.slug}`} className="group flex h-full flex-col gap-3 rounded-card border bg-surface p-6 hover:border-primary">

@@ -56,7 +56,7 @@ export default function PageProductPage() {
     <>
       <PageHeader back={{ href: "/products/new", label: "Add a product" }} eyebrow="Create a page" title="A product with its own page" description="Name it, price it, pick a look. You'll land in the editor next." />
       <div className="flex flex-col gap-8">
-        <section className="grid gap-4 rounded-card border bg-surface p-5 md:grid-cols-2 md:p-6" aria-label="Basics">
+        <section className="grid grid-cols-1 gap-4 rounded-card border bg-surface p-5 md:grid-cols-2 md:p-6" aria-label="Basics">
           <FormError message={errors.form} />
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="pp-title">Product name</Label>
@@ -72,7 +72,7 @@ export default function PageProductPage() {
 
         <section aria-labelledby="tpl-h">
           <h2 id="tpl-h" className="mb-4 text-xl">Pick a template</h2>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {TEMPLATES.filter((t) => t.id !== "blank").map((t) => (
               <TemplateCard key={t.id} template={t} selected={template === t.id} onSelect={() => setTemplate(t.id)} />
             ))}

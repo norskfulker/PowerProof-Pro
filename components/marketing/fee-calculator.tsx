@@ -23,7 +23,7 @@ export function FeeCalculator() {
   const invalid = price !== undefined && price.amount < 1000;
 
   return (
-    <div className="grid gap-0 overflow-hidden rounded-dialog border bg-surface lg:grid-cols-2">
+    <div className="grid grid-cols-1 gap-0 overflow-hidden rounded-dialog border bg-surface lg:grid-cols-2">
       <div className="flex flex-col gap-6 p-6 md:p-8">
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="calc-price">Your price</Label>

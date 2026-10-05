@@ -34,7 +34,7 @@ function Preview({ slug }: { slug: string }) {
   if (!def) notFound();
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[260px_minmax(0,1fr)]">
+    <div className="grid grid-cols-1 gap-6 lg:grid-cols-[260px_minmax(0,1fr)]">
       <nav aria-label="Emails" className="flex gap-2 overflow-x-auto lg:flex-col">
         {EMAILS.map((e) => (
           <Link key={e.slug} href={`/emails/${e.slug}`} aria-current={e.slug === slug ? "page" : undefined}
@@ -59,7 +59,7 @@ function Preview({ slug }: { slug: string }) {
           {error ? (
             <ErrorState message={error} onRetry={retry} className="w-full" />
           ) : html ? (
-            <iframe title={`${def.name} email`} srcDoc={html} sandbox="" className={cn("h-[760px] rounded-media border bg-white transition-[width] duration-200", device === "mobile" ? "w-[375px] max-w-full" : "w-full")} />
+            <iframe title={`${def.name} email`} srcDoc={html} sandbox="" className={cn("h-[760px] rounded-media border bg-surface transition-[width] duration-200", device === "mobile" ? "w-[375px] max-w-full" : "w-full")} />
           ) : (
             <Skeleton className="h-[760px] w-full" />
           )}

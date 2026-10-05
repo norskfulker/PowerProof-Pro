@@ -140,7 +140,7 @@ export function HtmlPasteEditor({
             sandbox="allow-scripts"
             srcDoc={srcDoc}
             className={cn(
-              "h-full min-h-[360px] rounded-media border bg-white transition-[width] duration-200",
+              "h-full min-h-[360px] rounded-media border bg-surface transition-[width] duration-200",
               device === "mobile" ? "w-[375px] max-w-full" : "w-full"
             )}
           />

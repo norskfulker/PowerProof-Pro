@@ -60,7 +60,7 @@ function StoreForm({ store, onSaved }: { store: Store; onSaved: (s: Store) => vo
               <span className="block truncate text-sm text-muted-foreground">{tagline || "A short line about what you make."}</span>
             </span>
           </div>
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <FormField control={form.control} name="name" render={({ field }) => (
               <FormItem><FormLabel>Store name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
             )} />
@@ -88,7 +88,7 @@ function StoreForm({ store, onSaved }: { store: Store; onSaved: (s: Store) => vo
         </SettingsSection>
 
         <SettingsSection title="Help and refunds" description="Shown on every buyer page, receipt and download page." footer={<SaveButton form="store" pending={form.formState.isSubmitting} dirty={form.formState.isDirty} />}>
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <FormField control={form.control} name="supportEmail" render={({ field }) => (
               <FormItem><FormLabel>Support email</FormLabel><FormControl><Input type="email" {...field} /></FormControl><FormMessage /></FormItem>
             )} />
