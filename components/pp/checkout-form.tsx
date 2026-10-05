@@ -29,11 +29,12 @@ const schema = z
     name: z.string().trim().min(2, "Enter your full name for the receipt."),
     email: z.string().min(1, "We need an email to send your files to.").email("That email looks off. Check for typos."),
     dial: z.string(),
-    phone: z.string().regex(/^\d+$/, "Use digits only."),
+    phone: z.string().min(1, "Enter your phone number, in case a payment gets stuck.").regex(/^\d+$/, "Use digits only."),
     method: z.enum(["upi", "card", "netbanking", "wallet"]),
-    consent: z.literal(true, { errorMap: () => ({ message: "Please accept the terms and refund policy to continue." }) }),
+    consent: z.boolean(),
   })
   .superRefine((v, ctx) => {
+    if (!v.consent) ctx.addIssue({ path: ["consent"], code: "custom", message: "Please accept the terms and refund policy to continue." });
     const rule = DIAL_CODES.find((d) => d.code === v.dial)!;
     if (v.phone.length < rule.min || v.phone.length > rule.max) {
       ctx.addIssue({ path: ["phone"], code: "custom", message: rule.min === rule.max ? `${rule.country} numbers are ${rule.min} digits.` : `${rule.country} numbers are ${rule.min} to ${rule.max} digits.` });
@@ -70,7 +71,7 @@ export function CheckoutForm({
   const [pending, setPending] = useState(false);
   const form = useForm<z.input<typeof schema>>({
     resolver: zodResolver(schema),
-    defaultValues: { name: "", email: "", dial: international ? "+1" : "+91", phone: "", method: international ? "card" : "upi", consent: false as unknown as true },
+    defaultValues: { name: "", email: "", dial: international ? "+1" : "+91", phone: "", method: international ? "card" : "upi", consent: false },
     mode: "onTouched",
   });
   const dial = useWatch({ control: form.control, name: "dial" });
@@ -135,7 +136,7 @@ export function CheckoutForm({
         <FormField control={form.control} name="consent" render={({ field }) => (
           <FormItem>
             <label className="flex min-h-11 items-start gap-3 text-sm">
-              <FormControl><Checkbox checked={!!field.value} onCheckedChange={(v) => field.onChange(!!v)} className="mt-0.5" /></FormControl>
+              <FormControl><Checkbox checked={!!field.value} onCheckedChange={(v) => field.onChange(!!v)} className="mt-0.5" aria-label="I agree to the terms and refund policy" /></FormControl>
               <span>
                 I agree to the <a href={termsHref} target="_blank" className="font-medium underline underline-offset-4">terms</a> and the{" "}
                 <a href={refundHref} target="_blank" className="font-medium underline underline-offset-4">refund policy</a>, and understand files are delivered instantly.

@@ -17,6 +17,13 @@ import {
   Users,
   Wallet,
   GraduationCap,
+  FileText,
+  FolderOpen,
+  MessagesSquare,
+  Palette,
+  Search,
+  Star,
+  Ticket,
   type LucideIcon,
 } from "lucide-react";
 
@@ -40,7 +47,19 @@ export const CREATOR_NAV: NavGroup[] = [
       { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
       { href: "/products", label: "Products", icon: Package, match: "/products" },
       { href: "/images", label: "Image maker", icon: ImageIcon },
-      { href: "/pages", label: "Pages", icon: PanelsTopLeft, match: "/pages" },
+    ],
+  },
+  {
+    label: "Store",
+    items: [
+      { href: "/store/design", label: "Design", icon: Palette },
+      { href: "/store/collections", label: "Collections", icon: FolderOpen },
+      { href: "/store/offers", label: "Offers", icon: Ticket },
+      { href: "/store/reviews", label: "Reviews", icon: Star },
+      { href: "/store/questions", label: "Questions", icon: MessagesSquare },
+      { href: "/store/pages", label: "Store pages", icon: FileText },
+      { href: "/pages", label: "Sales pages", icon: PanelsTopLeft, match: "/pages" },
+      { href: "/store/seo", label: "SEO and domain", icon: Search, match: "/store/seo" },
     ],
   },
   {
@@ -53,7 +72,7 @@ export const CREATOR_NAV: NavGroup[] = [
     ],
   },
   {
-    label: "Store",
+    label: "Setup",
     items: [
       { href: "/integrations", label: "Integrations", icon: Plug },
       { href: "/settings/profile", label: "Settings", icon: Settings, match: "/settings" },

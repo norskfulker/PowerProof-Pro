@@ -24,12 +24,20 @@ Deploy: push to Vercel. No environment variables are needed.
 
 1. **Sign up** at `/signup` (any name and email, 8+ character password). The code on `/verify-email` is any 6 digits.
 2. **Onboarding** (`/onboarding`): name your store, skip or fill business details, add a bank account (`HDFC0000123` works as an IFSC), add your first product, publish.
-3. **Buyer:** open your store at `/s/<your-slug>` in another tab. Buy, fill email and name, tap **Approve payment** in the test-mode sheet.
+3. **Buyer:** open your store at `/s/<your-slug>` in another tab. Buy, fill name, email and phone, accept the terms, tap **Approve payment** in the test-mode sheet.
 4. **Buyer downloads** from the success page.
 5. **Creator sees the sale** appear in *Live orders* on `/dashboard`, without reloading.
 6. **Creator opens payouts** at `/payouts`. New sales are pending for two days; the sample store has money available to withdraw.
 
 Want a full store instead? Log in at `/login` with any email and an 8+ character password, or use **Avatar menu › Demo data › Load sample data**. The same menu can empty the store or make every request fail, to review error states.
+
+## Walk the store
+
+1. Open a store: `/s/ananya`, `/s/inkwell` or `/s/gridgrain` (each has its own theme).
+2. Browse `/s/ananya/products`, search, filter by collection, open a product and read the reviews.
+3. **Buy now** → fill name, email and phone → apply `FESTIVE20` → accept the terms → **Approve payment**.
+4. On the success page, open your files or **Write a review** (both go to your private `/order/[token]` page).
+5. As the creator: `/store/design` (toggle sections, change theme, publish), `/store/offers` (add a coupon), `/store/reviews` (reply).
 
 ## Where things are
 
@@ -40,14 +48,17 @@ app/
   onboarding/       5-step setup
   (app)/            creator app: dashboard, products, images, pages, orders,
                     customers, payouts, analytics, integrations, settings/*
-  (buyer)/          /s/[store], /s/[store]/[product], /checkout, /success,
-                    /download, /lookup, /invoice
+  (buyer)/          /s/[store] (home, products, c/[collection], [product], about,
+                    faq, contact, policies/*), /checkout, /success, /order/[token],
+                    /lookup, /invoice
+  (app)/store/      store design, collections, offers, reviews, questions, pages, SEO, domain
   admin/            founder admin (darker shell)
   emails/           React Email previews
   design/           design system reference (kitchen sink)
 components/
   ui/               shadcn components, restyled with PowerProof tokens
-  pp/               product components (MoneyText, DataTable, StatCard, ...)
+  pp/               product components (MoneyText, DataTable, StatCard, store and checkout pieces, ...)
+  storefront/       the store shell, home sections and product page parts
   <area>/           screen pieces per area (dashboard, products, buyer, ...)
 emails/             React Email templates
 hooks/              useApi, useBuyerCurrency

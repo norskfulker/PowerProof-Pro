@@ -49,7 +49,7 @@ export function StoreProductCard({
       <div className="flex flex-1 flex-col gap-1.5 px-1 pt-3">
         <span className="eyebrow">{kindLabel(product.kind)}</span>
         <h3 className="font-sans text-base leading-snug font-semibold tracking-normal">
-          <Link href={href} className="line-clamp-2 hover:underline hover:underline-offset-4">{product.title}</Link>
+          <Link href={href} className="-my-3 line-clamp-2 py-3 hover:underline hover:underline-offset-4">{product.title}</Link>
         </h3>
         {rating.count > 0 ? (
           <span className="flex items-center gap-1.5 text-xs text-muted-foreground">

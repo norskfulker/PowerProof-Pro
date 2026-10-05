@@ -5,6 +5,7 @@ import { Controls } from "./_controls";
 import { Foundations } from "./_foundations";
 import { Overlays } from "./_overlays";
 import { ProductComponents } from "./_product";
+import { StoreComponents } from "./_store";
 
 export const metadata: Metadata = { title: "Design system" };
 
@@ -26,6 +27,9 @@ const TOC = [
   ["charts", "Charts"],
   ["table", "Table"],
   ["editors", "Editors"],
+  ["store", "Store"],
+  ["social", "Reviews"],
+  ["checkout", "Checkout"],
 ];
 
 export default function DesignPage() {
@@ -61,6 +65,7 @@ export default function DesignPage() {
             <Controls />
             <Overlays />
             <ProductComponents />
+            <StoreComponents />
           </div>
         </main>
       </div>

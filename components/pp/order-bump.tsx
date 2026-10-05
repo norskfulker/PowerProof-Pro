@@ -25,7 +25,7 @@ export function OrderBump({
 }) {
   return (
     <label className="flex cursor-pointer gap-3 rounded-card border-2 border-dashed border-accent bg-accent-soft p-4 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-primary">
-      <Checkbox checked={checked} disabled={disabled} onCheckedChange={(v) => onChange(!!v)} className="mt-0.5" aria-describedby="bump-desc" />
+      <Checkbox checked={checked} disabled={disabled} onCheckedChange={(v) => onChange(!!v)} className="mt-0.5" aria-label={label} aria-describedby="bump-desc" />
       {image && <ProductImageView image={image} size="xs" className="w-16 shrink-0" />}
       <span className="min-w-0 flex-1">
         <span className="block font-semibold">

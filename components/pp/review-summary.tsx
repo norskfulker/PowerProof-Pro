@@ -42,7 +42,7 @@ export function ReviewSummary({
                   onClick={() => onFilter(active === star ? undefined : star)}
                   aria-pressed={active === star}
                   aria-label={`${star} star: ${n} reviews. ${active === star ? "Clear filter" : "Show only these"}`}
-                  className={cn("flex min-h-9 w-full items-center gap-3 rounded-control px-2 hover:bg-muted", active === star && "bg-primary-soft")}
+                  className={cn("flex min-h-11 w-full items-center gap-3 rounded-control px-2 hover:bg-muted md:min-h-9", active === star && "bg-primary-soft")}
                 >
                   {inner}
                 </button>

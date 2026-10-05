@@ -64,7 +64,7 @@ export default function ProductPage({ params }: { params: Promise<{ store: strin
     <div className="mx-auto max-w-[1200px] px-4 pt-6 pb-24 md:px-6 md:pt-10 md:pb-0">
       <title>{`${product.title} · ${view.store.name}`}</title>
       <nav aria-label="Breadcrumb" className="mb-4 text-sm text-muted-foreground">
-        <Link href={`/s/${slug}`} className="hover:underline">Home</Link> / <Link href={`/s/${slug}/products`} className="hover:underline">Products</Link> / <span className="text-foreground">{product.title}</span>
+        <Link href={`/s/${slug}`} className="inline-flex min-h-11 items-center hover:underline">Home</Link> / <Link href={`/s/${slug}/products`} className="inline-flex min-h-11 items-center hover:underline">Products</Link> / <span className="text-foreground">{product.title}</span>
       </nav>
 
       <div className="grid grid-cols-1 gap-8 md:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] md:gap-12">

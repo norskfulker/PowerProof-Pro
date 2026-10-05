@@ -91,3 +91,54 @@ Real auth and route guards, file storage and signed URLs, the gateway integratio
 8. **Trial:** does the free month need a card up front? Currently it doesn't.
 9. **USDT:** which network (TRC-20 assumed) and when?
 10. **Brand colour on stores:** creators can pick from six palettes. Allow any colour (with a contrast check)?
+
+---
+
+# Buyer store spec (overrides earlier parts where they conflict)
+
+## What changed from the first build
+
+- **No cart for digital products.** Every product has one Buy now that goes straight to checkout. Cart pieces exist (`components/pp/cart.tsx`: drawer, lines, totals) for physical products later; no digital store renders them. They're shown on `/design`.
+- **No buyer accounts anywhere.** Buyers get back to their files from the receipt email, the success page, or `/lookup`, which emails a fresh link to `/order/[token]`. The old `/download/[orderId]` route now forwards to `/order/[token]`.
+- **Guest checkout requires full name, email and phone** (with a country code picker and per-country length rules). One step. Coupon at checkout only. Pay button always shows the exact total.
+- **Custom domains:** `/store/domain` shows the field disabled with Coming soon. Stores live at `/s/[store]`.
+
+## Store design ("fixed and proven, not a page builder")
+
+- The store layout is fixed. Creators toggle 11 sections on or off and reorder them with arrows in `/store/design` (navbar and footer always on).
+- **Themes are token overrides scoped to the store root** (`lib/store-themes.ts`, `StoreThemeScope`). Six palettes, an optional accent colour (soft/strong/ink variants are derived with `color-mix`), three font pairings, three hero layouts. Because components read tokens, every store component works in every theme with no per-theme code.
+- **Font pairings:** Modern (Bricolage Grotesque + Hanken Grotesk), Editorial (Fraunces + Hanken Grotesk), Clean (Space Grotesk + IBM Plex Sans). All self-hosted through `next/font`.
+- **Live preview** is the real store in an iframe; the editor posts the draft design in with `postMessage`, so the preview is exactly what buyers get. Desktop renders at 1280px and is scaled to fit; mobile at 390px.
+- The earlier **Pages** feature (templates, visual editor, paste HTML) is kept as **Sales pages** for creators who want a longer sales page. A live sales page for a product now renders inside that product's Description section instead of replacing the store's product layout.
+
+## Catalogue, offers, pricing
+
+- **Collections** are curated lists with a tile colour. Collections with no published products are hidden from buyers.
+- **Deals** take a percent off listed products (or everything) between two times. A live deal shows a Deal badge on cards, a countdown on the product page, a banner on the home Offers section, and changes the price everywhere, including checkout.
+- **Coupons:** percent or fixed, optional expiry, usage limit, minimum spend, whole store or chosen products. One coupon per order. Usage counts up when an order is paid.
+- **Bundles:** 2 to 5 products at a set price or percent off. At checkout the bundle price is spread across its items in proportion, so invoices and refunds stay per product.
+- **Order bump:** one optional add-on per store, at a fixed add-on price, set in Store design › Content.
+- **Tax line at checkout:** GST shown as included for buyers in India; "Nil, export" for buyers abroad (same treatment as the invoice; still needs a CA's confirmation).
+
+## Reviews and questions
+
+- **Verified buyers only.** The review form lives on `/order/[token]` (linked from the success page and the review-request email). One review per product per order. Names show as first name plus initial.
+- Creators can **reply once** (labelled Creator), **pin up to 3**, **hide**, and **report**. They cannot edit stars or text. Imported testimonials are labelled Imported and don't count towards the average.
+- **Helpful votes are limited per device** with `localStorage`. A real backend should also rate-limit per IP.
+- **Reports** from reviews and questions show up in the founder admin's Flagged content. Removing a flag hides the item; dismissing clears the report.
+- **Questions:** anyone can ask with name and email (only the first name is shown). The creator answers from `/store/questions`; verified buyers can answer from their order page. Answers are one level deep. The "question answered" email is previewed at `/emails/question-answered`.
+
+## Mock data
+
+- Three stores: **Ananya Makes** (`/s/ananya`, kits and presets, the logged-in creator's store), **Inkwell Ebooks** (`/s/inkwell`, ebooks, Midnight + Editorial + centered hero), **Grid & Grain Studio** (`/s/gridgrain`, design templates, Graphite + Clean + full-width hero).
+- Each store: 15 products, 6 collections, 4 coupons (one expired, to show the error), 2 bundles, 1 live 48-hour deal. 60 reviews in total (some with photos and creator replies) and 20 questions (most answered).
+- The two extra stores are public and buyable, but read-only from the creator app (which manages Ananya's store). Their orders stay on their own store.
+- The mock database version moved to 4, so old browser data is replaced with the new seed on first load.
+
+## Questions for the founder (store)
+
+1. **Phone at checkout:** required, as specified. That adds friction for international buyers; keep it required for them too?
+2. **One coupon per order:** OK, or should coupons stack with deals? Right now a coupon applies on top of deal prices.
+3. **Review request timing:** the email says 5 days after purchase. Right number?
+4. **Order bump pricing:** the add-on price is set by the creator with no floor. Should PowerProof enforce a minimum?
+5. **"Powered by PowerProof"** is shown on every store. The setting exists (`showPoweredBy`) but there's no toggle until the paid-plan rule is decided.

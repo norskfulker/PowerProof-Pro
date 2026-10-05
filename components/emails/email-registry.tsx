@@ -1,4 +1,4 @@
-import { LoginLinkEmail, NewSaleEmail, PayoutSentEmail, ReceiptEmail, type Brand } from "@/emails/templates";
+import { LoginLinkEmail, NewSaleEmail, PayoutSentEmail, QuestionAnsweredEmail, ReceiptEmail, ReviewRequestEmail, type Brand } from "@/emails/templates";
 import { formatDate, countryShort } from "@/lib/format";
 import { formatMoney, sum } from "@/lib/money";
 import type { Order, Payout, Store } from "@/lib/types";
@@ -89,5 +89,25 @@ export const EMAILS: EmailDef[] = [
     description: "Passwordless sign-in. The same layout handles password resets.",
     subject: () => "Your PowerProof login link",
     render: (c) => <LoginLinkEmail email={c.store.ownerEmail} url={`${c.origin}/dashboard`} code="482 913" />,
+  },
+  {
+    slug: "review-request",
+    name: "Review request",
+    to: "Buyer",
+    description: "Sent 5 days after a purchase with a private link to review. No login.",
+    subject: (c) => `How's ${c.order?.productTitle ?? "your purchase"} working out?`,
+    render: (c) => (
+      <ReviewRequestEmail brand={brand(c.store)} buyerName={c.order?.buyerName || "there"} productTitle={c.order?.productTitle ?? "your product"} reviewUrl={`${c.origin}/order/${c.order?.token ?? ""}#review`} days={5} />
+    ),
+  },
+  {
+    slug: "question-answered",
+    name: "Question answered",
+    to: "Buyer",
+    description: "Tells the person who asked that the creator or a verified buyer has answered.",
+    subject: () => "Your question has an answer",
+    render: (c) => (
+      <QuestionAnsweredEmail brand={brand(c.store)} asker="Neha" question="Does this work on an iPad?" answer="Yes. Everything opens in the Files app or any PDF reader." answeredBy={`${c.store.ownerName.split(" ")[0]} (creator)`} productTitle={c.order?.productTitle ?? "the product"} productUrl={`${c.origin}/s/${c.store.slug}`} />
+    ),
   },
 ];
