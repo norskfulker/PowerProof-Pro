@@ -11,6 +11,7 @@ import type { Store } from "../types";
 const KEY = "pp:db";
 const SESSION_KEY = "pp:session";
 const DEMO_KEY = "pp:demo";
+const REV_KEY = "pp:rev";
 
 export interface DemoSettings {
   /** Force every API call to fail, to review error states. */
@@ -55,31 +56,64 @@ export function db(): Db {
   return memory;
 }
 
+function bumpRev() {
+  const next = readRev() + 1;
+  lastRev = next;
+  write(REV_KEY, next);
+}
+
+function readRev(): number {
+  return read<number>(REV_KEY) ?? 0;
+}
+
+let lastRev = -1;
+
 export function commit(mutator?: (d: Db) => void) {
   const d = db();
   mutator?.(d);
   write(KEY, d);
+  bumpRev();
   listeners.forEach((l) => l());
 }
 
 export function resetDb(mode: "seeded" | "fresh", store?: Partial<Store>) {
   memory = mode === "seeded" ? seedDb() : freshDb(Date.now(), store ?? {});
   write(KEY, memory);
+  bumpRev();
   listeners.forEach((l) => l());
 }
 
+/**
+ * Notifies on any change. Other tabs are picked up through the storage event and, as a
+ * fallback (some embedded browsers don't deliver it), a cheap revision check on an
+ * interval and whenever the tab regains focus.
+ */
 export function subscribe(fn: () => void): () => void {
   listeners.add(fn);
-  const onStorage = (e: StorageEvent) => {
-    if (e.key === KEY) {
+  if (typeof window === "undefined") return () => listeners.delete(fn);
+  if (lastRev < 0) lastRev = readRev();
+  const check = () => {
+    const rev = readRev();
+    if (rev !== lastRev) {
+      lastRev = rev;
       memory = null;
-      fn();
+      listeners.forEach((l) => l());
     }
   };
-  if (typeof window !== "undefined") window.addEventListener("storage", onStorage);
+  const onStorage = (e: StorageEvent) => {
+    if (e.key === KEY || e.key === REV_KEY) check();
+  };
+  const onVisible = () => document.visibilityState === "visible" && check();
+  window.addEventListener("storage", onStorage);
+  window.addEventListener("focus", check);
+  document.addEventListener("visibilitychange", onVisible);
+  const timer = window.setInterval(check, 2500);
   return () => {
     listeners.delete(fn);
-    if (typeof window !== "undefined") window.removeEventListener("storage", onStorage);
+    window.removeEventListener("storage", onStorage);
+    window.removeEventListener("focus", check);
+    document.removeEventListener("visibilitychange", onVisible);
+    window.clearInterval(timer);
   };
 }
 

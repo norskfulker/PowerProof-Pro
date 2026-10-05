@@ -49,7 +49,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
             {c.name}
           </span>
         }
-        description={`${c.email} · ${countryShort(c.countryCode)} · pays in ${CURRENCIES[c.currency].name.toLowerCase()}s`}
+        description={`${c.email} · ${countryShort(c.countryCode)} · pays in ${CURRENCIES[c.currency].name}s`}
         actions={
           <Button asChild variant="secondary">
             <a href={`mailto:${c.email}`}><Mail aria-hidden /> Email</a>

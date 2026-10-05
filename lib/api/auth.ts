@@ -36,6 +36,8 @@ export function signup(name: string, email: string): Promise<Session> {
       ownerName: name.trim(),
       ownerEmail: email.toLowerCase(),
       name: `${first}'s Store`,
+      tagline: `Digital downloads by ${name.trim()}.`,
+      supportEmail: email.toLowerCase(),
       slug: slugify(first) || "my-store",
       logoText: name.trim().split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase() || "PP",
     });

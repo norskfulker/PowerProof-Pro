@@ -11,7 +11,7 @@ export const PRICING = {
 export const CURRENCIES: Record<CurrencyCode, { symbol: string; locale: string; name: string }> = {
   INR: { symbol: "₹", locale: "en-IN", name: "Indian rupee" },
   USD: { symbol: "$", locale: "en-US", name: "US dollar" },
-  EUR: { symbol: "€", locale: "de-DE", name: "Euro" },
+  EUR: { symbol: "€", locale: "de-DE", name: "euro" },
   GBP: { symbol: "£", locale: "en-GB", name: "British pound" },
   AED: { symbol: "AED", locale: "en-AE", name: "UAE dirham" },
   SGD: { symbol: "S$", locale: "en-SG", name: "Singapore dollar" },

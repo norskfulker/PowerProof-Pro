@@ -1,7 +1,7 @@
 import { feeBreakdown, localPrice, money } from "../money";
 import { commit, db } from "../mock/db";
 import { uid } from "../mock/random";
-import type { CurrencyCode, Order, Product, Store, TrafficSource } from "../types";
+import type { CurrencyCode, Order, Page, Product, Store, TrafficSource } from "../types";
 import { ApiError, call, notFound } from "./client";
 
 /** Public store data. No creator-only fields leave here. */
@@ -18,13 +18,15 @@ export function getStorefront(slug: string): Promise<PublicStore> {
   });
 }
 
-export function getPublicProduct(storeSlug: string, productSlug: string): Promise<{ store: Store; product: Product; more: Product[] }> {
+export function getPublicProduct(storeSlug: string, productSlug: string): Promise<{ store: Store; product: Product; more: Product[]; page?: Page }> {
   return call(() => {
     const d = db();
     if (d.store.slug !== storeSlug) notFound("Store");
     const product = d.products.find((p) => p.slug === productSlug && p.status === "published") ?? notFound("Product");
     const more = d.products.filter((p) => p.status === "published" && p.id !== product.id).slice(0, 3);
-    return { store: d.store, product, more };
+    // A live custom page for this product replaces the default layout.
+    const page = d.pages.find((pg) => pg.status === "live" && pg.productIds.includes(product.id));
+    return { store: d.store, product, more, page };
   });
 }
 
@@ -185,5 +187,32 @@ export function requestRefund(orderId: string, reason: string): Promise<Order> {
       o.refundReason = reason;
     });
     return o;
+  });
+}
+
+export interface InvoiceData {
+  order: Order;
+  store: Store;
+  company: import("../types").Company;
+  settings: import("../types").InvoiceSettings;
+  taxCode?: import("../types").TaxCode;
+  sku?: string;
+}
+
+/** Everything a printable tax invoice needs. */
+export function getInvoice(orderId: string): Promise<InvoiceData> {
+  return call(() => {
+    const d = db();
+    const order = d.orders.find((o) => o.id === orderId) ?? notFound("Order");
+    if (!order.invoiceNumber) throw new ApiError("Invoices are issued once an order is paid.", "conflict");
+    const product = d.products.find((p) => p.id === order.productId);
+    return {
+      order,
+      store: d.store,
+      company: d.company,
+      settings: d.invoice,
+      taxCode: d.taxCodes.find((t) => t.code === (product?.taxCode ?? d.invoice.defaultTaxCode)),
+      sku: product?.sku,
+    };
   });
 }
