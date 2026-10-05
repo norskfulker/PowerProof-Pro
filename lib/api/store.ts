@@ -142,7 +142,7 @@ const ID_RULES: Record<IntegrationId, RegExp> = {
 
 export function connectIntegration(id: IntegrationId, value: string): Promise<Integration> {
   return call(() => {
-    const v = value.trim();
+    const v = id === "google-analytics" ? value.trim().toUpperCase() : value.trim();
     if (!ID_RULES[id].test(v)) {
       throw new ApiError(
         id === "google-analytics" ? "GA4 IDs look like G-ABC123XYZ. Find it in Admin › Data streams." : "Clarity project IDs are 8 to 12 lowercase letters and numbers.",

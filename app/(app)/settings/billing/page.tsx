@@ -1,0 +1,86 @@
+"use client";
+
+import { CreditCard, Download, Sparkles } from "lucide-react";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { MoneyText } from "@/components/pp/money-text";
+import { StatusPill } from "@/components/pp/status-pill";
+import { SettingsLoading, SettingsSection } from "@/components/settings/settings-section";
+import { useApi } from "@/hooks/use-api";
+import { getPlan } from "@/lib/api";
+import { formatDate } from "@/lib/format";
+
+export default function BillingPage() {
+  const { data, error, reload } = useApi(getPlan, []);
+  if (!data) return <SettingsLoading error={error} onRetry={reload} />;
+  const { plan, invoices } = data;
+  const trial = plan.status === "trial";
+
+  return (
+    <div className="flex flex-col gap-6">
+      <SettingsSection title="Plan">
+        <div className="flex flex-col gap-6 md:flex-row md:items-start">
+          <div className="flex-1">
+            <div className="flex items-center gap-2">
+              <p className="font-display text-2xl">{plan.name}</p>
+              <StatusPill status={plan.status} />
+            </div>
+            <p className="mt-2 flex items-baseline gap-1.5">
+              <MoneyText value={plan.monthly} className="font-display text-4xl" />
+              <span className="text-muted-foreground">/ month</span>
+            </p>
+            <p className="mt-1 text-sm text-muted-foreground">Plus {plan.platformFeePct}% per sale. The gateway takes about {plan.gatewayFeePct}% on its own.</p>
+          </div>
+          {trial ? (
+            <div className="rounded-card border border-accent/40 bg-accent-soft p-4 md:w-72">
+              <p className="flex items-center gap-2 font-semibold text-accent-ink"><Sparkles className="size-4" aria-hidden /> Free month</p>
+              <p className="mt-1 text-sm">Until {formatDate(plan.trialEndsAt)}. Add a card before then so your store doesn&apos;t pause.</p>
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground md:w-72">Renews on the 1st. Fees for the month are billed with it.</p>
+          )}
+        </div>
+      </SettingsSection>
+
+      <SettingsSection title="Payment method" description="Cards are handled by the payment gateway's secure page. PowerProof never sees the number.">
+        <div className="flex flex-wrap items-center gap-4">
+          <span className="grid size-11 place-items-center rounded-control bg-primary-soft text-primary"><CreditCard className="size-5" aria-hidden /></span>
+          <span className="flex-1">
+            {plan.cardLast4 ? (
+              <><span className="block font-medium">Card ····{plan.cardLast4}</span><span className="text-sm text-muted-foreground">Charged on the 1st</span></>
+            ) : (
+              <><span className="block font-medium">No card yet</span><span className="text-sm text-muted-foreground">Needed when the free month ends</span></>
+            )}
+          </span>
+          <Button variant="secondary" onClick={() => toast("This opens the gateway's card page", { description: "Mocked in this preview." })}>
+            {plan.cardLast4 ? "Change card" : "Add card"}
+          </Button>
+        </div>
+      </SettingsSection>
+
+      <SettingsSection title="PowerProof invoices" description="Subscription plus platform fees, one invoice a month. GST invoice if you've added your GSTIN.">
+        <div className="overflow-hidden rounded-card border">
+          <Table aria-label="Billing invoices">
+            <TableHeader>
+              <TableRow><TableHead>Month</TableHead><TableHead className="text-right">Plan</TableHead><TableHead className="text-right">Sale fees</TableHead><TableHead>Status</TableHead><TableHead><span className="sr-only">Download</span></TableHead></TableRow>
+            </TableHeader>
+            <TableBody>
+              {invoices.map((i) => (
+                <TableRow key={i.id}>
+                  <TableCell className="font-medium">{i.period}</TableCell>
+                  <TableCell className="text-right"><MoneyText value={i.amount} mono /></TableCell>
+                  <TableCell className="text-right"><MoneyText value={i.platformFees} mono /></TableCell>
+                  <TableCell><StatusPill status={i.status} /></TableCell>
+                  <TableCell className="text-right">
+                    <Button variant="ghost" size="icon-sm" aria-label={`Download ${i.period} invoice`} onClick={() => toast.success("Invoice downloaded", { description: i.period })}><Download /></Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      </SettingsSection>
+    </div>
+  );
+}
