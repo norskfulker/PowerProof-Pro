@@ -25,7 +25,7 @@ const schema = z
     mode: z.enum(["upload", "link"]),
     sourceUrl: z.string().optional(),
   })
-  .refine((v) => v.mode === "link" || v.files.length > 0, { path: ["files"], message: "Add the file buyers will download." });
+  .refine((v) => v.files.length > 0, { path: ["files"], message: "Add the file buyers will download." });
 
 type Values = z.infer<typeof schema>;
 
@@ -156,7 +156,7 @@ export function StepProduct({ onDone, onBack }: { onDone: (p: Product) => void; 
           </p>
         </div>
 
-        {mode === "upload" && (
+        {(
           <div className="flex flex-col gap-1.5">
             <span className="text-sm font-medium" id="ob-files-l">The file buyers get</span>
             <Controller

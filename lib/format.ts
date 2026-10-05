@@ -56,3 +56,16 @@ export const SITE_URL = "powerproof.store";
 export function storeUrl(slug: string): string {
   return `${SITE_URL}/${slug}`;
 }
+
+const SOURCES: Record<string, string> = {
+  instagram: "Instagram",
+  direct: "Direct",
+  google: "Google",
+  youtube: "YouTube",
+  twitter: "X (Twitter)",
+  newsletter: "Newsletter",
+};
+
+export function sourceLabel(s: string): string {
+  return SOURCES[s] ?? s;
+}

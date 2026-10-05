@@ -14,7 +14,13 @@ export function StepProgress({
   return (
     <nav aria-label="Progress" className={cn("w-full", className)}>
       <p className="eyebrow mb-3 sm:hidden">
-        Step {current + 1} of {steps.length} · <span className="text-foreground">{steps[current]}</span>
+        {current >= steps.length ? (
+          "All done"
+        ) : (
+          <>
+            Step {current + 1} of {steps.length} · <span className="text-foreground">{steps[current]}</span>
+          </>
+        )}
       </p>
       <ol className="flex items-center gap-1.5 sm:gap-2">
         {steps.map((label, i) => {

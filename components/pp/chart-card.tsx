@@ -136,7 +136,7 @@ export function ShareBars({
       {rows.map((r, i) => (
         <li key={r.label} className="flex flex-col gap-1.5">
           <div className="flex items-baseline justify-between gap-3 text-sm">
-            <span className="font-medium capitalize">{r.label}</span>
+            <span className="font-medium">{r.label}</span>
             <span className="font-mono text-xs text-muted-foreground">
               {format(r.value)} · {r.share.toFixed(0)}%
             </span>

@@ -16,8 +16,9 @@ export function computeBalance(d: Db, now = Date.now()): Balance {
     const paidAt = o.paidAt ? Date.parse(o.paidAt) : now;
     if (o.status === "paid" && now - paidAt >= SETTLE_MS) settled += o.net.amount;
     else {
+      // Refund requests are held until resolved; they don't have a release date.
       pending += o.net.amount;
-      oldestPending = Math.min(oldestPending ?? paidAt, paidAt);
+      if (o.status === "paid") oldestPending = Math.min(oldestPending ?? paidAt, paidAt);
     }
   }
   const since = Date.parse(d.ledger.since);
