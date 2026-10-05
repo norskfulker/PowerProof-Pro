@@ -16,7 +16,15 @@ Open http://localhost:3000.
 | `npm run dev` | Dev server |
 | `npm run build` | Production build (also typechecks) |
 | `npm run lint` | ESLint |
-| `npx tsc --noEmit` | Typecheck only |
+| `npm run typecheck` | TypeScript only |
+| `npm test` | Unit and component tests (Vitest) |
+| `npm run test:ui` | Component tests only |
+| `npm run test:e2e` | Playwright: layout on every screen size and engine, flows, stress data |
+| `npm run test:a11y` | axe on every route (zero serious or critical issues) |
+| `npm run test:visual` | Screenshot comparisons at phone, tablet and desktop |
+| `npm run test:all` | Everything above, plus a production build |
+
+Playwright runs against a production build on port 3100, so run `npm run build` first (test:all does). First time only: `npx playwright install`. See `QA_REPORT.md` for the screen matrix and results.
 
 Deploy: push to Vercel. No environment variables are needed.
 
@@ -39,6 +47,13 @@ Want a full store instead? Log in at `/login` with any email and an 8+ character
 4. On the success page, open your files or **Write a review** (both go to your private `/order/[token]` page).
 5. As the creator: `/store/design` (toggle sections, change theme, publish), `/store/offers` (add a coupon), `/store/reviews` (reply).
 
+## Walk the new pieces
+
+- **Global search.** In the founder admin (`/admin`) press **Ctrl K** (or use the search box). Try `#1042`, an email, `+91 98`, or `@inkwell`. Buyer emails and phones are masked; highlight a result, press **Ctrl Enter**, choose **Reveal email**, give a reason, and see it logged at `/admin/audit`. `/admin/search?q=...` has every result in tabs. Creators get the same palette inside the app, limited to their own store.
+- **Deal paths.** Buy *Second Brain for Founders* on `/s/ananya`. At checkout the **Build your deal** panel offers the Pricing Playbook at 25% off together and a free gift over ₹1,500. Add, remove, pick a gift, or say **No thanks**. Creators manage rules at `/store/offers/deal-paths` (wizard with a live test mode, and stats).
+- **Visual page editor.** `/store/pages` lists each store's visual pages (three per store). Open one to edit: add blocks, change backgrounds, switch phone/tablet/desktop, undo with Ctrl Z, then **Publish changes**. Published pages live at `/s/<store>/p/<slug>` and are linked from the store footer. About, FAQ and policies moved to `/store/info`.
+- **Stress data.** **Avatar menu › Demo data › Load stress data** fills the store with very long and unbroken text, Hindi, Tamil, Telugu and Kannada titles, 500 products and orders, and 5,000 reviews.
+
 ## Where things are
 
 ```
@@ -51,20 +66,29 @@ app/
   (buyer)/          /s/[store] (home, products, c/[collection], [product], about,
                     faq, contact, policies/*), /checkout, /success, /order/[token],
                     /lookup, /invoice
-  (app)/store/      store design, collections, offers, reviews, questions, pages, SEO, domain
-  admin/            founder admin (darker shell)
+  (app)/store/      store design, collections, offers (+ deal-paths), reviews, questions,
+                    pages (visual pages list, versions), info, SEO, domain
+  (editor)/         full-screen visual page editor: /store/pages/[id]/edit
+  admin/            founder admin (darker shell), search, audit log
   emails/           React Email previews
   design/           design system reference (kitchen sink)
 components/
   ui/               shadcn components, restyled with PowerProof tokens
   pp/               product components (MoneyText, DataTable, StatCard, store and checkout pieces, ...)
   storefront/       the store shell, home sections and product page parts
+  search/           global search palette, result rows, audited quick actions
+  page-builder/     visual editor (EditorShell, Canvas, panels) and the shared PageRenderer
   <area>/           screen pieces per area (dashboard, products, buyer, ...)
 emails/             React Email templates
-hooks/              useApi, useBuyerCurrency
+hooks/              useApi, useBuyerCurrency, useNow, useScrollFocus
+tests/
+  unit/             component tests (Testing Library); lib tests sit next to their code
+  e2e/              Playwright specs: layout, a11y, flows, stress, visual
 lib/
   api/              the only data door for pages; swap bodies for fetch()
-  mock/             in-browser mock database and seed data
+  mock/             in-browser mock database, seed and stress data
+  pages/            page schema (zod), templates, editor store (zustand), media limits
+  pricing/          prices, coupons, bundles, and deals.ts (deal paths engine)
   types/            domain types (Money is integer minor units + currency)
   money.ts          formatting, conversion, fee maths
 ```

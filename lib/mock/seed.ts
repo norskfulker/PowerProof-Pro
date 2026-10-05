@@ -5,7 +5,7 @@ import { CUSTOMER_SEEDS, PRODUCT_SEEDS, SOURCE_WEIGHTS, TAX_CODES } from "./cata
 import { ANANYA_COLLECTIONS, EXTRA_ANANYA_PRODUCTS, GRIDGRAIN, INKWELL } from "./catalog-stores";
 import { buildOtherStore, productsFromRows } from "./other-stores";
 import { DAY, rng, slugify } from "./random";
-import { buildCollections, buildDesign, buildOffers, buildQuestions, buildReviews, defaultPages } from "./storefront-seed";
+import { buildCollections, buildDealRules, buildDesign, buildOffers, buildVisualPages, buildQuestions, buildReviews, defaultPages } from "./storefront-seed";
 
 const ANANYA_COLORS = [
   { bg: "#0F3D33", fg: "#F5F6F4", accent: "#C9A24F" },
@@ -268,7 +268,13 @@ function storefront(store: Db["store"], products: Product[], now: number) {
     }),
     storePages: defaultPages(store),
     collections: buildCollections(products, ANANYA_COLLECTIONS, ANANYA_COLORS),
+    visualPages: buildVisualPages(store, products, buildCollections(products, ANANYA_COLLECTIONS, ANANYA_COLORS), now, [
+      ["sale", "Diwali sale", "diwali-sale", true],
+      ["about", "About Ananya", "about-ananya", true],
+      ["waitlist", "Free Notion starter", "free-notion-starter", false],
+    ]),
     ...offers,
+    dealRules: buildDealRules(products, now, "ananya"),
     reviews: buildReviews(live, now, 5, "ananya", ANANYA_COLORS),
     questions: buildQuestions(live, now, 7, "ananya", store.ownerName.split(" ")[0]),
     subscribers: ["fan1@example.com", "fan2@example.com"],

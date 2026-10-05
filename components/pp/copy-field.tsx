@@ -1,5 +1,6 @@
 "use client";
 
+import { ScrollRegion } from "@/components/pp/scroll-region";
 import { useState } from "react";
 import { Check, Copy } from "lucide-react";
 import { toast } from "sonner";
@@ -38,9 +39,9 @@ export function CopyField({
       {label && <span className="text-sm font-medium">{label}</span>}
       <div className="flex min-w-0 items-stretch overflow-hidden rounded-control border border-border-strong bg-surface-sunken">
         {multiline ? (
-          <pre className="max-h-40 min-w-0 flex-1 overflow-auto px-3.5 py-2.5 font-mono text-xs leading-relaxed whitespace-pre-wrap">{display ?? value}</pre>
+          <ScrollRegion as="pre" label={label ?? "Code"} className="max-h-40 min-w-0 flex-1 overflow-auto px-3.5 py-2.5 font-mono text-xs leading-relaxed whitespace-pre-wrap">{display ?? value}</ScrollRegion>
         ) : (
-          <span className="flex min-h-11 min-w-0 flex-1 items-center truncate px-3.5 font-mono text-[13px]">{display ?? value}</span>
+          <span className="flex min-h-11 min-w-0 flex-1 items-center truncate px-3.5 font-mono text-[0.8125rem]">{display ?? value}</span>
         )}
         <Button
           type="button"

@@ -44,7 +44,10 @@ export function DataTable<T>({
   pageSize = 10,
   label,
   toolbar,
+  initialSearch = "",
 }: {
+  /** Pre-fills the search box, e.g. from ?q= in a link */
+  initialSearch?: string;
   columns: ColumnDef<T, unknown>[];
   data: T[] | undefined;
   loading?: boolean;
@@ -65,7 +68,7 @@ export function DataTable<T>({
   toolbar?: React.ReactNode;
 }) {
   const router = useRouter();
-  const [globalFilter, setGlobalFilter] = useState("");
+  const [globalFilter, setGlobalFilter] = useState(initialSearch);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>(initialFilters);
   const [sorting, setSorting] = useState<SortingState>([]);
 
@@ -157,7 +160,7 @@ export function DataTable<T>({
                       className={cn((h.column.columnDef.meta as { align?: string })?.align === "right" && "text-right")}
                     >
                       {canSort ? (
-                        <button className="inline-flex items-center gap-1 uppercase hover:text-foreground" onClick={h.column.getToggleSortingHandler()}>
+                        <button className="inline-flex items-center gap-1 uppercase hover:text-foreground pointer-coarse:min-h-11 pointer-coarse:min-w-11" onClick={h.column.getToggleSortingHandler()}>
                           {flexRender(h.column.columnDef.header, h.getContext())}
                           {sorted === "asc" ? <ArrowUp className="size-3" /> : sorted === "desc" ? <ArrowDown className="size-3" /> : null}
                         </button>

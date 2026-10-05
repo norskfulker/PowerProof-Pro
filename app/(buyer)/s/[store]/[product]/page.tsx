@@ -64,7 +64,7 @@ export default function ProductPage({ params }: { params: Promise<{ store: strin
     <div className="mx-auto max-w-[1200px] px-4 pt-6 pb-24 md:px-6 md:pt-10 md:pb-0">
       <title>{`${product.title} · ${view.store.name}`}</title>
       <nav aria-label="Breadcrumb" className="mb-4 text-sm text-muted-foreground">
-        <Link href={`/s/${slug}`} className="inline-flex min-h-11 items-center hover:underline">Home</Link> / <Link href={`/s/${slug}/products`} className="inline-flex min-h-11 items-center hover:underline">Products</Link> / <span className="text-foreground">{product.title}</span>
+        <Link href={`/s/${slug}`} className="inline-flex min-h-11 min-w-11 items-center hover:underline">Home</Link> / <Link href={`/s/${slug}/products`} className="inline-flex min-h-11 items-center hover:underline">Products</Link> / <span className="text-foreground">{product.title}</span>
       </nav>
 
       <div className="grid grid-cols-1 gap-8 md:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] md:gap-12">
@@ -78,7 +78,7 @@ export default function ProductPage({ params }: { params: Promise<{ store: strin
       </div>
 
       <nav aria-label="On this page" className="sticky top-16 z-20 -mx-4 mt-10 overflow-x-auto border-y bg-background/95 px-4 backdrop-blur md:mx-0 md:rounded-card md:border">
-        <ul className="flex gap-1">
+        <ul className="flex gap-2">
           {ANCHORS.map(([id, label]) => (
             <li key={id}><a href={`#${id}`} className="inline-flex min-h-12 items-center px-3 text-sm font-medium whitespace-nowrap text-foreground/80 hover:text-foreground">{label}{id === "reviews" ? ` (${product.rating.count})` : id === "questions" ? ` (${questions.length})` : ""}</a></li>
           ))}
@@ -107,7 +107,7 @@ export default function ProductPage({ params }: { params: Promise<{ store: strin
               <li key={f.id} className="flex items-center gap-3 px-4 py-3">
                 <FileText className="size-5 shrink-0 text-muted-foreground" aria-hidden />
                 <span className="min-w-0 flex-1 truncate font-medium">{f.name}</span>
-                <span className="rounded-full bg-muted px-2 py-0.5 font-mono text-[11px]">{fileFormat(f.name)}</span>
+                <span className="rounded-full bg-muted px-2 py-0.5 font-mono text-[0.6875rem]">{fileFormat(f.name)}</span>
                 <span className="w-16 text-right font-mono text-xs text-muted-foreground">{formatBytes(f.size)}</span>
               </li>
             ))}
@@ -144,7 +144,7 @@ export default function ProductPage({ params }: { params: Promise<{ store: strin
 
       {related.length > 0 && (
         <section aria-labelledby="h-rel" className="mt-16">
-          <h2 id="h-rel" className="mb-5 text-[28px]">You might also like</h2>
+          <h2 id="h-rel" className="mb-5 text-[1.75rem]">You might also like</h2>
           <ProductGrid products={related} />
         </section>
       )}

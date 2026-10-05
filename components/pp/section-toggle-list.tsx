@@ -26,7 +26,9 @@ export function SectionToggleList({ sections, onChange }: { sections: SectionSet
               <span className={cn("block text-sm font-semibold", !s.enabled && "text-muted-foreground")}>{meta.name}</span>
               <span className="block truncate text-xs text-muted-foreground">{meta.description}</span>
             </span>
-            <Switch checked={s.enabled} onCheckedChange={(v) => onChange(sections.map((x) => (x.id === s.id ? { ...x, enabled: v } : x)))} aria-label={`Show ${meta.name}`} />
+            <label className="inline-flex min-h-11 min-w-11 cursor-pointer items-center justify-center">
+              <Switch checked={s.enabled} onCheckedChange={(v) => onChange(sections.map((x) => (x.id === s.id ? { ...x, enabled: v } : x)))} aria-label={`Show ${meta.name}`} />
+            </label>
             <Button type="button" variant="ghost" size="icon-sm" disabled={i === 0} onClick={() => move(i, -1)} aria-label={`Move ${meta.name} up`}><ArrowUp /></Button>
             <Button type="button" variant="ghost" size="icon-sm" disabled={i === sections.length - 1} onClick={() => move(i, 1)} aria-label={`Move ${meta.name} down`}><ArrowDown /></Button>
           </li>

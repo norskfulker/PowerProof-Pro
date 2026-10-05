@@ -79,7 +79,7 @@ export function Foundations() {
           </div>
           <div className="flex items-baseline gap-6 px-5 py-4">
             <span className="w-10 shrink-0 font-mono text-xs text-muted-foreground">13</span>
-            <span className="font-mono text-[13px]">PP-1081 · ₹1,499.00 · INV-0081</span>
+            <span className="font-mono text-[0.8125rem]">PP-1081 · ₹1,499.00 · INV-0081</span>
           </div>
         </div>
       </Section>
@@ -108,7 +108,7 @@ export function Foundations() {
           {[4, 8, 12, 16, 24, 32, 48, 64].map((n) => (
             <div key={n} className="flex flex-col items-center gap-1">
               <div className="w-6 rounded-[2px] bg-accent" style={{ height: n }} />
-              <span className="font-mono text-[11px] text-muted-foreground">{n}</span>
+              <span className="font-mono text-[0.6875rem] text-muted-foreground">{n}</span>
             </div>
           ))}
         </div>

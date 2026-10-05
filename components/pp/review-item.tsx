@@ -72,7 +72,7 @@ export function ReviewItem({
       {review.reply && (
         <div className="ml-4 rounded-control border-l-2 border-accent bg-surface-sunken px-4 py-3 text-sm">
           <p className="mb-1 flex items-center gap-2 font-semibold">
-            {creatorName} <span className="rounded-full bg-primary px-2 py-0.5 text-[11px] text-primary-foreground">Creator</span>
+            {creatorName} <span className="rounded-full bg-primary px-2 py-0.5 text-[0.6875rem] text-primary-foreground">Creator</span>
           </p>
           <p className="text-foreground/85">{review.reply.body}</p>
         </div>

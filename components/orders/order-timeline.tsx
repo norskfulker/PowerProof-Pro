@@ -52,7 +52,7 @@ export function OrderTimeline({ order }: { order: Order }) {
           <div className="pt-1">
             <p className="text-sm font-semibold">{st.title}</p>
             {st.body && <p className="text-sm text-muted-foreground">{st.body}</p>}
-            {st.at && <p className="font-mono text-[11px] text-muted-foreground">{formatDate(st.at, { time: true })}</p>}
+            {st.at && <p className="font-mono text-[0.6875rem] text-muted-foreground">{formatDate(st.at, { time: true })}</p>}
           </div>
         </li>
       ))}

@@ -51,9 +51,9 @@ export function StoreNavbar({
         </Link>
         <form role="search" onSubmit={search} className="relative ml-auto hidden w-full max-w-xs md:block">
           <Search className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
-          <Input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder={`Search ${store.name}`} aria-label="Search products" className="h-10 pl-10" />
+          <Input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder={`Search ${store.name}`} aria-label="Search products" className="h-10 pl-10 pointer-coarse:h-11" />
         </form>
-        <div className="ml-auto flex items-center gap-1 md:ml-0">
+        <div className="ml-auto flex items-center gap-2 md:ml-0">
           <CurrencyPicker value={currency} onChange={onCurrency} />
           <Sheet open={open} onOpenChange={setOpen}>
             <SheetTrigger asChild>
@@ -80,7 +80,7 @@ export function StoreNavbar({
         </div>
       </div>
       <nav aria-label="Collections" className="hidden border-t lg:block">
-        <ul className="mx-auto flex max-w-[1200px] items-center gap-1 px-4 md:px-6">
+        <ul className="mx-auto flex max-w-[1200px] items-center gap-2 px-4 md:px-6">
           {links.map((l) => (
             <li key={l.href}>
               <Link href={l.href} className="inline-flex min-h-11 items-center rounded-control px-3 text-sm font-medium text-foreground/80 hover:bg-muted hover:text-foreground">{l.label}</Link>

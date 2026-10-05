@@ -22,11 +22,11 @@ const buttonVariants = cva(
         destructive: "bg-danger text-danger-foreground hover:bg-danger/90",
       },
       size: {
-        sm: "h-9 px-3 text-sm max-md:min-h-11 has-[>svg]:px-2.5",
+        sm: "h-9 px-3 text-sm pointer-coarse:min-h-11 pointer-coarse:min-w-11 has-[>svg]:px-2.5",
         md: "h-11 px-4 text-sm has-[>svg]:px-3.5",
         lg: "h-13 px-6 text-base has-[>svg]:px-5",
         icon: "size-11",
-        "icon-sm": "size-9 max-md:size-11",
+        "icon-sm": "size-9 pointer-coarse:size-11",
         // aliases for shadcn internals
         default: "h-11 px-4 text-sm",
         xs: "h-7 px-2 text-xs",

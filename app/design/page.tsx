@@ -5,6 +5,7 @@ import { Controls } from "./_controls";
 import { Foundations } from "./_foundations";
 import { Overlays } from "./_overlays";
 import { ProductComponents } from "./_product";
+import { Part4Components } from "./_part4";
 import { StoreComponents } from "./_store";
 
 export const metadata: Metadata = { title: "Design system" };
@@ -30,6 +31,9 @@ const TOC = [
   ["store", "Store"],
   ["social", "Reviews"],
   ["checkout", "Checkout"],
+  ["deals", "Deal paths"],
+  ["search", "Search"],
+  ["builder", "Page builder"],
 ];
 
 export default function DesignPage() {
@@ -39,7 +43,7 @@ export default function DesignPage() {
         <div className="gutter mx-auto flex h-16 max-w-[1280px] items-center gap-4">
           <Logo />
           <span className="eyebrow">Design system</span>
-          <Link href="/" className="ml-auto text-sm font-medium underline-offset-4 hover:underline">Back to site</Link>
+          <Link href="/" className="ml-auto inline-flex min-h-11 items-center text-sm font-medium underline-offset-4 hover:underline">Back to site</Link>
         </div>
       </header>
       <div className="gutter mx-auto grid grid-cols-1 max-w-[1280px] gap-10 py-10 lg:grid-cols-[180px_minmax(0,1fr)]">
@@ -66,6 +70,7 @@ export default function DesignPage() {
             <Overlays />
             <ProductComponents />
             <StoreComponents />
+            <Part4Components />
           </div>
         </main>
       </div>

@@ -20,9 +20,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useApi } from "@/hooks/use-api";
-import { getDemoState, getStore, loadSampleData, logout, setDemoState, startEmptyStore } from "@/lib/api";
+import { getDemoState, getStore, loadSampleData, loadStressData, logout, setDemoState, startEmptyStore } from "@/lib/api";
 import { initials } from "@/lib/format";
-import { CommandSearch } from "./command-search";
+import { GlobalSearch } from "@/components/search/global-search";
 import { Notifications } from "./notifications";
 
 function StoreSwitcher() {
@@ -30,8 +30,8 @@ function StoreSwitcher() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="max-w-56 gap-2.5 px-2">
-          <span className="grid size-7 shrink-0 place-items-center rounded-[8px] bg-primary font-mono text-[11px] font-semibold text-primary-foreground">
+        <Button variant="ghost" className="max-w-56 min-w-0 shrink gap-2.5 px-2">
+          <span className="grid size-7 shrink-0 place-items-center rounded-[8px] bg-primary font-mono text-[0.6875rem] font-semibold text-primary-foreground">
             {store?.logoText ?? "··"}
           </span>
           <span className="truncate max-sm:hidden">{store?.name ?? "Loading…"}</span>
@@ -44,7 +44,7 @@ function StoreSwitcher() {
           <Check aria-hidden /> {store?.name}
         </DropdownMenuItem>
         <DropdownMenuItem disabled>
-          <Plus aria-hidden /> Add another store <span className="ml-auto font-mono text-[10px]">SOON</span>
+          <Plus aria-hidden /> Add another store <span className="ml-auto font-mono text-[0.625rem]">SOON</span>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         {store && (
@@ -94,7 +94,7 @@ function AccountMenu() {
             <FlaskConical aria-hidden /> Demo data
           </DropdownMenuSubTrigger>
           <DropdownMenuSubContent className="w-60">
-            <DropdownMenuLabel className="eyebrow">Currently: {demo?.mode === "fresh" ? "empty store" : "sample data"}</DropdownMenuLabel>
+            <DropdownMenuLabel className="eyebrow">Currently: {demo?.mode === "fresh" ? "empty store" : demo?.mode === "stress" ? "stress data" : "sample data"}</DropdownMenuLabel>
             <DropdownMenuItem
               onSelect={() => {
                 loadSampleData();
@@ -111,6 +111,15 @@ function AccountMenu() {
               }}
             >
               Start with an empty store
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onSelect={() => {
+                loadStressData();
+                toast.success("Stress data loaded", { description: "Long names, 500 products, 5000 reviews." });
+                router.refresh();
+              }}
+            >
+              Load stress data
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuCheckboxItem
@@ -147,7 +156,9 @@ export function Topbar({ admin }: { admin?: boolean }) {
       ) : (
         <StoreSwitcher />
       )}
-      <div className="flex flex-1 justify-end md:justify-center">{!admin && <CommandSearch />}</div>
+      <div className="flex flex-1 justify-end md:justify-center">
+        <GlobalSearch scope={admin ? "admin" : "creator"} />
+      </div>
       {!admin && <Notifications />}
       <AccountMenu />
     </header>

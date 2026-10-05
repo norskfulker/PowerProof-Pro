@@ -16,7 +16,7 @@ export function AuthCard({
   return (
     <div className={cn("flex flex-col gap-6", className)}>
       <div className="rounded-dialog border bg-surface p-6 sm:p-8">
-        <h1 className="text-[28px]">{title}</h1>
+        <h1 className="text-[1.75rem]">{title}</h1>
         {description && <p className="mt-2 text-muted-foreground">{description}</p>}
         <div className="mt-6">{children}</div>
       </div>

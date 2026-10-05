@@ -27,7 +27,7 @@ import { SAMPLE_METHODS, SAMPLE_ORDER, SAMPLE_PRODUCT, SAMPLE_SERIES } from "./_
 import { Section, Specimen } from "./_section";
 
 const COLS: ColumnDef<Order, unknown>[] = [
-  { accessorKey: "number", header: "Order", cell: ({ getValue }) => <span className="font-mono text-[13px]">{getValue() as string}</span> },
+  { accessorKey: "number", header: "Order", cell: ({ getValue }) => <span className="font-mono text-[0.8125rem]">{getValue() as string}</span> },
   { accessorKey: "buyerName", header: "Buyer" },
   { accessorKey: "status", header: "Status", cell: ({ getValue }) => <StatusPill status={getValue() as string} /> },
   { id: "total", header: "Total", meta: { align: "right" }, cell: ({ row }) => <MoneyText value={row.original.buyerTotal} mono /> },
@@ -67,7 +67,8 @@ export function ProductComponents() {
           <Specimen label="CurrencyInput">
             <label htmlFor="d-price" className="text-sm font-medium">Price</label>
             <CurrencyInput id="d-price" value={price} onChange={setPrice} />
-            <CurrencyInput value={undefined} onChange={() => {}} invalid aria-describedby="d-pe" />
+            <label htmlFor="d-price-err" className="text-sm font-medium">Price (error state)</label>
+            <CurrencyInput id="d-price-err" value={undefined} onChange={() => {}} invalid aria-describedby="d-pe" />
             <p id="d-pe" className="text-sm font-medium text-danger">Set a price of at least ₹10.00.</p>
           </Specimen>
           <FeeBreakdown sale={price ?? { amount: 0, currency: "INR" }} />

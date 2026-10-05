@@ -69,8 +69,8 @@ export function HtmlPasteEditor({
     <div className={cn("grid gap-4 lg:grid-cols-2", className)}>
       <div className="flex min-h-[420px] flex-col overflow-hidden rounded-card border bg-foreground">
         <div className="flex items-center justify-between gap-2 border-b border-white/10 px-4 py-2.5">
-          <span className="font-mono text-[11px] tracking-[0.08em] text-primary-foreground/70 uppercase">HTML</span>
-          <span className="font-mono text-[11px] text-primary-foreground/70">
+          <span className="font-mono text-[0.6875rem] tracking-[0.08em] text-primary-foreground/70 uppercase">HTML</span>
+          <span className="font-mono text-[0.6875rem] text-primary-foreground/70">
             {buttons.length} buy button{buttons.length === 1 ? "" : "s"} found
           </span>
         </div>
@@ -114,7 +114,7 @@ export function HtmlPasteEditor({
               }
             }}
             placeholder="<section>Paste your page here…</section>"
-            className="flex-1 resize-none bg-transparent py-3 pr-4 font-mono text-[13px] leading-6 whitespace-pre text-primary-foreground caret-accent outline-none placeholder:text-primary-foreground/40 focus-visible:outline-none"
+            className="flex-1 resize-none bg-transparent py-3 pr-4 font-mono text-[0.8125rem] leading-6 whitespace-pre text-primary-foreground caret-accent outline-none placeholder:text-primary-foreground/40 focus-visible:outline-none"
           />
         </div>
         <p className="border-t border-white/10 px-4 py-2 text-xs text-primary-foreground/70">
@@ -125,7 +125,7 @@ export function HtmlPasteEditor({
       <div className="flex min-h-[420px] flex-col overflow-hidden rounded-card border bg-surface">
         <div className="flex items-center justify-between gap-2 border-b px-3 py-1.5">
           <span className="eyebrow pl-1">Live preview</span>
-          <div className="flex gap-1" role="group" aria-label="Preview size">
+          <div className="flex gap-2" role="group" aria-label="Preview size">
             <Button size="icon-sm" variant={device === "desktop" ? "secondary" : "ghost"} aria-pressed={device === "desktop"} onClick={() => setDevice("desktop")} aria-label="Desktop preview">
               <Monitor />
             </Button>

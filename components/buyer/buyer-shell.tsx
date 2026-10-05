@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils";
 export function CurrencyPicker({ value, onChange }: { value: CurrencyCode; onChange: (c: CurrencyCode) => void }) {
   return (
     <Select value={value} onValueChange={(v) => onChange(v as CurrencyCode)}>
-      <SelectTrigger size="sm" className="w-[104px] font-mono text-xs" aria-label="Show prices in">
+      <SelectTrigger size="sm" className="w-[104px] font-mono text-xs pointer-coarse:h-11" aria-label="Show prices in">
         <SelectValue />
       </SelectTrigger>
       <SelectContent align="end">
@@ -53,7 +53,10 @@ export function BuyerShell({
   children,
   narrow,
   theme,
+  bottomBar,
 }: {
+  /** A fixed bar sits at the bottom on phones (checkout Pay bar): reserve room for it */
+  bottomBar?: boolean;
   store?: Store;
   currency?: CurrencyCode;
   onCurrency?: (c: CurrencyCode) => void;
@@ -63,7 +66,7 @@ export function BuyerShell({
   theme?: StoreTheme;
 }) {
   const body = (
-    <div className="flex min-h-dvh flex-col">
+    <div className={cn("flex min-h-dvh flex-col", bottomBar && "max-lg:pb-28")}>
       <SkipLink />
       <header className="border-b bg-surface">
         <div className={cn("mx-auto flex h-16 items-center gap-3 px-4 md:px-6", narrow ? "max-w-[640px]" : "max-w-[1120px]")}>
@@ -89,10 +92,10 @@ export function BuyerShell({
       </main>
       <footer className="border-t bg-surface">
         <div className={cn("mx-auto flex flex-col gap-3 px-4 py-6 text-sm md:flex-row md:items-center md:px-6", narrow ? "max-w-[640px]" : "max-w-[1120px]")}>
-          <nav aria-label="Help" className="flex flex-wrap gap-x-5 gap-y-1">
+          <nav aria-label="Help" className="flex min-w-0 flex-wrap gap-x-5">
             <Link href="/lookup" className="inline-flex min-h-11 items-center font-medium underline-offset-4 hover:underline">Find my order</Link>
             {store ? <Link href={`/s/${store.slug}/policies/refund`} className="inline-flex min-h-11 items-center font-medium underline-offset-4 hover:underline">Refunds and support</Link> : <Link href="/lookup#help" className="inline-flex min-h-11 items-center font-medium underline-offset-4 hover:underline">Refunds and support</Link>}
-            {store && <a href={`mailto:${store.supportEmail}`} className="inline-flex min-h-11 items-center text-muted-foreground underline-offset-4 hover:underline">{store.supportEmail}</a>}
+            {store && <a href={`mailto:${store.supportEmail}`} className="inline-flex min-h-11 min-w-0 max-w-full items-center break-all text-muted-foreground underline-offset-4 hover:underline">{store.supportEmail}</a>}
           </nav>
           <Link href="/" className="inline-flex min-h-11 items-center gap-1.5 text-xs text-muted-foreground md:ml-auto">
             <LogoMark className="size-4" /> Sold with PowerProof

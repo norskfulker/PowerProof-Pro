@@ -32,7 +32,7 @@ export function SiteNav() {
                   href={l.href}
                   aria-current={pathname === l.href ? "page" : undefined}
                   className={cn(
-                    "inline-flex min-h-10 items-center rounded-control px-3 text-sm font-medium hover:bg-muted",
+                    "inline-flex min-h-10 items-center rounded-control px-3 text-sm font-medium hover:bg-muted pointer-coarse:min-h-11",
                     pathname === l.href ? "text-foreground" : "text-foreground/75"
                   )}
                 >

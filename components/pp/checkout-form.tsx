@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { CreditCard, Landmark, Loader2, Lock, Smartphone, Wallet } from "lucide-react";
+import { CreditCard, Download, Landmark, Loader2, Lock, Smartphone, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -52,7 +52,23 @@ const METHODS_IN = [
   { id: "wallet", label: "Wallet", icon: Wallet, hint: "Paytm, Amazon Pay" },
 ] as const;
 
-/** Guest checkout: name, email, phone, coupon slot, payment method, consent, exact-total Pay button. */
+export const CHECKOUT_FORM_ID = "checkout-form";
+
+/** The Pay button's label and icon. Zero totals skip the gateway: "Get it now". */
+export function PayLabel({ total, pending }: { total: Money; pending?: boolean }) {
+  const free = total.amount === 0;
+  return (
+    <>
+      {pending ? <Loader2 className="animate-spin" aria-hidden /> : free ? <Download aria-hidden /> : <Lock aria-hidden />}
+      {free ? "Get it now" : <>Pay <MoneyText value={total} /></>}
+    </>
+  );
+}
+
+/**
+ * Guest checkout: name, email, phone, coupon slot, payment method, consent, exact-total Pay button.
+ * On phones the Pay button lives in a fixed bar (MobilePayBar) so it never moves while deals change the page.
+ */
 export function CheckoutForm({
   international,
   total,
@@ -60,7 +76,9 @@ export function CheckoutForm({
   termsHref,
   refundHref,
   onPay,
+  pending: externalPending,
 }: {
+  pending?: boolean;
   international: boolean;
   total: Money;
   couponSlot?: React.ReactNode;
@@ -80,6 +98,7 @@ export function CheckoutForm({
   return (
     <Form {...form}>
       <form
+        id={CHECKOUT_FORM_ID}
         noValidate
         className="flex flex-col gap-5"
         onSubmit={form.handleSubmit(async (v) => {
@@ -117,7 +136,7 @@ export function CheckoutForm({
 
         {couponSlot}
 
-        <FormField control={form.control} name="method" render={({ field }) => (
+        {total.amount > 0 && <FormField control={form.control} name="method" render={({ field }) => (
           <FormItem>
             <FormLabel>Pay with</FormLabel>
             <RadioGroup value={field.value} onValueChange={field.onChange} className="grid grid-cols-1 gap-2 sm:grid-cols-2" aria-label="Payment method">
@@ -131,7 +150,8 @@ export function CheckoutForm({
             </RadioGroup>
             {international && <p className="text-xs text-muted-foreground">UPI, netbanking and wallets work with Indian accounts only.</p>}
           </FormItem>
-        )} />
+        )} />}
+        {total.amount === 0 && <p className="rounded-control bg-primary-soft px-3.5 py-3 text-sm">Nothing to pay. Your files are delivered as soon as you confirm.</p>}
 
         <FormField control={form.control} name="consent" render={({ field }) => (
           <FormItem>
@@ -146,9 +166,8 @@ export function CheckoutForm({
           </FormItem>
         )} />
 
-        <Button type="submit" size="lg" disabled={pending} className="w-full">
-          {pending ? <Loader2 className="animate-spin" aria-hidden /> : <Lock aria-hidden />}
-          Pay <MoneyText value={total} />
+        <Button type="submit" size="lg" disabled={pending || externalPending} className="w-full max-lg:hidden">
+          <PayLabel total={total} pending={pending || externalPending} />
         </Button>
       </form>
     </Form>

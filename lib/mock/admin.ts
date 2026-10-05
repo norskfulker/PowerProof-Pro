@@ -63,3 +63,10 @@ export function seedAdmin(now = Date.now()) {
 
   return { creators, disputes, payouts, flags };
 }
+
+let cache: ReturnType<typeof seedAdmin> | null = null;
+
+/** Platform admin data, generated once per page load and kept in memory. */
+export function adminDb() {
+  return (cache ??= seedAdmin());
+}

@@ -6,7 +6,7 @@ import { Eye, EyeOff, MessagesSquare } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Segmented } from "@/components/pp/segmented";
 import { EmptyState, ErrorState } from "@/components/pp/empty-state";
 import { PageHeader } from "@/components/pp/page-header";
 import { QuestionThread } from "@/components/pp/question-thread";
@@ -31,13 +31,7 @@ export default function QuestionsInboxPage() {
         <EmptyState icon={MessagesSquare} title="No questions yet." body="When someone asks about a product, it lands here." />
       ) : data && (
         <div className="flex flex-col gap-4">
-          <Tabs value={filter} onValueChange={(v) => setFilter(v as typeof filter)}>
-            <TabsList>
-              <TabsTrigger value="open">Waiting ({openCount})</TabsTrigger>
-              <TabsTrigger value="answered">Answered</TabsTrigger>
-              <TabsTrigger value="hidden">Hidden</TabsTrigger>
-            </TabsList>
-          </Tabs>
+          <Segmented label="Filter questions" value={filter} onChange={setFilter} options={[{ value: "open", label: `Waiting (${openCount})` }, { value: "answered", label: "Answered" }, { value: "hidden", label: "Hidden" }]} />
           {list.length === 0 ? (
             <p className="rounded-card border bg-surface py-10 text-center text-sm text-muted-foreground">{filter === "open" ? "All caught up. Nice." : "Nothing here."}</p>
           ) : (

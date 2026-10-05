@@ -33,7 +33,7 @@ export function EditorBar({
           <Link href="/pages"><ArrowLeft /></Link>
         </Button>
         <label htmlFor="pg-name" className="sr-only">Page name</label>
-        <Input id="pg-name" value={page.title} onChange={(e) => onChange({ title: e.target.value })} className="h-10 max-w-sm flex-1 font-display text-lg font-extrabold" />
+        <Input id="pg-name" value={page.title} onChange={(e) => onChange({ title: e.target.value })} className="h-11 max-w-sm min-w-0 flex-[1_1_12rem] font-display text-lg font-extrabold" />
         <div className="ml-auto flex flex-wrap items-center gap-2">
           <Button asChild variant="ghost" size="sm"><Link href={modeSwitch.href}>{modeSwitch.label}</Link></Button>
           <Button onClick={onSave} disabled={saving || !dirty}>

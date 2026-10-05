@@ -23,14 +23,14 @@ export function PageHeader({
         {back && (
           <Link
             href={back.href}
-            className="-ml-1 mb-2 inline-flex min-h-11 items-center gap-1.5 rounded-control px-1 text-sm font-medium text-muted-foreground hover:text-foreground md:min-h-8"
+            className="-ml-1 mb-2 inline-flex min-h-11 items-center gap-1.5 rounded-control px-1 text-sm font-medium text-muted-foreground hover:text-foreground pointer-fine:min-h-8"
           >
             <ArrowLeft className="size-4" aria-hidden />
             {back.label}
           </Link>
         )}
         {eyebrow && <p className="eyebrow mb-2">{eyebrow}</p>}
-        <h1 className="text-2xl md:text-[32px]">{title}</h1>
+        <h1 className="text-2xl md:text-[2rem]">{title}</h1>
         {description && <p className="mt-2 max-w-2xl text-muted-foreground">{description}</p>}
       </div>
       {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}

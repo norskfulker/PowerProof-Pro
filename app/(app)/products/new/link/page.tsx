@@ -82,7 +82,7 @@ export default function LinkProductPage() {
             Try one:{" "}
             {EXAMPLES.map((ex, i) => (
               <span key={ex}>
-                <button type="button" className="font-mono text-xs text-foreground underline underline-offset-4" onClick={() => { setUrl(ex); fetchIt(ex); }}>
+                <button type="button" className="inline-flex min-h-11 items-center font-mono text-xs text-foreground underline underline-offset-4" onClick={() => { setUrl(ex); fetchIt(ex); }}>
                   {new URL(ex).hostname.replace("www.", "")}
                 </button>
                 {i < EXAMPLES.length - 1 ? " · " : ""}

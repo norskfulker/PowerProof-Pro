@@ -35,7 +35,7 @@ export function ProductBuyBox({
     <div className="flex flex-col gap-5">
       <div>
         <p className="eyebrow">{kindLabel(product.kind)} · by {creatorName}</p>
-        <h1 className="mt-2 text-[32px] leading-tight md:text-[40px]">{product.title}</h1>
+        <h1 className="mt-2 text-[2rem] leading-tight md:text-[2.5rem]">{product.title}</h1>
         {rating.count > 0 ? (
           <a href="#reviews" className="mt-2 inline-flex min-h-11 items-center gap-2 text-sm hover:underline">
             <Stars value={rating.average} /> <span className="font-semibold">{rating.average.toFixed(1)}</span>
@@ -48,7 +48,7 @@ export function ProductBuyBox({
 
       <div>
         <div className="flex flex-wrap items-baseline gap-3">
-          <MoneyText value={localPrice(info.price, currency)} className="font-display text-[36px] leading-none" />
+          <MoneyText value={localPrice(info.price, currency)} className="font-display text-[2.25rem] leading-none" />
           {info.compareAt && (
             <>
               <MoneyText value={localPrice(info.compareAt, currency)} className="text-lg text-muted-foreground line-through" />

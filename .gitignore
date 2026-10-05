@@ -41,3 +41,8 @@ yarn-error.log*
 next-env.d.ts
 
 .claude/settings.local.json
+
+# test output
+/test-results/
+/playwright-report/
+/blob-report/

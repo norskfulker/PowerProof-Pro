@@ -13,7 +13,7 @@ export function BuyerStatus({ error, onRetry, kind = "page" }: { error?: string;
       <BuyerShell narrow>
         <div className="flex flex-col items-center gap-3 py-16 text-center">
           <span className="grid size-14 place-items-center rounded-full bg-muted text-muted-foreground"><SearchX className="size-6" aria-hidden /></span>
-          <h1 className="text-[28px]">We can&apos;t find that {what}.</h1>
+          <h1 className="text-[1.75rem]">We can&apos;t find that {what}.</h1>
           <p className="max-w-sm text-muted-foreground">
             {kind === "order" ? "Check the link in your receipt email, or look up your order by email." : "The link may have a typo, or the creator has taken it down."}
           </p>

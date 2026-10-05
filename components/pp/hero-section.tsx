@@ -57,7 +57,7 @@ export function HeroSection({
         </div>
         <div className="absolute inset-0 bg-primary/70" aria-hidden />
         <div className="relative mx-auto flex max-w-[1200px] flex-col items-start gap-5 px-4 py-20 md:px-6 md:py-28">
-          <h1 className="max-w-3xl text-[40px] leading-[1.05] md:text-6xl">{hero.headline}</h1>
+          <h1 className="max-w-3xl text-[2.5rem] leading-[1.05] md:text-6xl">{hero.headline}</h1>
           <p className="max-w-xl text-lg text-primary-foreground/85">{hero.subtext}</p>
           {cta}
         </div>
@@ -68,7 +68,7 @@ export function HeroSection({
   if (style === "centered") {
     return (
       <section aria-label="Introduction" className="mx-auto max-w-[1200px] px-4 pt-12 pb-6 text-center md:px-6 md:pt-20">
-        <h1 className="mx-auto max-w-3xl text-[40px] leading-[1.05] md:text-6xl">{hero.headline}</h1>
+        <h1 className="mx-auto max-w-3xl text-[2.5rem] leading-[1.05] md:text-6xl">{hero.headline}</h1>
         <p className="mx-auto mt-4 max-w-xl text-lg text-muted-foreground">{hero.subtext}</p>
         <div className="mt-7 flex justify-center">{cta}</div>
         <div className="mx-auto mt-10 grid max-w-4xl grid-cols-3 gap-3">
@@ -83,7 +83,7 @@ export function HeroSection({
   return (
     <section aria-label="Introduction" className="mx-auto grid max-w-[1200px] grid-cols-1 items-center gap-10 px-4 pt-10 pb-6 md:grid-cols-2 md:px-6 md:pt-16">
       <div className="flex flex-col items-start gap-5">
-        <h1 className="text-[40px] leading-[1.05] md:text-[56px]">{hero.headline}</h1>
+        <h1 className="text-[2.5rem] leading-[1.05] md:text-[3.5rem]">{hero.headline}</h1>
         <p className="max-w-lg text-lg text-muted-foreground">{hero.subtext}</p>
         {cta}
       </div>

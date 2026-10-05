@@ -30,15 +30,15 @@ export default function SkusPage() {
 
   const columns = useMemo<ColumnDef<Sku, unknown>[]>(
     () => [
-      { accessorKey: "code", header: "SKU", enableSorting: true, cell: ({ getValue }) => <span className="font-mono text-[13px] font-medium">{getValue() as string}</span> },
+      { accessorKey: "code", header: "SKU", enableSorting: true, cell: ({ getValue }) => <span className="font-mono text-[0.8125rem] font-medium">{getValue() as string}</span> },
       { accessorKey: "productTitle", header: "Product", cell: ({ getValue }) => (getValue() as string) ?? <span className="text-muted-foreground">Not linked</span> },
-      { accessorKey: "taxCode", header: "Tax code", cell: ({ getValue }) => <span className="font-mono text-[13px]">{getValue() as string}</span> },
+      { accessorKey: "taxCode", header: "Tax code", cell: ({ getValue }) => <span className="font-mono text-[0.8125rem]">{getValue() as string}</span> },
       {
         id: "actions",
         header: () => <span className="sr-only">Actions</span>,
         meta: { align: "right" },
         cell: ({ row }) => (
-          <span className="flex justify-end gap-1">
+          <span className="flex justify-end gap-2">
             <Button variant="ghost" size="icon-sm" aria-label={`Edit ${row.original.code}`} onClick={() => { setDraft({ ...row.original }); setError(undefined); }}><Pencil /></Button>
             <Button variant="ghost" size="icon-sm" aria-label={`Delete ${row.original.code}`} onClick={() => setToDelete(row.original)}><Trash2 /></Button>
           </span>

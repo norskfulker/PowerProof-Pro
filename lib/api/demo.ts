@@ -1,7 +1,7 @@
 import { db, getDemo, resetDb, setDemo, subscribe, type DemoSettings } from "../mock/db";
 
 /** Demo controls: lets reviewers flip between seeded/empty data and force errors. */
-export function getDemoState(): DemoSettings & { mode: "seeded" | "fresh" } {
+export function getDemoState(): DemoSettings & { mode: "seeded" | "fresh" | "stress" } {
   return { ...getDemo(), mode: db().mode };
 }
 
@@ -11,6 +11,11 @@ export function setDemoState(next: Partial<DemoSettings>) {
 
 export function loadSampleData() {
   resetDb("seeded");
+}
+
+/** QA stress data: long text, Indic scripts, 500 products and orders, 5000 reviews. */
+export function loadStressData() {
+  resetDb("stress");
 }
 
 export function startEmptyStore() {

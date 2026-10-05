@@ -20,25 +20,33 @@ export function CheckoutSummary({ order, products }: { order: Order; products: P
         {order.items.map((it, i) => {
           const p = products.find((x) => x.id === it.productId);
           return (
-            <li key={`${it.productId}-${it.kind}`} className="flex items-center gap-3 p-4">
+            <li key={`${it.productId}-${it.kind}-${it.gift ? "gift" : ""}`} className="flex items-center gap-3 p-4">
               <ProductImageView image={p?.images[0]} size="xs" className="w-16 shrink-0" />
               <span className="min-w-0 flex-1">
-                <span className="block truncate font-medium">{it.title}</span>
-                <span className="text-xs text-muted-foreground">{it.kind === "bump" ? "Add-on" : it.kind === "bundle" ? "Bundle item" : "Instant download"}</span>
+                <span className="block font-medium [overflow-wrap:anywhere]">{it.title}</span>
+                <span className="text-xs text-muted-foreground">{it.gift ? "Free gift" : it.kind === "bump" ? "Add-on" : it.kind === "bundle" ? "Bundle item" : it.kind === "deal" ? "Added from deals" : "Instant download"}</span>
               </span>
-              <MoneyText value={lines.items[i].amount} mono />
+              <span className="flex shrink-0 flex-col items-end">
+                {lines.items[i].base.amount !== lines.items[i].amount.amount && (
+                  <s className="text-xs text-muted-foreground"><MoneyText value={lines.items[i].base} mono /></s>
+                )}
+                {lines.items[i].free ? <span className="font-semibold text-success">Free</span> : <MoneyText value={lines.items[i].amount} mono />}
+              </span>
             </li>
           );
         })}
       </ul>
       <dl className="flex flex-col gap-2 border-t border-dashed border-border-strong p-4 text-sm">
         <div className="flex justify-between"><dt className="text-muted-foreground">Subtotal</dt><dd><MoneyText value={lines.subtotal} mono /></dd></div>
+        {lines.dealSaving.amount > 0 && (
+          <div className="flex justify-between text-success"><dt>Deal savings</dt><dd><MoneyText value={{ ...lines.dealSaving, amount: -lines.dealSaving.amount }} mono /></dd></div>
+        )}
         {lines.discount.amount > 0 && (
-          <div className="flex justify-between text-success"><dt>Discount{order.couponCode ? ` (${order.couponCode})` : ""}</dt><dd><MoneyText value={{ ...lines.discount, amount: -lines.discount.amount }} mono /></dd></div>
+          <div className="flex justify-between gap-3 text-success"><dt className="min-w-0 break-all">{order.couponCode ? `Coupon (${order.couponCode})` : "Discount"}</dt><dd className="shrink-0"><MoneyText value={{ ...lines.discount, amount: -lines.discount.amount }} mono /></dd></div>
         )}
         <div className="flex justify-between">
           <dt className="text-muted-foreground">{intl ? "Tax" : "GST (included)"}</dt>
-          <dd>{intl ? <span className="font-mono text-[13px]">Nil, export</span> : <MoneyText value={lines.tax} mono />}</dd>
+          <dd>{intl ? <span className="font-mono text-[0.8125rem]">Nil, export</span> : <MoneyText value={lines.tax} mono />}</dd>
         </div>
         <div className="mt-1 flex items-baseline justify-between border-t pt-3">
           <dt className="font-semibold">Total</dt>
@@ -59,7 +67,7 @@ export function CouponField({ applied, onApply, onRemove }: { applied?: string; 
     return (
       <div className="flex items-center gap-2 rounded-control border border-success/40 bg-success-soft px-3.5 py-2 text-sm" role="status">
         <Tag className="size-4 text-success" aria-hidden />
-        <span className="flex-1"><span className="font-mono font-semibold">{applied}</span> applied</span>
+        <span className="min-w-0 flex-1 [overflow-wrap:anywhere]"><span className="font-mono font-semibold break-all">{applied}</span> applied</span>
         <Button type="button" variant="ghost" size="sm" onClick={onRemove}><X aria-hidden /> Remove</Button>
       </div>
     );

@@ -20,7 +20,7 @@ export function AnnouncementBar({ announcement }: { announcement: Announcement }
           <button
             type="button"
             onClick={() => copyText(announcement.code!, `Code ${announcement.code} copied`)}
-            className="inline-flex min-h-8 items-center gap-1.5 rounded-full border border-dashed border-primary-foreground/50 px-3 font-mono text-xs tracking-wider hover:bg-primary-foreground/10"
+            className="inline-flex min-h-8 items-center gap-1.5 rounded-full border border-dashed pointer-coarse:min-h-11 border-primary-foreground/50 px-3 font-mono text-xs tracking-wider hover:bg-primary-foreground/10"
             aria-label={`Copy code ${announcement.code}`}
           >
             {announcement.code} <Copy className="size-3" aria-hidden />

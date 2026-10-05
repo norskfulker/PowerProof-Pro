@@ -29,9 +29,9 @@ export function ImageGalleryField({
           <li key={img.id} className="group relative">
             <ProductImageView image={img} size="sm" className={cn(i === 0 && "outline-2 outline-offset-2 outline-accent")} />
             {i === 0 && (
-              <span className="absolute top-2 left-2 rounded-full bg-accent px-2 py-0.5 font-mono text-[10px] font-semibold text-accent-foreground">COVER</span>
+              <span className="absolute top-2 left-2 rounded-full bg-accent px-2 py-0.5 font-mono text-[0.625rem] font-semibold text-accent-foreground">COVER</span>
             )}
-            <div className="absolute top-1.5 right-1.5 flex gap-1">
+            <div className="absolute top-1.5 right-1.5 flex gap-2">
               {i > 0 && (
                 <Button
                   type="button"

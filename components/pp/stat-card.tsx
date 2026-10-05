@@ -36,7 +36,7 @@ export function StatCard({
         <>
           <p
             className={cn(
-              "mt-2 font-display text-[28px] leading-tight font-extrabold tracking-[-0.02em] tabular",
+              "mt-2 font-display text-[clamp(1.25rem,5.5vw,1.75rem)] leading-tight font-extrabold tracking-[-0.02em] tabular",
               emphasis && "text-accent-strong"
             )}
           >

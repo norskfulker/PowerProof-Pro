@@ -14,7 +14,7 @@ import { useStorefront } from "./storefront-context";
 export function SectionHead({ title, href, linkLabel = "View all", className }: { title: string; href?: string; linkLabel?: string; className?: string }) {
   return (
     <div className={cn("mb-5 flex items-end justify-between gap-3", className)}>
-      <h2 className="text-[28px] leading-tight md:text-3xl">{title}</h2>
+      <h2 className="text-[1.75rem] leading-tight md:text-3xl">{title}</h2>
       {href && (
         <Link href={href} className="inline-flex min-h-11 shrink-0 items-center gap-1 text-sm font-semibold text-primary hover:underline">
           {linkLabel} <ArrowRight className="size-4" aria-hidden />
@@ -98,7 +98,7 @@ export function ReviewsWall() {
     <section aria-labelledby="wall-h" className="mx-auto max-w-[1200px] px-4 md:px-6">
       <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h2 id="wall-h" className="text-[28px] leading-tight md:text-3xl">What buyers say</h2>
+          <h2 id="wall-h" className="text-[1.75rem] leading-tight md:text-3xl">What buyers say</h2>
           <p className="mt-1 flex items-center gap-2 text-sm text-muted-foreground">
             <Stars value={view.rating.average} /> {view.rating.average.toFixed(1)} from {view.rating.count} verified reviews
           </p>

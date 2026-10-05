@@ -44,7 +44,7 @@ export default function OrderPage({ params }: { params: Promise<{ token: string 
         <title>Order unavailable</title>
         <div className="flex flex-col items-center gap-3 py-12 text-center">
           <span className="grid size-14 place-items-center rounded-full bg-muted"><Lock className="size-6 text-muted-foreground" aria-hidden /></span>
-          <h1 className="text-[28px]">{order.status === "refunded" ? "This order was refunded." : "This order isn't paid yet."}</h1>
+          <h1 className="text-[1.75rem]">{order.status === "refunded" ? "This order was refunded." : "This order isn't paid yet."}</h1>
           <p className="max-w-sm text-muted-foreground">{order.status === "refunded" ? "Downloads stop when the money goes back." : "Finish paying and the download unlocks straight away."}</p>
           {order.status !== "refunded" && <Button asChild><Link href={`/checkout/${order.id}`}>Finish checkout</Link></Button>}
         </div>
@@ -70,7 +70,7 @@ export default function OrderPage({ params }: { params: Promise<{ token: string 
     <BuyerShell store={store} theme={design.theme} narrow>
       <title>{`Order ${order.number} · ${store.name}`}</title>
       <p className="eyebrow">Order {order.number} · paid {formatDate(order.paidAt ?? order.createdAt)}</p>
-      <h1 className="mt-1 text-[30px] leading-tight">Your files</h1>
+      <h1 className="mt-1 text-[1.875rem] leading-tight">Your files</h1>
       <p className="mt-1 text-muted-foreground">Bookmark this page. It&apos;s private to you and works on any device.</p>
 
       <ul className="mt-6 flex flex-col gap-4">

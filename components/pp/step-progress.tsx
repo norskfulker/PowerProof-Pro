@@ -37,7 +37,7 @@ export function StepProgress({
               <span className="hidden items-center gap-1.5 text-xs font-medium sm:flex">
                 <span
                   className={cn(
-                    "grid size-5 shrink-0 place-items-center rounded-full font-mono text-[10px]",
+                    "grid size-5 shrink-0 place-items-center rounded-full font-mono text-[0.625rem]",
                     done ? "bg-primary text-primary-foreground" : active ? "bg-accent text-accent-foreground" : "bg-muted text-muted-foreground"
                   )}
                 >

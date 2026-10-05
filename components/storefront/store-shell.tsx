@@ -22,7 +22,7 @@ function Chrome({ children }: { children: React.ReactNode }) {
       {announcementOn && <AnnouncementBar announcement={design.announcement} />}
       <StoreNavbar store={store} collections={view.collections} currency={currency} onCurrency={setCurrency} />
       <main id="main" className="flex-1">{children}</main>
-      <StoreFooter store={store} socials={design.socials} showPoweredBy={design.showPoweredBy} />
+      <StoreFooter store={store} socials={design.socials} showPoweredBy={design.showPoweredBy} pages={view.extraPages} />
     </StoreThemeScope>
   );
 }

@@ -44,7 +44,7 @@ export function QuestionThread({
             <li key={a.id} className="rounded-control bg-surface-sunken px-4 py-3 text-sm">
               <p className="mb-1 flex flex-wrap items-center gap-2 font-semibold">
                 {a.author}
-                {a.role === "creator" && <span className="rounded-full bg-primary px-2 py-0.5 text-[11px] text-primary-foreground">Creator</span>}
+                {a.role === "creator" && <span className="rounded-full bg-primary px-2 py-0.5 text-[0.6875rem] text-primary-foreground">Creator</span>}
               </p>
               <p className="text-foreground/85">{a.body}</p>
             </li>

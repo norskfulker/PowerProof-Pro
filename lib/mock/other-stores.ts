@@ -4,7 +4,7 @@ import { baseCompany, type StoreScope } from "./base";
 import { TAX_CODES } from "./catalog";
 import type { ProductRow, StoreSeed } from "./catalog-stores";
 import { DAY, rng, slugify } from "./random";
-import { buildCollections, buildDesign, buildOffers, buildQuestions, buildReviews, defaultPages } from "./storefront-seed";
+import { buildCollections, buildDesign, buildOffers, buildQuestions, buildReviews, defaultPages, buildDealRules, buildVisualPages } from "./storefront-seed";
 
 const iso = (t: number) => new Date(t).toISOString();
 
@@ -61,11 +61,17 @@ export function buildOtherStore(seed: StoreSeed, now: number, seedNum: number): 
   };
   const products = productsFromRows(seed.products, seed.slug, seed.colors, now, 0, seedNum);
   const offers = buildOffers(products, now, seed.slug);
+  const dealRules = buildDealRules(products, now, seed.slug);
+  const collections = buildCollections(products, seed.collections, seed.colors);
+  const visualPages = buildVisualPages(store, products, collections, now, seed.slug === "inkwell"
+    ? [["launch", "New: The Quiet Freelancer", "quiet-freelancer", true], ["link_in_bio", "Links", "links", true], ["about", "About Inkwell", "about-inkwell", false]]
+    : [["portfolio", "Selected work", "work", true], ["sale", "Template sale", "sale", true], ["waitlist", "Free starter grid", "free-grid", false]]);
   return {
     store,
     company: { ...baseCompany(), legalName: seed.owner, city: seed.city, state: seed.city === "Pune" ? "Maharashtra" : "Karnataka", gstin: undefined, pan: undefined },
     invoice: { prefix: seed.logoText, nextNumber: 400, showGstin: false, footerNote: "Thank you for buying from an independent creator.", defaultTaxCode: "998433", pricesIncludeTax: true },
     products,
+    dealRules,
     orders: [],
     customers: [],
     taxCodes: TAX_CODES,
@@ -82,7 +88,8 @@ export function buildOtherStore(seed: StoreSeed, now: number, seedNum: number): 
       bumpProduct: products[products.length - 1],
     }),
     storePages: defaultPages(store),
-    collections: buildCollections(products, seed.collections, seed.colors),
+    collections,
+    visualPages,
     ...offers,
     reviews: buildReviews(products, now, seedNum, seed.slug, seed.colors),
     questions: buildQuestions(products, now, seed.slug === "inkwell" ? 7 : 6, seed.slug, seed.owner.split(" ")[0]),

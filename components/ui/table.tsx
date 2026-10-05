@@ -2,12 +2,15 @@
 
 import * as React from "react"
 import { cn } from "@/lib/utils"
+import { useScrollFocus } from "@/hooks/use-scroll-focus"
 
 function Table({ className, ...props }: React.ComponentProps<"table">) {
+  const ref = useScrollFocus<HTMLDivElement>("Table, scrolls sideways")
   return (
     <div
+      ref={ref}
       data-slot="table-container"
-      className="relative w-full overflow-x-auto"
+      className="relative w-full overflow-x-auto focus-visible:outline-2 focus-visible:outline-ring"
     >
       <table
         data-slot="table"
@@ -69,7 +72,7 @@ function TableHead({ className, ...props }: React.ComponentProps<"th">) {
     <th
       data-slot="table-head"
       className={cn(
-        "h-11 px-4 text-left align-middle font-mono text-[11px] font-medium tracking-[0.08em] uppercase whitespace-nowrap text-muted-foreground [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]",
+        "h-11 px-4 text-left align-middle font-mono text-[0.6875rem] font-medium tracking-[0.08em] uppercase whitespace-nowrap text-muted-foreground [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]",
         className
       )}
       {...props}

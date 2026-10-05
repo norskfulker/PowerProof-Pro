@@ -37,11 +37,11 @@ export default function ProductsPage() {
         header: "Product",
         enableSorting: true,
         cell: ({ row }) => (
-          <Link href={`/products/${row.original.id}`} className="flex items-center gap-3 font-semibold hover:underline">
+          <Link href={`/products/${row.original.id}`} className="flex min-h-11 min-w-0 items-center gap-3 font-semibold hover:underline">
             <ProductImageView image={row.original.images[0]} size="xs" className="w-14 shrink-0 rounded-[8px]" />
             <span className="flex min-w-0 flex-col">
               <span className="max-w-[280px] truncate">{row.original.title}</span>
-              <span className="font-mono text-[11px] font-normal text-muted-foreground">{row.original.sku}</span>
+              <span className="font-mono text-[0.6875rem] font-normal text-muted-foreground">{row.original.sku}</span>
             </span>
           </Link>
         ),
@@ -49,7 +49,7 @@ export default function ProductsPage() {
       { accessorKey: "kind", header: "Type", cell: ({ getValue }) => kindLabel(getValue() as Product["kind"]), filterFn: "equals" },
       { accessorKey: "status", header: "Status", cell: ({ getValue }) => <StatusPill status={getValue() as string} />, filterFn: "equals" },
       { id: "price", accessorFn: (p) => p.price.amount, header: "Price", enableSorting: true, meta: { align: "right" }, cell: ({ row }) => <MoneyText value={row.original.price} mono /> },
-      { accessorKey: "salesCount", header: "Sales", enableSorting: true, meta: { align: "right" }, cell: ({ getValue }) => <span className="font-mono text-[13px]">{getValue() as number}</span> },
+      { accessorKey: "salesCount", header: "Sales", enableSorting: true, meta: { align: "right" }, cell: ({ getValue }) => <span className="font-mono text-[0.8125rem]">{getValue() as number}</span> },
       { id: "revenue", accessorFn: (p) => p.revenue.amount, header: "Revenue", enableSorting: true, meta: { align: "right" }, cell: ({ row }) => <MoneyText value={row.original.revenue} mono /> },
       {
         id: "actions",

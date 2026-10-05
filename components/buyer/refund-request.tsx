@@ -61,7 +61,7 @@ export function RefundRequest({ order, store, onDone }: { order: Order; store: S
         </form>
         <SheetFooter>
           <Button type="submit" form="refund" disabled={pending}>{pending && <Loader2 className="animate-spin" aria-hidden />} Send request</Button>
-          <Button asChild variant="ghost"><a href={`mailto:${store.supportEmail}?subject=Order ${order.number}`}>Email {store.name} instead</a></Button>
+          <Button asChild variant="ghost" className="h-auto min-h-11 whitespace-normal"><a href={`mailto:${store.supportEmail}?subject=Order ${order.number}`}>Email {store.name} instead</a></Button>
         </SheetFooter>
       </SheetContent>
     </Sheet>

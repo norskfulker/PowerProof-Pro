@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Segmented } from "@/components/pp/segmented";
 import { Textarea } from "@/components/ui/textarea";
 import { EmptyState, ErrorState } from "@/components/pp/empty-state";
 import { PageHeader } from "@/components/pp/page-header";
@@ -30,11 +30,15 @@ const FILTERS = [
   ["imported", "Imported"],
 ] as const;
 
+/** Shown 20 at a time; a store can have thousands of reviews */
+const PAGE = 20;
+
 export default function ReviewsInboxPage() {
   const { data, loading, error, reload, setData } = useApi(getReviewsInbox, [], { live: true });
   const store = useApi(getStore, []);
   const products = useApi(() => getProducts({ status: "published" }), []);
   const [filter, setFilter] = useState<(typeof FILTERS)[number][0]>("all");
+  const [shown, setShown] = useState(PAGE);
   const [importing, setImporting] = useState(false);
   const [imp, setImp] = useState({ productId: "", author: "", rating: 5 as Review["rating"], title: "", body: "" });
   const [impError, setImpError] = useState<string>();
@@ -56,15 +60,17 @@ export default function ReviewsInboxPage() {
       ) : data && (
         <div className="flex flex-col gap-4">
           <ReviewSummary summary={ratingSummary(data)} />
-          <Tabs value={filter} onValueChange={(v) => setFilter(v as typeof filter)}>
-            <TabsList className="max-w-full overflow-x-auto">
-              {FILTERS.map(([id, label]) => <TabsTrigger key={id} value={id}>{label}</TabsTrigger>)}
-            </TabsList>
-          </Tabs>
+          <Segmented label="Filter reviews" value={filter} onChange={(f) => { setFilter(f); setShown(PAGE); }} options={FILTERS.map(([value, label]) => ({ value, label }))} />
           {list.length === 0 ? <p className="rounded-card border bg-surface py-10 text-center text-sm text-muted-foreground">Nothing here.</p> : (
             <ul className="flex flex-col gap-3">
-              {list.map((r) => <InboxReviewCard key={r.id} review={r} creatorName={store.data?.ownerName.split(" ")[0] ?? "You"} onChange={(n) => setData(data.map((x) => (x.id === n.id ? n : x)))} />)}
+              {list.slice(0, shown).map((r) => <InboxReviewCard key={r.id} review={r} creatorName={store.data?.ownerName.split(" ")[0] ?? "You"} onChange={(n) => setData(data.map((x) => (x.id === n.id ? n : x)))} />)}
             </ul>
+          )}
+          {list.length > shown && (
+            <div className="flex flex-col items-center gap-1">
+              <Button variant="secondary" onClick={() => setShown((n) => n + PAGE)}>Show more</Button>
+              <p className="text-xs text-muted-foreground">Showing {shown.toLocaleString("en-IN")} of {list.length.toLocaleString("en-IN")}</p>
+            </div>
           )}
         </div>
       )}

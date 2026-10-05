@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { Suspense, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import type { ColumnDef } from "@tanstack/react-table";
 import { MoreHorizontal } from "lucide-react";
 import { toast } from "sonner";
@@ -17,6 +18,15 @@ import { formatDate } from "@/lib/format";
 import type { AdminCreator } from "@/lib/types";
 
 export default function AdminCreatorsPage() {
+  return (
+    <Suspense>
+      <AdminCreatorsPageInner />
+    </Suspense>
+  );
+}
+
+function AdminCreatorsPageInner() {
+  const q = useSearchParams().get("q") ?? "";
   const { data, loading, error, reload, setData } = useApi(() => getCreators(), []);
   const [suspend, setSuspend] = useState<AdminCreator | null>(null);
 
@@ -32,7 +42,7 @@ export default function AdminCreatorsPage() {
       { accessorKey: "kyc", header: "KYC", filterFn: "equals", cell: ({ getValue }) => <StatusPill status={getValue() as string} /> },
       { accessorKey: "risk", header: "Risk", filterFn: "equals", cell: ({ getValue }) => <StatusPill status={getValue() as string} /> },
       { id: "gmv", accessorFn: (c) => c.gmv30d.amount, header: "GMV 30d", enableSorting: true, meta: { align: "right" }, cell: ({ row }) => <MoneyText value={row.original.gmv30d} mono /> },
-      { accessorKey: "orders30d", header: "Orders", enableSorting: true, meta: { align: "right" }, cell: ({ getValue }) => <span className="font-mono text-[13px]">{getValue() as number}</span> },
+      { accessorKey: "orders30d", header: "Orders", enableSorting: true, meta: { align: "right" }, cell: ({ getValue }) => <span className="font-mono text-[0.8125rem]">{getValue() as number}</span> },
       { id: "joined", accessorFn: (c) => c.joinedAt, header: "Joined", enableSorting: true, cell: ({ row }) => formatDate(row.original.joinedAt) },
       { id: "actions", header: () => <span className="sr-only">Actions</span>, cell: ({ row }) => (
         <DropdownMenu>
@@ -56,6 +66,8 @@ export default function AdminCreatorsPage() {
     <>
       <PageHeader title="Creators" description="Every store on the platform. Suspending hides the store and pauses payouts." />
       <DataTable
+        key={q}
+        initialSearch={q}
         label="Creators"
         columns={columns}
         data={data}

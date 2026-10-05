@@ -32,7 +32,7 @@ export function PageRenderer({
   compact?: boolean;
 }) {
   return (
-    <div className={cn("bg-surface text-foreground", compact ? "text-[13px]" : "")}>
+    <div className={cn("bg-surface text-foreground", compact ? "text-[0.8125rem]" : "")}>
       {blocks.map((b) => {
         const editable = !!onSelect;
         const Wrapper = editable ? "button" : "div";

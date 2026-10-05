@@ -47,7 +47,7 @@ function OrdersTable() {
 
   const columns = useMemo<ColumnDef<Order, unknown>[]>(
     () => [
-      { accessorKey: "number", header: "Order", cell: ({ row }) => <Link href={`/orders/${row.original.id}`} className="font-mono text-[13px] font-medium hover:underline">{row.original.number}</Link> },
+      { accessorKey: "number", header: "Order", cell: ({ row }) => <Link href={`/orders/${row.original.id}`} className="font-mono text-[0.8125rem] font-medium hover:underline">{row.original.number}</Link> },
       { id: "date", accessorFn: (o) => o.createdAt, header: "Date", enableSorting: true, cell: ({ row }) => <span title={formatDate(row.original.createdAt, { time: true })}>{timeAgo(row.original.createdAt)}</span> },
       {
         id: "buyer",

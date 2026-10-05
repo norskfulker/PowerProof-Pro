@@ -42,6 +42,16 @@ const MAP: Record<string, [string, Tone]> = {
   high: ["High", "danger"],
   due: ["Due", "warning"],
   free: ["Free", "brass"],
+  // deal paths, coupons
+  scheduled: ["Scheduled", "info"],
+  ended: ["Ended", "neutral"],
+  paused: ["Paused", "neutral"],
+  inactive: ["Off", "neutral"],
+  // reviews and questions
+  shown: ["Shown", "success"],
+  hidden: ["Hidden", "neutral"],
+  reported: ["Reported", "warning"],
+  answered: ["Answered", "success"],
 };
 
 const DOT: Record<Tone, string> = {

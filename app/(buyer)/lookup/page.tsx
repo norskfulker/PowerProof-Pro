@@ -34,7 +34,7 @@ export default function LookupPage() {
   return (
     <BuyerShell narrow>
       <title>Find my order</title>
-      <h1 className="text-[32px] leading-tight">Find my order</h1>
+      <h1 className="text-[2rem] leading-tight">Find my order</h1>
       <p className="mt-2 text-muted-foreground">Lost the email? Enter the address you paid with and your order number. We&apos;ll email you a fresh link to your files.</p>
       <Form {...form}>
         <form

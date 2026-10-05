@@ -54,9 +54,9 @@ export function TaxCodes({ codes, onChange }: { codes: TaxCode[]; onChange: (c: 
           <TableBody>
             {codes.map((c) => (
               <TableRow key={c.code}>
-                <TableCell><span className="font-mono text-[13px]">{c.kind} {c.code}</span>{c.isDefault && <StatusPill status="default" label="Default" tone="brass" className="ml-2" />}</TableCell>
+                <TableCell><span className="font-mono text-[0.8125rem]">{c.kind} {c.code}</span>{c.isDefault && <StatusPill status="default" label="Default" tone="brass" className="ml-2" />}</TableCell>
                 <TableCell className="max-w-[320px] truncate whitespace-normal">{c.description}</TableCell>
-                <TableCell className="text-right font-mono text-[13px]">{c.rate}%</TableCell>
+                <TableCell className="text-right font-mono text-[0.8125rem]">{c.rate}%</TableCell>
                 <TableCell className="text-right">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild><Button variant="ghost" size="icon-sm" aria-label={`Actions for ${c.code}`}><MoreHorizontal /></Button></DropdownMenuTrigger>

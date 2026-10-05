@@ -1,13 +1,11 @@
-import { seedAdmin } from "../mock/admin";
-import { db } from "../mock/db";
+import { adminDb } from "../mock/admin";
 import { money } from "../money";
 import type { AdminCreator, AdminPayout, Dispute, Flag, Order } from "../types";
 import { commit } from "../mock/db";
 import { call } from "./client";
 import { allScopes } from "./scope";
 
-let admin: ReturnType<typeof seedAdmin> | null = null;
-const A = () => (admin ??= seedAdmin());
+const A = adminDb;
 
 export interface PlatformStats {
   gmv30d: ReturnType<typeof money>;
@@ -50,9 +48,13 @@ export function setCreatorPlan(id: string, plan: AdminCreator["plan"]): Promise<
   });
 }
 
-/** All orders across the platform: the demo store's real orders plus nothing else, labelled. */
+/** All orders across the platform, every store, newest first, labelled with the store. */
 export function getPlatformOrders(): Promise<(Order & { storeName: string })[]> {
-  return call(() => db().orders.map((o) => ({ ...o, storeName: db().store.name })));
+  return call(() =>
+    allScopes()
+      .flatMap((sc) => sc.orders.map((o) => ({ ...o, storeName: sc.store.name })))
+      .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt))
+  );
 }
 
 export function getDisputes(): Promise<Dispute[]> {

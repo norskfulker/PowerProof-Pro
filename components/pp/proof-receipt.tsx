@@ -43,7 +43,7 @@ export function ProofReceipt({
       </div>
       <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2.5 px-5 py-4 text-sm">
         <dt className="text-muted-foreground">Order</dt>
-        <dd className="text-right font-mono text-[13px]">{order.number}</dd>
+        <dd className="text-right font-mono text-[0.8125rem]">{order.number}</dd>
         <dt className="text-muted-foreground">Item</dt>
         <dd className="text-right font-medium">{order.productTitle}</dd>
         <dt className="text-muted-foreground">Sold by</dt>
@@ -61,7 +61,7 @@ export function ProofReceipt({
         {order.invoiceNumber && (
           <>
             <dt className="text-muted-foreground">Invoice</dt>
-            <dd className="text-right font-mono text-[13px]">{order.invoiceNumber}</dd>
+            <dd className="text-right font-mono text-[0.8125rem]">{order.invoiceNumber}</dd>
           </>
         )}
       </dl>
@@ -80,7 +80,7 @@ export function ProofReceipt({
         <span className="text-right">
           <MoneyText value={order.buyerTotal} className="font-display text-2xl font-extrabold" />
           {converted && (
-            <span className="block font-mono text-[11px] text-muted-foreground">
+            <span className="block font-mono text-[0.6875rem] text-muted-foreground">
               Settled as <MoneyText value={order.total} />
             </span>
           )}

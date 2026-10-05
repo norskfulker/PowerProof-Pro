@@ -19,9 +19,9 @@ export function ReviewSummary({
       <div className="flex flex-col items-start gap-1 sm:w-40 sm:shrink-0">
         <span className="font-display text-5xl leading-none">{summary.count ? summary.average.toFixed(1) : "–"}</span>
         <Stars value={summary.average} size="md" />
-        <span className="text-sm text-muted-foreground">{summary.count} verified review{summary.count === 1 ? "" : "s"}</span>
+        <span className="text-sm text-muted-foreground">{summary.count.toLocaleString("en-IN")} verified review{summary.count === 1 ? "" : "s"}</span>
       </div>
-      <ul className="flex flex-1 flex-col gap-1.5" aria-label="Ratings breakdown">
+      <ul className="flex flex-1 flex-col gap-1.5 pointer-coarse:gap-2" aria-label="Ratings breakdown">
         {[5, 4, 3, 2, 1].map((star) => {
           const n = summary.bars[star - 1];
           const pct = summary.count ? (n / summary.count) * 100 : 0;
@@ -42,7 +42,7 @@ export function ReviewSummary({
                   onClick={() => onFilter(active === star ? undefined : star)}
                   aria-pressed={active === star}
                   aria-label={`${star} star: ${n} reviews. ${active === star ? "Clear filter" : "Show only these"}`}
-                  className={cn("flex min-h-11 w-full items-center gap-3 rounded-control px-2 hover:bg-muted md:min-h-9", active === star && "bg-primary-soft")}
+                  className={cn("flex min-h-9 w-full items-center gap-3 rounded-control px-2 hover:bg-muted pointer-coarse:min-h-11", active === star && "bg-primary-soft")}
                 >
                   {inner}
                 </button>

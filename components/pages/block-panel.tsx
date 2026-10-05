@@ -79,10 +79,10 @@ export function BlockList({
         {blocks.map((b, i) => (
           <li
             key={b.id}
-            className={cn("flex items-center gap-1 rounded-control border bg-surface pl-3", selectedId === b.id && "border-primary bg-primary-soft")}
+            className={cn("flex items-center gap-2 rounded-control border bg-surface pl-3", selectedId === b.id && "border-primary bg-primary-soft")}
           >
             <button type="button" onClick={() => onSelect(b.id)} className="min-h-11 min-w-0 flex-1 text-left" aria-current={selectedId === b.id || undefined}>
-              <span className="block font-mono text-[10px] text-muted-foreground uppercase">{BLOCK_LABEL[b.type]}</span>
+              <span className="block font-mono text-[0.625rem] text-muted-foreground uppercase">{BLOCK_LABEL[b.type]}</span>
               <span className="block truncate text-sm font-medium">{b.heading}</span>
             </button>
             <Button type="button" variant="ghost" size="icon-sm" disabled={i === 0} onClick={() => move(i, -1)} aria-label={`Move ${BLOCK_LABEL[b.type]} up`}><ArrowUp /></Button>

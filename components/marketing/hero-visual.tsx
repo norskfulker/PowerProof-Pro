@@ -7,9 +7,9 @@ export function HeroVisual() {
     <div className="relative mx-auto w-full max-w-[460px]" aria-hidden>
       <div className="rounded-dialog border bg-surface p-4 sm:p-5">
         <div className="mb-3 flex items-center gap-2">
-          <span className="grid size-7 place-items-center rounded-[8px] bg-primary font-mono text-[10px] font-semibold text-primary-foreground">AM</span>
+          <span className="grid size-7 place-items-center rounded-[8px] bg-primary font-mono text-[0.625rem] font-semibold text-primary-foreground">AM</span>
           <span className="text-sm font-semibold">Ananya Makes</span>
-          <span className="ml-auto font-mono text-[11px] text-muted-foreground">powerproof.store/ananya</span>
+          <span className="ml-auto font-mono text-[0.6875rem] text-muted-foreground">powerproof.store/ananya</span>
         </div>
         <CoverArt
           cover={{ template: "split", title: "Second Brain for Founders", subtitle: "Notion kit", bg: "#0F3D33", fg: "#F5F6F4", accent: "#C9A24F" }}
@@ -41,7 +41,7 @@ export function HeroVisual() {
       </div>
 
       <div className="absolute -bottom-6 -left-2 rounded-card border bg-foreground px-4 py-3 text-primary-foreground sm:-left-10">
-        <p className="font-mono text-[10px] tracking-[0.08em] uppercase opacity-70">You keep</p>
+        <p className="font-mono text-[0.625rem] tracking-[0.08em] uppercase opacity-70">You keep</p>
         <p className="font-display text-2xl text-accent">₹1,424.05</p>
       </div>
     </div>

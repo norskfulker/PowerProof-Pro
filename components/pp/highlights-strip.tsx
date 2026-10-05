@@ -25,13 +25,13 @@ export function HighlightsStrip({
 
   return (
     <section aria-label="Why buy here" className={cn("mx-auto max-w-[1200px] px-4 md:px-6", className)}>
-      <ul className="grid grid-cols-2 gap-px overflow-hidden rounded-card border bg-border sm:grid-cols-3 lg:grid-cols-5">
+      <ul className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,9.5rem),1fr))] gap-px overflow-hidden rounded-card border bg-border">
         {items.map((i) => (
           <li key={i.title} className="flex items-center gap-3 bg-surface p-4">
             <span className="grid size-10 shrink-0 place-items-center rounded-full bg-primary-soft text-primary">
               <i.icon className="size-5" aria-hidden />
             </span>
-            <span className="min-w-0">
+            <span className="min-w-0 [overflow-wrap:anywhere]">
               <span className="block text-sm font-semibold">{i.title}</span>
               <span className="block text-xs text-muted-foreground">{i.body}</span>
             </span>

@@ -1,4 +1,7 @@
 import { money } from "../money";
+import type { DealRule } from "../types/deals";
+import type { StorePageDoc } from "../pages/schema";
+import type { AuditEntry } from "../types/search";
 import type {
   BillingInvoice,
   Company,
@@ -47,6 +50,10 @@ export interface StoreScope {
   coupons: Coupon[];
   bundles: Bundle[];
   deals: Deal[];
+  /** Deal paths shown at checkout (Part 4B) */
+  dealRules: DealRule[];
+  /** Visual store pages built in the editor (Part 4C) */
+  visualPages: StorePageDoc[];
   reviews: Review[];
   questions: Question[];
   subscribers: string[];
@@ -55,7 +62,7 @@ export interface StoreScope {
 /** Shape of the mock database, plus the pieces shared by the seeded and the fresh store. */
 export interface Db extends StoreScope {
   version: number;
-  mode: "seeded" | "fresh";
+  mode: "seeded" | "fresh" | "stress";
   otherStores: StoreScope[];
   payouts: Payout[];
   payoutMethods: PayoutMethod[];
@@ -66,11 +73,13 @@ export interface Db extends StoreScope {
   plan: Plan;
   billing: BillingInvoice[];
   notifications: Notification[];
+  /** Founder-admin audit trail: contact reveals and destructive quick actions. Newest first. */
+  audit?: AuditEntry[];
   /** Opening balance (minor units) so seeded history adds up; new activity moves it. */
   ledger: { opening: number; since: ISODate };
 }
 
-export const DB_VERSION = 4;
+export const DB_VERSION = 7;
 /** Money settles two days after payment (T+2). */
 export const SETTLE_MS = 2 * 24 * 60 * 60 * 1000;
 
@@ -166,6 +175,8 @@ export function freshDb(now: number, store: Partial<Store>, otherStores: StoreSc
     coupons: [],
     bundles: [],
     deals: [],
+    dealRules: [],
+    visualPages: [],
     reviews: [],
     questions: [],
     subscribers: [],

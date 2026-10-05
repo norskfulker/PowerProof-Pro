@@ -7,7 +7,7 @@ import { SITE_URL } from "@/lib/format";
 import type { Store } from "@/lib/types";
 
 const tile =
-  "flex min-h-24 flex-col justify-between gap-3 rounded-card border bg-surface p-4 text-left transition-[border-color,transform] duration-150 hover:-translate-y-0.5 hover:border-border-strong";
+  "flex min-h-24 min-w-0 flex-col justify-between gap-3 rounded-card border bg-surface p-3 text-left sm:p-4 transition-[border-color,transform] duration-150 hover:-translate-y-0.5 hover:border-border-strong";
 
 export function QuickActions({ store }: { store?: Store }) {
   return (

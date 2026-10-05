@@ -6,7 +6,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
     <div className="flex min-h-dvh flex-col">
       <header className="gutter mx-auto flex h-16 w-full max-w-[1200px] items-center justify-between">
         <Logo />
-        <Link href="/" className="text-sm font-medium text-muted-foreground hover:text-foreground">
+        <Link href="/" className="inline-flex min-h-11 items-center text-sm font-medium text-muted-foreground hover:text-foreground">
           Back to site
         </Link>
       </header>

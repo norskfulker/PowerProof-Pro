@@ -23,10 +23,10 @@ export default function PolicyPage({ params }: { params: Promise<{ policy: strin
           </Link>
         ))}
       </nav>
-      <h1 className="text-[36px] leading-tight md:text-5xl">{TITLES[key]}</h1>
+      <h1 className="text-[2.25rem] leading-tight md:text-5xl">{TITLES[key]}</h1>
       <p className="mt-6 text-lg leading-relaxed whitespace-pre-line text-foreground/85">{view.pages[key]}</p>
       <p className="mt-8 text-sm text-muted-foreground">
-        Questions? Write to <a href={`mailto:${view.store.supportEmail}`} className="underline underline-offset-4">{view.store.supportEmail}</a>.
+        Questions? Write to <a href={`mailto:${view.store.supportEmail}`} className="break-all underline underline-offset-4">{view.store.supportEmail}</a>.
       </p>
     </article>
   );

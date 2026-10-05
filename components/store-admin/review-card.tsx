@@ -55,7 +55,7 @@ export function InboxReviewCard({ review, creatorName, onChange }: { review: Inb
           </div>
         </form>
       )}
-      <div className="flex flex-wrap gap-1 border-t py-2">
+      <div className="flex flex-wrap gap-2 border-t py-2">
         {!replying && (
           <Button variant="ghost" size="sm" onClick={() => setReplying(true)}><Reply aria-hidden /> {review.reply ? "Edit reply" : "Reply"}</Button>
         )}

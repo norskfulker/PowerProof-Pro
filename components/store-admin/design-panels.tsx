@@ -42,7 +42,7 @@ export function HeroEditor({ design, products, collections, onChange }: { design
       </div>
       <fieldset>
         <legend className="mb-1.5 text-sm font-medium">Images (pick 1 to 3)</legend>
-        <ul className="grid max-h-56 grid-cols-1 gap-1 overflow-y-auto rounded-control border p-1">
+        <ul className="grid max-h-56 grid-cols-1 gap-2 overflow-y-auto rounded-control border p-1">
           {live.map((p) => {
             const on = hero.imageProductIds.includes(p.id);
             return (

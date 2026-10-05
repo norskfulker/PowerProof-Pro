@@ -43,7 +43,7 @@ export function ProductBrowser({ collectionSlug, title, description }: { collect
 
   return (
     <div className="mx-auto max-w-[1200px] px-4 pt-8 md:px-6 md:pt-12">
-      <h1 className="text-[36px] leading-tight md:text-5xl">{title}</h1>
+      <h1 className="text-[2.25rem] leading-tight md:text-5xl">{title}</h1>
       {description && <p className="mt-2 max-w-2xl text-lg text-muted-foreground">{description}</p>}
       <div className="mt-6 mb-6 flex flex-col gap-2 sm:flex-row sm:items-center">
         <div className="relative w-full sm:max-w-xs">

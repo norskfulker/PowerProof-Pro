@@ -1,5 +1,5 @@
-import { money } from "./money";
-import type { Bundle, Coupon, Deal, Money, OrderItem, PriceInfo, Product, RatingSummary, Review } from "./types";
+import { money } from "../money";
+import type { Bundle, Coupon, Deal, Money, OrderItem, PriceInfo, Product, RatingSummary, Review } from "../types";
 
 export function isDealLive(d: Deal, now = Date.now()): boolean {
   return Date.parse(d.startsAt) <= now && now < Date.parse(d.endsAt);
@@ -70,8 +70,13 @@ export function includedGst(totalInr: number, countryCode: string, rate = 18): n
 }
 
 export interface CheckoutLines {
-  items: { title: string; kind: OrderItem["kind"]; amount: Money }[];
+  /** `base` is the price before deal paths; equal to `amount` when no deal touched the line */
+  items: { title: string; kind: OrderItem["kind"]; amount: Money; base: Money; free: boolean; gift: boolean }[];
+  /** Before deals and coupon */
   subtotal: Money;
+  /** Deal paths savings, gifts included */
+  dealSaving: Money;
+  /** Coupon */
   discount: Money;
   tax: Money;
   total: Money;
@@ -80,10 +85,13 @@ export interface CheckoutLines {
 /** Order lines in the buyer's currency, for checkout, receipts and the order page. */
 export function checkoutLines(order: { items: OrderItem[]; discount?: Money; buyerTotal: Money; total: Money; countryCode: string }): CheckoutLines {
   const cur = order.buyerTotal.currency;
+  // Conversion rate store currency → buyer currency, from the order's own totals
   const rate = order.total.amount ? order.buyerTotal.amount / order.total.amount : 1;
-  const items = order.items.map((i) => ({ title: i.title, kind: i.kind, amount: money(Math.round(i.price.amount * rate), cur) }));
-  const subtotal = money(items.reduce((t, i) => t + i.amount.amount, 0), cur);
-  const discount = money(subtotal.amount - order.buyerTotal.amount, cur);
+  const conv = (amount: number) => money(Math.round(amount * rate), cur);
+  const items = order.items.map((i) => ({ title: i.title, kind: i.kind, amount: conv(i.price.amount), base: conv((i.basePrice ?? i.price).amount), free: !!i.free, gift: !!i.gift }));
+  const subtotal = money(items.reduce((t, i) => t + i.base.amount, 0), cur);
+  const dealSaving = money(items.reduce((t, i) => t + i.base.amount - i.amount.amount, 0), cur);
+  const discount = money(subtotal.amount - dealSaving.amount - order.buyerTotal.amount, cur);
   const tax = money(Math.round(includedGst(order.total.amount, order.countryCode) * rate), cur);
-  return { items, subtotal, discount, tax, total: order.buyerTotal };
+  return { items, subtotal, dealSaving, discount, tax, total: order.buyerTotal };
 }

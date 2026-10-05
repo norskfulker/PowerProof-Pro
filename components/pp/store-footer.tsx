@@ -3,10 +3,10 @@ import type { SocialLinks, Store } from "@/lib/types";
 import { LogoMark } from "./logo";
 import { StoreLogo } from "./store-navbar";
 
-export function StoreFooter({ store, socials, showPoweredBy }: { store: Store; socials: SocialLinks; showPoweredBy: boolean }) {
+export function StoreFooter({ store, socials, showPoweredBy, pages = [] }: { store: Store; socials: SocialLinks; showPoweredBy: boolean; pages?: { title: string; slug: string }[] }) {
   const base = `/s/${store.slug}`;
   const cols: [string, [string, string][]][] = [
-    ["Shop", [["All products", `${base}/products`], ["About", `${base}/about`], ["FAQ", `${base}/faq`]]],
+    ["Shop", [["All products", `${base}/products`], ["About", `${base}/about`], ["FAQ", `${base}/faq`], ...pages.slice(0, 4).map((p) => [p.title, `${base}/p/${p.slug}`] as [string, string])]],
     ["Help", [["Contact", `${base}/contact`], ["Find my order", "/lookup"], ["Refund policy", `${base}/policies/refund`]]],
     ["Legal", [["Terms", `${base}/policies/terms`], ["Privacy", `${base}/policies/privacy`]]],
   ];
@@ -15,14 +15,14 @@ export function StoreFooter({ store, socials, showPoweredBy }: { store: Store; s
 
   return (
     <footer className="mt-20 border-t bg-surface">
-      <div className="mx-auto grid max-w-[1200px] grid-cols-1 gap-8 px-4 py-12 md:grid-cols-[1.4fr_repeat(3,1fr)] md:px-6">
+      <div className="mx-auto grid max-w-[1200px] grid-cols-1 gap-8 px-4 py-12 md:grid-cols-[1.4fr_repeat(3,1fr)] md:px-6 [&>*]:min-w-0">
         <div>
           <StoreLogo store={store} />
           <p className="mt-3 max-w-xs text-sm text-muted-foreground">{store.tagline}</p>
           {social.length > 0 && (
             <ul className="mt-4 flex flex-wrap gap-x-4">
               {social.map(([k, v]) => (
-                <li key={k}><a href={v} target="_blank" rel="noreferrer" className="inline-flex min-h-11 items-center text-sm font-medium hover:underline">{names[k] ?? k}</a></li>
+                <li key={k}><a href={v} target="_blank" rel="noreferrer" className="inline-flex min-h-11 min-w-11 items-center text-sm font-medium hover:underline">{names[k] ?? k}</a></li>
               ))}
             </ul>
           )}
@@ -32,7 +32,7 @@ export function StoreFooter({ store, socials, showPoweredBy }: { store: Store; s
             <p className="eyebrow mb-2">{title}</p>
             <ul>
               {links.map(([label, href]) => (
-                <li key={href}><Link href={href} className="inline-flex min-h-11 items-center text-sm text-foreground/80 hover:text-foreground hover:underline">{label}</Link></li>
+                <li key={href}><Link href={href} className="inline-flex min-h-11 min-w-11 items-center text-sm text-foreground/80 hover:text-foreground hover:underline">{label}</Link></li>
               ))}
             </ul>
           </nav>

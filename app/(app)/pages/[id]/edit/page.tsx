@@ -78,7 +78,7 @@ export default function VisualEditorPage({ params }: { params: Promise<{ id: str
         <section aria-label="Preview" className="flex flex-col overflow-hidden rounded-card border bg-surface-sunken">
           <div className="flex items-center justify-between border-b bg-surface px-4 py-2">
             <p className="eyebrow">Preview · buy button opens checkout{product ? ` for ${product.title}` : ""}</p>
-            <div className="flex gap-1" role="group" aria-label="Preview size">
+            <div className="flex gap-2" role="group" aria-label="Preview size">
               <Button size="icon-sm" variant={device === "desktop" ? "secondary" : "ghost"} aria-pressed={device === "desktop"} onClick={() => setDevice("desktop")} aria-label="Desktop preview"><Monitor /></Button>
               <Button size="icon-sm" variant={device === "mobile" ? "secondary" : "ghost"} aria-pressed={device === "mobile"} onClick={() => setDevice("mobile")} aria-label="Phone preview"><Smartphone /></Button>
             </div>

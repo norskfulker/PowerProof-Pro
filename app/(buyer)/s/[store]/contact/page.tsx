@@ -31,10 +31,10 @@ export default function StoreContactPage() {
     <div className="mx-auto grid max-w-[1000px] grid-cols-1 gap-10 px-4 pt-10 md:grid-cols-[1fr_1.3fr] md:px-6 md:pt-16">
       <title>{`Contact · ${view.store.name}`}</title>
       <div>
-        <h1 className="text-[40px] leading-tight md:text-5xl">Get in touch.</h1>
+        <h1 className="text-[2.5rem] leading-tight md:text-5xl">Get in touch.</h1>
         <p className="mt-3 text-lg text-muted-foreground">{view.pages.contactNote}</p>
         <ul className="mt-6 flex flex-col gap-3 text-sm">
-          <li><a href={`mailto:${view.store.supportEmail}`} className="inline-flex min-h-11 items-center gap-2 font-medium hover:underline"><Mail className="size-4" aria-hidden />{view.store.supportEmail}</a></li>
+          <li><a href={`mailto:${view.store.supportEmail}`} className="inline-flex min-h-11 max-w-full items-center gap-2 font-medium hover:underline"><Mail className="size-4 shrink-0" aria-hidden /><span className="min-w-0 break-all">{view.store.supportEmail}</span></a></li>
           <li>Lost your download? <Link href="/lookup" className="font-medium underline underline-offset-4">Find your order</Link>.</li>
           <li>Refunds: see the <Link href={`/s/${slug}/policies/refund`} className="font-medium underline underline-offset-4">refund policy</Link>.</li>
         </ul>

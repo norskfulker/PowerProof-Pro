@@ -103,7 +103,7 @@ Real auth and route guards, file storage and signed URLs, the gateway integratio
 - **Guest checkout requires full name, email and phone** (with a country code picker and per-country length rules). One step. Coupon at checkout only. Pay button always shows the exact total.
 - **Custom domains:** `/store/domain` shows the field disabled with Coming soon. Stores live at `/s/[store]`.
 
-## Store design ("fixed and proven, not a page builder")
+## Store design (the store home is fixed and proven; extra pages use the visual editor)
 
 - The store layout is fixed. Creators toggle 11 sections on or off and reorder them with arrows in `/store/design` (navbar and footer always on).
 - **Themes are token overrides scoped to the store root** (`lib/store-themes.ts`, `StoreThemeScope`). Six palettes, an optional accent colour (soft/strong/ink variants are derived with `color-mix`), three font pairings, three hero layouts. Because components read tokens, every store component works in every theme with no per-theme code.
@@ -133,7 +133,7 @@ Real auth and route guards, file storage and signed URLs, the gateway integratio
 - Three stores: **Ananya Makes** (`/s/ananya`, kits and presets, the logged-in creator's store), **Inkwell Ebooks** (`/s/inkwell`, ebooks, Midnight + Editorial + centered hero), **Grid & Grain Studio** (`/s/gridgrain`, design templates, Graphite + Clean + full-width hero).
 - Each store: 15 products, 6 collections, 4 coupons (one expired, to show the error), 2 bundles, 1 live 48-hour deal. 60 reviews in total (some with photos and creator replies) and 20 questions (most answered).
 - The two extra stores are public and buyable, but read-only from the creator app (which manages Ananya's store). Their orders stay on their own store.
-- The mock database version moved to 4, so old browser data is replaced with the new seed on first load.
+- The mock database version is now 7 (deal-path rules, visual pages and the audit log were added), so old browser data is replaced with the new seed on first load.
 
 ## Questions for the founder (store)
 
@@ -142,3 +142,53 @@ Real auth and route guards, file storage and signed URLs, the gateway integratio
 3. **Review request timing:** the email says 5 days after purchase. Right number?
 4. **Order bump pricing:** the add-on price is set by the creator with no floor. Should PowerProof enforce a minimum?
 5. **"Powered by PowerProof"** is shown on every store. The setting exists (`showPoweredBy`) but there's no toggle until the paid-plan rule is decided.
+
+## Global search (Part 4A)
+
+- **One index, two scopes.** `lib/api/search.ts` builds one list of searchable records. The founder admin searches every store; creators search only their own (same palette, fewer types, no masking).
+- **Patterns:** `#1042` / `PP-1042` / a bare 3 to 6 digit number is an order number; anything with `@` is an email; `+91 98…` or 7+ digits is a phone; `@slug` limits to one store (`@inkwell freelance`); `INV-` is an invoice. Everything else is matched word by word.
+- **Masking:** for admins, buyer and creator emails show as `pr••••@gmail.com` and phones as `+91 ••••••3210`. The raw values are used for matching but never leave the API. **Reveal** asks for an optional reason and writes who, when, what and why to the audit log (`/admin/audit`, newest first, last 500 kept).
+- **Quick actions:** open, copy ID, refund, hide review, suspend store. The three that change things always confirm and are logged too.
+- **Keyboard:** arrows move, Enter opens, Tab and Shift+Tab jump between groups, Ctrl+Enter moves focus to the actions bar for the highlighted result, Esc closes. Actions live in a bar under the list rather than inside each row, because buttons inside listbox options aren't accessible.
+- The platform order list (`/admin/orders`) now includes every store's orders, so links from search always land somewhere.
+
+## Deal paths (Part 4B)
+
+- **Engine:** `lib/pricing/deals.ts` is pure, with no clock or storage access. Checkout, the creator's test mode and the unit tests all call the same `evaluateDeals`.
+- **Best price, automatically.** By default the buyer gets the single rule that saves most. Rules marked *stackable* also combine with each other and with the best non-stackable rule; the engine tries each combination and keeps the cheapest valid one.
+- **Order of application:** item discounts (bundle, limited time), then item-count tiers, then spend threshold, then cheapest-free, then gifts. Spend thresholds are measured before discounts, so a discount can't knock a buyer back under the threshold.
+- **Price floors:** each product can have a floor; percentage discounts never go below it. Free mechanics (gift, cheapest free) are explicit creator choices and ignore the floor.
+- **Gifts:** once per order. If the gift is already in the cart as a paid item, that line becomes free instead of adding a second copy. Pick-a-gift rules wait for the buyer's choice; offers that would unlock one count the most valuable option.
+- **Never pre-selected.** The panel only suggests. Offers are sorted by extra saving (then lowest extra cost); three show and the rest sit behind See more. Skip is one click and can be undone.
+- **The Pay button never moves.** On desktop the panel sits beside the order in the right column; on phones the Pay button lives in a fixed bar whose height doesn't change when savings appear.
+- **Order bump** keeps its own special price and is never discounted further. **Bundles** already include their discount, so bundle orders skip deal paths. **Coupons** apply after deal paths.
+- **Stats:** a view is counted once per checkout visit for each rule offered; a use when a paid order used the rule; revenue lift is the money from items the buyer added from the panel, split across the rules applied.
+
+## Visual page editor (Part 4C)
+
+- The **store home stays a fixed, proven layout** (sections and themes). The editor is for **extra pages**: a sale, an about page, a link-in-bio, a waitlist. They publish at `/s/<store>/p/<slug>` and appear in the store footer.
+- **Data:** a page is a JSON tree validated by `lib/pages/schema.ts`. The root holds sections and heroes; sections hold content or a columns block; columns hold 2 to 4 columns. Every node has the same shape (props, style, layout, visibility, children), so moving is one operation, `moveNode(id, parentId, index)`, which is what drag and drop will call later.
+- **One renderer** (`components/page-builder/renderer.tsx`) for the editor canvas, the versions preview and the live page. It sizes itself with container queries on the page, not the window, which is how the device switch shows the real phone layout inside a desktop editor.
+- **No scripts, no HTML.** Text blocks take `**bold**`, `_italic_` and `[links](https://…)`, parsed into tokens. Links must start with `/`, `#`, `https://` or `mailto:`. YouTube or Vimeo links show a "Watch" card instead of an embedded player. Paste-HTML stays a separate sandboxed feature in Sales pages.
+- **Constraints:** colours come from the theme palettes plus a short list; spacing, widths, heights, radii and shadows come from fixed scales; fonts come from the store's theme pairing.
+- **Backgrounds:** solid, gradient, image, GIF or looping muted video, with overlay colour and strength, focal point and height. Video shows its poster on phones and for anyone who prefers reduced motion. A contrast warning appears when text may be hard to read (below 4.5:1, or a photo or video without a 35%+ overlay).
+- **Uploads** are checked before saving (images and GIFs up to 5 MB, video up to 10 MB) and kept in the browser's IndexedDB in this frontend-only build. Pages refer to them as `asset:<id>`; with a backend, the upload returns a CDN URL instead.
+- **Editing:** a zustand store per open page with an undo stack of document snapshots (100 steps; typing in one field is one step). The draft autosaves a moment after each change. Publish copies the draft to the live page and saves a version (20 kept). Discard resets the draft to what's live. Restore copies an old version into the draft, never straight to live.
+
+## Quality (Part 5)
+
+- **Touch targets follow the input device, not the screen width.** `pointer-coarse:` makes targets 44px on touch screens of any size (including tablets); mouse users keep the denser layout.
+- **Long text never widens a page.** A zero-specificity base rule lets headings, paragraphs, links and table cells wrap anywhere, because creators type titles, emails and coupon codes as one long word. The stress data checks this on every list and card.
+- **Type is in rem** with fluid heading sizes, so large system text scales everything. **Noto Sans** Devanagari, Tamil, Telugu and Kannada load only when a page contains those scripts.
+- **Scroll areas that overflow become focusable regions**, so wide tables and code can be scrolled from the keyboard; they stay out of the tab order when everything fits.
+- **Filter switches that look like tabs** (date ranges, review filters) are buttons with `aria-pressed` in a labelled group, because tabs without panels confuse screen readers.
+- **Long lists are paged:** product reviews 10 at a time and the reviews inbox 20 at a time, because a product can have thousands.
+- **Visual baselines** are recorded per platform (fonts rasterise differently), with a 0.1% tolerance. CI compares them on Windows, where they were recorded.
+
+## Questions for the founder (Part 4)
+
+1. **Who can reveal contact details?** Every admin can, with an optional reason. Should a reason be required, or should some roles need a second person to approve?
+2. **Deal paths and coupons:** a coupon currently applies on top of deal-path prices. Should some coupons be blocked when a deal path is used?
+3. **Price floors** exist in the data model, but there's no field in the product form yet. Add one there, or keep floors out of the UI for now?
+4. **Visual pages and SEO:** pages have their own title and description. Should published pages go into the store's sitemap by default?
+5. **Uploads:** 5 MB images and 10 MB videos, as specified. Video hosting gets expensive; should video backgrounds be a paid-plan feature?

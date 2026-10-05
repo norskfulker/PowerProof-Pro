@@ -2,8 +2,9 @@ import { feeBreakdown, localPrice, money } from "../money";
 import { commit, db } from "../mock/db";
 import type { StoreScope } from "../mock/base";
 import { uid } from "../mock/random";
-import { bundleTotals, checkCoupon, priceInfo } from "../pricing";
-import type { CurrencyCode, Order, OrderItem, Product, Store, StoreDesign, TrafficSource } from "../types";
+import { bundleTotals, checkCoupon, priceInfo, ratingSummary } from "../pricing";
+import { evaluateDeals, isRuleLive, type DealResult } from "../pricing/deals";
+import type { CurrencyCode, DealRule, Order, OrderItem, PriceInfo, Product, RatingSummary, Store, StoreDesign, TrafficSource } from "../types";
 import { ApiError, call, notFound } from "./client";
 import { findOrder, isPrimary, scopeBySlug } from "./scope";
 
@@ -18,8 +19,41 @@ const COUNTRY_BY_CURRENCY: Record<CurrencyCode, [string, string]> = {
   CAD: ["Canada", "CA"],
 };
 
-/** Recomputes discount, totals and fees from the order's items and coupon. */
+/** Runs deal paths over the buyer's items and adds. Bundle orders are already discounted, so they skip deals. */
+export function dealsFor(order: Order, scope: StoreScope, now = Date.now()): DealResult | undefined {
+  if (order.bundleId) return undefined;
+  const products = scope.products.filter((p) => p.status === "published");
+  const base = order.items.filter((i) => i.kind === "product" || i.kind === "bump");
+  return evaluateDeals({
+    lines: [
+      ...base.map((i) => (i.kind === "bump" ? { productId: i.productId, price: i.basePrice ?? i.price, locked: true } : { productId: i.productId })),
+      ...(order.dealAdds ?? []).map((productId) => ({ productId })),
+    ],
+    rules: scope.dealRules,
+    products: products.map((p) => ({ id: p.id, title: p.title, price: priceInfo(p, scope.deals, now).price, floor: p.priceFloor })),
+    giftChoices: order.giftChoices,
+    now,
+  });
+}
+
+/** Recomputes deal lines, discount, totals and fees from the order's items, deal adds and coupon. */
 function reprice(order: Order, scope: StoreScope) {
+  const deals = dealsFor(order, scope);
+  if (deals) {
+    const baseKinds = order.items.filter((i) => i.kind === "product" || i.kind === "bump").map((i) => i.kind);
+    order.items = deals.lines.map((l, i) => ({
+      productId: l.productId,
+      title: l.title,
+      price: l.price,
+      kind: i < baseKinds.length ? baseKinds[i] : "deal",
+      basePrice: l.price.amount !== l.basePrice.amount ? l.basePrice : undefined,
+      free: l.free || undefined,
+      gift: l.gift || undefined,
+      ruleIds: l.ruleIds.length ? l.ruleIds : undefined,
+    }));
+    order.dealRuleIds = deals.appliedRuleIds.length ? deals.appliedRuleIds : undefined;
+    order.dealSaving = deals.saving.amount ? deals.saving : undefined;
+  }
   const subtotal = order.items.reduce((t, i) => t + i.price.amount, 0);
   let discount = 0;
   if (order.couponCode) {
@@ -93,12 +127,48 @@ export function startCheckout(slug: string, what: { productId: string } | { bund
   });
 }
 
+export interface DealCardProduct extends Product {
+  info: PriceInfo;
+  rating: RatingSummary;
+}
+
+export interface CheckoutDeals {
+  /** Offers, best first. The panel shows three and a "See more". */
+  offers: DealResult["offers"];
+  pendingChoices: string[];
+  saving: Order["total"];
+  rules: DealRule[];
+  /** Every product an offer, gift picker or buyer add mentions, with buyer-facing price info */
+  products: DealCardProduct[];
+  skipped: boolean;
+}
+
 export interface CheckoutView {
   order: Order;
   store: Store;
   design: StoreDesign;
   products: Product[];
   bump?: { product: Product; price: Order["total"]; label: string };
+  deals?: CheckoutDeals;
+}
+
+function dealView(scope: StoreScope, order: Order): CheckoutDeals | undefined {
+  const now = Date.now();
+  const res = dealsFor(order, scope, now);
+  if (!res) return undefined;
+  const live = scope.dealRules.filter((r) => isRuleLive(r, now));
+  if (!live.length) return undefined;
+  const mentioned = new Set<string>([...res.offers.flatMap((o) => [...o.addProductIds, ...(o.giftOptions ?? [])]), ...(order.dealAdds ?? []), ...order.items.filter((i) => i.gift).map((i) => i.productId)]);
+  return {
+    offers: res.offers,
+    pendingChoices: res.pendingChoices,
+    saving: res.saving,
+    rules: live,
+    products: scope.products
+      .filter((p) => mentioned.has(p.id))
+      .map((p) => ({ ...p, info: priceInfo(p, scope.deals, now), rating: ratingSummary(scope.reviews.filter((r) => r.productId === p.id)) })),
+    skipped: !!order.dealsSkipped,
+  };
 }
 
 function checkoutView(scope: StoreScope, order: Order): CheckoutView {
@@ -111,6 +181,7 @@ function checkoutView(scope: StoreScope, order: Order): CheckoutView {
     design: scope.design,
     products: scope.products.filter((p) => ids.has(p.id)),
     bump: b && bumpProduct && !order.items.some((i) => i.kind !== "bump" && i.productId === bumpProduct.id) ? { product: bumpProduct, price: b.price, label: b.label } : undefined,
+    deals: order.status === "pending" ? dealView(scope, order) : undefined,
   };
 }
 
@@ -168,13 +239,16 @@ export interface PayInput {
   phone: string;
   method: Order["paymentMethod"];
   simulateFailure?: boolean;
+  /** Zero-total order (100% coupon or free product): no gateway, deliver straight away */
+  free?: boolean;
 }
 
 /** Mock payment. In production this is the gateway's checkout plus a signed webhook. */
 export function payOrder(input: PayInput): Promise<Order> {
   return call(async () => {
-    await new Promise((r) => setTimeout(r, 900));
     const { scope, order: o } = findOrder((x) => x.id === input.orderId);
+    if (input.free && o.buyerTotal.amount !== 0) throw new ApiError("This order isn't free any more. Check the total and pay to continue.", "validation");
+    if (!input.free) await new Promise((r) => setTimeout(r, 900));
     if (o.status === "paid") return o;
     if (input.simulateFailure) throw new ApiError("Your bank declined the payment. No money was taken. Try another method.", "validation");
     commit(() => {
@@ -202,6 +276,13 @@ export function payOrder(input: PayInput): Promise<Order> {
         const cp = scope.coupons.find((x) => x.code === o.couponCode);
         if (cp) cp.used += 1;
       }
+      // Deal paths stats: a use per applied rule, and the revenue from items the buyer added
+      const lift = o.items.filter((i) => i.kind === "deal" && !i.gift).reduce((t, i) => t + i.price.amount, 0);
+      for (const r of scope.dealRules) {
+        if (!o.dealRuleIds?.includes(r.id)) continue;
+        r.stats.uses += 1;
+        r.stats.revenueLift = money(r.stats.revenueLift.amount + Math.round(lift / o.dealRuleIds.length));
+      }
       for (const it of o.items) {
         const p = scope.products.find((x) => x.id === it.productId);
         if (p) {
@@ -215,4 +296,44 @@ export function payOrder(input: PayInput): Promise<Order> {
     });
     return o;
   });
+}
+
+/** Deal paths panel: add or remove a suggested product, pick a gift, or skip. Never adds anything by itself. */
+export function updateDeals(
+  orderId: string,
+  change: { add: string } | { remove: string } | { gift: { ruleId: string; productId: string } } | { skip: boolean }
+): Promise<CheckoutView> {
+  return call(() => {
+    const { scope, order } = findOrder((o) => o.id === orderId);
+    if (order.status !== "pending") throw new ApiError("This order is already paid.", "conflict");
+    if (order.bundleId) throw new ApiError("Bundles already include their discount.", "conflict");
+    commit(() => {
+      if ("add" in change) {
+        const p = scope.products.find((x) => x.id === change.add && x.status === "published") ?? notFound("Product");
+        const inOrder = order.items.some((i) => i.productId === p.id && !i.gift) || order.dealAdds?.includes(p.id);
+        if (!inOrder) order.dealAdds = [...(order.dealAdds ?? []), p.id];
+        order.dealsSkipped = false;
+      } else if ("remove" in change) {
+        order.dealAdds = (order.dealAdds ?? []).filter((id) => id !== change.remove);
+      } else if ("gift" in change) {
+        const r = scope.dealRules.find((x) => x.id === change.gift.ruleId);
+        if (!r || r.kind !== "choose_gift" || !r.giftIds.includes(change.gift.productId)) throw new ApiError("That gift isn't available.", "validation");
+        order.giftChoices = { ...order.giftChoices, [r.id]: change.gift.productId };
+      } else {
+        order.dealsSkipped = change.skip;
+      }
+      reprice(order, scope);
+    });
+    return checkoutView(scope, order);
+  }, { fast: true });
+}
+
+/** Counts a panel view for each offered rule, once per checkout visit. */
+export function trackDealViews(orderId: string, ruleIds: string[]): Promise<void> {
+  return call(() => {
+    const { scope } = findOrder((o) => o.id === orderId);
+    commit(() => {
+      for (const r of scope.dealRules) if (ruleIds.includes(r.id)) r.stats.views += 1;
+    });
+  }, { fast: true });
 }

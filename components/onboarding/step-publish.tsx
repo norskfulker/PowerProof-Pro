@@ -37,7 +37,7 @@ export function StepPublish({
         <span className="mx-auto grid size-14 place-items-center rounded-full bg-accent-soft text-accent-ink">
           <PartyPopper className="size-6" aria-hidden />
         </span>
-        <h1 className="mt-5 text-[32px]">You&apos;re open for business.</h1>
+        <h1 className="mt-5 text-[2rem]">You&apos;re open for business.</h1>
         <p className="mx-auto mt-2 max-w-sm text-muted-foreground">Share the link anywhere. The first sale tends to feel unreal; the tenth feels normal.</p>
         <div className="mx-auto mt-6 max-w-md text-left">
           <CopyField label="Your store link" value={`https://${link}`} display={link} />
@@ -96,7 +96,7 @@ export function StepPublish({
         <div className="rounded-card border p-4">
           <p className="eyebrow">Store</p>
           <p className="mt-1 font-semibold">{store.name}</p>
-          <p className="font-mono text-[13px] text-muted-foreground">{link}</p>
+          <p className="font-mono text-[0.8125rem] text-muted-foreground">{link}</p>
         </div>
         {product ? (
           <div className="flex gap-4 rounded-card border p-4">

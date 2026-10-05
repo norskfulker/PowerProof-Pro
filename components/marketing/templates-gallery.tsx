@@ -27,7 +27,7 @@ export function TemplatesGallery() {
             aria-pressed={filter === f}
             onClick={() => setFilter(f)}
             className={cn(
-              "min-h-10 shrink-0 rounded-control border px-4 text-sm font-medium whitespace-nowrap transition-colors",
+              "min-h-11 shrink-0 rounded-control border px-4 text-sm font-medium whitespace-nowrap transition-colors",
               filter === f ? "border-primary bg-primary text-primary-foreground" : "bg-surface hover:border-border-strong"
             )}
           >

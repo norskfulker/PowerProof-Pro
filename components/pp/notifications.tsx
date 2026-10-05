@@ -27,7 +27,7 @@ export function Notifications() {
         <Button variant="ghost" size="icon" aria-label={`Notifications${unread ? `, ${unread} unread` : ""}`} className="relative">
           <Bell />
           {unread > 0 && (
-            <span className="absolute top-2 right-2 grid min-w-4 place-items-center rounded-full bg-accent px-1 font-mono text-[10px] font-semibold text-accent-foreground">
+            <span className="absolute top-2 right-2 grid min-w-4 place-items-center rounded-full bg-accent px-1 font-mono text-[0.625rem] font-semibold text-accent-foreground">
               {unread}
             </span>
           )}
@@ -61,7 +61,7 @@ export function Notifications() {
                             {!n.read && <span className="size-1.5 rounded-full bg-accent" aria-label="unread" />}
                           </span>
                           <span className="block truncate text-sm text-muted-foreground">{n.body}</span>
-                          <span className="font-mono text-[11px] text-muted-foreground">{timeAgo(n.createdAt)}</span>
+                          <span className="font-mono text-[0.6875rem] text-muted-foreground">{timeAgo(n.createdAt)}</span>
                         </span>
                       </Link>
                     </li>

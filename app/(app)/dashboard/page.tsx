@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { ExternalLink, Plus, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Segmented } from "@/components/pp/segmented";
 import { ChartCard, RevenueBars, ShareBars } from "@/components/pp/chart-card";
 import { MoneyText } from "@/components/pp/money-text";
 import { PageHeader } from "@/components/pp/page-header";
@@ -88,13 +88,7 @@ export default function DashboardPage() {
           <section aria-labelledby="glance-h" className="flex flex-col gap-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <h2 id="glance-h" className="text-xl">At a glance</h2>
-              <Tabs value={range} onValueChange={(v) => setRange(v as RangeKey)}>
-                <TabsList>
-                  <TabsTrigger value="today">Today</TabsTrigger>
-                  <TabsTrigger value="7d">7 days</TabsTrigger>
-                  <TabsTrigger value="30d">30 days</TabsTrigger>
-                </TabsList>
-              </Tabs>
+              <Segmented label="Date range" value={range} onChange={setRange} options={[{ value: "today", label: "Today" }, { value: "7d", label: "7 days" }, { value: "30d", label: "30 days" }]} />
             </div>
             <Glance summary={summary.data} balance={balance.data} loading={summary.loading && !summary.data} error={summary.error} onRetry={summary.reload} />
           </section>
@@ -123,7 +117,7 @@ export default function DashboardPage() {
                     {summary.data?.topProducts.slice(0, 4).map((p, i) => (
                       <li key={p.productId} className="flex items-center gap-3 text-sm">
                         <span className="font-mono text-xs text-muted-foreground">{i + 1}</span>
-                        <Link href={`/products/${p.productId}`} className="flex min-h-11 min-w-0 flex-1 items-center truncate font-medium hover:underline md:min-h-0">
+                        <Link href={`/products/${p.productId}`} className="flex pointer-coarse:min-h-11 min-w-0 flex-1 items-center truncate font-medium hover:underline">
                           {p.title}
                         </Link>
                         <MoneyText value={p.revenue} mono />

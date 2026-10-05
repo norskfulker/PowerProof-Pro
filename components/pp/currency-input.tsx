@@ -40,6 +40,13 @@ export function CurrencyInput({
 
   return (
     <div
+      data-hit-area
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget || (e.target as HTMLElement).tagName === "SPAN") {
+          e.preventDefault();
+          (e.currentTarget.querySelector("input") as HTMLInputElement | null)?.focus();
+        }
+      }}
       className={cn(
         "flex h-11 w-full items-center rounded-control border border-input bg-surface transition-[border-color] duration-150 hover:border-foreground/50",
         "focus-within:border-primary focus-within:outline-2 focus-within:outline-primary",
@@ -77,7 +84,7 @@ export function CurrencyInput({
           if (!Number.isNaN(n)) onChange({ amount: Math.round(n * 100), currency });
         }}
       />
-      <span className="pr-3.5 font-mono text-[11px] text-muted-foreground">{currency}</span>
+      <span className="pr-3.5 font-mono text-[0.6875rem] text-muted-foreground">{currency}</span>
     </div>
   );
 }

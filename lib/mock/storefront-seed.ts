@@ -1,7 +1,9 @@
 import { fromMajor } from "../money";
 import { DEFAULT_SECTIONS } from "../store-themes";
-import type { Bundle, Collection, Coupon, Deal, FontPairId, HeroStyle, PaletteId, Product, Question, Review, Store, StoreDesign, StorePages } from "../types";
+import type { Bundle, Collection, Coupon, Deal, DealRule, FontPairId, HeroStyle, PaletteId, Product, Question, Review, Store, StoreDesign, StorePages } from "../types";
 import { DAY, rng, slugify } from "./random";
+import type { StorePageDoc } from "../pages/schema";
+import { templateById, type TemplateContext } from "../pages/templates";
 
 const iso = (t: number) => new Date(t).toISOString();
 
@@ -148,6 +150,73 @@ export function buildQuestions(products: Product[], now: number, count: number, 
       answers: i === count - 1 ? [] : [{ id: `an_${key}_${i}`, author: role === "creator" ? ownerFirst : "Verified buyer", role, body: answer, createdAt: iso(now - (i * 3 + 1) * DAY) }],
       hidden: false,
       reported: false,
+    };
+  });
+}
+
+/**
+ * Deal paths (Part 4B): two rules per demo store, six in all, covering most rule types.
+ * Built from each store's own published products so the ids always exist.
+ */
+export function buildDealRules(products: Product[], now: number, key: string): DealRule[] {
+  const live = products.filter((p) => p.status === "published");
+  const at = (i: number) => live[Math.min(i, live.length - 1)].id;
+  /** Cheapest products not already used by the store's other rule: sensible gifts */
+  const cheap = (n: number, skip: string[]) => [...live].filter((p) => !skip.includes(p.id)).sort((x, y) => x.price.amount - y.price.amount).slice(0, n).map((p) => p.id);
+  const iso = (t: number) => new Date(t).toISOString();
+  const base = (id: string, name: string, daysOld: number, stats: [number, number, number]) => ({
+    id: `dr_${key}_${id}`,
+    name,
+    active: true,
+    stackable: false,
+    createdAt: iso(now - daysOld * DAY),
+    stats: { views: stats[0], uses: stats[1], revenueLift: fromMajor(stats[2]) },
+  });
+  if (key === "ananya") {
+    return [
+      { ...base("pair", "Second Brain + Pricing Playbook", 21, [1840, 212, 63480]), kind: "bundle_discount", productIds: [at(0), at(2)], percent: 25 },
+      { ...base("gift", "Pick a free gift over ₹1,500", 9, [960, 88, 21120]), kind: "choose_gift", triggerIds: [], minSpend: fromMajor(1500), giftIds: cheap(2, [at(0), at(2)]), stackable: true },
+    ];
+  }
+  if (key === "inkwell") {
+    return [
+      { ...base("tiers", "Ebook ladder", 30, [2210, 301, 48160]), kind: "tiers", productIds: [], tiers: [{ minItems: 2, percent: 10 }, { minItems: 3, percent: 20 }] },
+      { ...base("spend", "Spend ₹999, save 15%", 4, [410, 37, 6290]), kind: "spend_threshold", minSpend: fromMajor(999), percent: 15, endsAt: iso(now + 5 * DAY) },
+    ];
+  }
+  return [
+    { ...base("b3", "Buy 3, cheapest free", 14, [1320, 140, 39900]), kind: "buy_x_get_cheapest", productIds: [], buy: 3 },
+    { ...base("bonus", "Free bonus with any kit", 40, [3020, 260, 0]), kind: "free_gift", triggerIds: [at(0), at(1)], giftId: cheap(1, [at(0), at(1)])[0], stackable: true },
+  ];
+}
+
+/** Visual store pages (Part 4C): three per store, built from the shared templates. */
+export function buildVisualPages(store: Store, products: Product[], collections: Collection[], now: number, plan: [templateId: string, title: string, slug: string, published: boolean][]): StorePageDoc[] {
+  const live = products.filter((p) => p.status === "published");
+  const ctx: TemplateContext = {
+    storeName: store.name,
+    ownerName: store.ownerName,
+    slug: store.slug,
+    products: live.map((p) => ({ id: p.id, title: p.title })),
+    collections: collections.map((c) => ({ slug: c.slug, name: c.name })),
+    brand: store.brandColor,
+    accent: "#C9A24F",
+    now,
+  };
+  return plan.map(([templateId, title, slug, published], i) => {
+    const docv = templateById(templateId).build(ctx);
+    const at = new Date(now - (12 - i * 3) * DAY).toISOString();
+    return {
+      id: `vp_${store.slug}_${slug}`,
+      title,
+      slug,
+      template: templateId,
+      draft: docv,
+      published: published ? docv : undefined,
+      publishedAt: published ? at : undefined,
+      updatedAt: at,
+      seo: { title: `${title} · ${store.name}`, description: store.tagline },
+      versions: published ? [{ id: `pv_${store.slug}_${slug}_1`, at, label: "Published", doc: docv }] : [],
     };
   });
 }

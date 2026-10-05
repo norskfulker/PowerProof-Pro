@@ -67,7 +67,7 @@ export default function HtmlEditorPage({ params }: { params: Promise<{ id: strin
         <section aria-labelledby="ids-h" className="rounded-card border bg-surface p-5 md:p-6">
           <h2 id="ids-h" className="font-sans text-base font-semibold tracking-normal">Your product IDs</h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            Add <code className="rounded bg-muted px-1 font-mono text-[13px]">data-pp-buy=&quot;ID&quot;</code> to any button or link. It opens checkout for that product.
+            Add <code className="rounded bg-muted px-1 font-mono text-[0.8125rem]">data-pp-buy=&quot;ID&quot;</code> to any button or link. It opens checkout for that product.
           </p>
           <ul className="mt-4 divide-y rounded-control border">
             {products.data?.map((p) => (
@@ -92,7 +92,7 @@ export default function HtmlEditorPage({ params }: { params: Promise<{ id: strin
         <section aria-labelledby="embed-h" className="flex flex-col gap-4 rounded-card border bg-surface p-5 md:p-6">
           <h2 id="embed-h" className="font-sans text-base font-semibold tracking-normal">Use it on your own website</h2>
           <p className="text-sm text-muted-foreground">
-            Paste this once before the closing body tag on any site (WordPress, Webflow, Notion sites, plain HTML). Every <span className="font-mono text-[13px]">data-pp-buy</span> button on that site starts checkout.
+            Paste this once before the closing body tag on any site (WordPress, Webflow, Notion sites, plain HTML). Every <span className="font-mono text-[0.8125rem]">data-pp-buy</span> button on that site starts checkout.
           </p>
           <CopyField label="Embed code" value={embed} multiline toastText="Embed code copied" />
           <CopyField label="Example button" value={`<button data-pp-buy="${products.data?.[0]?.id ?? "PRODUCT_ID"}">Buy now</button>`} multiline toastText="Button copied" />

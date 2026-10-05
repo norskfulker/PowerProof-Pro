@@ -11,7 +11,7 @@ export default function EmailsLayout({ children }: { children: React.ReactNode }
         <div className="gutter mx-auto flex h-16 max-w-[1200px] items-center gap-3">
           <Logo href="/dashboard" />
           <span className="eyebrow">Email previews</span>
-          <Link href="/emails" className="ml-auto text-sm font-medium hover:underline">All emails</Link>
+          <Link href="/emails" className="ml-auto inline-flex min-h-11 items-center text-sm font-medium hover:underline">All emails</Link>
         </div>
       </header>
       <main id="main" className="gutter mx-auto max-w-[1200px] py-8">{children}</main>

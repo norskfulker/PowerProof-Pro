@@ -38,7 +38,7 @@ export function FeeBreakdown({
           <dt className="font-semibold">You keep</dt>
           <dd className="text-right">
             <MoneyText value={f.keep} className="font-display text-2xl font-extrabold text-accent-strong" />
-            <span className="block font-mono text-[11px] text-muted-foreground">{f.keepPct.toFixed(1)}% of each sale</span>
+            <span className="block font-mono text-[0.6875rem] text-muted-foreground">{f.keepPct.toFixed(1)}% of each sale</span>
           </dd>
         </div>
       </dl>

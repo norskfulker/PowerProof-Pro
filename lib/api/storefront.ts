@@ -46,6 +46,8 @@ export interface StorefrontView {
   rating: RatingSummary;
   totalSales: number;
   topReviews: (Review & { productTitle: string; productSlug: string })[];
+  /** Published visual pages, for the footer */
+  extraPages: { title: string; slug: string }[];
 }
 
 function view(scope: StoreScope, now = Date.now()): StorefrontView {
@@ -61,6 +63,7 @@ function view(scope: StoreScope, now = Date.now()): StorefrontView {
     store: scope.store,
     design: scope.design,
     pages: scope.storePages,
+    extraPages: scope.visualPages.filter((p) => p.published).map((p) => ({ title: p.title, slug: p.slug })),
     products,
     collections: scope.collections
       .map((c) => ({ ...c, productIds: c.productIds.filter((id) => byId.has(id)) }))

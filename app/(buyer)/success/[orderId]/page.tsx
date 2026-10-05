@@ -24,7 +24,7 @@ export default function SuccessPage({ params }: { params: Promise<{ orderId: str
       <BuyerShell store={store} theme={design.theme} narrow>
         <title>Payment not finished</title>
         <div className="flex flex-col items-center gap-3 py-12 text-center">
-          <h1 className="text-[28px]">This order isn&apos;t paid yet.</h1>
+          <h1 className="text-[1.75rem]">This order isn&apos;t paid yet.</h1>
           <p className="text-muted-foreground">No money has been taken. Go back to checkout to finish.</p>
           <Button asChild className="mt-2"><Link href={`/checkout/${order.id}`}>Back to checkout</Link></Button>
         </div>
@@ -40,7 +40,7 @@ export default function SuccessPage({ params }: { params: Promise<{ orderId: str
         <span className="grid size-14 place-items-center rounded-full bg-success-soft text-success">
           <Check className="size-7" strokeWidth={2.5} aria-hidden />
         </span>
-        <h1 className="text-[32px] leading-tight">Payment received.</h1>
+        <h1 className="text-[2rem] leading-tight">Payment received.</h1>
         <p className="max-w-sm text-muted-foreground">
           Thanks{order.buyerName ? `, ${order.buyerName.split(" ")[0]}` : ""}. Order <span className="font-mono font-semibold text-foreground">{order.number}</span> is ready.
         </p>

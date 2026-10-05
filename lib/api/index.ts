@@ -15,3 +15,6 @@ export * from "./analytics";
 export * from "./store";
 export * from "./admin";
 export * from "./demo";
+export * from "./search";
+export * from "./deal-rules";
+export * from "./visual-pages";

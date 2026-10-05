@@ -39,6 +39,8 @@ export interface Product {
   kind: ProductKind;
   price: Money;
   compareAt?: Money;
+  /** Lowest price deal paths may discount this product to. None = no floor. */
+  priceFloor?: Money;
   images: ProductImage[];
   files: ProductFile[];
   sku: string;

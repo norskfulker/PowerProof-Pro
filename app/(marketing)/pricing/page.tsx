@@ -31,7 +31,7 @@ export default function PricingPage() {
     <>
       <section className="gutter mx-auto max-w-[1200px] pt-12 md:pt-16">
         <p className="eyebrow">Pricing</p>
-        <h1 className="mt-3 max-w-3xl text-[40px] sm:text-5xl">One plan. You&apos;ll know what you keep before you sell.</h1>
+        <h1 className="mt-3 max-w-3xl text-[2.5rem] sm:text-5xl">One plan. You&apos;ll know what you keep before you sell.</h1>
       </section>
 
       <section className="gutter mx-auto mt-10 grid grid-cols-1 max-w-[1200px] gap-6 lg:grid-cols-[380px_minmax(0,1fr)]" aria-label="Plan">

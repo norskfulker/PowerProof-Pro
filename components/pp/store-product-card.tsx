@@ -39,11 +39,11 @@ export function StoreProductCard({
         <ProductImageView image={product.images[0]} />
         <span className="absolute top-2 left-2 flex flex-wrap gap-1">
           {info.dealEndsAt && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-accent px-2 py-0.5 text-[11px] font-semibold text-accent-foreground">
+            <span className="inline-flex items-center gap-1 rounded-full bg-accent px-2 py-0.5 text-[0.6875rem] font-semibold text-accent-foreground">
               <Timer className="size-3" /> Deal
             </span>
           )}
-          {info.percentOff ? <span className="rounded-full bg-surface px-2 py-0.5 text-[11px] font-semibold text-danger">−{info.percentOff}%</span> : null}
+          {info.percentOff ? <span className="rounded-full bg-surface px-2 py-0.5 text-[0.6875rem] font-semibold text-danger">−{info.percentOff}%</span> : null}
         </span>
       </Link>
       <div className="flex flex-1 flex-col gap-1.5 px-1 pt-3">

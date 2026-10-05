@@ -98,7 +98,7 @@ export default function LoginPage() {
                 <FormItem>
                   <div className="flex items-center justify-between">
                     <FormLabel>Password</FormLabel>
-                    <Link href="/forgot-password" className="text-sm font-medium text-primary underline-offset-4 hover:underline">
+                    <Link href="/forgot-password" className="inline-flex min-h-11 items-center text-sm font-medium text-primary underline-offset-4 hover:underline">
                       Forgot it?
                     </Link>
                   </div>

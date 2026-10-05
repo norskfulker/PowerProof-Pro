@@ -48,8 +48,8 @@ export function StorePreview({ slug, design }: { slug: string; design: StoreDesi
     <section aria-label="Live preview" className="flex flex-col overflow-hidden rounded-card border bg-surface-sunken">
       <div className="flex items-center justify-between gap-2 border-b bg-surface px-3 py-2">
         <p className="eyebrow pl-1">Live preview{ready ? "" : " · loading"}</p>
-        <div className="flex items-center gap-1">
-          <div role="group" aria-label="Preview size" className="flex gap-1">
+        <div className="flex items-center gap-2">
+          <div role="group" aria-label="Preview size" className="flex gap-2">
             <Button size="icon-sm" variant={device === "desktop" ? "secondary" : "ghost"} aria-pressed={device === "desktop"} onClick={() => { setReady(false); setDevice("desktop"); }} aria-label="Desktop preview"><Monitor /></Button>
             <Button size="icon-sm" variant={device === "mobile" ? "secondary" : "ghost"} aria-pressed={device === "mobile"} onClick={() => { setReady(false); setDevice("mobile"); }} aria-label="Phone preview"><Smartphone /></Button>
           </div>

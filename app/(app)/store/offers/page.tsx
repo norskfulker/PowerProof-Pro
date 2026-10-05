@@ -1,7 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
-import { Layers, Loader2, Plus, Ticket, Timer, Trash2 } from "lucide-react";
+import { Layers, Loader2, Plus, Sparkles, Ticket, Timer, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -72,7 +73,17 @@ export default function OffersPage() {
 
   return (
     <>
-      <PageHeader title="Offers" description="Coupons, bundles and limited-time deals. A live offer adds a banner to your store home on its own." />
+      <PageHeader
+        title="Offers"
+        description="Coupons, bundles and limited-time deals. A live offer adds a banner to your store home on its own."
+        actions={
+          <Button asChild variant="secondary">
+            <Link href="/store/offers/deal-paths">
+              <Sparkles aria-hidden /> Deal paths at checkout
+            </Link>
+          </Button>
+        }
+      />
       {error ? <ErrorState message={error} onRetry={reload} /> : loading && !data ? <Skeleton className="h-96 rounded-card" /> : data && (
         <Tabs defaultValue="coupons">
           <TabsList>
