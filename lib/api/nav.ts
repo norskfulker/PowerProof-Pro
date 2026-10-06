@@ -2,6 +2,9 @@ import type { BadgeKey } from "../nav/config";
 import { db } from "../mock/db";
 import { adminDb } from "../mock/admin";
 import { call } from "./client";
+import { isLive } from "../supabase/env";
+import * as live from "./live/catalog";
+import { activeStoreId } from "./live/session";
 
 export interface NavCounts {
   storeId: string;
@@ -13,6 +16,7 @@ const OPEN = new Set(["open", "under_review"]);
 
 /** Live numbers and collections for the menu (Part 7C). Store-scoped counts follow the active store. */
 export function getNavCounts(area: "creator" | "admin"): Promise<NavCounts> {
+  if (isLive() && area === "creator") return live.getNavCounts();
   return call(() => {
     if (area === "admin") {
       return { storeId: "", counts: { disputes_open: adminDb().disputes.filter((d) => OPEN.has(d.status)).length }, collections: [] };
@@ -39,5 +43,6 @@ export function getNavCounts(area: "creator" | "admin"): Promise<NavCounts> {
 
 /** The store the switcher has chosen; store-scoped links use it. */
 export function getActiveStoreId(): Promise<string> {
+  if (isLive()) return activeStoreId();
   return call(() => db().store.id, { fast: true });
 }

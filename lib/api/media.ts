@@ -4,6 +4,8 @@ import { uid } from "../mock/random";
 import type { MediaItem } from "../types";
 import { ApiError, call, notFound } from "./client";
 import { ownedScopes } from "./scope";
+import { isLive } from "../supabase/env";
+import { removeFromStorage, storagePathOf, uploadToStorage } from "./live/upload";
 
 /**
  * Media library (Part 6A). Uploads are mocked: progress is simulated and the file stays in this
@@ -33,6 +35,14 @@ export async function uploadMedia(file: File, opts: UploadOptions): Promise<Medi
   const problem = checkMedia(file, opts.kinds);
   if (problem) throw new ApiError(problem, "validation");
   const kind = mediaKindOf(file.type)!;
+  if (isLive()) {
+    // Live: the file goes to the store's public media folder; the library list stays in this browser
+    const { publicUrl } = await uploadToStorage("store-media", "media", file, { onProgress: opts.onProgress, signal: opts.signal });
+    const size = await measureMedia(file, kind);
+    const item: MediaItem = { id: uid("med"), name: file.name.replace(/\.[^.]+$/, "") || "Untitled", kind, mime: file.type, size: file.size, ...size, src: publicUrl!, alt: opts.alt ?? "", source: "upload", createdAt: new Date().toISOString() };
+    commit((d) => d.media.unshift(item));
+    return item;
+  }
   // Simulated upload: roughly 1 second per 4 MB, at least half a second
   const steps = 10;
   const total = Math.max(500, Math.min(2500, (file.size / (4 * 1024 * 1024)) * 1000));
@@ -67,7 +77,7 @@ export async function uploadMedia(file: File, opts: UploadOptions): Promise<Medi
 /** Saves an AI image (or any generated blob) to the library. */
 export async function saveGeneratedMedia(blob: Blob, meta: { name: string; prompt: string; width: number; height: number; alt?: string }): Promise<MediaItem> {
   const file = new File([blob], `${meta.name}.png`, { type: "image/png" });
-  const src = await putAsset(file);
+  const src = isLive() ? (await uploadToStorage("store-media", "ai", file)).publicUrl! : await putAsset(file);
   const item: MediaItem = { id: uid("med"), name: meta.name, kind: "image", mime: "image/png", size: blob.size, width: meta.width, height: meta.height, src, alt: meta.alt ?? meta.prompt.slice(0, 120), source: "ai", createdAt: new Date().toISOString(), prompt: meta.prompt };
   commit((d) => d.media.unshift(item));
   return item;
@@ -130,6 +140,8 @@ export function deleteMedia(id: string): Promise<void> {
   return call(async () => {
     const m = db().media.find((x) => x.id === id) ?? notFound("File");
     commit((d) => (d.media = d.media.filter((x) => x.id !== id)));
-    await deleteAsset(m.src);
+    const path = isLive() ? storagePathOf(m.src) : null;
+    if (path) await removeFromStorage("store-media", [path]);
+    else await deleteAsset(m.src);
   });
 }

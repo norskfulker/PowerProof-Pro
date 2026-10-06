@@ -4,6 +4,9 @@ import { uid } from "../mock/random";
 import { SETTLE_MS, type Db } from "../mock/seed";
 import type { Balance, Money, Payout, PayoutMethod } from "../types";
 import { ApiError, call, notFound } from "./client";
+import { isLive } from "../supabase/env";
+import { liveChange } from "./live/notify";
+import * as live from "./live/money";
 
 export const MIN_WITHDRAWAL = 100_00; // ₹100.00
 
@@ -34,18 +37,22 @@ export function computeBalance(d: Db, now = Date.now()): Balance {
 }
 
 export function getBalance(): Promise<Balance> {
+  if (isLive()) return live.getBalance();
   return call(() => computeBalance(db()));
 }
 
 export function getPayouts(): Promise<Payout[]> {
+  if (isLive()) return live.getPayouts();
   return call(() => [...db().payouts].sort((a, b) => b.createdAt.localeCompare(a.createdAt)));
 }
 
 export function getPayout(id: string): Promise<Payout> {
+  if (isLive()) return live.getPayout(id);
   return call(() => db().payouts.find((p) => p.id === id) ?? notFound("Payout"));
 }
 
 export function getPayoutMethods(): Promise<PayoutMethod[]> {
+  if (isLive()) return live.getPayoutMethods().then((m) => [...m, usdtPlaceholder()]);
   return call(() => db().payoutMethods);
 }
 
@@ -56,6 +63,7 @@ export interface BankInput {
 }
 
 export function addBankAccount(input: BankInput): Promise<PayoutMethod> {
+  if (isLive()) return liveChange(live.addBankAccount(input));
   return call(() => {
     const method: PayoutMethod = {
       id: uid("pm"),
@@ -87,6 +95,7 @@ function bankFromIfsc(ifsc: string): string {
 }
 
 export function requestPayout(amount: Money, methodId: string): Promise<Payout> {
+  if (isLive()) return liveChange(live.requestPayout(amount, methodId));
   return call(() => {
     const d = db();
     const method = d.payoutMethods.find((m) => m.id === methodId) ?? notFound("Payout method");

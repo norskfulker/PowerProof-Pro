@@ -4,8 +4,11 @@ import { baseStore, basePlan, freshScope, type StoreScope } from "../mock/base";
 import { slugify } from "../mock/random";
 import { PLAN_LIMITS, PRO_TRIAL_DAYS, withinLimit, type PlanLimits, type PlanTier } from "../plans";
 import type { AboutContent, Plan, Store, StorePageKey, StorePages } from "../types";
-import { ApiError, call, notFound } from "./client";
+import { ApiError, call, LimitError, notFound } from "./client";
 import { allScopes, ownedScopes } from "./scope";
+import { isLive } from "../supabase/env";
+import { liveChange } from "./live/notify";
+import * as live from "./live/store";
 
 /**
  * Account-level API (Part 6C and 6D): the creator's plan and limits, their stores, and each
@@ -25,6 +28,7 @@ function usage() {
 }
 
 export function getPlanState(): Promise<PlanState> {
+  if (isLive()) return live.getPlanState();
   return call(() => {
     const plan = db().plan;
     const tier = plan.tier ?? "pro";
@@ -32,15 +36,7 @@ export function getPlanState(): Promise<PlanState> {
   }, { fast: true });
 }
 
-/** Thrown when a Free creator hits a limit; the UI opens the Upgrade dialog on `code: "limit"`. */
-export class LimitError extends ApiError {
-  constructor(
-    public kind: "stores" | "products" | "aiCredits" | "customDomain",
-    message: string
-  ) {
-    super(message, "limit");
-  }
-}
+export { LimitError } from "./client";
 
 /** Checks a limit before creating something. Every create path calls this. */
 export function assertWithinLimit(kind: "stores" | "products") {
@@ -51,11 +47,13 @@ export function assertWithinLimit(kind: "stores" | "products") {
 }
 
 export function canCreate(kind: "stores" | "products"): Promise<boolean> {
+  if (isLive()) return live.canCreate(kind);
   return call(() => withinLimit(db().plan.tier ?? "pro", kind, usage()[kind]), { fast: true });
 }
 
 /** Upgrade starts Pro with the first month free. Downgrade is for testing (dev toggle on /design). */
 export function setPlanTier(tier: PlanTier): Promise<PlanState> {
+  if (isLive()) return liveChange(live.setPlanTier(tier));
   return call(() => {
     commit((d) => {
       const now = Date.now();
@@ -81,6 +79,7 @@ export interface OwnedStore {
 }
 
 export function getOwnedStores(): Promise<OwnedStore[]> {
+  if (isLive()) return live.getOwnedStores();
   return call(() =>
     ownedScopes().map((s, i) => ({ id: s.store.id, name: s.store.name, slug: s.store.slug, logoText: s.store.logoText, brandColor: s.store.brandColor, active: i === 0, products: s.products.length }))
   , { fast: true });
@@ -90,6 +89,7 @@ const SCOPE_KEYS: (keyof StoreScope)[] = ["store", "company", "invoice", "produc
 
 /** Makes another of the creator's stores the active one. */
 export function switchStore(storeId: string): Promise<Store> {
+  if (isLive()) return liveChange(live.switchStore(storeId));
   return call(() => {
     const d = db();
     if (d.store.id === storeId) return d.store;
@@ -106,6 +106,7 @@ export function switchStore(storeId: string): Promise<Store> {
 }
 
 export function createOwnedStore(input: { name: string; slug?: string }): Promise<Store> {
+  if (isLive()) return liveChange(live.createOwnedStore(input));
   return call(() => {
     assertWithinLimit("stores");
     const name = input.name.trim();
@@ -147,6 +148,7 @@ export interface StoreInfo {
 }
 
 export function getStoreInfo(storeId: string): Promise<StoreInfo> {
+  if (isLive()) return live.getStoreInfo(storeId);
   return call(() => {
     const s = ownedScope(storeId);
     return { store: s.store, about: s.design.about, pages: s.storePages };
@@ -159,6 +161,7 @@ export type StorePageUpdate =
   | { key: "refund" | "terms" | "privacy"; text: string };
 
 export function updateStorePage(storeId: string, change: StorePageUpdate): Promise<StoreInfo> {
+  if (isLive()) return liveChange(live.updateStorePage(storeId, change));
   return call(() => {
     const s = ownedScope(storeId);
     if (change.key === "faq" && change.faq.some((f) => !f.q.trim() || !f.a.trim())) throw new ApiError("Every question needs an answer, and every answer a question.", "validation");

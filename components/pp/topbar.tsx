@@ -28,6 +28,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useApi } from "@/hooks/use-api";
+import { isLive } from "@/lib/supabase/env";
 import { createOwnedStore, getDemoState, getOwnedStores, getStore, loadSampleData, loadStressData, logout, setDemoState, startEmptyStore, switchStore } from "@/lib/api";
 import { initials } from "@/lib/format";
 import { GlobalSearch } from "@/components/search/global-search";
@@ -185,51 +186,54 @@ function AccountMenu() {
             <ThemeRadioItems />
           </DropdownMenuSubContent>
         </DropdownMenuSub>
-        <DropdownMenuSub>
-          <DropdownMenuSubTrigger>
-            <FlaskConical aria-hidden /> Demo data
-          </DropdownMenuSubTrigger>
-          <DropdownMenuSubContent className="w-60">
-            <DropdownMenuLabel className="eyebrow">Currently: {demo?.mode === "fresh" ? "empty store" : demo?.mode === "stress" ? "stress data" : "sample data"}</DropdownMenuLabel>
-            <DropdownMenuItem
-              onSelect={() => {
-                loadSampleData();
-                toast.success("Sample data loaded");
-                router.refresh();
-              }}
-            >
-              Load sample data
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onSelect={() => {
-                startEmptyStore();
-                toast.success("Store emptied", { description: "See every empty state." });
-              }}
-            >
-              Start with an empty store
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onSelect={() => {
-                loadStressData();
-                toast.success("Stress data loaded", { description: "Long names, 500 products, 5000 reviews." });
-                router.refresh();
-              }}
-            >
-              Load stress data
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuCheckboxItem
-              checked={demo?.fail ?? false}
-              onCheckedChange={(v) => {
-                setDemoState({ fail: !!v });
-                setDemo(getDemoState());
-                toast(v ? "Errors on. Reload a page to see error states." : "Errors off.");
-              }}
-            >
-              Simulate errors
-            </DropdownMenuCheckboxItem>
-          </DropdownMenuSubContent>
-        </DropdownMenuSub>
+        {/* Demo data only exists on the mock backend */}
+        {!isLive() && (
+          <DropdownMenuSub>
+            <DropdownMenuSubTrigger>
+              <FlaskConical aria-hidden /> Demo data
+            </DropdownMenuSubTrigger>
+            <DropdownMenuSubContent className="w-60">
+              <DropdownMenuLabel className="eyebrow">Currently: {demo?.mode === "fresh" ? "empty store" : demo?.mode === "stress" ? "stress data" : "sample data"}</DropdownMenuLabel>
+              <DropdownMenuItem
+                onSelect={() => {
+                  loadSampleData();
+                  toast.success("Sample data loaded");
+                  router.refresh();
+                }}
+              >
+                Load sample data
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onSelect={() => {
+                  startEmptyStore();
+                  toast.success("Store emptied", { description: "See every empty state." });
+                }}
+              >
+                Start with an empty store
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onSelect={() => {
+                  loadStressData();
+                  toast.success("Stress data loaded", { description: "Long names, 500 products, 5000 reviews." });
+                  router.refresh();
+                }}
+              >
+                Load stress data
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuCheckboxItem
+                checked={demo?.fail ?? false}
+                onCheckedChange={(v) => {
+                  setDemoState({ fail: !!v });
+                  setDemo(getDemoState());
+                  toast(v ? "Errors on. Reload a page to see error states." : "Errors off.");
+                }}
+              >
+                Simulate errors
+              </DropdownMenuCheckboxItem>
+            </DropdownMenuSubContent>
+          </DropdownMenuSub>
+        )}
         <DropdownMenuSeparator />
         <DropdownMenuItem
           onSelect={async () => {

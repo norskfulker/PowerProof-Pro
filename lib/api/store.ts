@@ -18,14 +18,19 @@ import type {
 } from "../types";
 import { ApiError, call, notFound } from "./client";
 import { TEMPLATE_BLOCKS } from "../templates";
+import { isLive } from "../supabase/env";
+import { liveChange } from "./live/notify";
+import * as live from "./live/store";
 
 /* Store, company, invoice ------------------------------------------- */
 
 export function getStore(): Promise<Store> {
+  if (isLive()) return live.getStore();
   return call(() => db().store, { fast: true });
 }
 
 export function updateStore(patch: Partial<Store>): Promise<Store> {
+  if (isLive()) return liveChange(live.updateStore(patch));
   return call(() => {
     if (patch.slug !== undefined) {
       const s = slugify(patch.slug);
@@ -43,6 +48,7 @@ const RESERVED = ["admin", "powerproof", "store", "shop", "help", "support", "ap
 
 /** Debounced in the UI. Returns null when free. */
 export function checkSlug(slug: string): Promise<{ available: boolean; suggestion?: string }> {
+  if (isLive()) return live.checkSlug(slug);
   return call(() => {
     const s = slugify(slug);
     const taken = RESERVED.includes(s);
@@ -51,10 +57,12 @@ export function checkSlug(slug: string): Promise<{ available: boolean; suggestio
 }
 
 export function getCompany(): Promise<Company> {
+  if (isLive()) return live.getCompany();
   return call(() => db().company);
 }
 
 export function updateCompany(patch: Partial<Company>): Promise<Company> {
+  if (isLive()) return liveChange(live.updateCompany(patch));
   return call(() => {
     commit((d) => Object.assign(d.company, patch));
     return db().company;
@@ -62,10 +70,12 @@ export function updateCompany(patch: Partial<Company>): Promise<Company> {
 }
 
 export function getInvoiceSettings(): Promise<InvoiceSettings> {
+  if (isLive()) return live.getInvoiceSettings();
   return call(() => db().invoice);
 }
 
 export function updateInvoiceSettings(patch: Partial<InvoiceSettings>): Promise<InvoiceSettings> {
+  if (isLive()) return liveChange(live.updateInvoiceSettings(patch));
   return call(() => {
     commit((d) => Object.assign(d.invoice, patch));
     return db().invoice;

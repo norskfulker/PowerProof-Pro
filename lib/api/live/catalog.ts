@@ -1,0 +1,475 @@
+import { money as mkMoney } from "../../money";
+import { db } from "../../mock/db";
+import { slugify } from "../../mock/random";
+import { sb } from "../../supabase/browser";
+import type { DealRuleInput } from "../../pricing/deal-rule-schema";
+import { dealRuleSchema } from "../../pricing/deal-rule-schema";
+import type { TablesUpdate } from "../../database.types";
+import type { Collection, Coupon, DealRule, Product, ProductInput, Question, Review } from "../../types";
+import { ApiError } from "../client";
+import type { ProductQuery } from "../products";
+import type { InboxQuestion, InboxReview, Offers } from "../store-admin";
+import type { NavCounts } from "../nav";
+import { fail, must } from "./errors";
+import { collectionFrom, dealRuleFrom, mediaUrl, productFrom, productType, questionFrom, reviewFrom, toDbStatus, type FileRow, type MediaRow, type ProductStats } from "./map";
+import { activeStoreId, currentUser } from "./session";
+import { removeFromStorage } from "./upload";
+
+/** Products, collections, coupons, deal paths, reviews and questions for the active store. */
+
+const PRODUCT_COLS = "id, store_id, title, slug, description, status, currency, price_minor, min_price_minor, compare_at_price_minor, cover_bg, sku, hsn_sac, tax_rate_bps, product_type, source_url, created_at, updated_at";
+
+/* Products ------------------------------------------------------------------ */
+
+async function salesStats(storeId: string): Promise<Map<string, ProductStats>> {
+  const { data } = await sb().from("order_items").select("product_id, quantity, line_total_minor, orders!inner(status, store_id)").eq("orders.store_id", storeId).eq("orders.status", "paid");
+  const out = new Map<string, ProductStats>();
+  for (const r of data ?? []) {
+    if (!r.product_id) continue;
+    const s = out.get(r.product_id) ?? { salesCount: 0, revenue: 0 };
+    s.salesCount += r.quantity;
+    s.revenue += Number(r.line_total_minor);
+    out.set(r.product_id, s);
+  }
+  return out;
+}
+
+async function loadProducts(storeId: string, ids?: string[]): Promise<Product[]> {
+  let q = sb().from("products").select(PRODUCT_COLS).eq("store_id", storeId).order("created_at", { ascending: false });
+  if (ids) q = q.in("id", ids);
+  const rows = must(await q);
+  if (!rows.length) return [];
+  const pids = rows.map((r) => r.id);
+  const [media, files, stats] = await Promise.all([
+    sb().from("product_media").select("*").in("product_id", pids),
+    sb().from("product_files").select("*").in("product_id", pids),
+    salesStats(storeId),
+  ]);
+  return rows.map((r) => productFrom(r, (media.data ?? []) as MediaRow[], (files.data ?? []) as FileRow[], stats.get(r.id)));
+}
+
+export async function getProducts(q: ProductQuery = {}): Promise<Product[]> {
+  const s = q.search?.trim().toLowerCase();
+  const all = await loadProducts(await activeStoreId());
+  return all.filter(
+    (p) =>
+      (!s || p.title.toLowerCase().includes(s) || p.sku.toLowerCase().includes(s)) &&
+      (!q.status || q.status === "all" || p.status === q.status) &&
+      (!q.kind || q.kind === "all" || p.kind === q.kind)
+  );
+}
+
+export async function getProduct(id: string): Promise<Product> {
+  const [p] = await loadProducts(await activeStoreId(), [id]);
+  if (!p) throw new ApiError("Product not found.", "not_found");
+  return p;
+}
+
+/** GST rate for a tax code, from the creator's tax code list. */
+function taxBps(code: string): number {
+  const t = db().taxCodes.find((x) => x.code === code);
+  return t ? Math.round(t.rate * 100) : 0;
+}
+
+function productRow(input: Partial<ProductInput> & { priceFloor?: Product["priceFloor"] }): TablesUpdate<"products"> {
+  const row: TablesUpdate<"products"> = {};
+  if (input.title !== undefined) row.title = input.title.trim().slice(0, 160);
+  if (input.description !== undefined) row.description = input.description;
+  if (input.kind !== undefined) row.product_type = productType(input.kind);
+  if (input.status !== undefined) row.status = toDbStatus(input.status);
+  if (input.price !== undefined) {
+    row.price_minor = Math.max(0, Math.round(input.price.amount));
+    row.currency = input.price.currency;
+  }
+  if ("compareAt" in input) {
+    const c = input.compareAt?.amount;
+    // The database only takes a compare-at price above the price; anything else means "none"
+    row.compare_at_price_minor = c && input.price && c > input.price.amount ? Math.round(c) : c && !input.price ? Math.round(c) : null;
+  }
+  if ("priceFloor" in input) row.min_price_minor = Math.max(0, Math.round(input.priceFloor?.amount ?? 0));
+  if (input.sku !== undefined) row.sku = input.sku.trim() || null;
+  if (input.taxCode !== undefined) {
+    row.hsn_sac = input.taxCode || null;
+    row.tax_rate_bps = taxBps(input.taxCode);
+  }
+  if ("sourceUrl" in input) row.source_url = input.sourceUrl && /^https:\/\//.test(input.sourceUrl) ? input.sourceUrl.slice(0, 2048) : null;
+  if ("tileBackground" in input) row.cover_bg = input.tileBackground ? JSON.parse(JSON.stringify(input.tileBackground)) : null;
+  return row;
+}
+
+/** Replaces the product's gallery and video, and syncs its files with what the form holds. */
+async function saveAttachments(productId: string, input: Partial<ProductInput>) {
+  const client = sb();
+  if (input.images !== undefined || "video" in input) {
+    const current = must(await client.from("product_media").select("id, kind").eq("product_id", productId));
+    const media: Record<string, unknown>[] = [];
+    if (input.images !== undefined) {
+      input.images.forEach((img, i) => {
+        const url = mediaUrl(img);
+        if (url) media.push({ product_id: productId, kind: "image", url, alt: img.alt || null, sort_order: i, focal_x: img.focal?.x ?? 50, focal_y: img.focal?.y ?? 50 });
+      });
+    }
+    if ("video" in input && input.video?.src && /^https:\/\//.test(input.video.src)) {
+      media.push({ product_id: productId, kind: "video", url: input.video.src, alt: input.video.alt || null, poster_url: input.video.poster && /^https:\/\//.test(input.video.poster) ? input.video.poster : null, sort_order: 100, focal_x: input.video.focal?.x ?? 50, focal_y: input.video.focal?.y ?? 50 });
+    }
+    const replace = current.filter((m) => (input.images !== undefined && m.kind === "image") || ("video" in input && m.kind === "video")).map((m) => m.id);
+    if (replace.length) must(await client.from("product_media").delete().in("id", replace).select("id"));
+    if (media.length) must(await client.from("product_media").insert(media as never).select("id"));
+  }
+  if (input.files !== undefined) {
+    const current = must(await client.from("product_files").select("id, storage_path").eq("product_id", productId));
+    const keep = new Set(input.files.map((f) => f.path).filter(Boolean));
+    const gone = current.filter((f) => !keep.has(f.storage_path));
+    const known = new Set(current.map((f) => f.storage_path));
+    const added = input.files.filter((f) => f.path && !known.has(f.path));
+    if (input.files.some((f) => !f.path)) throw new ApiError("A file is still uploading. Wait for it to finish, then save.", "validation");
+    if (gone.length) {
+      must(await client.from("product_files").delete().in("id", gone.map((f) => f.id)).select("id"));
+      await removeFromStorage("product-files", gone.map((f) => f.storage_path));
+    }
+    if (added.length) {
+      must(await client.from("product_files").insert(added.map((f) => ({ product_id: productId, storage_path: f.path!, file_name: f.name.slice(0, 200), size_bytes: f.size, mime_type: f.mime }))).select("id"));
+    }
+  }
+}
+
+async function uniqueSlug(storeId: string, title: string, table: "products" | "collections") {
+  const base = (slugify(title) || "item").slice(0, 70);
+  const { data } = await sb().from(table).select("slug").eq("store_id", storeId).like("slug", `${base}%`);
+  const taken = new Set((data ?? []).map((r) => String(r.slug)));
+  if (!taken.has(base)) return base;
+  for (let i = 2; ; i++) if (!taken.has(`${base}-${i}`)) return `${base}-${i}`;
+}
+
+export async function createProduct(input: ProductInput): Promise<Product> {
+  const storeId = await activeStoreId();
+  const slug = await uniqueSlug(storeId, input.title, "products");
+  const r = await sb()
+    .from("products")
+    .insert({ ...productRow(input), store_id: storeId, slug, title: input.title.trim() })
+    .select("id")
+    .single();
+  if (r.error) fail(r.error, { conflict: "A product with this name already exists. Change the title a little." });
+  await saveAttachments(r.data.id, input);
+  return getProduct(r.data.id);
+}
+
+export async function updateProduct(id: string, patch: Partial<ProductInput>): Promise<Product> {
+  const row = productRow(patch);
+  if (row.compare_at_price_minor !== undefined && patch.price === undefined) {
+    const cur = await getProduct(id);
+    if (row.compare_at_price_minor !== null && Number(row.compare_at_price_minor) <= cur.price.amount) row.compare_at_price_minor = null;
+  }
+  if (Object.keys(row).length) {
+    const r = await sb().from("products").update(row).eq("id", id).select("id").single();
+    if (r.error) fail(r.error, { notFound: "Product" });
+  }
+  await saveAttachments(id, patch);
+  return getProduct(id);
+}
+
+export async function deleteProduct(id: string): Promise<void> {
+  const client = sb();
+  // Sold products keep their order history: archive instead of deleting
+  const { count } = await client.from("order_items").select("id", { count: "exact", head: true }).eq("product_id", id);
+  if (count) {
+    must(await client.from("products").update({ status: "archived" }).eq("id", id).select("id").single());
+    return;
+  }
+  const files = must(await client.from("product_files").select("storage_path").eq("product_id", id));
+  await client.from("collection_items").delete().eq("product_id", id);
+  await client.from("product_media").delete().eq("product_id", id);
+  await client.from("product_files").delete().eq("product_id", id);
+  const r = await client.from("products").delete().eq("id", id);
+  if (r.error) {
+    if (r.error.code === "23503") throw new ApiError("A deal path or coupon still uses this product. Remove it there first, or archive the product.", "conflict");
+    fail(r.error);
+  }
+  await removeFromStorage("product-files", files.map((f) => f.storage_path));
+}
+
+export async function duplicateProduct(id: string): Promise<Product> {
+  const src = await getProduct(id);
+  // Files aren't copied: each product owns its own private files
+  return createProduct({
+    title: `${src.title} (copy)`.slice(0, 160),
+    description: src.description,
+    kind: src.kind,
+    price: src.price,
+    compareAt: src.compareAt,
+    images: src.images,
+    files: [],
+    sku: src.sku ? `${src.sku}-C` : "",
+    taxCode: src.taxCode,
+    status: "draft",
+    video: src.video,
+    tileBackground: src.tileBackground,
+    sourceUrl: src.sourceUrl,
+  });
+}
+
+/* Collections --------------------------------------------------------------- */
+
+export async function getCollections(): Promise<Collection[]> {
+  const storeId = await activeStoreId();
+  const rows = must(await sb().from("collections").select("*").eq("store_id", storeId).order("sort_order").order("created_at"));
+  if (!rows.length) return [];
+  const items = must(await sb().from("collection_items").select("*").in("collection_id", rows.map((r) => r.id)));
+  return rows.map((r) => collectionFrom(r, items));
+}
+
+export async function saveCollection(c: Omit<Collection, "id" | "slug"> & { id?: string }): Promise<Collection[]> {
+  if (c.name.trim().length < 2) throw new ApiError("Name the collection.", "validation");
+  if (c.productIds.length === 0) throw new ApiError("Pick at least one product.", "validation");
+  const storeId = await activeStoreId();
+  const client = sb();
+  const bg = JSON.parse(JSON.stringify({ background: c.background, cover: c.cover, description: c.description }));
+  let id = c.id;
+  if (id) {
+    must(await client.from("collections").update({ name: c.name.trim().slice(0, 80), bg }).eq("id", id).select("id").single(), { notFound: "Collection" });
+    must(await client.from("collection_items").delete().eq("collection_id", id).select("product_id"));
+  } else {
+    const existing = await getCollections();
+    const r = await client
+      .from("collections")
+      .insert({ store_id: storeId, name: c.name.trim().slice(0, 80), slug: await uniqueSlug(storeId, c.name, "collections"), bg, sort_order: existing.length })
+      .select("id")
+      .single();
+    if (r.error) fail(r.error, { conflict: "You already have a collection with this name." });
+    id = r.data.id;
+  }
+  must(await client.from("collection_items").insert(c.productIds.map((product_id, i) => ({ collection_id: id!, product_id, sort_order: i }))).select("product_id"));
+  return getCollections();
+}
+
+export async function deleteCollection(id: string): Promise<Collection[]> {
+  await sb().from("collection_items").delete().eq("collection_id", id);
+  const r = await sb().from("collections").delete().eq("id", id);
+  if (r.error) fail(r.error);
+  return getCollections();
+}
+
+export async function moveCollection(id: string, dir: -1 | 1): Promise<Collection[]> {
+  const list = await getCollections();
+  const i = list.findIndex((c) => c.id === id);
+  const j = i + dir;
+  if (i < 0 || j < 0 || j >= list.length) return list;
+  [list[i], list[j]] = [list[j], list[i]];
+  await Promise.all(list.map((c, n) => sb().from("collections").update({ sort_order: n }).eq("id", c.id)));
+  return getCollections();
+}
+
+/* Coupons --------------------------------------------------------------------- */
+
+/**
+ * coupons.value is basis points for percent codes (1000 = 10%) and minor units for fixed ones.
+ * A code works on the whole store or on one product. Bundles and timed sales live in deal paths.
+ */
+function couponFrom(r: { id: string; code: string; kind: "percent" | "fixed"; value: number; ends_at: string | null; max_uses: number | null; used_count: number; product_id: string | null; min_subtotal_minor: number; active: boolean; currency: string | null }): Coupon {
+  return {
+    id: r.id,
+    code: r.code.toUpperCase(),
+    kind: r.kind,
+    value: r.kind === "percent" ? Math.round(r.value / 100) : Number(r.value),
+    expiresAt: r.ends_at ?? undefined,
+    usageLimit: r.max_uses ?? undefined,
+    used: r.used_count,
+    scope: r.product_id ? "products" : "store",
+    productIds: r.product_id ? [r.product_id] : [],
+    minSpend: r.min_subtotal_minor > 0 ? mkMoney(Number(r.min_subtotal_minor), (r.currency as "INR") ?? "INR") : undefined,
+    active: r.active,
+  };
+}
+
+export async function getOffers(): Promise<Offers> {
+  const rows = must(await sb().from("coupons").select("*").eq("store_id", await activeStoreId()).order("created_at", { ascending: false }));
+  // Bundles and store-wide sales have no table: they're deal paths in the live app
+  return { coupons: rows.map(couponFrom), bundles: db().bundles, deals: db().deals };
+}
+
+export async function saveCoupon(c: Omit<Coupon, "id" | "used"> & { id?: string }): Promise<Offers> {
+  const code = c.code.trim().toUpperCase();
+  if (!/^[A-Z0-9]{3,20}$/.test(code)) throw new ApiError("Codes are 3 to 20 letters or numbers, no spaces.", "validation");
+  if (c.kind === "percent" && (c.value < 1 || c.value > 90)) throw new ApiError("Percent off must be between 1 and 90.", "validation");
+  if (c.kind === "fixed" && c.value < 100) throw new ApiError("Fixed discounts start at ₹1.00.", "validation");
+  if (c.scope === "products" && c.productIds.length === 0) throw new ApiError("Pick the products this code works on.", "validation");
+  if (c.scope === "products" && c.productIds.length > 1) throw new ApiError("A code can work on the whole store or on one product. Make one code per product.", "validation");
+  const storeId = await activeStoreId();
+  const { data: store } = await sb().from("stores").select("currency_base").eq("id", storeId).single();
+  const row = {
+    code,
+    kind: c.kind,
+    value: c.kind === "percent" ? c.value * 100 : Math.round(c.value),
+    currency: c.kind === "fixed" ? store?.currency_base ?? "INR" : null,
+    ends_at: c.expiresAt ?? null,
+    max_uses: c.usageLimit ?? null,
+    product_id: c.scope === "products" ? c.productIds[0] : null,
+    min_subtotal_minor: c.minSpend?.amount ?? 0,
+    active: c.active,
+  };
+  const r = c.id ? await sb().from("coupons").update(row).eq("id", c.id).select("id").single() : await sb().from("coupons").insert({ ...row, store_id: storeId }).select("id").single();
+  if (r.error) fail(r.error, { conflict: `${code} already exists.` });
+  return getOffers();
+}
+
+export async function deleteCoupon(id: string): Promise<Offers> {
+  const r = await sb().from("coupons").delete().eq("id", id);
+  if (r.error) {
+    // Codes buyers have used stay for the order history: switch them off instead
+    if (r.error.code === "23503") must(await sb().from("coupons").update({ active: false }).eq("id", id).select("id").single());
+    else fail(r.error);
+  }
+  return getOffers();
+}
+
+/* Deal paths ------------------------------------------------------------------- */
+
+export async function getDealRules(): Promise<DealRule[]> {
+  const rows = must(await sb().from("deal_rules").select("*").eq("store_id", await activeStoreId()).order("sort_order").order("created_at", { ascending: false }));
+  return rows.map(dealRuleFrom);
+}
+
+export async function getDealRule(id: string): Promise<DealRule> {
+  return dealRuleFrom(must(await sb().from("deal_rules").select("*").eq("id", id).single(), { notFound: "Deal path" }));
+}
+
+export async function saveDealRule(input: DealRuleInput): Promise<DealRule> {
+  const parsed = dealRuleSchema.safeParse(input);
+  if (!parsed.success) throw new ApiError(parsed.error.issues[0].message, "validation");
+  const r = parsed.data;
+  const base = { name: r.name.trim(), active: r.active, starts_at: r.startsAt ?? null, ends_at: r.endsAt ?? null };
+  let row;
+  if (r.kind === "bundle_discount") {
+    if (r.productIds.length > 5) throw new ApiError("Pick up to five products.", "validation");
+    row = { ...base, reward: "percent_off" as const, trigger_product_ids: r.productIds, percent_bps: r.percent * 100, reward_product_id: null };
+  } else if (r.kind === "free_gift" && r.triggerIds.length > 0 && !r.minSpend) {
+    if (r.triggerIds.length > 5) throw new ApiError("Pick up to five products that unlock the gift.", "validation");
+    row = { ...base, reward: "free_product" as const, trigger_product_ids: r.triggerIds, reward_product_id: r.giftId, percent_bps: null };
+  } else {
+    throw new ApiError(
+      r.kind === "free_gift"
+        ? "For now a free gift needs at least one product that unlocks it, and no minimum spend."
+        : "This kind of deal path is coming soon. Use a bundle discount or a free gift for now.",
+      "validation"
+    );
+  }
+  const storeId = await activeStoreId();
+  const res = r.id ? await sb().from("deal_rules").update(row).eq("id", r.id).select("*").single() : await sb().from("deal_rules").insert({ ...row, store_id: storeId }).select("*").single();
+  if (res.error) {
+    if (/product/i.test(res.error.message)) throw new ApiError("One of the products no longer exists. Pick again.", "validation");
+    fail(res.error);
+  }
+  return dealRuleFrom(res.data);
+}
+
+export async function setDealRuleActive(id: string, active: boolean): Promise<DealRule> {
+  return dealRuleFrom(must(await sb().from("deal_rules").update({ active }).eq("id", id).select("*").single(), { notFound: "Deal path" }));
+}
+
+export async function deleteDealRule(id: string): Promise<void> {
+  const r = await sb().from("deal_rules").delete().eq("id", id);
+  if (r.error) fail(r.error);
+}
+
+/* Reviews and questions ---------------------------------------------------------- */
+
+const PIN_KEY = (storeId: string) => `pp:pins:${storeId}`;
+function pins(storeId: string): string[] {
+  try {
+    return JSON.parse(window.localStorage.getItem(PIN_KEY(storeId)) ?? "[]") as string[];
+  } catch {
+    return [];
+  }
+}
+
+const REVIEW_COLS = "id, store_id, product_id, reviewer_name, rating, title, body, photos, status, creator_reply, replied_at, created_at, updated_at";
+
+async function titles(storeId: string) {
+  const rows = must(await sb().from("products").select("id, title, slug").eq("store_id", storeId));
+  return new Map(rows.map((r) => [r.id, r]));
+}
+
+export async function getReviewsInbox(): Promise<InboxReview[]> {
+  const storeId = await activeStoreId();
+  const [rows, names] = await Promise.all([sb().from("reviews").select(REVIEW_COLS).eq("store_id", storeId).order("created_at", { ascending: false }), titles(storeId)]);
+  const pinned = new Set(pins(storeId));
+  return must(rows).map((r) => ({ ...reviewFrom(r, pinned.has(r.id)), productTitle: names.get(r.product_id)?.title ?? "Removed product" }));
+}
+
+export async function replyToReview(id: string, body: string): Promise<Review> {
+  if (body.trim().length < 2) throw new ApiError("Write a reply first.", "validation");
+  // creator_reply is the only column a creator may change on a review
+  const row = must(await sb().from("reviews").update({ creator_reply: body.trim().slice(0, 1000) }).eq("id", id).select(REVIEW_COLS).single(), { notFound: "Review" });
+  return reviewFrom(row, pins(row.store_id).includes(id));
+}
+
+export async function setReviewFlag(id: string, flag: "pinned" | "hidden", value: boolean): Promise<Review> {
+  if (flag === "hidden") throw new ApiError("Only PowerProof can hide a review. If it breaks the rules, write to support and we'll look at it.", "validation");
+  const storeId = await activeStoreId();
+  // Pins have no column yet: they're kept in this browser
+  const list = pins(storeId).filter((x) => x !== id);
+  if (value && list.length >= 3) throw new ApiError("You can pin up to 3 reviews. Unpin one first.", "conflict");
+  try {
+    window.localStorage.setItem(PIN_KEY(storeId), JSON.stringify(value ? [...list, id] : list));
+  } catch {
+    /* private mode */
+  }
+  return reviewFrom(must(await sb().from("reviews").select(REVIEW_COLS).eq("id", id).single(), { notFound: "Review" }), value);
+}
+
+export async function addImportedReview(input: unknown): Promise<Review> {
+  void input;
+  throw new ApiError("Imported testimonials are coming soon. Reviews come from verified buyers for now.", "validation");
+}
+
+const QUESTION_COLS = "id, store_id, product_id, asker_name, body, answer, answered_at, status, created_at";
+
+export async function getQuestionsInbox(): Promise<InboxQuestion[]> {
+  const storeId = await activeStoreId();
+  const [rows, names, me] = await Promise.all([sb().from("questions").select(QUESTION_COLS).eq("store_id", storeId).order("created_at", { ascending: false }), titles(storeId), currentUser()]);
+  return must(rows).map((q) => {
+    const p = names.get(q.product_id);
+    return { ...questionFrom(q, me.name.split(" ")[0]), productTitle: p?.title ?? "Removed product", productSlug: p?.slug ?? "" };
+  });
+}
+
+export async function answerQuestion(id: string, body: string): Promise<Question> {
+  if (body.trim().length < 2) throw new ApiError("Write an answer first.", "validation");
+  const me = await currentUser();
+  // answer is the only column a creator may change on a question; a new answer replaces the old one
+  const row = must(await sb().from("questions").update({ answer: body.trim().slice(0, 1500) }).eq("id", id).select(QUESTION_COLS).single(), { notFound: "Question" });
+  return questionFrom(row, me.name.split(" ")[0]);
+}
+
+export async function setQuestionHidden(id: string, hidden: boolean): Promise<Question> {
+  void id;
+  void hidden;
+  throw new ApiError("Only PowerProof can hide a question. If it breaks the rules, write to support and we'll look at it.", "validation");
+}
+
+/* Menu counts --------------------------------------------------------------------- */
+
+export async function getNavCounts(): Promise<NavCounts> {
+  const storeId = await activeStoreId();
+  const [products, reviews, questions, collections] = await Promise.all([
+    sb().from("products").select("id, title, status").eq("store_id", storeId),
+    sb().from("reviews").select("id", { count: "exact", head: true }).eq("store_id", storeId).is("creator_reply", null).eq("status", "published"),
+    sb().from("questions").select("id", { count: "exact", head: true }).eq("store_id", storeId).is("answer", null),
+    getCollections(),
+  ]);
+  const ps = products.data ?? [];
+  const title = new Map(ps.map((p) => [p.id, p.title]));
+  return {
+    storeId,
+    counts: {
+      products_all: ps.length,
+      products_live: ps.filter((p) => p.status === "live").length,
+      products_draft: ps.filter((p) => p.status === "draft").length,
+      products_archived: ps.filter((p) => p.status === "archived").length,
+      reviews_pending: reviews.count ?? 0,
+      questions_open: questions.count ?? 0,
+      orders_disputed: 0,
+    },
+    collections: collections.map((c) => ({ id: c.id, name: c.name, products: c.productIds.filter((id) => title.has(id)).map((id) => ({ id, title: title.get(id)! })) })),
+  };
+}

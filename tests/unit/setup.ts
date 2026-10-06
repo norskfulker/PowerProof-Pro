@@ -1,4 +1,7 @@
 import "@testing-library/jest-dom/vitest";
+
+// Unit tests run against the in-browser mock, never the live project
+process.env.NEXT_PUBLIC_BACKEND = "mock";
 import { cleanup } from "@testing-library/react";
 import { afterEach, beforeEach, vi } from "vitest";
 

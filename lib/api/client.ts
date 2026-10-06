@@ -15,6 +15,16 @@ export class ApiError extends Error {
  * from the demo menu, so loading and error states are real.
  * When the backend lands, swap the bodies of the api functions for fetch() calls.
  */
+/** Thrown when a Free creator hits a limit; the UI opens the Upgrade dialog on `code: "limit"`. */
+export class LimitError extends ApiError {
+  constructor(
+    public kind: "stores" | "products" | "aiCredits" | "customDomain",
+    message: string
+  ) {
+    super(message, "limit");
+  }
+}
+
 export async function call<T>(fn: () => T | Promise<T>, opts: { fast?: boolean } = {}): Promise<T> {
   const demo = getDemo();
   const [min, max] = opts.fast ? [80, 160] : demo.latency;

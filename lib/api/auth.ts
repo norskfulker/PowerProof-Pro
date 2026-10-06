@@ -3,6 +3,8 @@ import { seedCompleteProgress, writeProgress } from "../mock/progress";
 import { slugify } from "../mock/random";
 import type { Session } from "../types";
 import { ApiError, call } from "./client";
+import { isLive } from "../supabase/env";
+import * as live from "./live/auth";
 
 /**
  * Mock auth. Any email + password of 8+ characters signs in to the seeded demo store.
@@ -14,6 +16,7 @@ export function getSession(): Session | null {
 }
 
 export function login(email: string, password: string): Promise<Session> {
+  if (isLive()) return live.login(email, password);
   return call(() => {
     if (password.length < 8) throw new ApiError("That email and password don't match. Try again or use a login link.", "validation");
     const d = db();
@@ -26,12 +29,20 @@ export function login(email: string, password: string): Promise<Session> {
 }
 
 export function sendLoginLink(email: string): Promise<void> {
+  if (isLive()) return live.sendLoginLink(email);
   return call(() => {
     if (!email.includes("@")) throw new ApiError("Enter the email you signed up with.", "validation");
   });
 }
 
-export function signup(name: string, email: string): Promise<Session> {
+/** Google sign-in. Leaves the page for Google and comes back through /auth/callback. */
+export function signInWithGoogle(next?: string): Promise<void> {
+  if (isLive()) return live.signInWithGoogle(next);
+  return Promise.reject(new ApiError("Google sign-in needs the live backend. Use email for the demo.", "validation"));
+}
+
+export function signup(name: string, email: string, password?: string): Promise<Session> {
+  if (isLive()) return live.signup(name, email, password);
   return call(() => {
     if (email.toLowerCase().endsWith("@taken.com")) throw new ApiError("There's already an account with this email. Log in instead.", "conflict");
     const first = name.trim().split(" ")[0] || "My";
@@ -52,7 +63,8 @@ export function signup(name: string, email: string): Promise<Session> {
   });
 }
 
-export function verifyEmail(code: string): Promise<void> {
+export function verifyEmail(code: string, email?: string): Promise<void> {
+  if (isLive()) return live.verifyEmail(code, email);
   return call(() => {
     if (!/^\d{6}$/.test(code)) throw new ApiError("Codes are 6 digits. Check the email we sent.", "validation");
     if (code === "000000") throw new ApiError("That code has expired. We've sent a fresh one.", "validation");
@@ -60,12 +72,27 @@ export function verifyEmail(code: string): Promise<void> {
   });
 }
 
+export function resendVerification(email: string): Promise<void> {
+  if (isLive()) return live.resendVerification(email);
+  return call(() => undefined, { fast: true });
+}
+
 export function requestPasswordReset(email: string): Promise<void> {
+  if (isLive()) return live.requestPasswordReset(email);
   return call(() => {
     if (!email.includes("@")) throw new ApiError("Enter a valid email.", "validation");
   });
 }
 
+/** Sets a new password after following a reset link (the link signs the creator in). */
+export function updatePassword(password: string): Promise<void> {
+  if (isLive()) return live.updatePassword(password);
+  return call(() => {
+    if (password.length < 8) throw new ApiError("Use at least 8 characters. A short sentence works well.", "validation");
+  });
+}
+
 export function logout(): Promise<void> {
+  if (isLive()) return live.logout();
   return call(() => setSessionRaw(null), { fast: true });
 }

@@ -5,6 +5,13 @@ import nextTs from "eslint-config-next/typescript";
 const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
+  // The service-role key bypasses RLS: only route handlers and server modules may import it
+  {
+    files: ["components/**", "hooks/**", "lib/api/**", "lib/mock/**", "app/**/page.tsx", "app/**/layout.tsx", "proxy.ts"],
+    rules: {
+      "no-restricted-imports": ["error", { patterns: [{ group: ["**/supabase/admin", "@/lib/supabase/admin"], message: "Service-role client is server-only. Use it from route handlers." }] }],
+    },
+  },
   // Override default ignores of eslint-config-next.
   globalIgnores([
     // Default ignores of eslint-config-next:

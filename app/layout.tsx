@@ -12,6 +12,7 @@ import {
   Space_Grotesk,
 } from "next/font/google";
 import { ThemeSync } from "@/components/theme/theme-toggle";
+import { LiveSessionSync } from "@/components/auth/live-session-sync";
 import { Toaster } from "@/components/ui/sonner";
 import { NO_FLASH_SCRIPT } from "@/lib/theme";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -80,6 +81,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       </head>
       <body>
         <ThemeSync />
+        <LiveSessionSync />
         <TooltipProvider delayDuration={200}>{children}</TooltipProvider>
         <Toaster position="bottom-center" />
       </body>
