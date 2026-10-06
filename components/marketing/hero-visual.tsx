@@ -28,7 +28,7 @@ export function HeroVisual() {
         </div>
       </div>
 
-      <div className="absolute -top-5 -right-2 w-64 rounded-card border bg-surface p-3.5 shadow-pop sm:-right-10">
+      <div className="absolute -top-5 -right-2 w-64 rounded-card border bg-surface p-3.5 shadow-pop sm:-right-10 lg:-right-2 xl:-right-10">
         <div className="flex items-center gap-3">
           <span className="grid size-9 place-items-center rounded-full bg-success-soft text-success">
             <IndianRupee className="size-4" />

@@ -1,5 +1,6 @@
 "use client";
 
+import { useReducedMotion } from "@/hooks/use-reduced-motion";
 import {
   Area,
   AreaChart,
@@ -96,6 +97,7 @@ function TooltipBox({
 }
 
 export function RevenueBars({ data, height = 240 }: { data: { label: string; revenue: number }[]; height?: number }) {
+  const still = useReducedMotion();
   return (
     <ResponsiveContainer width="100%" height={height}>
       <BarChart data={data} margin={{ top: 4, right: 4, bottom: 0, left: -8 }}>
@@ -103,13 +105,14 @@ export function RevenueBars({ data, height = 240 }: { data: { label: string; rev
         <XAxis dataKey="label" tickLine={false} axisLine={false} tick={axis} interval="preserveStartEnd" />
         <YAxis tickLine={false} axisLine={false} tick={axis} width={48} tickFormatter={(v: number) => (v >= 1000 ? `${Math.round(v / 1000)}k` : `${v}`)} />
         <Tooltip cursor={{ fill: "var(--muted)" }} content={<TooltipBox kind="money" />} />
-        <Bar dataKey="revenue" name="revenue" fill="var(--chart-1)" radius={[6, 6, 0, 0]} maxBarSize={36} />
+        <Bar isAnimationActive={!still} dataKey="revenue" name="revenue" fill="var(--chart-1)" radius={[6, 6, 0, 0]} maxBarSize={36} />
       </BarChart>
     </ResponsiveContainer>
   );
 }
 
 export function VisitorsArea({ data, height = 240 }: { data: { label: string; visitors: number }[]; height?: number }) {
+  const still = useReducedMotion();
   return (
     <ResponsiveContainer width="100%" height={height}>
       <AreaChart data={data} margin={{ top: 4, right: 4, bottom: 0, left: -8 }}>
@@ -117,7 +120,7 @@ export function VisitorsArea({ data, height = 240 }: { data: { label: string; vi
         <XAxis dataKey="label" tickLine={false} axisLine={false} tick={axis} interval="preserveStartEnd" />
         <YAxis tickLine={false} axisLine={false} tick={axis} width={48} />
         <Tooltip cursor={{ stroke: "var(--border-strong)" }} content={<TooltipBox kind="count" />} />
-        <Area type="monotone" dataKey="visitors" name="visitors" stroke="var(--chart-2)" strokeWidth={2} fill="var(--accent-soft)" />
+        <Area isAnimationActive={!still} type="monotone" dataKey="visitors" name="visitors" stroke="var(--chart-2)" strokeWidth={2} fill="var(--accent-soft)" />
       </AreaChart>
     </ResponsiveContainer>
   );

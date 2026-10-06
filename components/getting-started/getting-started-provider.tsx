@@ -153,12 +153,17 @@ export function GettingStartedProvider({ children }: { children: React.ReactNode
   const [drawer, setDrawer] = useState(false);
   const [celebrated, setCelebrated] = useState(false);
 
-  // A small celebration when the last required step is done
+  // A small celebration when the last required step is done, only if this browser saw it unfinished
   useEffect(() => {
-    if (!data || celebrated || !data.complete || data.dismissed) return;
+    if (!data || celebrated || data.dismissed) return;
+    const pending = "pp:gs-unfinished";
     const key = "pp:gs-celebrated";
     try {
-      if (localStorage.getItem(key)) return;
+      if (!data.complete) {
+        localStorage.setItem(pending, "1");
+        return;
+      }
+      if (!localStorage.getItem(pending) || localStorage.getItem(key)) return;
       localStorage.setItem(key, "1");
     } catch {
       return;

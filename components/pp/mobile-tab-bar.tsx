@@ -18,33 +18,33 @@ export function MobileTabBar({ tabs, onMore }: { tabs: NavItem[]; onMore: () => 
           const active = isActive(pathname, t);
           const Icon = t.icon;
           return (
-            <li key={t.href}>
+            <li key={t.href} className="min-w-0">
               <Link
                 href={t.href}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "flex min-h-14 flex-col items-center justify-center gap-1 text-[0.6875rem] font-medium",
+                  "flex min-h-14 min-w-0 flex-col items-center justify-center gap-1 text-[0.6875rem] font-medium",
                   active ? "text-primary" : "text-muted-foreground"
                 )}
               >
-                <span className={cn("grid h-7 w-12 place-items-center rounded-full transition-colors", active && "bg-primary-soft")}>
+                <span className={cn("grid h-7 w-full max-w-12 place-items-center rounded-full transition-colors", active && "bg-primary-soft")}>
                   <Icon className="size-5" strokeWidth={1.5} aria-hidden />
                 </span>
-                {t.label}
+                <span className="max-w-full truncate px-0.5">{t.label}</span>
               </Link>
             </li>
           );
         })}
-        <li>
+        <li className="min-w-0">
           <button
             type="button"
             onClick={onMore}
-            className="flex min-h-14 w-full flex-col items-center justify-center gap-1 text-[0.6875rem] font-medium text-muted-foreground"
+            className="flex min-h-14 w-full min-w-0 flex-col items-center justify-center gap-1 text-[0.6875rem] font-medium text-muted-foreground"
           >
-            <span className="grid h-7 w-12 place-items-center">
+            <span className="grid h-7 w-full max-w-12 place-items-center">
               <Menu className="size-5" strokeWidth={1.5} aria-hidden />
             </span>
-            More
+            <span className="max-w-full truncate px-0.5">More</span>
           </button>
         </li>
       </ul>

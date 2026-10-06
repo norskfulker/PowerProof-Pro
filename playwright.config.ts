@@ -88,8 +88,8 @@ export default defineConfig({
     { name: "chromium-zoom200", grep: /@layout/, use: { ...devices["Desktop Chrome"], viewport: { width: 640, height: 360 }, deviceScaleFactor: 2 } },
     // Large system text: root font size at 150%
     { name: "chromium-largetext", grep: /@layout/, use: { ...devices["Desktop Chrome"], viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true }, metadata: { largeText: true, kind: "phone" } },
-    { name: "visual-mobile", grep: /@visual/, use: { ...devices["Desktop Chrome"], viewport: { width: 390, height: 844 }, deviceScaleFactor: 1 } },
-    { name: "visual-tablet", grep: /@visual/, use: { ...devices["Desktop Chrome"], viewport: { width: 820, height: 1180 }, deviceScaleFactor: 1 } },
-    { name: "visual-desktop", grep: /@visual/, use: { ...devices["Desktop Chrome"], viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1 } },
+    { name: "visual-mobile", grep: /@visual/, use: { ...devices["Desktop Chrome"], viewport: { width: 390, height: 844 }, deviceScaleFactor: 1, contextOptions: { reducedMotion: "reduce" } } },
+    { name: "visual-tablet", grep: /@visual/, use: { ...devices["Desktop Chrome"], viewport: { width: 820, height: 1180 }, deviceScaleFactor: 1, contextOptions: { reducedMotion: "reduce" } } },
+    { name: "visual-desktop", grep: /@visual/, use: { ...devices["Desktop Chrome"], viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1, contextOptions: { reducedMotion: "reduce" } } },
   ],
 });

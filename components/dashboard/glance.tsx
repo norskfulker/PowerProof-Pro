@@ -31,7 +31,7 @@ export function Glance({
   const hint = s ? RANGE_HINT[s.range] : undefined;
   const show = !loading && s;
   return (
-    <div className="grid grid-cols-2 gap-3 md:gap-4 lg:grid-cols-5">
+    <div className="grid grid-cols-2 gap-3 md:gap-4 lg:grid-cols-3 xl:grid-cols-5">
       <StatCard label="Sales" loading={!show} value={s && formatNumber(s.sales)} delta={s?.deltas.sales} hint={hint} />
       <StatCard label="Revenue" loading={!show} value={s && <MoneyText value={s.revenue} />} delta={s?.deltas.revenue} hint={hint} />
       <StatCard label="Visitors" loading={!show} value={s && formatNumber(s.visitors)} delta={s?.deltas.visitors} hint={hint} />

@@ -14,7 +14,7 @@ export function AnnouncementBar({ announcement }: { announcement: Announcement }
   if (!live) return null;
   return (
     <div className="relative bg-primary text-primary-foreground" role="region" aria-label="Announcement">
-      <div className="mx-auto flex min-h-11 max-w-[1200px] flex-wrap items-center justify-center gap-x-3 gap-y-1 px-12 py-2 text-center text-sm">
+      <div className="mx-auto flex min-h-11 max-w-[1200px] flex-wrap items-center justify-center gap-x-3 gap-y-1 px-14 py-2 text-center text-sm">
         <span className="font-semibold">{announcement.text}</span>
         {announcement.code && (
           <button
