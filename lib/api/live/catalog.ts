@@ -5,7 +5,7 @@ import { sb } from "../../supabase/browser";
 import type { DealRuleInput } from "../../pricing/deal-rule-schema";
 import { dealRuleSchema } from "../../pricing/deal-rule-schema";
 import type { TablesUpdate } from "../../database.types";
-import type { Collection, Coupon, DealRule, Product, ProductInput, Question, Review } from "../../types";
+import type { Bundle, Collection, Coupon, DealRule, Product, ProductInput, Question, Review } from "../../types";
 import { ApiError } from "../client";
 import type { ProductQuery } from "../products";
 import type { InboxQuestion, InboxReview, Offers } from "../store-admin";
@@ -283,8 +283,10 @@ function couponFrom(r: { id: string; code: string; kind: "percent" | "fixed"; va
 
 export async function getOffers(): Promise<Offers> {
   const rows = must(await sb().from("coupons").select("*").eq("store_id", await activeStoreId()).order("created_at", { ascending: false }));
-  // Bundles and store-wide sales have no table: they're deal paths in the live app
-  return { coupons: rows.map(couponFrom), bundles: db().bundles, deals: db().deals };
+  // Bundles are bundle-discount deal paths; timed store-wide sales aren't available yet
+  const rules = await getDealRules();
+  const bundles: Bundle[] = rules.flatMap((r) => (r.kind === "bundle_discount" ? [{ id: r.id, name: r.name, productIds: r.productIds, pricing: { kind: "percent" as const, percent: r.percent }, active: r.active }] : []));
+  return { coupons: rows.map(couponFrom), bundles, deals: [] };
 }
 
 export async function saveCoupon(c: Omit<Coupon, "id" | "used"> & { id?: string }): Promise<Offers> {
@@ -320,6 +322,19 @@ export async function deleteCoupon(id: string): Promise<Offers> {
     else fail(r.error);
   }
   return getOffers();
+}
+
+/** A bundle is a deal path: every product in it together, percent off each. */
+export async function saveBundle(b: Omit<Bundle, "id"> & { id?: string }): Promise<Offers> {
+  if (b.name.trim().length < 2) throw new ApiError("Name the bundle.", "validation");
+  if (b.productIds.length < 2 || b.productIds.length > 5) throw new ApiError("Bundles have 2 to 5 products.", "validation");
+  if (b.pricing.kind !== "percent") throw new ApiError("A fixed bundle price is coming soon. Set a percent off for now.", "validation");
+  await saveDealRule({ id: b.id, kind: "bundle_discount", name: b.name.trim().slice(0, 60), productIds: b.productIds, percent: b.pricing.percent, active: b.active, stackable: false });
+  return getOffers();
+}
+
+export async function saveDeal(): Promise<Offers> {
+  throw new ApiError("Limited-time deals are coming soon. Make a deal path with an end date for now.", "validation");
 }
 
 /* Deal paths ------------------------------------------------------------------- */

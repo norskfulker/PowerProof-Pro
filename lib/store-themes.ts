@@ -103,6 +103,7 @@ function darkVars(theme: StoreTheme, p: Palette): Record<string, string> {
   const fontRemap: Record<string, string> = {};
   if (f.display !== "var(--font-bricolage)") fontRemap["--font-bricolage"] = f.display;
   if (f.body !== "var(--font-hanken)") fontRemap["--font-hanken"] = f.body;
+  const soft = hex ? mixHex(accent, d.surface, 0.86) : d.muted;
   return {
     ...fontRemap,
     "--background": d.background,
@@ -117,9 +118,10 @@ function darkVars(theme: StoreTheme, p: Palette): Record<string, string> {
     "--accent": accent,
     "--accent-foreground": hex ? readableOn(accent) : "#0C1F1B",
     "--accent-strong": hex ? mixHex(accent, "#FFFFFF", 0.15) : accent,
-    // Brass-style small text: the accent, lightened until it reads on the dark surface
-    "--accent-ink": hex ? liftTo(accent, d.surface) : accent,
-    "--accent-soft": hex ? mixHex(accent, d.surface, 0.86) : d.muted,
+    // Brass-style small text: the accent, lightened until it reads on the dark surface and on
+    // its own soft tint (badges and coupon stubs put it there)
+    "--accent-ink": hex ? liftTo(liftTo(accent, d.surface), soft) : accent,
+    "--accent-soft": soft,
     "--chart-1": d.primary,
     "--chart-2": accent,
     "--font-display": `${f.display}, ui-sans-serif, system-ui, sans-serif`,

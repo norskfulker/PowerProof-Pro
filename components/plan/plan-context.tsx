@@ -8,15 +8,18 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useApi } from "@/hooks/use-api";
-import { ApiError, getPlanState, setPlanTier, type PlanState } from "@/lib/api";
+import { ApiError, getPlanLimits, getPlanState, setPlanTier, type PlanState } from "@/lib/api";
 import { cn } from "@/lib/utils";
-import { PLAN_LIMITS, PRO_BENEFITS, PRO_PRICE_USD, PRO_TRIAL_DAYS } from "@/lib/plans";
+import { PLAN_LIMITS, proBenefits, PRO_PRICE_USD, PRO_TRIAL_DAYS, type AllPlanLimits } from "@/lib/plans";
+import { isLive } from "@/lib/supabase/env";
 
 export type LimitKind = "stores" | "products" | "aiCredits" | "customDomain";
 
 interface PlanCtx {
   state?: PlanState;
   reload: () => void;
+  /** Free and Pro limits from plan_limits (undefined while loading) */
+  limits?: AllPlanLimits;
   /** Opens the Upgrade dialog, explaining which limit was reached */
   upgrade: (kind?: LimitKind) => void;
   /**
@@ -30,16 +33,24 @@ interface PlanCtx {
 
 const Ctx = createContext<PlanCtx | null>(null);
 
-const REASON: Record<LimitKind, string> = {
-  products: `The Free plan includes ${PLAN_LIMITS.free.products} product. Pro lets you add as many as you like.`,
-  stores: `The Free plan includes ${PLAN_LIMITS.free.stores} store. Pro lets you open more, each with its own look, products and policies.`,
-  customDomain: "Connecting your own domain is part of Pro. Your free address keeps working on Free.",
-  aiCredits: `You've used this month's ${PLAN_LIMITS.free.aiCredits} AI image credits. Pro includes ${PLAN_LIMITS.pro.aiCredits} a month.`,
-};
+function reason(kind: LimitKind, l: AllPlanLimits | undefined): string {
+  const n = (v: number | null | undefined, one: string, many: string) => (v == null ? many : `${v} ${v === 1 ? one : many}`);
+  switch (kind) {
+    case "products":
+      return `The Free plan includes ${n(l?.free.products, "product", "products")}. Pro lets you add as many as you like.`;
+    case "stores":
+      return `The Free plan includes ${n(l?.free.stores, "store", "stores")}. Pro lets you open more, each with its own look, products and policies.`;
+    case "customDomain":
+      return "Connecting your own domain is part of Pro. Your free address keeps working on Free.";
+    case "aiCredits":
+      return l ? `You've used this month's ${l.free.aiCredits} AI image credits. Pro includes ${l.pro.aiCredits} a month.` : "You've used this month's AI image credits.";
+  }
+}
 
 export function PlanProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const { data, reload } = useApi(getPlanState, [], { live: true });
+  const { data: limits } = useApi(getPlanLimits, []);
   const [open, setOpen] = useState<LimitKind | "general" | null>(null);
   const [pending, setPending] = useState(false);
 
@@ -72,13 +83,16 @@ export function PlanProvider({ children }: { children: React.ReactNode }) {
       setOpen(null);
       toast.success("You're on Pro", { description: `Your first ${PRO_TRIAL_DAYS} days are free. Add a card any time before then.` });
       router.refresh();
+    } catch (e) {
+      // Live: billing isn't connected yet, so this explains how to get Pro
+      toast.error(e instanceof Error ? e.message : "We couldn't upgrade you just now.");
     } finally {
       setPending(false);
     }
   }
 
   return (
-    <Ctx.Provider value={{ state: data, reload, upgrade, guard, handleLimitError }}>
+    <Ctx.Provider value={{ state: data, limits, reload, upgrade, guard, handleLimitError }}>
       {children}
       <Dialog open={open !== null} onOpenChange={(o) => !pending && !o && setOpen(null)}>
         <DialogContent className="sm:max-w-md">
@@ -86,10 +100,10 @@ export function PlanProvider({ children }: { children: React.ReactNode }) {
             <DialogTitle className="flex items-center gap-2 font-display text-xl">
               <Sparkles className="size-5 text-accent-ink" aria-hidden /> Upgrade to Pro
             </DialogTitle>
-            <DialogDescription>{open && open !== "general" ? REASON[open] : "Pro removes the Free plan's limits."}</DialogDescription>
+            <DialogDescription>{open && open !== "general" ? reason(open, limits) : "Pro removes the Free plan's limits."}</DialogDescription>
           </DialogHeader>
           <ul className="flex flex-col gap-2 text-sm">
-            {PRO_BENEFITS.map((b) => (
+            {(limits ? proBenefits(limits) : []).map((b) => (
               <li key={b} className="flex items-start gap-2">
                 <Check className="mt-0.5 size-4 shrink-0 text-success" aria-hidden /> {b}
               </li>
@@ -115,7 +129,7 @@ export function PlanProvider({ children }: { children: React.ReactNode }) {
 export function usePlan(): PlanCtx {
   const c = useContext(Ctx);
   // Outside the creator app (marketing, tests) the guard just runs the action
-  return c ?? { reload: () => {}, upgrade: () => {}, guard: (_k, a) => a(), handleLimitError: () => false };
+  return c ?? { limits: isLive() ? undefined : PLAN_LIMITS, reload: () => {}, upgrade: () => {}, guard: (_k, a) => a(), handleLimitError: () => false };
 }
 
 /**

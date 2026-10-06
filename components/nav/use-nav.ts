@@ -7,22 +7,22 @@ import { useApi } from "@/hooks/use-api";
 import { getNavCounts } from "@/lib/api";
 import { ADMIN_NAV, CREATOR_NAV } from "@/lib/nav/config";
 import { activeTrail, resolveNav, type ResolvedNode } from "@/lib/nav/model";
-import { PLAN_LIMITS } from "@/lib/plans";
 
 /** The resolved menu for an area: live counts, collections, the active store id and Pro locks. */
 export function useNav(area: "creator" | "admin"): { tree: ResolvedNode[] } {
   const plan = usePlan();
   const { data } = useApi(() => getNavCounts(area), [area], { live: true });
-  const tier = plan.state?.tier ?? "pro";
+  // Until the plan loads, nothing is locked (the server still refuses what the plan doesn't allow)
+  const domainOk = plan.state?.limits.customDomain ?? true;
   const tree = useMemo(
     () =>
       resolveNav(area === "admin" ? ADMIN_NAV : CREATOR_NAV, {
         storeId: data?.storeId ?? "current",
         counts: data?.counts ?? {},
         collections: data?.collections ?? [],
-        locked: new Set(PLAN_LIMITS[tier].customDomain ? [] : (["customDomain"] as const)),
+        locked: new Set(domainOk ? [] : (["customDomain"] as const)),
       }),
-    [area, data, tier]
+    [area, data, domainOk]
   );
   return { tree };
 }

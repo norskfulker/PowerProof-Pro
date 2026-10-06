@@ -1,5 +1,6 @@
 "use client";
 
+import { readableOn } from "@/lib/color";
 import { Button } from "@/components/ui/button";
 import { Globe } from "lucide-react";
 import Link from "next/link";
@@ -71,7 +72,7 @@ function StoreForm({ store, onSaved }: { store: Store; onSaved: (s: Store) => vo
             {logo?.src ? (
               <span className="relative size-12 shrink-0 overflow-hidden rounded-[12px]"><MediaImg src={logo.src} alt={logo.alt || "Logo"} className="absolute inset-0" /></span>
             ) : (
-              <span className="grid size-12 shrink-0 place-items-center rounded-[12px] font-mono text-sm font-semibold text-primary-foreground" style={{ background: brandColor }}>{logoText?.toUpperCase()}</span>
+              <span className="grid size-12 shrink-0 place-items-center rounded-[12px] font-mono text-sm font-semibold" style={{ background: brandColor, color: readableOn(brandColor) }}>{logoText?.toUpperCase()}</span>
             )}
             <span className="min-w-0">
               <span className="block font-display text-xl">{name || "Your store"}</span>

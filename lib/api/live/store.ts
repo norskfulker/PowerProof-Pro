@@ -1,7 +1,8 @@
 import { commit, db } from "../../mock/db";
 import { writeProgress } from "../../mock/progress";
 import { slugify } from "../../mock/random";
-import { PLAN_LIMITS, type PlanLimits, type PlanTier } from "../../plans";
+import { type PlanLimits, type PlanTier } from "../../plans";
+import { limitsFromRows } from "../../plan-limits";
 import { sb } from "../../supabase/browser";
 import type { TablesUpdate } from "../../database.types";
 import type { AboutContent, Company, InvoiceSettings, Plan, Store, StoreDesign, StorePageKey, StorePages } from "../../types";
@@ -250,7 +251,7 @@ export async function getPlanState(): Promise<PlanState> {
   ]);
   const tier: PlanTier = profile?.plan ?? "free";
   const row = limits?.find((l) => l.plan === tier);
-  const lim: PlanLimits = row ? { stores: row.max_stores, products: row.max_products, aiCredits: row.ai_credits_monthly, customDomain: row.custom_domain } : PLAN_LIMITS[tier];
+  const lim: PlanLimits = limitsFromRows(limits)[tier];
   const ids = (stores ?? []).map((s) => s.id);
   const { count } = ids.length ? await sb().from("products").select("id", { count: "exact", head: true }).in("store_id", ids) : { count: 0 };
   const local = db().plan;

@@ -2,7 +2,8 @@
 
 import { SettingsTabs } from "@/components/settings/settings-tabs";
 import { useState } from "react";
-import { Loader2, UserMinus } from "lucide-react";
+import { Loader2, UserMinus, Users } from "lucide-react";
+import { EmptyState } from "@/components/pp/empty-state";
 import { toast } from "sonner";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -14,6 +15,7 @@ import { StatusPill } from "@/components/pp/status-pill";
 import { SettingsLoading, SettingsSection } from "@/components/settings/settings-section";
 import { useApi } from "@/hooks/use-api";
 import { getTeam, inviteMember, removeMember } from "@/lib/api";
+import { isLive } from "@/lib/supabase/env";
 import { initials } from "@/lib/format";
 import type { TeamMember } from "@/lib/types";
 
@@ -24,6 +26,18 @@ const ROLES: Record<TeamMember["role"], string> = {
 };
 
 export default function TeamPage() {
+  if (isLive()) {
+    // Team seats need accounts and roles on the server first; nothing is kept in the browser meanwhile
+    return (
+      <SettingsSection title="Team" description="Invite people to help with orders, support and design.">
+        <EmptyState icon={Users} title="Team seats are coming soon." body="For now, only you can sign in to your stores." />
+      </SettingsSection>
+    );
+  }
+  return <MockTeam />;
+}
+
+function MockTeam() {
   const { data, error, reload, setData } = useApi(getTeam, []);
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<TeamMember["role"]>("support");

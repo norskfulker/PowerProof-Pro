@@ -2,7 +2,8 @@ import { commit, db, getSessionRaw, setSessionRaw } from "../mock/db";
 import { writeProgress } from "../mock/progress";
 import { baseStore, basePlan, freshScope, type StoreScope } from "../mock/base";
 import { slugify } from "../mock/random";
-import { PLAN_LIMITS, PRO_TRIAL_DAYS, withinLimit, type PlanLimits, type PlanTier } from "../plans";
+import { PLAN_LIMITS, PRO_TRIAL_DAYS, withinLimit, type AllPlanLimits, type PlanLimits, type PlanTier } from "../plans";
+import { fetchPlanLimits } from "../plan-limits";
 import type { AboutContent, Plan, Store, StorePageKey, StorePages } from "../types";
 import { ApiError, call, LimitError, notFound } from "./client";
 import { allScopes, ownedScopes } from "./scope";
@@ -44,6 +45,12 @@ export function assertWithinLimit(kind: "stores" | "products") {
   if (!withinLimit(tier, kind, usage()[kind])) {
     throw new LimitError(kind, kind === "products" ? "The Free plan includes 1 product. Upgrade to Pro to add more." : "The Free plan includes 1 store. Upgrade to Pro to open another.");
   }
+}
+
+/** Free and Pro limits as the database enforces them (demo values on the mock backend). */
+export function getPlanLimits(): Promise<AllPlanLimits> {
+  if (isLive()) return fetchPlanLimits();
+  return call(() => PLAN_LIMITS, { fast: true });
 }
 
 export function canCreate(kind: "stores" | "products"): Promise<boolean> {

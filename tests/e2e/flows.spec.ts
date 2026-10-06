@@ -113,6 +113,8 @@ test.describe("deal paths @flow", () => {
     await page.getByRole("button", { name: /^Pay/ }).filter({ visible: true }).first().click();
     await page.getByRole("button", { name: /approve payment/i }).click();
     await page.waitForURL(/\/success\//);
+    // Let the success page finish loading: leaving mid-load makes Firefox log aborted script loads
+    await settle(page);
 
     await page.goto("/store/store_ananya/offers/deal-paths");
     await settle(page);
@@ -149,7 +151,7 @@ test.describe("deal paths @flow", () => {
     // Live preview reacts to the rule
     await page.getByRole("region", { name: "Test mode" }).or(page.locator("section[aria-labelledby=dp-heading]")).first().getByRole("checkbox").nth(1).click();
     await page.getByRole("button", { name: "Save deal path" }).click();
-    await page.waitForURL(/\/store\/offers\/deal-paths\/dr_/);
+    await page.waitForURL(/\/store\/[^/]+\/offers\/deal-paths\/dr_/);
     await expect(page.getByRole("heading", { name: "Big basket 15%" })).toBeVisible();
     await page.goto("/store/store_ananya/offers/deal-paths");
     await settle(page);

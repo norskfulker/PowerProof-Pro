@@ -5,7 +5,9 @@ import type { MediaItem } from "../types";
 import { ApiError, call, notFound } from "./client";
 import { ownedScopes } from "./scope";
 import { isLive } from "../supabase/env";
-import { removeFromStorage, storagePathOf, uploadToStorage } from "./live/upload";
+import { uploadToStorage } from "./live/upload";
+import * as live from "./live/media";
+import { liveChange } from "./live/notify";
 
 /**
  * Media library (Part 6A). Uploads are mocked: progress is simulated and the file stays in this
@@ -39,9 +41,8 @@ export async function uploadMedia(file: File, opts: UploadOptions): Promise<Medi
     // Live: the file goes to the store's public media folder; the library list stays in this browser
     const { publicUrl } = await uploadToStorage("store-media", "media", file, { onProgress: opts.onProgress, signal: opts.signal });
     const size = await measureMedia(file, kind);
-    const item: MediaItem = { id: uid("med"), name: file.name.replace(/\.[^.]+$/, "") || "Untitled", kind, mime: file.type, size: file.size, ...size, src: publicUrl!, alt: opts.alt ?? "", source: "upload", createdAt: new Date().toISOString() };
-    commit((d) => d.media.unshift(item));
-    return item;
+    const item: MediaItem = { id: publicUrl!, name: file.name.replace(/\.[^.]+$/, "") || "Untitled", kind, mime: file.type, size: file.size, ...size, src: publicUrl!, alt: opts.alt ?? "", source: "upload", createdAt: new Date().toISOString() };
+    return liveChange(Promise.resolve(item));
   }
   // Simulated upload: roughly 1 second per 4 MB, at least half a second
   const steps = 10;
@@ -77,7 +78,11 @@ export async function uploadMedia(file: File, opts: UploadOptions): Promise<Medi
 /** Saves an AI image (or any generated blob) to the library. */
 export async function saveGeneratedMedia(blob: Blob, meta: { name: string; prompt: string; width: number; height: number; alt?: string }): Promise<MediaItem> {
   const file = new File([blob], `${meta.name}.png`, { type: "image/png" });
-  const src = isLive() ? (await uploadToStorage("store-media", "ai", file)).publicUrl! : await putAsset(file);
+  if (isLive()) {
+    const src = (await uploadToStorage("store-media", "ai", file)).publicUrl!;
+    return liveChange(Promise.resolve({ id: src, name: meta.name, kind: "image" as const, mime: "image/png", size: blob.size, width: meta.width, height: meta.height, src, alt: meta.alt ?? meta.prompt.slice(0, 120), source: "ai" as const, createdAt: new Date().toISOString(), prompt: meta.prompt }));
+  }
+  const src = await putAsset(file);
   const item: MediaItem = { id: uid("med"), name: meta.name, kind: "image", mime: "image/png", size: blob.size, width: meta.width, height: meta.height, src, alt: meta.alt ?? meta.prompt.slice(0, 120), source: "ai", createdAt: new Date().toISOString(), prompt: meta.prompt };
   commit((d) => d.media.unshift(item));
   return item;
@@ -114,6 +119,7 @@ export interface MediaListItem extends MediaItem {
 }
 
 export function getMediaLibrary(q: { search?: string; kind?: MediaItem["kind"] | "ai" } = {}): Promise<MediaListItem[]> {
+  if (isLive()) return live.getMediaLibrary(q);
   return call(() => {
     const term = q.search?.trim().toLowerCase();
     return db()
@@ -124,6 +130,7 @@ export function getMediaLibrary(q: { search?: string; kind?: MediaItem["kind"] |
 }
 
 export function updateMedia(id: string, patch: { name?: string; alt?: string }): Promise<MediaItem> {
+  if (isLive()) return live.updateMedia();
   return call(() => {
     const m = db().media.find((x) => x.id === id) ?? notFound("File");
     if (patch.name !== undefined && !patch.name.trim()) throw new ApiError("Give the file a name.", "validation");
@@ -137,11 +144,10 @@ export function updateMedia(id: string, patch: { name?: string; alt?: string }):
 
 /** Deletes a file. Anything still using it shows a placeholder until a new file is chosen. */
 export function deleteMedia(id: string): Promise<void> {
+  if (isLive()) return liveChange(live.deleteMedia(id));
   return call(async () => {
     const m = db().media.find((x) => x.id === id) ?? notFound("File");
     commit((d) => (d.media = d.media.filter((x) => x.id !== id)));
-    const path = isLive() ? storagePathOf(m.src) : null;
-    if (path) await removeFromStorage("store-media", [path]);
-    else await deleteAsset(m.src);
+    await deleteAsset(m.src);
   });
 }

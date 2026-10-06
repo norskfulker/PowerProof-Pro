@@ -13,7 +13,7 @@ export function StepPayout({ ownerName, onDone, onBack }: { ownerName: string; o
     <StepFrame
       formId="step-payout"
       title="Where should we send your money?"
-      description="Sales become available two days after payment. You withdraw whenever you like."
+      description="Each sale is held for 3 hours, then it's yours to withdraw any time."
       timeLeft="About 2 minutes to go"
       onBack={onBack}
       onSkip={() => onDone(false)}

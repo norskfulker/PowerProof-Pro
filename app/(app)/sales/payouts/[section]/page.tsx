@@ -72,7 +72,7 @@ function PayoutsInner({ section }: { section: Section }) {
     <>
       <PageHeader
         title="Payouts"
-        description="Sales settle two days after payment. Withdraw whenever you like, any amount from ₹100.00."
+        description="Each sale is held for 3 hours, then it's yours to withdraw any time, any amount from ₹100.00."
         actions={
           <Button onClick={openWithdraw} disabled={!balance.data || balance.data.available.amount < 10000}>
             <ArrowUpRight aria-hidden /> Withdraw
@@ -81,7 +81,7 @@ function PayoutsInner({ section }: { section: Section }) {
       />
 
       <nav aria-label="Payouts" className="mb-6">
-        <ul className="flex gap-1 overflow-x-auto rounded-control bg-muted p-1 sm:w-fit">
+        <ul className="flex gap-1 overflow-x-auto rounded-control bg-muted p-1 pointer-coarse:gap-2 sm:w-fit">
           {SECTIONS.map((t) => (
             <li key={t.value} className="shrink-0">
               <Link
@@ -109,7 +109,7 @@ function PayoutsInner({ section }: { section: Section }) {
             <p className="eyebrow flex items-center gap-1.5"><Clock className="size-3.5" aria-hidden /> Pending</p>
             {balance.data ? <MoneyText value={balance.data.pending} className="font-display text-[1.75rem] leading-tight" /> : <Skeleton className="h-9 w-36" />}
             <p className="text-sm text-muted-foreground">
-              {balance.data?.nextReleaseAt ? `Next release ${formatDate(balance.data.nextReleaseAt)}. Includes refund requests on hold.` : "Recent sales wait two days before release."}
+              {balance.data?.nextReleaseAt ? `Next release ${formatDate(balance.data.nextReleaseAt)}. Includes refund requests on hold.` : "Recent sales are held for 3 hours before release."}
             </p>
           </div>
           <div className="flex flex-col gap-1 p-6">

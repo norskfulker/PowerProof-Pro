@@ -90,7 +90,7 @@ export default function StoreDesignPage({ params }: { params: Promise<{ id: stri
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[400px_minmax(0,1fr)]">
         <div className="rounded-card border bg-surface p-4 lg:sticky lg:top-24 lg:max-h-[calc(100dvh-120px)] lg:self-start lg:overflow-y-auto">
           <Tabs value={tab} onValueChange={setTab}>
-            <TabsList className="w-full">
+            <TabsList className="w-full justify-start overflow-x-auto">
               <TabsTrigger value="theme">Theme</TabsTrigger>
               <TabsTrigger value="sections">Sections</TabsTrigger>
               <TabsTrigger value="backgrounds">Hero and backgrounds</TabsTrigger>

@@ -108,7 +108,7 @@ export default function HowItWorksPage() {
 
       <section className="gutter mx-auto mt-24 max-w-[1200px]" aria-labelledby="money-flow">
         <p className="eyebrow">Where the money goes</p>
-        <h2 id="money-flow" className="mt-3 max-w-2xl text-3xl md:text-4xl">Pending for two days, then yours to withdraw.</h2>
+        <h2 id="money-flow" className="mt-3 max-w-2xl text-3xl md:text-4xl">Held for 3 hours, then yours to withdraw any time.</h2>
         <div className="mt-8 grid grid-cols-1 gap-4 md:grid-cols-3">
           {[
             ["Day 0", "Sale", "Shows on your dashboard as pending, with the fee split."],

@@ -53,7 +53,7 @@ export function NewSaleEmail(props: { brand: Brand; productTitle: string; buyer:
       <Section style={{ backgroundColor: t.emeraldSoft, borderRadius: t.radiusControl, padding: "16px 18px", margin: "8px 0 20px" }}>
         <Text style={{ ...eyebrow, margin: 0 }}>You keep</Text>
         <Text style={{ fontFamily: t.display, fontWeight: 800, fontSize: 28, color: t.brassStrong, margin: "4px 0 0" }}>{props.keep}</Text>
-        <Text style={{ ...muted, margin: "4px 0 0" }}>Available to withdraw in 2 days.</Text>
+        <Text style={{ ...muted, margin: "4px 0 0" }}>Available to withdraw in 3 hours.</Text>
       </Section>
       <Button href={props.orderUrl} style={button}>See the order</Button>
       <Text style={{ ...muted, marginTop: 20 }}>Today so far: {props.todayCount} sales, {props.todayTotal}.</Text>

@@ -3,6 +3,8 @@ import { commit, db } from "../mock/db";
 import type { Customer, Order, OrderStatus } from "../types";
 import { call, notFound } from "./client";
 import { ApiError } from "./client";
+import { isLive } from "../supabase/env";
+import * as live from "./live/orders";
 
 export interface OrderQuery {
   search?: string;
@@ -15,6 +17,7 @@ export interface OrderQuery {
 }
 
 export function getOrders(q: OrderQuery = {}): Promise<Order[]> {
+  if (isLive()) return live.getOrders(q);
   return call(() => {
     const s = q.search?.trim().toLowerCase();
     const disputed = q.disputed ? new Set(adminDb().disputes.filter((x) => x.status === "open" || x.status === "under_review").map((x) => x.orderNumber)) : undefined;
@@ -36,14 +39,17 @@ export function getOrders(q: OrderQuery = {}): Promise<Order[]> {
 
 /** Lightweight read for the live feed: short latency, no failure injection noise. */
 export function getRecentOrders(limit = 8): Promise<Order[]> {
+  if (isLive()) return live.getRecentOrders(limit);
   return call(() => db().orders.filter((o) => o.status !== "pending").slice(0, limit), { fast: true });
 }
 
 export function getOrder(id: string): Promise<Order> {
+  if (isLive()) return live.getOrder(id);
   return call(() => db().orders.find((o) => o.id === id || o.number === id) ?? notFound("Order"));
 }
 
 export function refundOrder(id: string, reason: string): Promise<Order> {
+  if (isLive()) return live.refundOrder();
   return call(() => {
     const d = db();
     const o = d.orders.find((x) => x.id === id) ?? notFound("Order");
@@ -65,6 +71,7 @@ export function refundOrder(id: string, reason: string): Promise<Order> {
 }
 
 export function resendReceipt(id: string): Promise<void> {
+  if (isLive()) return live.resendReceipt();
   return call(() => {
     if (!db().orders.some((x) => x.id === id)) notFound("Order");
   });
@@ -76,6 +83,7 @@ export interface CustomerQuery {
 }
 
 export function getCustomers(q: CustomerQuery = {}): Promise<Customer[]> {
+  if (isLive()) return live.getCustomers(q);
   return call(() => {
     const s = q.search?.trim().toLowerCase();
     return db()
@@ -89,6 +97,7 @@ export function getCustomers(q: CustomerQuery = {}): Promise<Customer[]> {
 }
 
 export function getCustomer(id: string): Promise<{ customer: Customer; orders: Order[] }> {
+  if (isLive()) return live.getCustomer(id);
   return call(() => {
     const d = db();
     const customer = d.customers.find((c) => c.id === id) ?? notFound("Customer");

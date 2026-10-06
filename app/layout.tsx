@@ -13,6 +13,7 @@ import {
 } from "next/font/google";
 import { ThemeSync } from "@/components/theme/theme-toggle";
 import { LiveSessionSync } from "@/components/auth/live-session-sync";
+import { HydrationMark } from "@/components/pp/hydration-mark";
 import { Toaster } from "@/components/ui/sonner";
 import { NO_FLASH_SCRIPT } from "@/lib/theme";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -82,6 +83,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <body>
         <ThemeSync />
         <LiveSessionSync />
+        <HydrationMark />
         <TooltipProvider delayDuration={200}>{children}</TooltipProvider>
         <Toaster position="bottom-center" />
       </body>

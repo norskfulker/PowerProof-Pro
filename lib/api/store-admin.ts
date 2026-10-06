@@ -122,6 +122,7 @@ export function saveCoupon(c: Omit<Coupon, "id" | "used"> & { id?: string }): Pr
 }
 
 export function saveBundle(b: Omit<Bundle, "id"> & { id?: string }): Promise<Offers> {
+  if (isLive()) return liveChange(live.saveBundle(b));
   return call(() => {
     if (b.name.trim().length < 2) throw new ApiError("Name the bundle.", "validation");
     if (b.productIds.length < 2 || b.productIds.length > 5) throw new ApiError("Bundles have 2 to 5 products.", "validation");
@@ -136,6 +137,7 @@ export function saveBundle(b: Omit<Bundle, "id"> & { id?: string }): Promise<Off
 }
 
 export function saveDeal(dl: Omit<Deal, "id"> & { id?: string }): Promise<Offers> {
+  if (isLive()) return live.saveDeal();
   return call(() => {
     if (Date.parse(dl.endsAt) <= Date.parse(dl.startsAt)) throw new ApiError("The deal has to end after it starts.", "validation");
     if (dl.percentOff < 1 || dl.percentOff > 90) throw new ApiError("Percent off must be between 1 and 90.", "validation");
@@ -150,6 +152,7 @@ export function saveDeal(dl: Omit<Deal, "id"> & { id?: string }): Promise<Offers
 
 export function deleteOffer(kind: "coupon" | "bundle" | "deal", id: string): Promise<Offers> {
   if (isLive() && kind === "coupon") return liveChange(live.deleteCoupon(id));
+  if (isLive() && kind === "bundle") return liveChange(live.deleteDealRule(id).then(() => live.getOffers()));
   return call(() => {
     commit((d) => {
       if (kind === "coupon") d.coupons = d.coupons.filter((x) => x.id !== id);

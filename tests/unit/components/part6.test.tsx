@@ -10,8 +10,10 @@ import { SaveBar } from "@/components/save/save-bar";
 import { UnsavedChangesProvider } from "@/components/save/unsaved-guard";
 import { sameValues, useDirtyForm } from "@/hooks/use-dirty-form";
 import type { ChecklistStep } from "@/lib/api";
-import { PLAN_COMPARISON } from "@/lib/plans";
+import { PLAN_LIMITS, planComparison } from "@/lib/plans";
 import type { TileBackground } from "@/lib/types";
+
+const PLAN_COMPARISON = planComparison(PLAN_LIMITS);
 
 function Harness({ onSave }: { onSave: (v: { name: string }) => Promise<void> }) {
   const [saved, setSaved] = useState({ name: "Inkwell" });

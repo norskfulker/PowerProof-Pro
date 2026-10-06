@@ -1,7 +1,9 @@
 "use client";
 
 import { Skeleton } from "@/components/ui/skeleton";
-import { ErrorState } from "@/components/pp/empty-state";
+import { Plug } from "lucide-react";
+import { EmptyState, ErrorState } from "@/components/pp/empty-state";
+import { isLive } from "@/lib/supabase/env";
 import { PageHeader } from "@/components/pp/page-header";
 import { IntegrationCard } from "@/components/integrations/integration-card";
 import { useApi } from "@/hooks/use-api";
@@ -9,6 +11,19 @@ import { getIntegrations } from "@/lib/api";
 
 /** The analytics integrations (Google Analytics, Microsoft Clarity). Shared by Tools and Store › Analytics tags. */
 export function IntegrationsList({ title = "Integrations", description = "Paste one ID and we add the tracking code to every store, product and checkout page. No code to touch." }: { title?: string; description?: string }) {
+  if (isLive()) {
+    // Saved IDs need a place in the database first; nothing is kept in the browser meanwhile
+    return (
+      <>
+        <PageHeader title={title} description={description} />
+        <EmptyState icon={Plug} title="Analytics integrations are coming soon." body="Google Analytics and Microsoft Clarity will connect here. Your store already works without them." />
+      </>
+    );
+  }
+  return <MockIntegrations title={title} description={description} />;
+}
+
+function MockIntegrations({ title, description }: { title: string; description: string }) {
   const { data, loading, error, reload, setData } = useApi(getIntegrations, []);
   return (
     <>

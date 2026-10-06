@@ -16,7 +16,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { useApi } from "@/hooks/use-api";
 import { useMediaUrl } from "@/hooks/use-media-url";
 import { EXAMPLE_PROMPTS, generateImage, getAiCredits, getAiHistory, getStore, reportAiImage, saveAiImage, transformImage, validatePrompt, type AiOp } from "@/lib/api";
-import { PLAN_LIMITS } from "@/lib/plans";
 import type { AiAspect, AiGeneration, AiImage, AiPurpose, AiStyle, AiTextLayer, MediaItem, MediaRef } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -207,9 +206,9 @@ export function AiImageMaker({ initialPurpose = "product_cover", onUse, compact 
           {credits && (
             <p className="text-xs text-muted-foreground" aria-live="polite">
               <span className="font-semibold text-foreground">{left} of {credits.limit} credits left this month.</span> Each generation or edit uses 1 credit; credits reset on the 1st.
-              {credits.limit === PLAN_LIMITS.free.aiCredits && (
+              {plan.limits && plan.state?.tier !== "pro" && (
                 <>
-                  {" "}Pro includes {PLAN_LIMITS.pro.aiCredits}.{" "}
+                  {" "}Pro includes {plan.limits.pro.aiCredits}.{" "}
                   <button type="button" className="inline-flex min-h-8 items-center font-semibold text-primary underline underline-offset-4 pointer-coarse:min-h-11" onClick={() => plan.upgrade("aiCredits")}>Upgrade</button>
                 </>
               )}

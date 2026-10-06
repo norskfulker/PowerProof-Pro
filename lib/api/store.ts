@@ -144,6 +144,8 @@ export function deleteSku(id: string): Promise<Sku[]> {
 /* Integrations ---------------------------------------------------------- */
 
 export function getIntegrations(): Promise<Integration[]> {
+  // Live: integrations are coming soon (no table yet), so there's nothing to list
+  if (isLive()) return Promise.resolve([]);
   return call(() => db().integrations);
 }
 

@@ -15,6 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ConfirmDialog } from "@/components/pp/confirm-dialog";
 import { CountdownTimer } from "@/components/pp/countdown-timer";
 import { EmptyState, ErrorState } from "@/components/pp/empty-state";
+import { isLive } from "@/lib/supabase/env";
 import { MoneyText } from "@/components/pp/money-text";
 import { couponLabel } from "@/components/pp/offer-card";
 import { PageHeader } from "@/components/pp/page-header";
@@ -140,6 +141,11 @@ export function OffersManager({ section, storeId, tabs = true }: { section: Offe
             )}
           </TabsContent>
           <TabsContent value="deals" className="flex flex-col gap-3 pt-4">
+            {isLive() ? (
+              // No table for timed store-wide sales yet; don't keep them in the browser
+              <EmptyState compact icon={Timer} title="Limited-time deals are coming soon." body="For now, make a deal path with an end date: it shows a countdown at checkout." />
+            ) : (
+            <>
             <Button className="self-start" onClick={() => start(newDeal())}><Plus aria-hidden /> New deal</Button>
             {data.deals.length === 0 ? <EmptyState compact icon={Timer} title="No deals yet." body="A deal with a countdown is the quickest way to wake up a quiet week." /> : (
               <ul className="flex flex-col gap-2">
@@ -153,6 +159,8 @@ export function OffersManager({ section, storeId, tabs = true }: { section: Offe
                   );
                 })}
               </ul>
+            )}
+            </>
             )}
           </TabsContent>
         </Tabs>

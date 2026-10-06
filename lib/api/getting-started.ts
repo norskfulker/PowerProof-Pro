@@ -146,7 +146,9 @@ function build(flags: ProgressFlags, f: Facts): Checklist {
   };
   const productsFull = f.productsFull;
 
-  const steps: ChecklistStep[] = DEF.map((def, i) => {
+  // Live: analytics integrations are coming soon, so that optional step isn't offered yet
+  const defs = isLive() ? DEF.filter((d) => d.id !== "analytics") : DEF;
+  const steps: ChecklistStep[] = defs.map((def, i) => {
     const [st, detail] = state(def.id);
     return { ...def, n: i + 1, state: st, detail, href: `${href[def.id]}${href[def.id].includes("?") ? "&" : "?"}coach=${def.id}`, needsUpgrade: def.id === "first_product" && st !== "done" && productsFull ? true : undefined };
   });

@@ -82,7 +82,7 @@ export function HeroSection({
         <div className="absolute inset-0 bg-primary/70" aria-hidden />
         <div className="relative mx-auto flex max-w-[1200px] flex-col items-start gap-5 px-4 py-20 md:px-6 md:py-28">
           <h1 className="max-w-3xl text-[2.5rem] leading-[1.05] md:text-6xl">{hero.headline}</h1>
-          <p className="max-w-xl text-lg text-primary-foreground/85">{hero.subtext}</p>
+          <p className="max-w-xl text-lg text-primary-foreground">{hero.subtext}</p>
           {cta}
         </div>
       </section>

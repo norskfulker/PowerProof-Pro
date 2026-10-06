@@ -56,7 +56,7 @@ export function StoreFooter({
       <div className="mx-auto flex max-w-[1200px] flex-col gap-2 border-t px-4 py-5 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between md:px-6">
         <p>© {new Date().getFullYear()} {store.name}. Prices include any GST that applies.</p>
         {theme && (
-          <div role="group" aria-label="Store theme" className="inline-flex items-center gap-1 rounded-full border bg-background p-0.5 sm:order-last">
+          <div role="group" aria-label="Store theme" className="inline-flex items-center gap-1 rounded-full border bg-background p-0.5 pointer-coarse:gap-2 sm:order-last">
             {(["light", "dark"] as const).map((m) => (
               <button
                 key={m}

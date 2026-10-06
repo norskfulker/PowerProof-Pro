@@ -30,7 +30,7 @@ const AFTER = [
   { icon: FileCheck2, title: "File delivered", body: "Download page on screen, link in their inbox. Instantly." },
   { icon: ReceiptText, title: "Invoice sent", body: "GST-ready, numbered, with your HSN/SAC code." },
   { icon: Bell, title: "You hear about it", body: "A sale alert on your phone and a new row on your dashboard." },
-  { icon: Zap, title: "Money moves", body: "Available to withdraw two days later." },
+  { icon: Zap, title: "Money moves", body: "Held 3 hours, then yours to withdraw any time." },
 ];
 
 const INDIA = [

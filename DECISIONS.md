@@ -278,3 +278,39 @@ Real auth and route guards, file storage and signed URLs, the gateway integratio
 2. **One-click domains:** which DNS hosts will we actually partner with? The UI only promises one click for those.
 3. **Locked menu items:** should Free creators be able to open Pro screens to look around (with the Upgrade prompt inside), rather than getting the dialog straight from the menu?
 
+# Backend: Supabase (stage 1)
+
+## How the app reaches the database
+
+- **Same `/lib/api`, real data.** Every function keeps its signature. With `NEXT_PUBLIC_SUPABASE_URL` and the anon key set, it calls Supabase (`lib/api/live/*`); without them, or with `NEXT_PUBLIC_BACKEND=mock`, it uses the in-browser demo data. Unit tests and the Playwright demo suite run on the mock (`npm run build:mock`); `npm run test:integration` runs against the project.
+- **Clients:** `lib/supabase/browser.ts` (anon key + session cookie), `server.ts` (same, for server code), `admin.ts` (service role). The service-role client imports `server-only`, ESLint blocks it in client code, and `tests/unit/security/service-role.test.ts` fails if the key is read anywhere else, imported by a client file, or found in the browser bundle.
+- **Route guard:** `proxy.ts` (Next 16's name for middleware) refreshes the session and sends signed-out visitors on creator and admin screens to `/login`; `/admin` also needs `app_metadata.role = "admin"`. RLS is still what protects the data.
+- **Plan limits** are read from `plan_limits` (pricing page, Upgrade dialog, comparison table, AI credits). Creates aren't pre-checked: the database refuses, and the Upgrade dialog opens on that error.
+
+## Field mapping
+
+- Product status `published` is `live` in the database. "Notion kit" is stored as `template` until the database has a `notion` type.
+- Generated covers (a template and colours, drawn in the browser) are kept in `product_media.url` as `cover:<json>`, so the gallery order survives. Real images are https URLs in `store-media`.
+- `stores.theme` holds the store design; `theme_mode` mirrors its light/dark default. About, FAQ (`{ items, contactNote }`) and policies (`{ text }`) live in `store_pages`; pages nobody has edited show the app's default text.
+- The company address is stored as six lines in `stores.company_address`: address 1, address 2, city, state, PIN code, country.
+- Coupons: percent values are basis points; a code covers the whole store or one product.
+- Deal paths: only **bundle discount** (percent off when every trigger product is in the cart) and **free gift** (unlocked by products, no minimum spend) exist in `deal_rules`. The other kinds say "coming soon". Bundles are bundle-discount deal paths.
+- Sales screens (orders, customers, dashboard, analytics) read orders, order lines and the ledger. Visits aren't tracked yet, so visitor, conversion and source figures show nothing instead of estimates.
+- Proceeds are held 3 hours, then withdrawable any time; all copy says so.
+
+## Not in the database yet (no browser storage added for them)
+
+- Coming soon on the live backend: team seats, analytics integrations, limited-time store-wide sales, imported testimonials, renaming library files.
+- The media library lists the store's Storage folder (`store-media/<store id>/media` and `/ai`).
+- Still in the browser until their migration lands: the visual page builder and sales pages, review pins, SKUs and tax codes, PAN and business type.
+
+## Accepted Supabase advisor findings
+
+Run the security advisors after every database change. These findings are expected:
+
+- **RLS enabled, no policy:** `download_tokens`, `webhook_events` (server-only on purpose).
+- **Callable without signing in (SECURITY DEFINER):** `store_is_public`, `product_is_public`, `validate_coupon`, `resolve_domain`.
+- **Callable by signed-in users (SECURITY DEFINER), each checking admin or ownership inside:** `admin_search`, `admin_reveal_buyer_phone`, `ai_credits_remaining`, `request_payout`, `is_store_owner`, `is_product_owner`, plus the four public helpers above.
+
+Anything else is new and needs a look before release.
+
