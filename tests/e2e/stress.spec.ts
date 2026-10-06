@@ -8,16 +8,16 @@ import { expectNoConsoleErrors, layoutIssues, prepare, report, settle } from "./
  */
 const STRESS_ROUTES = [
   "/dashboard",
-  "/products",
-  "/products/prod_01",
-  "/orders",
-  "/orders/ord_1078",
-  "/customers",
-  "/customers/cus_01",
-  "/analytics",
-  "/store/reviews",
-  "/store/offers",
-  "/store/collections",
+  "/catalog/products",
+  "/catalog/products/prod_01",
+  "/sales/orders",
+  "/sales/orders/ord_1078",
+  "/sales/customers",
+  "/sales/customers/cus_01",
+  "/sales/analytics",
+  "/store/store_ananya/reviews",
+  "/store/store_ananya/offers/coupons",
+  "/catalog/collections",
   "/s/ananya",
   "/s/ananya/products",
   "/s/ananya/second-brain-for-founders",
@@ -27,8 +27,8 @@ const STRESS_ROUTES = [
   "/s/ananya/contact",
   "/s/ananya/policies/refund",
   "/s/ananya/p/about-ananya",
-  "/store/offers/deal-paths",
-  "/store/pages",
+  "/store/store_ananya/offers/deal-paths",
+  "/store/store_ananya/design/pages",
   "/invoice/ord_1081",
   "/admin/orders",
   "/admin/creators",
@@ -68,14 +68,14 @@ test("100% off coupon gives a zero total and skips payment @stress", async ({ pa
 
 test("slow network shows skeletons @stress", async ({ page }, testInfo) => {
   await prepare(page, testInfo, { slow: true });
-  await page.goto("/orders");
+  await page.goto("/sales/orders");
   await expect(page.locator('[data-slot="skeleton"]').filter({ visible: true }).first()).toBeVisible();
   await settle(page);
 });
 
 test("failed request shows an error with retry @stress", async ({ page }, testInfo) => {
   await prepare(page, testInfo, { fail: true });
-  await page.goto("/orders");
+  await page.goto("/sales/orders");
   await expect(page.getByRole("alert").filter({ hasText: /didn't load|couldn't/i }).first()).toBeVisible();
   const issues = await layoutIssues(page);
   expect(issues, report(issues)).toEqual([]);

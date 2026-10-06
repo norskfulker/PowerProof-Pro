@@ -15,6 +15,8 @@ export interface StoreSeed {
   palette: PaletteId;
   fonts: FontPairId;
   heroStyle: HeroStyle;
+  /** The store's default theme; Grid & Grain is dark so dark stores are always in the demo */
+  mode?: "light" | "dark" | "auto";
   colors: { bg: string; fg: string; accent: string }[];
   products: ProductRow[];
   /** [name, description, product indexes] */
@@ -88,6 +90,7 @@ export const GRIDGRAIN: StoreSeed = {
   tagline: "Design templates that look expensive and take an afternoon.",
   logoText: "GG",
   palette: "graphite",
+  mode: "dark",
   fonts: "clean",
   heroStyle: "full",
   colors: [

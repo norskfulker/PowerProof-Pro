@@ -32,6 +32,8 @@ export interface ProductFile {
   /** Bytes */
   size: number;
   mime: string;
+  /** Where the file sits in private storage (`<store id>/…`). Set once uploaded to the backend. */
+  path?: string;
 }
 
 export interface Product {

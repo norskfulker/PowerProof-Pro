@@ -19,7 +19,7 @@ export function TemplatesGallery() {
 
   return (
     <>
-      <div role="group" aria-label="Filter templates" className="-mx-4 mb-6 flex gap-2 overflow-x-auto px-4 pb-1">
+      <div role="group" aria-label="Filter templates" className="-mx-[16px] mb-6 flex gap-2 overflow-x-auto px-[16px] pb-1">
         {FILTERS.map((f) => (
           <button
             key={f}

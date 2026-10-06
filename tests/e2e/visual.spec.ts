@@ -14,11 +14,11 @@ const SCREENS: [name: string, path: string][] = [
   ["checkout", "/checkout/ord_1080"],
   ["store-page", "/s/ananya/p/about-ananya"],
   ["dashboard", "/dashboard"],
-  ["deal-paths", "/store/offers/deal-paths"],
-  ["deal-wizard", "/store/offers/deal-paths/new"],
-  ["store-pages", "/store/pages"],
-  ["page-editor", "/store/pages/vp_ananya_diwali-sale/edit"],
-  ["admin-search", "/admin/search?q=%40ananya"],
+  ["deal-paths", "/store/store_ananya/offers/deal-paths"],
+  ["deal-wizard", "/store/store_ananya/offers/deal-paths/new"],
+  ["store-pages", "/store/store_ananya/design/pages"],
+  ["page-editor", "/store/store_ananya/design/pages/vp_ananya_diwali-sale/edit"],
+  ["admin-search", "/admin/system/search?q=%40ananya"],
 ];
 
 for (const [name, path] of SCREENS) {

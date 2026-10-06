@@ -1,9 +1,11 @@
 "use client";
 
+import { readableOn } from "@/lib/color";
+import { ThemeRadioItems, ThemeToggle } from "@/components/theme/theme-toggle";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
-import { Check, ChevronsUpDown, ExternalLink, FlaskConical, ListChecks, Loader2, LogOut, Plus, Settings, Shield } from "lucide-react";
+import { Check, ChevronsUpDown, ExternalLink, FlaskConical, SunMoon, ListChecks, Loader2, LogOut, Plus, Settings, Shield } from "lucide-react";
 import { useGettingStarted } from "@/components/getting-started/getting-started-provider";
 import { usePlan } from "@/components/plan/plan-context";
 import { useUnsavedGuard } from "@/components/save/unsaved-guard";
@@ -26,6 +28,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useApi } from "@/hooks/use-api";
+import { isLive } from "@/lib/supabase/env";
 import { createOwnedStore, getDemoState, getOwnedStores, getStore, loadSampleData, loadStressData, logout, setDemoState, startEmptyStore, switchStore } from "@/lib/api";
 import { initials } from "@/lib/format";
 import { GlobalSearch } from "@/components/search/global-search";
@@ -82,6 +85,7 @@ function NewStoreDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (
 
 function StoreSwitcher() {
   const router = useRouter();
+  const pathname = usePathname();
   const plan = usePlan();
   const unsaved = useUnsavedGuard();
   const { data: store } = useApi(getStore, [], { live: true });
@@ -92,7 +96,7 @@ function StoreSwitcher() {
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" className="max-w-56 min-w-0 shrink gap-2.5 px-2" aria-label={`Store: ${store?.name ?? "loading"}. Switch store`}>
-            <span className="grid size-7 shrink-0 place-items-center rounded-[8px] font-mono text-[0.6875rem] font-semibold text-white" style={{ background: store?.brandColor ?? "var(--primary)" }}>
+            <span className="grid size-7 shrink-0 place-items-center rounded-[8px] font-mono text-[0.6875rem] font-semibold" style={{ background: store?.brandColor ?? "var(--primary)", color: store?.brandColor ? readableOn(store.brandColor) : "var(--primary-foreground)" }}>
               {store?.logoText ?? "··"}
             </span>
             <span className="truncate max-sm:hidden">{store?.name ?? "Loading…"}</span>
@@ -109,7 +113,10 @@ function StoreSwitcher() {
                 unsaved.confirmLeave(async () => {
                   await switchStore(s.id);
                   toast.success(`Switched to ${s.name}`);
-                  router.refresh();
+                  // On a store screen, stay on the same screen for the other store
+                  const m = pathname.match(/^\/store\/[^/]+(\/.*)?$/);
+                  if (m) router.push(`/store/${s.id}${m[1] ?? ""}`);
+                  else router.refresh();
                 })
               }
             >
@@ -173,49 +180,60 @@ function AccountMenu() {
         </DropdownMenuItem>
         <DropdownMenuSub>
           <DropdownMenuSubTrigger>
-            <FlaskConical aria-hidden /> Demo data
+            <SunMoon aria-hidden /> Theme
           </DropdownMenuSubTrigger>
-          <DropdownMenuSubContent className="w-60">
-            <DropdownMenuLabel className="eyebrow">Currently: {demo?.mode === "fresh" ? "empty store" : demo?.mode === "stress" ? "stress data" : "sample data"}</DropdownMenuLabel>
-            <DropdownMenuItem
-              onSelect={() => {
-                loadSampleData();
-                toast.success("Sample data loaded");
-                router.refresh();
-              }}
-            >
-              Load sample data
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onSelect={() => {
-                startEmptyStore();
-                toast.success("Store emptied", { description: "See every empty state." });
-              }}
-            >
-              Start with an empty store
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onSelect={() => {
-                loadStressData();
-                toast.success("Stress data loaded", { description: "Long names, 500 products, 5000 reviews." });
-                router.refresh();
-              }}
-            >
-              Load stress data
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuCheckboxItem
-              checked={demo?.fail ?? false}
-              onCheckedChange={(v) => {
-                setDemoState({ fail: !!v });
-                setDemo(getDemoState());
-                toast(v ? "Errors on. Reload a page to see error states." : "Errors off.");
-              }}
-            >
-              Simulate errors
-            </DropdownMenuCheckboxItem>
+          <DropdownMenuSubContent className="w-44">
+            <ThemeRadioItems />
           </DropdownMenuSubContent>
         </DropdownMenuSub>
+        {/* Demo data only exists on the mock backend */}
+        {!isLive() && (
+          <DropdownMenuSub>
+            <DropdownMenuSubTrigger>
+              <FlaskConical aria-hidden /> Demo data
+            </DropdownMenuSubTrigger>
+            <DropdownMenuSubContent className="w-60">
+              <DropdownMenuLabel className="eyebrow">Currently: {demo?.mode === "fresh" ? "empty store" : demo?.mode === "stress" ? "stress data" : "sample data"}</DropdownMenuLabel>
+              <DropdownMenuItem
+                onSelect={() => {
+                  loadSampleData();
+                  toast.success("Sample data loaded");
+                  router.refresh();
+                }}
+              >
+                Load sample data
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onSelect={() => {
+                  startEmptyStore();
+                  toast.success("Store emptied", { description: "See every empty state." });
+                }}
+              >
+                Start with an empty store
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onSelect={() => {
+                  loadStressData();
+                  toast.success("Stress data loaded", { description: "Long names, 500 products, 5000 reviews." });
+                  router.refresh();
+                }}
+              >
+                Load stress data
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuCheckboxItem
+                checked={demo?.fail ?? false}
+                onCheckedChange={(v) => {
+                  setDemoState({ fail: !!v });
+                  setDemo(getDemoState());
+                  toast(v ? "Errors on. Reload a page to see error states." : "Errors off.");
+                }}
+              >
+                Simulate errors
+              </DropdownMenuCheckboxItem>
+            </DropdownMenuSubContent>
+          </DropdownMenuSub>
+        )}
         <DropdownMenuSeparator />
         <DropdownMenuItem
           onSelect={async () => {
@@ -241,6 +259,7 @@ export function Topbar({ admin }: { admin?: boolean }) {
       <div className="flex flex-1 justify-end md:justify-center">
         <GlobalSearch scope={admin ? "admin" : "creator"} />
       </div>
+      <ThemeToggle className="max-sm:hidden" />
       {!admin && <Notifications />}
       <AccountMenu />
     </header>

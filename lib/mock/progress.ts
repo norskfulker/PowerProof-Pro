@@ -60,6 +60,14 @@ export function writeProgress(patch: Partial<ProgressFlags> | ((p: ProgressFlags
   } catch {
     /* storage blocked: progress is recomputed from data next time */
   }
+  saver?.(next);
+}
+
+let saver: ((flags: ProgressFlags) => void) | undefined;
+
+/** With a backend, every change is also saved to the account (profiles.onboarding). */
+export function onProgressSaved(fn: (flags: ProgressFlags) => void) {
+  saver = fn;
 }
 
 /** For accounts created before the tracker existed (the sample store), start fully set up. */

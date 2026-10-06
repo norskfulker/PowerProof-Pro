@@ -8,7 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AuthCard } from "@/components/auth/auth-card";
-import { verifyEmail } from "@/lib/api";
+import { resendVerification, verifyEmail } from "@/lib/api";
+import { isLive } from "@/lib/supabase/env";
 
 function VerifyForm() {
   const router = useRouter();
@@ -34,7 +35,7 @@ function VerifyForm() {
     setPending(true);
     setError(undefined);
     try {
-      await verifyEmail(code);
+      await verifyEmail(code, params.get("email") ?? undefined);
       toast.success("Email confirmed");
       const t = params.get("template");
       router.push(t ? `/onboarding?template=${t}` : "/onboarding");
@@ -70,7 +71,9 @@ function VerifyForm() {
           {error ? (
             <p id="code-error" className="text-sm font-medium text-danger">{error}</p>
           ) : (
-            <p id="code-help" className="text-sm text-muted-foreground">Demo: any 6 digits work. 000000 shows the expired message.</p>
+            <p id="code-help" className="text-sm text-muted-foreground">
+              {isLive() ? "Or open the link in the same email." : "Demo: any 6 digits work. 000000 shows the expired message."}
+            </p>
           )}
         </div>
         <Button type="submit" size="lg" disabled={pending}>
@@ -81,9 +84,14 @@ function VerifyForm() {
           type="button"
           variant="ghost"
           disabled={wait > 0}
-          onClick={() => {
+          onClick={async () => {
             setWait(30);
-            toast.success("New code sent");
+            try {
+              await resendVerification(params.get("email") ?? "");
+              toast.success("New code sent");
+            } catch (err) {
+              setError(err instanceof Error ? err.message : "Something went wrong.");
+            }
           }}
         >
           {wait > 0 ? `Send a new code in ${wait}s` : "Send a new code"}

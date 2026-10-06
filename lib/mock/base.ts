@@ -29,6 +29,7 @@ import type {
   Review,
   StoreDesign,
   StorePages,
+  StoreDomains,
 } from "../types";
 import { buildDesign, defaultPages } from "./storefront-seed";
 import { TAX_CODES } from "./catalog";
@@ -58,6 +59,8 @@ export interface StoreScope {
   reviews: Review[];
   questions: Question[];
   subscribers: string[];
+  /** Free subdomain and an optional custom domain (Part 7B) */
+  domains?: StoreDomains;
 }
 
 /** Shape of the mock database, plus the pieces shared by the seeded and the fresh store. */
@@ -90,7 +93,7 @@ export interface Db extends StoreScope {
   ledger: { opening: number; since: ISODate };
 }
 
-export const DB_VERSION = 8;
+export const DB_VERSION = 10;
 /** Money settles two days after payment (T+2). */
 export const SETTLE_MS = 2 * 24 * 60 * 60 * 1000;
 
@@ -224,7 +227,7 @@ export function freshDb(now: number, store: Partial<Store>, otherStores: StoreSc
     plan: basePlan(now, now, "free"),
     billing: [],
     notifications: [
-      { id: "n_welcome", kind: "system", title: "Your store is set up", body: "Add a product and share your link. That's the whole job.", createdAt: iso(now), read: false, href: "/products/new" },
+      { id: "n_welcome", kind: "system", title: "Your store is set up", body: "Add a product and share your link. That's the whole job.", createdAt: iso(now), read: false, href: "/catalog/products/new" },
     ],
     ledger: { opening: 0, since: iso(now) },
   };

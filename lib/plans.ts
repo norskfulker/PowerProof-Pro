@@ -11,11 +11,17 @@ export interface PlanLimits {
   products: number | null;
   /** AI image credits per calendar month; one generation of 4 variations costs 1 credit */
   aiCredits: number;
+  /** Connect your own domain (Part 7B) */
+  customDomain: boolean;
 }
 
+/**
+ * Demo values for the mock backend. With Supabase, limits come from the plan_limits table
+ * (the same numbers the database enforces): see getPlanLimits() and fetchPlanLimits().
+ */
 export const PLAN_LIMITS: Record<PlanTier, PlanLimits> = {
-  free: { stores: 1, products: 1, aiCredits: 10 },
-  pro: { stores: null, products: null, aiCredits: 200 },
+  free: { stores: 1, products: 1, aiCredits: 10, customDomain: false },
+  pro: { stores: null, products: null, aiCredits: 200, customDomain: true },
 };
 
 /** What each AI action costs, in credits */
@@ -33,20 +39,29 @@ export const PRO_TRIAL_DAYS = 30;
 
 export const PLAN_NAMES: Record<PlanTier, string> = { free: "Free", pro: "Pro" };
 
+export type AllPlanLimits = Record<PlanTier, PlanLimits>;
+
+const count = (n: number | null) => (n === null ? "Unlimited" : String(n));
+
 /** Rows for the Free vs Pro comparison table on /pricing and /settings/billing */
-export const PLAN_COMPARISON: { feature: string; free: string; pro: string }[] = [
-  { feature: "Price", free: "$0", pro: `$${PRO_PRICE_USD} a month, first month free` },
-  { feature: "Fee per sale", free: "3% (the gateway adds about 2%)", pro: "3% (the gateway adds about 2%)" },
-  { feature: "Stores", free: "1", pro: "Unlimited" },
-  { feature: "Products", free: "1", pro: "Unlimited" },
-  { feature: "AI image credits each month", free: String(PLAN_LIMITS.free.aiCredits), pro: String(PLAN_LIMITS.pro.aiCredits) },
-  { feature: "Visual pages, deal paths, coupons", free: "Included", pro: "Included" },
-  { feature: "Payouts to your bank, two days after each sale", free: "Included", pro: "Included" },
-  { feature: "GST invoices for every order", free: "Included", pro: "Included" },
-];
+export function planComparison(l: AllPlanLimits): { feature: string; free: string; pro: string }[] {
+  return [
+    { feature: "Price", free: "$0", pro: `$${PRO_PRICE_USD} a month, first month free` },
+    { feature: "Fee per sale", free: "3% (the gateway adds about 2%)", pro: "3% (the gateway adds about 2%)" },
+    { feature: "Stores", free: count(l.free.stores), pro: count(l.pro.stores) },
+    { feature: "Products", free: count(l.free.products), pro: count(l.pro.products) },
+    { feature: "Your own domain (shop.yourname.in)", free: l.free.customDomain ? "Included, with free SSL" : "yourname.powerproof.store", pro: l.pro.customDomain ? "Included, with free SSL" : "yourname.powerproof.store" },
+    { feature: "AI image credits each month", free: String(l.free.aiCredits), pro: String(l.pro.aiCredits) },
+    { feature: "Visual pages, deal paths, coupons", free: "Included", pro: "Included" },
+    { feature: "Payouts to your bank: each sale is held 3 hours, then yours to withdraw any time", free: "Included", pro: "Included" },
+    { feature: "GST invoices for every order", free: "Included", pro: "Included" },
+  ];
+}
 
 /** Plain-words list for the Upgrade dialog */
-export const PRO_BENEFITS = ["Unlimited stores and products", `${PLAN_LIMITS.pro.aiCredits} AI image credits a month`, "Same 3% fee per sale, nothing hidden", "Cancel any time from Settings"];
+export function proBenefits(l: AllPlanLimits): string[] {
+  return ["Unlimited stores and products", "Connect your own domain, with free SSL", `${l.pro.aiCredits} AI image credits a month`, "Same 3% fee per sale, nothing hidden", "Cancel any time from Settings"];
+}
 
 export function limitFor(tier: PlanTier, kind: "stores" | "products"): number | null {
   return PLAN_LIMITS[tier][kind];

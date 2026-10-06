@@ -36,6 +36,11 @@ const MAP: Record<string, [string, Tone]> = {
   invited: ["Invited", "info"],
   connected: ["Connected", "success"],
   not_connected: ["Not connected", "neutral"],
+  // custom domains
+  waiting_dns: ["Waiting for DNS", "warning"],
+  verifying: ["Verifying", "info"],
+  issuing_ssl: ["Issuing SSL", "info"],
+  needs_attention: ["Needs attention", "danger"],
   coming_soon: ["Coming soon", "brass"],
   low: ["Low", "success"],
   medium: ["Medium", "warning"],

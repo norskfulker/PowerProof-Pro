@@ -30,7 +30,7 @@ export function StepItem({ step, isNext, onSkip, onUnskip, onGo }: { step: Check
   const Icon = step.state === "done" ? Check : step.state === "in_progress" ? CircleDot : step.state === "skipped" ? CircleDashed : Circle;
   return (
     <li className={cn("flex items-start gap-3 rounded-control px-2 py-2.5", isNext && "bg-primary-soft")}>
-      <span className={cn("mt-0.5 grid size-6 shrink-0 place-items-center rounded-full", step.state === "done" ? "bg-success text-white" : step.state === "in_progress" ? "text-primary" : "text-muted-foreground")} aria-hidden>
+      <span className={cn("mt-0.5 grid size-6 shrink-0 place-items-center rounded-full", step.state === "done" ? "bg-success text-primary-foreground" : step.state === "in_progress" ? "text-primary" : "text-muted-foreground")} aria-hidden>
         <Icon className="size-4" />
       </span>
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">

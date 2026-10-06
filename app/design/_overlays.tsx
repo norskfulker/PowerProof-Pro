@@ -131,7 +131,7 @@ export function Overlays() {
             <Accordion type="single" collapsible>
               <AccordionItem value="a">
                 <AccordionTrigger>When do I get paid?</AccordionTrigger>
-                <AccordionContent>Two days after each sale, the money becomes available to withdraw.</AccordionContent>
+                <AccordionContent>Each sale is held for 3 hours, then the money is yours to withdraw any time.</AccordionContent>
               </AccordionItem>
               <AccordionItem value="b">
                 <AccordionTrigger>Do buyers need an account?</AccordionTrigger>

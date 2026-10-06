@@ -22,7 +22,7 @@ vi.mock("../media/store", async (orig) => {
 
 import { commit, db, resetDb } from "../mock/db";
 import { readProgress } from "../mock/progress";
-import { withinLimit, PLAN_LIMITS, PLAN_COMPARISON } from "../plans";
+import { withinLimit, PLAN_LIMITS, planComparison } from "../plans";
 import { createOwnedStore, getOwnedStores, getPlanState, getStoreInfo, LimitError, setPlanTier, switchStore, updateStorePage } from "./account";
 import { generateImage, getAiCredits, saveAiImage, transformImage, validatePrompt } from "./ai";
 import { login, logout, signup, verifyEmail } from "./auth";
@@ -30,6 +30,8 @@ import { dismissChecklist, getChecklist, markLinkShared, skipStep } from "./gett
 import { getMediaLibrary } from "./media";
 import { createProduct } from "./products";
 import type { ProductInput } from "../types";
+
+const PLAN_COMPARISON = planComparison(PLAN_LIMITS);
 
 const input = (title: string): ProductInput => ({
   title,

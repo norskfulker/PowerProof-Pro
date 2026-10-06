@@ -25,7 +25,7 @@ const step = (n: number, title: string, state: ChecklistStep["state"], optional 
   why: "Something to sell. Upload a file, paste a link or build a page.",
   optional,
   state,
-  href: "/products/new",
+  href: "/catalog/products/new",
   coach: "new-product",
   coachText: "Start here.",
 });

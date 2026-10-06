@@ -7,7 +7,6 @@ import { MediaUploader } from "@/components/media/media-uploader";
 import { ErrorState } from "@/components/pp/empty-state";
 import { PageHeader } from "@/components/pp/page-header";
 import { SaveBar } from "@/components/save/save-bar";
-import { StoreBadge } from "@/components/store-admin/store-badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -149,7 +148,6 @@ export function StoreInfoEditor({ storeId, page }: { storeId: string; page: Stor
         <Skeleton className="h-96 rounded-card" />
       ) : (
         <>
-          <StoreBadge storeName={data.store.name} />
           <nav aria-label="Store pages" className="mb-6 flex gap-2 overflow-x-auto pb-1">
             {KEYS.map((k) => (
               <Link

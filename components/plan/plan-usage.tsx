@@ -3,7 +3,7 @@
 import { Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { PLAN_COMPARISON } from "@/lib/plans";
+import { planComparison, type AllPlanLimits } from "@/lib/plans";
 import { cn } from "@/lib/utils";
 import { usePlan } from "./plan-context";
 
@@ -47,7 +47,9 @@ export function PlanUsage({ tone = "light", className }: { tone?: "light" | "car
 }
 
 /** Free vs Pro, for /pricing and /settings/billing. */
-export function PlanComparisonTable({ current }: { current?: "free" | "pro" }) {
+export function PlanComparisonTable({ current, limits }: { current?: "free" | "pro"; limits?: AllPlanLimits }) {
+  const ctx = usePlan();
+  const l = limits ?? ctx.limits;
   return (
     <Table className="min-w-[30rem]">
       <TableHeader>
@@ -58,7 +60,7 @@ export function PlanComparisonTable({ current }: { current?: "free" | "pro" }) {
         </TableRow>
       </TableHeader>
       <TableBody>
-        {PLAN_COMPARISON.map((r) => (
+        {(l ? planComparison(l) : []).map((r) => (
           <TableRow key={r.feature}>
             <TableHead scope="row" className="font-medium text-foreground">{r.feature}</TableHead>
             <TableCell>{r.free}</TableCell>

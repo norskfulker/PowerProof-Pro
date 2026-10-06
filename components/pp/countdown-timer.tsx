@@ -28,9 +28,10 @@ export function CountdownTimer({ endsAt, className, compact, onDark }: { endsAt:
   return (
     <span className={cn("inline-flex items-center gap-1", className)} role="timer" aria-label={label}>
       {units.map(([v, u]) => (
-        <span key={u} className={cn("flex min-w-11 flex-col items-center rounded-control px-2 py-1", onDark ? "bg-primary-foreground/15" : "bg-surface")}>
+        <span key={u} className={cn("flex min-w-11 flex-col items-center rounded-control px-2 py-1", onDark ? "border border-primary-foreground/30" : "bg-surface")}>
           <span className="font-mono text-lg font-semibold tabular">{String(v).padStart(2, "0")}</span>
-          <span className="font-mono text-[0.625rem] uppercase opacity-80">{u}</span>
+          {/* On a coloured banner a tint or faded text can drop below 4.5:1 on mid-tone palettes */}
+          <span className={cn("font-mono text-[0.625rem] uppercase", !onDark && "opacity-80")}>{u}</span>
         </span>
       ))}
     </span>

@@ -45,7 +45,7 @@ export function ProductComponents() {
       <Section id="brand" title="Logo">
         <div className="flex flex-wrap items-center gap-6">
           <Logo href={null} />
-          <span className="rounded-card bg-primary p-4"><Logo href={null} inverted /></span>
+          <span className="rounded-card bg-sidebar-admin p-4"><Logo href={null} inverted /></span>
           <Logo href={null} compact />
         </div>
       </Section>
@@ -148,7 +148,7 @@ export function ProductComponents() {
       <Section id="editors" title="Editors" description="HtmlPasteEditor wires any data-pp-buy button. The image maker lives at /images.">
         <HtmlPasteEditor value={html} onChange={setHtml} productNames={{ demo: "Second Brain for Founders" }} />
         <Button asChild variant="secondary" className="mt-4">
-          <Link href="/images">Open AI images</Link>
+          <Link href="/tools/ai-images">Open AI images</Link>
         </Button>
       </Section>
     </>

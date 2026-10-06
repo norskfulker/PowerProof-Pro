@@ -1,5 +1,6 @@
 "use client";
 
+import { SettingsTabs } from "@/components/settings/settings-tabs";
 import { CreditCard, Download, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -21,7 +22,11 @@ export default function BillingPage() {
   const trial = plan.status === "trial";
 
   return (
-    <div className="flex flex-col gap-6">
+    <>
+    <SettingsTabs
+      label="Billing"
+      tabs={[
+        { id: "plan", label: "Plan", content: (
       <SettingsSection title="Plan">
         <div className="flex flex-col gap-6 md:flex-row md:items-start">
           <div className="flex-1">
@@ -45,7 +50,8 @@ export default function BillingPage() {
           )}
         </div>
       </SettingsSection>
-
+        ) },
+        { id: "usage", label: "Usage and limits", content: (
       <SettingsSection
         title="Usage and limits"
         description={planCtx.state?.tier === "free" ? "Free includes one store and one product. You'll be asked before anything stops." : "Pro has no limits on stores or products."}
@@ -64,7 +70,8 @@ export default function BillingPage() {
           </div>
         </div>
       </SettingsSection>
-
+        ) },
+        { id: "payment", label: "Payment method", content: (
       <SettingsSection title="Payment method" description="Cards are handled by the payment gateway's secure page. PowerProof never sees the number.">
         <div className="flex flex-wrap items-center gap-4">
           <span className="grid size-11 place-items-center rounded-control bg-primary-soft text-primary"><CreditCard className="size-5" aria-hidden /></span>
@@ -80,7 +87,8 @@ export default function BillingPage() {
           </Button>
         </div>
       </SettingsSection>
-
+        ) },
+        { id: "invoices", label: "Invoices", content: (
       <SettingsSection title="PowerProof invoices" description="Subscription plus platform fees, one invoice a month. GST invoice if you've added your GSTIN.">
         <div className="overflow-hidden rounded-card border">
           <Table aria-label="Billing invoices">
@@ -103,6 +111,10 @@ export default function BillingPage() {
           </Table>
         </div>
       </SettingsSection>
-    </div>
+        ) },
+      ]}
+    />
+
+    </>
   );
 }

@@ -52,7 +52,7 @@ export function LiveFeed() {
             <span className="relative inline-flex size-2 rounded-full bg-success" />
           </span>
         </h2>
-        <Link href="/orders" className="inline-flex pointer-coarse:min-h-11 items-center text-sm font-medium text-primary underline-offset-4 hover:underline">
+        <Link href="/sales/orders" className="inline-flex pointer-coarse:min-h-11 items-center text-sm font-medium text-primary underline-offset-4 hover:underline">
           All orders
         </Link>
       </header>
@@ -77,7 +77,7 @@ export function LiveFeed() {
           {data?.map((o) => (
             <li key={o.id}>
               <Link
-                href={`/orders/${o.id}`}
+                href={`/sales/orders/${o.id}`}
                 className={cn(
                   "flex items-center gap-3 px-5 py-3.5 transition-colors duration-700 hover:bg-muted",
                   fresh.has(o.id) && "bg-accent-soft"

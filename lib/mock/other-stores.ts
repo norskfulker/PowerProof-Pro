@@ -80,6 +80,7 @@ export function buildOtherStore(seed: StoreSeed, now: number, seedNum: number): 
       palette: seed.palette,
       fonts: seed.fonts,
       heroStyle: seed.heroStyle,
+      mode: seed.mode,
       hero: seed.hero,
       heroProductIds: products.slice(0, 3).map((p) => p.id),
       story: seed.story,

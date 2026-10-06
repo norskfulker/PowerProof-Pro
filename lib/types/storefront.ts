@@ -34,6 +34,8 @@ export interface StoreTheme {
   accent?: string;
   fonts: FontPairId;
   heroStyle: HeroStyle;
+  /** The store's default look (Part 7A). Auto follows the visitor's device. Buyers can switch. */
+  mode?: "light" | "dark" | "auto";
 }
 
 export interface HeroContent {

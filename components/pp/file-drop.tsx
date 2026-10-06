@@ -6,11 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { formatBytes } from "@/lib/money";
 import type { ProductFile } from "@/lib/types";
+import { PRODUCT_FILE_MAX_BYTES, uploadProductFile } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
-const MAX_BYTES = 2 * 1024 * 1024 * 1024; // 2 GB
-
-/** Drag-and-drop file picker. Uploads are simulated with a progress bar. */
+/** Drag-and-drop file picker for the files buyers receive, with upload progress. */
 export function FileDrop({
   files,
   onChange,
@@ -34,32 +33,27 @@ export function FileDrop({
   const [uploading, setUploading] = useState<{ name: string; pct: number } | null>(null);
   const [error, setError] = useState<string>();
 
-  function take(list: FileList | null) {
+  async function take(list: FileList | null) {
     if (!list?.length) return;
     const picked = Array.from(list).slice(0, multiple ? 10 : 1);
-    const big = picked.find((f) => f.size > MAX_BYTES);
+    const big = picked.find((f) => f.size > PRODUCT_FILE_MAX_BYTES);
     if (big) {
-      setError(`${big.name} is over 2 GB. Zip it smaller or split it into parts.`);
+      setError(`${big.name} is over ${formatBytes(PRODUCT_FILE_MAX_BYTES)}. Zip it smaller or split it into parts.`);
       return;
     }
     setError(undefined);
-    const next: ProductFile[] = picked.map((f) => ({
-      id: `f_${Math.random().toString(36).slice(2, 9)}`,
-      name: f.name,
-      size: f.size,
-      mime: f.type || "application/octet-stream",
-    }));
-    // Simulated upload progress
-    let pct = 0;
-    setUploading({ name: next[0].name, pct });
-    const t = setInterval(() => {
-      pct += 18 + Math.random() * 20;
-      if (pct >= 100) {
-        clearInterval(t);
-        setUploading(null);
-        onChange(multiple ? [...files, ...next] : next);
-      } else setUploading({ name: next[0].name, pct });
-    }, 160);
+    const done: ProductFile[] = [];
+    try {
+      for (const f of picked) {
+        setUploading({ name: f.name, pct: 0 });
+        done.push(await uploadProductFile(f, { onProgress: (pct) => setUploading({ name: f.name, pct }) }));
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "The upload didn't finish. Try again.");
+    } finally {
+      setUploading(null);
+      if (done.length) onChange(multiple ? [...files, ...done] : done.slice(-1));
+    }
   }
 
   return (
@@ -84,7 +78,7 @@ export function FileDrop({
       >
         <UploadCloud className="size-7 text-primary" aria-hidden />
         <span className="font-semibold">{label}</span>
-        <span className="text-sm text-muted-foreground">or tap to choose · PDF, ZIP, video, anything up to 2 GB</span>
+        <span className="text-sm text-muted-foreground">{`or tap to choose · PDF, ZIP, video, anything up to ${formatBytes(PRODUCT_FILE_MAX_BYTES)}`}</span>
         <input
           ref={input}
           id={id}

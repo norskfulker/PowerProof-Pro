@@ -3,6 +3,8 @@ import { readProgress, writeProgress, type ProgressFlags } from "../mock/progres
 import { PLAN_LIMITS } from "../plans";
 import { ApiError, call } from "./client";
 import { ownedScopes } from "./scope";
+import { isLive } from "../supabase/env";
+import { liveFacts } from "./live/progress";
 
 /**
  * Getting-started tracker (Part 6G). Steps are worked out from real data wherever possible
@@ -57,18 +59,51 @@ const DEF: Omit<ChecklistStep, "state" | "href" | "detail" | "n">[] = [
   { id: "analytics", title: "Connect analytics", why: "See where buyers come from. Optional.", optional: true, coach: "integration-google-analytics", coachText: "Paste your Google Analytics ID to start tracking." },
 ];
 
-function build(flags: ProgressFlags): Checklist {
+/** What the data says about the account; the flags cover the rest. */
+interface Facts {
+  storeName: string;
+  onboarded: boolean;
+  anyProduct: boolean;
+  draftOnly: boolean;
+  paid: boolean;
+  analytics: boolean;
+  businessFields: number;
+  payout: boolean;
+  productsFull: boolean;
+  email: string;
+}
+
+function mockFacts(): Facts {
   const d = db();
   const all = ownedScopes();
-  const s = d.store;
   const company = d.company;
   const anyProduct = all.some((x) => x.products.length > 0);
-  const draftOnly = anyProduct && !all.some((x) => x.products.some((p) => p.status === "published"));
-  const paid = all.some((x) => x.orders.some((o) => o.status === "paid" || o.status === "refund_requested" || o.status === "refunded"));
-  const analytics = d.integrations.some((i) => i.connected);
+  const tier = d.plan.tier ?? "pro";
+  return {
+    storeName: d.store.name,
+    onboarded: d.store.onboarded,
+    anyProduct,
+    draftOnly: anyProduct && !all.some((x) => x.products.some((p) => p.status === "published")),
+    paid: all.some((x) => x.orders.some((o) => o.status === "paid" || o.status === "refund_requested" || o.status === "refunded")),
+    analytics: d.integrations.some((i) => i.connected),
+    businessFields: [company.legalName, company.address1, company.city, company.pincode].filter((v) => v?.trim()).length,
+    payout: d.payoutMethods.length > 0,
+    productsFull: PLAN_LIMITS[tier].products !== null && all.reduce((t, x) => t + x.products.length, 0) >= (PLAN_LIMITS[tier].products ?? Infinity),
+    email: getSessionRaw()?.email ?? d.store.ownerEmail,
+  };
+}
+
+async function facts(): Promise<Facts> {
+  if (!isLive()) return mockFacts();
+  const f = await liveFacts();
+  // Analytics IDs are a browser-only feature for now
+  return { ...f, analytics: db().integrations.some((i) => i.connected) };
+}
+
+function build(flags: ProgressFlags, f: Facts): Checklist {
+  const { anyProduct, draftOnly, paid, analytics, businessFields } = f;
   const c = flags.customized;
   const custom = [c.hero, c.colors, c.about].filter(Boolean).length;
-  const businessFields = [company.legalName, company.address1, company.city, company.pincode].filter((v) => v?.trim()).length;
 
   const state = (id: StepId): [StepState, string?] => {
     if (flags.skipped.includes(id)) return ["skipped"];
@@ -76,17 +111,17 @@ function build(flags: ProgressFlags): Checklist {
       case "verify_email":
         return [flags.emailVerified ? "done" : "not_started"];
       case "create_store":
-        return [flags.storeConfirmed || s.onboarded ? "done" : s.name ? "in_progress" : "not_started"];
+        return [flags.storeConfirmed || f.onboarded ? "done" : f.storeName ? "in_progress" : "not_started"];
       case "business":
         return [businessFields >= 3 ? "done" : businessFields > 0 ? "in_progress" : "not_started"];
       case "payout":
-        return [d.payoutMethods.length > 0 ? "done" : "not_started"];
+        return [f.payout ? "done" : "not_started"];
       case "first_product":
         return [anyProduct ? "done" : "not_started", draftOnly ? "Saved as a draft" : undefined];
       case "customize":
         return [custom === 3 ? "done" : custom > 0 ? "in_progress" : "not_started", `${custom} of 3: hero, colours, About`];
       case "publish":
-        return [s.onboarded ? "done" : "not_started"];
+        return [f.onboarded ? "done" : "not_started"];
       case "share":
         return [flags.shared ? "done" : "not_started"];
       case "first_sale":
@@ -96,23 +131,24 @@ function build(flags: ProgressFlags): Checklist {
     }
   };
 
-  const email = getSessionRaw()?.email ?? s.ownerEmail;
+  const email = f.email;
   const href: Record<StepId, string> = {
     verify_email: `/verify-email?email=${encodeURIComponent(email)}`,
-    create_store: "/settings/store",
+    create_store: "/store/current/settings",
     business: "/settings/company",
-    payout: "/payouts",
-    first_product: "/products/new",
-    customize: "/store/design",
-    publish: "/store/design",
+    payout: "/sales/payouts/methods",
+    first_product: "/catalog/products/new",
+    customize: "/store/current/design/backgrounds",
+    publish: "/store/current/design/theme",
     share: "/dashboard",
     first_sale: "/dashboard",
-    analytics: "/integrations",
+    analytics: "/tools/integrations",
   };
-  const tier = d.plan.tier ?? "pro";
-  const productsFull = PLAN_LIMITS[tier].products !== null && all.reduce((t, x) => t + x.products.length, 0) >= (PLAN_LIMITS[tier].products ?? Infinity);
+  const productsFull = f.productsFull;
 
-  const steps: ChecklistStep[] = DEF.map((def, i) => {
+  // Live: analytics integrations are coming soon, so that optional step isn't offered yet
+  const defs = isLive() ? DEF.filter((d) => d.id !== "analytics") : DEF;
+  const steps: ChecklistStep[] = defs.map((def, i) => {
     const [st, detail] = state(def.id);
     return { ...def, n: i + 1, state: st, detail, href: `${href[def.id]}${href[def.id].includes("?") ? "&" : "?"}coach=${def.id}`, needsUpgrade: def.id === "first_product" && st !== "done" && productsFull ? true : undefined };
   });
@@ -131,7 +167,7 @@ function build(flags: ProgressFlags): Checklist {
 }
 
 export function getChecklist(): Promise<Checklist> {
-  return call(() => build(readProgress()), { fast: true });
+  return call(async () => build(readProgress(), await facts()), { fast: true });
 }
 
 /** Records something the data can't show by itself, then tells every screen to refresh. */
@@ -141,20 +177,21 @@ export function recordProgress(patch: Partial<ProgressFlags> | ((p: ProgressFlag
 }
 
 export function skipStep(id: StepId, skip = true): Promise<Checklist> {
-  return call(() => {
+  return call(async () => {
     const def = DEF.find((x) => x.id === id);
     if (!def?.optional) throw new ApiError("Only optional steps can be skipped.", "validation");
     recordProgress((p) => ({ skipped: skip ? [...new Set([...p.skipped, id])] : p.skipped.filter((x) => x !== id) }));
-    return build(readProgress());
+    return build(readProgress(), await facts());
   }, { fast: true });
 }
 
 export function dismissChecklist(dismissed = true): Promise<Checklist> {
-  return call(() => {
-    const now = build(readProgress());
+  return call(async () => {
+    const f = await facts();
+    const now = build(readProgress(), f);
     if (dismissed && !now.complete) throw new ApiError("Finish the required steps first. Optional ones can be skipped.", "conflict");
     recordProgress({ dismissed });
-    return build(readProgress());
+    return build(readProgress(), f);
   }, { fast: true });
 }
 

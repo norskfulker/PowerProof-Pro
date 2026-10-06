@@ -15,3 +15,4 @@ export * from "./storefront";
 export * from "./search";
 export * from "./deals";
 export * from "./media";
+export * from "./domain";

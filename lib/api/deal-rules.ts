@@ -5,6 +5,9 @@ import { dealRuleSchema, type DealRuleInput } from "../pricing/deal-rule-schema"
 import { isRuleLive } from "../pricing/deals";
 import type { DealRule } from "../types";
 import { ApiError, call, notFound } from "./client";
+import { isLive } from "../supabase/env";
+import { liveChange } from "./live/notify";
+import * as live from "./live/catalog";
 
 /** Creator side of deal paths (Part 4B): the creator's own store only. */
 
@@ -18,14 +21,17 @@ export function dealRuleStatus(r: DealRule, now = Date.now()): DealRuleStatus {
 }
 
 export function getDealRules(): Promise<DealRule[]> {
+  if (isLive()) return live.getDealRules();
   return call(() => db().dealRules);
 }
 
 export function getDealRule(id: string): Promise<DealRule> {
+  if (isLive()) return live.getDealRule(id);
   return call(() => db().dealRules.find((r) => r.id === id) ?? notFound("Deal path"));
 }
 
 export function saveDealRule(input: DealRuleInput): Promise<DealRule> {
+  if (isLive()) return liveChange(live.saveDealRule(input));
   return call(() => {
     const parsed = dealRuleSchema.safeParse(input);
     if (!parsed.success) throw new ApiError(parsed.error.issues[0].message, "validation");
@@ -53,6 +59,7 @@ export function saveDealRule(input: DealRuleInput): Promise<DealRule> {
 }
 
 export function setDealRuleActive(id: string, active: boolean): Promise<DealRule> {
+  if (isLive()) return liveChange(live.setDealRuleActive(id, active));
   return call(() => {
     const r = db().dealRules.find((x) => x.id === id) ?? notFound("Deal path");
     commit(() => (r.active = active));
@@ -61,6 +68,7 @@ export function setDealRuleActive(id: string, active: boolean): Promise<DealRule
 }
 
 export function deleteDealRule(id: string): Promise<void> {
+  if (isLive()) return liveChange(live.deleteDealRule(id));
   return call(() => {
     commit((d) => (d.dealRules = d.dealRules.filter((r) => r.id !== id)));
   });

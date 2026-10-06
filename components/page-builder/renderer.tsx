@@ -128,7 +128,7 @@ function MediaImage({ src, alt, className, fit = "cover", focal, decorative }: {
   }
   if (!media.url) return <div className={cn("animate-pulse bg-muted", className)} aria-hidden />;
   // eslint-disable-next-line @next/next/no-img-element
-  return <img src={media.url} alt={decorative ? "" : alt} loading="lazy" className={cn("h-full w-full", fit === "cover" ? "object-cover" : "object-contain", className)} style={focal ? { objectPosition: `${focal.x}% ${focal.y}%` } : undefined} />;
+  return <img src={media.url} alt={decorative ? "" : alt} loading="lazy" className={cn("dim-media h-full w-full", fit === "cover" ? "object-cover" : "object-contain", className)} style={focal ? { objectPosition: `${focal.x}% ${focal.y}%` } : undefined} />;
 }
 
 function BackgroundLayer({ bg, overlay, overlayColor }: { bg: Background; overlay: number; overlayColor: string }) {
@@ -141,7 +141,7 @@ function BackgroundLayer({ bg, overlay, overlayColor }: { bg: Background; overla
         <>
           {/* Poster on phones and with reduced motion; the video only plays on wider screens */}
           <MediaImage src={bg.poster} alt="" decorative focal={bg.focal} className="absolute inset-0" />
-          {video.url && <video src={video.url} poster={undefined} autoPlay muted loop playsInline className="absolute inset-0 hidden h-full w-full object-cover motion-safe:@3xl/page:block" style={{ objectPosition: focal }} />}
+          {video.url && <video src={video.url} poster={undefined} autoPlay muted loop playsInline className="dim-media absolute inset-0 hidden h-full w-full object-cover motion-safe:@3xl/page:block" style={{ objectPosition: focal }} />}
         </>
       ) : (
         <MediaImage src={bg.src} alt="" decorative focal={bg.focal} className="absolute inset-0 rounded-none" />
@@ -461,7 +461,7 @@ function Block({ node }: { node: PageNode }) {
       );
     case "spacer":
       return (
-        <Frame node={node} className={cn("w-full", SPACER[(node.props as BlockProps<"spacer">).size], env.mode === "edit" && "bg-[repeating-linear-gradient(45deg,transparent,transparent_6px,rgb(0_0_0/0.04)_6px,rgb(0_0_0/0.04)_12px)]")}>
+        <Frame node={node} className={cn("w-full", SPACER[(node.props as BlockProps<"spacer">).size], env.mode === "edit" && "bg-[repeating-linear-gradient(45deg,transparent,transparent_6px,var(--muted)_6px,var(--muted)_12px)]")}>
           <span className="sr-only">Space</span>
         </Frame>
       );

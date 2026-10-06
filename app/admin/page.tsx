@@ -21,9 +21,9 @@ export default function AdminOverviewPage() {
   if (stats.error) return <ErrorState message={stats.error} onRetry={stats.reload} />;
 
   const needs = [
-    { href: "/admin/disputes", label: "Open disputes", value: s?.openDisputes, note: "Gateway deadlines apply" },
-    { href: "/admin/payouts", label: "Payouts to check", value: s?.queuedPayouts, note: "Queued or on hold" },
-    { href: "/admin/flags", label: "Flagged content", value: s?.openFlags, note: "Waiting for a decision" },
+    { href: "/admin/orders/disputed", label: "Open disputes", value: s?.openDisputes, note: "Gateway deadlines apply" },
+    { href: "/admin/money/payouts", label: "Payouts to check", value: s?.queuedPayouts, note: "Queued or on hold" },
+    { href: "/admin/moderation/flags", label: "Flagged content", value: s?.openFlags, note: "Waiting for a decision" },
   ];
 
   return (

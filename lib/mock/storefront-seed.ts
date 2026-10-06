@@ -28,6 +28,7 @@ export function buildDesign(o: {
   palette: PaletteId;
   fonts: FontPairId;
   heroStyle: HeroStyle;
+  mode?: "light" | "dark" | "auto";
   hero: { headline: string; subtext: string; cta: string };
   heroProductIds: string[];
   story: string;
@@ -38,7 +39,7 @@ export function buildDesign(o: {
   const { store } = o;
   return {
     sections: DEFAULT_SECTIONS.map((id) => ({ id, enabled: true })),
-    theme: { palette: o.palette, fonts: o.fonts, heroStyle: o.heroStyle },
+    theme: { palette: o.palette, fonts: o.fonts, heroStyle: o.heroStyle, mode: o.mode ?? "auto" },
     hero: { headline: o.hero.headline, subtext: o.hero.subtext, ctaLabel: o.hero.cta, ctaTarget: "products", imageProductIds: o.heroProductIds },
     announcement: { text: "Festive sale: 20% off everything", code: "FESTIVE20", endsAt: o.dealEndsAt },
     about: { name: store.ownerName, initials: store.ownerName.split(" ").map((w) => w[0]).join("").slice(0, 2), story: o.story, location: o.city },
@@ -121,7 +122,8 @@ export function buildReviews(products: Product[], now: number, seed: number, key
       reply: i % 4 === 0 ? { body: rating >= 4 ? "Thank you, this made my day. Tell me what you build with it!" : "Sorry it wasn't a fit. I've refunded you and noted the feedback.", createdAt: iso(now - r.int(0, 10) * DAY) } : undefined,
       pinned: i < 2,
       hidden: false,
-      reported: false,
+      // A couple per store wait in the admin's review moderation queue
+      reported: i === 7 || i === 13,
     };
   });
 }

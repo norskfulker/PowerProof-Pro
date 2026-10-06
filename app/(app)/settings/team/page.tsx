@@ -1,7 +1,9 @@
 "use client";
 
+import { SettingsTabs } from "@/components/settings/settings-tabs";
 import { useState } from "react";
-import { Loader2, UserMinus } from "lucide-react";
+import { Loader2, UserMinus, Users } from "lucide-react";
+import { EmptyState } from "@/components/pp/empty-state";
 import { toast } from "sonner";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -13,6 +15,7 @@ import { StatusPill } from "@/components/pp/status-pill";
 import { SettingsLoading, SettingsSection } from "@/components/settings/settings-section";
 import { useApi } from "@/hooks/use-api";
 import { getTeam, inviteMember, removeMember } from "@/lib/api";
+import { isLive } from "@/lib/supabase/env";
 import { initials } from "@/lib/format";
 import type { TeamMember } from "@/lib/types";
 
@@ -23,6 +26,18 @@ const ROLES: Record<TeamMember["role"], string> = {
 };
 
 export default function TeamPage() {
+  if (isLive()) {
+    // Team seats need accounts and roles on the server first; nothing is kept in the browser meanwhile
+    return (
+      <SettingsSection title="Team" description="Invite people to help with orders, support and design.">
+        <EmptyState icon={Users} title="Team seats are coming soon." body="For now, only you can sign in to your stores." />
+      </SettingsSection>
+    );
+  }
+  return <MockTeam />;
+}
+
+function MockTeam() {
   const { data, error, reload, setData } = useApi(getTeam, []);
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<TeamMember["role"]>("support");
@@ -49,7 +64,32 @@ export default function TeamPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    <>
+    <SettingsTabs
+      label="Team"
+      tabs={[
+        { id: "members", label: "Members", content: (
+      <SettingsSection title="Team" description={`${data.length} ${data.length === 1 ? "person" : "people"}`}>
+        <ul className="divide-y">
+          {data.map((m) => (
+            <li key={m.id} className="flex flex-wrap items-center gap-3 py-3">
+              <Avatar className="size-10"><AvatarFallback className="bg-primary-soft text-sm font-semibold text-primary">{initials(m.name)}</AvatarFallback></Avatar>
+              <span className="min-w-0 flex-1 basis-40">
+                <span className="block font-medium">{m.name}</span>
+                <span className="block truncate text-sm text-muted-foreground">{m.email} · {ROLES[m.role]}</span>
+              </span>
+              {m.status === "invited" && <StatusPill status="invited" />}
+              {m.role !== "owner" ? (
+                <Button variant="ghost" size="sm" onClick={() => setToRemove(m)}><UserMinus aria-hidden /> Remove</Button>
+              ) : (
+                <StatusPill status="owner" label="Owner" tone="brass" />
+              )}
+            </li>
+          ))}
+        </ul>
+      </SettingsSection>
+        ) },
+        { id: "invite", label: "Invite", content: (
       <SettingsSection title="Invite someone" description="An assistant, a designer, your CA. They get their own login; you keep control.">
         <form onSubmit={invite} noValidate className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_220px_auto] sm:items-end">
           <div className="flex flex-col gap-1.5">
@@ -70,25 +110,10 @@ export default function TeamPage() {
           {formError && <p id="inv-err" role="alert" className="text-sm font-medium text-danger sm:col-span-3">{formError}</p>}
         </form>
       </SettingsSection>
-      <SettingsSection title="Team" description={`${data.length} ${data.length === 1 ? "person" : "people"}`}>
-        <ul className="divide-y">
-          {data.map((m) => (
-            <li key={m.id} className="flex flex-wrap items-center gap-3 py-3">
-              <Avatar className="size-10"><AvatarFallback className="bg-primary-soft text-sm font-semibold text-primary">{initials(m.name)}</AvatarFallback></Avatar>
-              <span className="min-w-0 flex-1 basis-40">
-                <span className="block font-medium">{m.name}</span>
-                <span className="block truncate text-sm text-muted-foreground">{m.email} · {ROLES[m.role]}</span>
-              </span>
-              {m.status === "invited" && <StatusPill status="invited" />}
-              {m.role !== "owner" ? (
-                <Button variant="ghost" size="sm" onClick={() => setToRemove(m)}><UserMinus aria-hidden /> Remove</Button>
-              ) : (
-                <StatusPill status="owner" label="Owner" tone="brass" />
-              )}
-            </li>
-          ))}
-        </ul>
-      </SettingsSection>
+        ) },
+      ]}
+    />
+
       <ConfirmDialog
         open={!!toRemove}
         onOpenChange={(o) => !o && setToRemove(null)}
@@ -101,6 +126,6 @@ export default function TeamPage() {
           toast.success("Removed from the team");
         }}
       />
-    </div>
+    </>
   );
 }

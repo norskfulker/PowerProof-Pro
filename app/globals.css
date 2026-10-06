@@ -1,13 +1,17 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
-/* Dark mode hook for later: set data-theme="dark" on <html> and redefine tokens there. */
+/* Dark mode (Part 7A): <html data-theme="dark">, or any wrapper with data-theme for a scoped preview. */
 @custom-variant dark (&:is([data-theme="dark"] *));
 
 /* ------------------------------------------------------------------ */
 /* PowerProof tokens. Components read these, never raw hex values.     */
+/* Light is the default; [data-theme="light"] re-declares it so a light */
+/* island (emails, invoices, a preview) works inside a dark page.       */
 /* ------------------------------------------------------------------ */
-:root {
+:root,
+[data-theme="light"] {
+  color-scheme: light;
   /* Surfaces */
   --background: #f5f6f4; /* porcelain */
   --surface: #ffffff;
@@ -17,7 +21,7 @@
   --muted-foreground: #5b6b66;
   --border: #e3e6e1;
   --border-strong: #c9d0cb;
-  --input: #8f9b95; /* 3:1 against white for form boundaries */
+  --input: #85918b; /* 3:1 against white and porcelain for form boundaries */
 
   /* Brand */
   --primary: #0f3d33; /* emerald */
@@ -44,6 +48,7 @@
 
   /* Admin shell */
   --sidebar-admin: #0a2b24;
+  --sidebar-admin-foreground: #f5f6f4;
 
   /* Charts */
   --chart-1: #0f3d33;
@@ -55,6 +60,80 @@
   /* Motion */
   --dur-fast: 150ms;
   --dur-base: 200ms;
+  --shadow-pop: 0 12px 32px -12px rgb(12 31 27 / 0.22), 0 2px 6px rgb(12 31 27 / 0.06);
+  --media-dim: 1;
+
+  /* Always-dark panels (code editor, video placeholders) and the dialog scrim */
+  --inverse: #0c1f1b;
+  --inverse-foreground: #f5f6f4;
+  --scrim: rgb(12 31 27 / 0.4);
+
+  /* Toasts: ink on light pages */
+  --toast-bg: #0c1f1b;
+  --toast-fg: #f5f6f4;
+  --toast-muted: #b9c4c0;
+  --toast-border: #0c1f1b;
+}
+
+/* Dark theme (Part 7A). Same tokens, dark values. Every pair is checked for AA in
+   lib/theme/contrast.test.ts. Scoped wrappers can force a theme with data-theme too. */
+:root[data-theme="dark"],
+[data-theme="dark"] {
+  color-scheme: dark;
+  --background: #0a1412;
+  --surface: #101d1a;
+  --surface-sunken: #0d1816;
+  --foreground: #eaf0ed;
+  --muted: #16261f;
+  --muted-foreground: #93a39d;
+  --border: #1f322d;
+  --border-strong: #2e4740;
+  --input: #5e726b;
+
+  /* Emerald lifted so it reads as text on dark surfaces and buttons stay legible */
+  --primary: #3aa584;
+  --primary-hover: #45b590;
+  --primary-foreground: #06100d;
+  --primary-soft: #12302a;
+  --accent: #c9a24f;
+  --accent-strong: #d8b465;
+  --accent-ink: #d9b45e;
+  --accent-foreground: #0c1f1b;
+  --accent-soft: #2a2414;
+
+  --success: #4cc38a;
+  --success-soft: #18342a;
+  --warning: #e0a84a;
+  --warning-ink: #e6b65e;
+  --warning-soft: #2d3021;
+  --danger: #f07468;
+  --danger-foreground: #1a0503;
+  --danger-soft: #2f2925;
+  --info: #5fb0d6;
+  --info-soft: #1b3234;
+
+  --sidebar-admin: #071310;
+  --sidebar-admin-foreground: #eaf0ed;
+
+  --chart-1: #3aa584;
+  --chart-2: #c9a24f;
+  --chart-3: #7fc4ad;
+  --chart-4: #5fb0d6;
+  --chart-5: #4a615a;
+
+  /* Shadows become borders in dark */
+  --shadow-pop: 0 0 0 1px var(--border-strong);
+  --media-dim: 0.88;
+
+  --inverse: #050c0a;
+  --inverse-foreground: #eaf0ed;
+  --scrim: rgb(0 0 0 / 0.6);
+
+  /* Toasts: a raised surface on dark pages */
+  --toast-bg: #1a2c27;
+  --toast-fg: #eaf0ed;
+  --toast-muted: #a9b8b2;
+  --toast-border: #2e4740;
 }
 
 @theme inline {
@@ -97,6 +176,10 @@
   --color-info: var(--info);
   --color-info-soft: var(--info-soft);
   --color-sidebar-admin: var(--sidebar-admin);
+  --color-sidebar-admin-foreground: var(--sidebar-admin-foreground);
+  --color-inverse: var(--inverse);
+  --color-inverse-foreground: var(--inverse-foreground);
+  --color-scrim: var(--scrim);
 
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
@@ -224,6 +307,20 @@
       padding-inline: 24px;
     }
   }
+}
+
+/* Paper is white: printed pages (invoices) never use the dark theme */
+@media print {
+  html,
+  body {
+    background: #ffffff !important;
+    color: #0c1f1b !important;
+  }
+}
+
+/* Photos and video posters dim a little in dark mode so they don't glare (covers stay as made) */
+.dim-media {
+  filter: brightness(var(--media-dim, 1));
 }
 
 @media (prefers-reduced-motion: reduce) {

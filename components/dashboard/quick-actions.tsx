@@ -14,7 +14,7 @@ const tile =
 export function QuickActions({ store }: { store?: Store }) {
   return (
     <nav aria-label="Quick actions" className="grid grid-cols-3 gap-3">
-      <GuardedLink kind="products" href="/products/new" className={tile}>
+      <GuardedLink kind="products" href="/catalog/products/new" className={tile}>
         <span className="grid size-9 place-items-center rounded-control bg-primary text-primary-foreground">
           <Plus className="size-4" aria-hidden />
         </span>
@@ -34,7 +34,7 @@ export function QuickActions({ store }: { store?: Store }) {
         </span>
         <span className="text-sm font-semibold">Copy store link</span>
       </button>
-      <Link href="/payouts?withdraw=1" className={tile}>
+      <Link href="/sales/payouts/balance?withdraw=1" className={tile}>
         <span className="flex items-center justify-between">
           <span className="grid size-9 place-items-center rounded-control bg-accent-soft text-accent-ink">
             <Wallet className="size-4" aria-hidden />

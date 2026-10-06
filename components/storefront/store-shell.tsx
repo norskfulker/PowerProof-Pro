@@ -8,21 +8,41 @@ import { StoreNavbar } from "@/components/pp/store-navbar";
 import { StoreThemeScope } from "@/components/pp/store-theme";
 import { BuyerStatus } from "@/components/buyer/buyer-states";
 import { useApi } from "@/hooks/use-api";
-import { getStorefront } from "@/lib/api";
+import { useTheme } from "@/components/theme/theme-toggle";
+import { getBuyerStoreTheme, getStorefront, setBuyerStoreTheme } from "@/lib/api";
+import { resolveStoreMode } from "@/lib/store-themes";
 import type { StoreDesign } from "@/lib/types";
 import { StorefrontProvider, useStorefront } from "./storefront-context";
 
 function Chrome({ children }: { children: React.ReactNode }) {
-  const { view, currency, setCurrency } = useStorefront();
+  const { view, currency, setCurrency, preview } = useStorefront();
   const { store, design } = view;
+  const site = useTheme().mode;
+  const [buyer, setBuyer] = useState<"light" | "dark" | undefined>(() => getBuyerStoreTheme(store.id));
+  // The design preview shows what the creator picked, not this browser's buyer choice
+  const mode = resolveStoreMode(design.theme, site, preview ? undefined : buyer);
   const announcementOn = design.sections.find((s) => s.id === "announcement")?.enabled;
   return (
-    <StoreThemeScope theme={design.theme} className="flex min-h-dvh flex-col">
+    <StoreThemeScope theme={design.theme} mode={mode} className="flex min-h-dvh flex-col">
       <SkipLink />
       {announcementOn && <AnnouncementBar announcement={design.announcement} />}
       <StoreNavbar store={store} collections={view.collections} currency={currency} onCurrency={setCurrency} />
       <main id="main" className="flex-1">{children}</main>
-      <StoreFooter store={store} socials={design.socials} showPoweredBy={design.showPoweredBy} pages={view.extraPages} />
+      <StoreFooter
+        store={store}
+        socials={design.socials}
+        showPoweredBy={design.showPoweredBy}
+        pages={view.extraPages}
+        theme={{
+          mode,
+          onChange: (m) => {
+            // Picking what the store would show anyway clears the override
+            const next = m === resolveStoreMode(design.theme, site) ? undefined : m;
+            setBuyerStoreTheme(store.id, next);
+            setBuyer(next);
+          },
+        }}
+      />
     </StoreThemeScope>
   );
 }

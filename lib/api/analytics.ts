@@ -3,6 +3,8 @@ import { db } from "../mock/db";
 import { DAY } from "../mock/random";
 import type { Order, RangeKey, SeriesPoint, Summary, TrafficSource } from "../types";
 import { call } from "./client";
+import { isLive } from "../supabase/env";
+import * as live from "./live/orders";
 
 const RANGE_DAYS: Record<RangeKey, number> = { today: 1, "7d": 7, "30d": 30, "90d": 90 };
 
@@ -23,7 +25,16 @@ function startOfToday(now: number) {
 
 export function buildSummary(range: RangeKey, now = Date.now()): Summary {
   const d = db();
-  const fresh = d.mode === "fresh";
+  return summarize(d.orders, range, now, { fresh: d.mode === "fresh", visitors: true });
+}
+
+/**
+ * The dashboard numbers from a list of orders. `visitors: false` (the live backend, which doesn't
+ * track visits yet) reports no visitor, conversion or source figures rather than estimating them.
+ */
+export function summarize(orders: Order[], range: RangeKey, now: number, opts: { fresh: boolean; visitors: boolean }): Summary {
+  const { fresh } = opts;
+  const d = { orders };
   const days = RANGE_DAYS[range];
   const start = range === "today" ? startOfToday(now) : now - days * DAY;
   const prevStart = start - (now - start);
@@ -52,7 +63,7 @@ export function buildSummary(range: RangeKey, now = Date.now()): Summary {
       label,
       revenue: os.reduce((t, o) => t + o.total.amount, 0) / 100,
       orders: os.length,
-      visitors: visitorsFor(Math.floor(a / 3600000), os.length, fresh) * (range === "today" ? 1 : range === "90d" ? 7 : range === "30d" ? 2 : 1),
+      visitors: opts.visitors ? visitorsFor(Math.floor(a / 3600000), os.length, fresh) * (range === "today" ? 1 : range === "90d" ? 7 : range === "30d" ? 2 : 1) : 0,
     });
   }
 
@@ -83,6 +94,21 @@ export function buildSummary(range: RangeKey, now = Date.now()): Summary {
     .sort((a, b) => b[1] - a[1])
     .map(([source, n]) => ({ source, visitors: Math.round((n / totalSrc) * visitors), share: (n / totalSrc) * 100 }));
 
+  if (!opts.visitors) {
+    return {
+      range,
+      revenue: money(revenue),
+      sales: inRange.length,
+      visitors: 0,
+      conversion: 0,
+      deltas: { revenue: pct(revenue, prevRevenue, 100), sales: pct(inRange.length, prev.length, 100), visitors: 0, conversion: 0 },
+      series,
+      topProducts,
+      sources: [],
+      funnel: [{ label: "Paid", value: inRange.length }],
+    };
+  }
+
   const productViews = Math.round(visitors * 0.48);
   const checkouts = Math.max(inRange.length, Math.round(visitors * 0.07));
 
@@ -111,5 +137,6 @@ export function buildSummary(range: RangeKey, now = Date.now()): Summary {
 }
 
 export function getSummary(range: RangeKey): Promise<Summary> {
+  if (isLive()) return live.getOrders().then((orders) => summarize(orders, range, Date.now(), { fresh: false, visitors: false }));
   return call(() => buildSummary(range));
 }

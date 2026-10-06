@@ -1,9 +1,13 @@
 import { fromMajor, money } from "../money";
 import { commit, db } from "../mock/db";
 import { slugify, uid } from "../mock/random";
-import type { LinkAutofill, Product, ProductInput, ProductKind, ProductStatus } from "../types";
+import type { LinkAutofill, Product, ProductFile, ProductInput, ProductKind, ProductStatus } from "../types";
+import { PRODUCT_FILE_MAX, uploadToStorage } from "./live/upload";
 import { assertWithinLimit } from "./account";
 import { call, notFound } from "./client";
+import { isLive } from "../supabase/env";
+import { liveChange } from "./live/notify";
+import * as live from "./live/catalog";
 
 export interface ProductQuery {
   search?: string;
@@ -12,6 +16,7 @@ export interface ProductQuery {
 }
 
 export function getProducts(q: ProductQuery = {}): Promise<Product[]> {
+  if (isLive()) return live.getProducts(q);
   return call(() => {
     const s = q.search?.trim().toLowerCase();
     return db().products.filter(
@@ -24,10 +29,12 @@ export function getProducts(q: ProductQuery = {}): Promise<Product[]> {
 }
 
 export function getProduct(id: string): Promise<Product> {
+  if (isLive()) return live.getProduct(id);
   return call(() => db().products.find((p) => p.id === id) ?? notFound("Product"));
 }
 
 export function createProduct(input: ProductInput): Promise<Product> {
+  if (isLive()) return liveChange(live.createProduct(input));
   return call(() => {
     assertWithinLimit("products");
     const now = new Date().toISOString();
@@ -53,6 +60,7 @@ export function createProduct(input: ProductInput): Promise<Product> {
 }
 
 export function updateProduct(id: string, patch: Partial<ProductInput>): Promise<Product> {
+  if (isLive()) return liveChange(live.updateProduct(id, patch));
   return call(() => {
     const d = db();
     const p = d.products.find((x) => x.id === id) ?? notFound("Product");
@@ -66,6 +74,7 @@ export function updateProduct(id: string, patch: Partial<ProductInput>): Promise
 }
 
 export function deleteProduct(id: string): Promise<void> {
+  if (isLive()) return liveChange(live.deleteProduct(id));
   return call(() => {
     commit((d) => {
       d.products = d.products.filter((p) => p.id !== id);
@@ -75,6 +84,7 @@ export function deleteProduct(id: string): Promise<void> {
 }
 
 export function duplicateProduct(id: string): Promise<Product> {
+  if (isLive()) return liveChange(live.duplicateProduct(id));
   return call(() => {
     assertWithinLimit("products");
     const src = db().products.find((p) => p.id === id) ?? notFound("Product");
@@ -91,6 +101,32 @@ export function duplicateProduct(id: string): Promise<Product> {
     commit((d) => d.products.unshift(copy));
     return copy;
   });
+}
+
+/* ---------------------------------------------------------------- */
+/* Product files                                                     */
+/* ---------------------------------------------------------------- */
+
+/** Largest file a buyer can be sent: the private bucket's limit live, 2 GB in the demo. */
+export const PRODUCT_FILE_MAX_BYTES = isLive() ? PRODUCT_FILE_MAX : 2 * 1024 * 1024 * 1024;
+
+/**
+ * Uploads a file buyers will receive. Live, it goes to private storage in the store's folder and
+ * is attached to the product when the product is saved; buyers only ever get short-lived links.
+ */
+export async function uploadProductFile(file: File, opts: { onProgress?: (pct: number) => void; signal?: AbortSignal } = {}): Promise<ProductFile> {
+  const base = { id: `f_${Math.random().toString(36).slice(2, 9)}`, name: file.name, size: file.size, mime: file.type || "application/octet-stream" };
+  if (isLive()) {
+    const { path } = await uploadToStorage("product-files", "files", file, opts);
+    return { ...base, path };
+  }
+  // Demo: simulated progress, nothing leaves the browser
+  for (let pct = 0; pct < 100; ) {
+    await new Promise((r) => setTimeout(r, 160));
+    pct = Math.min(100, pct + 18 + Math.random() * 20);
+    opts.onProgress?.(Math.round(pct));
+  }
+  return base;
 }
 
 /* ---------------------------------------------------------------- */

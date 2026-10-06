@@ -11,7 +11,11 @@ import {
   Noto_Sans_Telugu,
   Space_Grotesk,
 } from "next/font/google";
+import { ThemeSync } from "@/components/theme/theme-toggle";
+import { LiveSessionSync } from "@/components/auth/live-session-sync";
+import { HydrationMark } from "@/components/pp/hydration-mark";
 import { Toaster } from "@/components/ui/sonner";
+import { NO_FLASH_SCRIPT } from "@/lib/theme";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import "./globals.css";
 
@@ -60,15 +64,26 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#F5F6F4",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#F5F6F4" },
+    { media: "(prefers-color-scheme: dark)", color: "#0A1412" },
+  ],
   width: "device-width",
   initialScale: 1,
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className={`${bricolage.variable} ${hanken.variable} ${plexMono.variable} ${fraunces.variable} ${spaceGrotesk.variable} ${plexSans.variable} ${INDIC}`}>
+    // The inline script sets data-theme before first paint, so React must not complain that it differs
+    <html lang="en" suppressHydrationWarning className={`${bricolage.variable} ${hanken.variable} ${plexMono.variable} ${fraunces.variable} ${spaceGrotesk.variable} ${plexSans.variable} ${INDIC}`}>
+      <head>
+        {/* Light, dark or system, applied before anything paints (no flash) */}
+        <script dangerouslySetInnerHTML={{ __html: NO_FLASH_SCRIPT }} />
+      </head>
       <body>
+        <ThemeSync />
+        <LiveSessionSync />
+        <HydrationMark />
         <TooltipProvider delayDuration={200}>{children}</TooltipProvider>
         <Toaster position="bottom-center" />
       </body>

@@ -81,7 +81,7 @@ export function BlockToolbar({ container }: { container: React.RefObject<HTMLDiv
  * The live page. Width follows the device switch; the renderer's container queries do the rest.
  * "This section" isolates the selected section; before/after puts the live page beside the draft.
  */
-export function Canvas({ context, published, className }: { context: RenderContext; published?: PageDoc; className?: string }) {
+export function Canvas({ context, published, className, previewAs }: { context: RenderContext; published?: PageDoc; className?: string; previewAs?: "light" | "dark" }) {
   const doc = useEditor((s) => s.doc);
   const selectedId = useEditor((s) => s.selectedId);
   const device = useEditor((s) => s.device);
@@ -99,7 +99,7 @@ export function Canvas({ context, published, className }: { context: RenderConte
     <div className="flex min-w-0 flex-1 flex-col gap-2">
       {compare && <p className="eyebrow text-center">{label}</p>}
       <div className={cn("mx-auto w-full overflow-hidden rounded-card border bg-background shadow-pop transition-[max-width] duration-300 motion-reduce:transition-none", focusSection && section && "my-6")} style={{ maxWidth: width }}>
-        <StoreThemeScope theme={context.theme}>
+        <StoreThemeScope theme={context.theme} mode={previewAs}>
           <PageRenderer doc={d} context={context} env={interactive ? env : { ...env, selectedId: undefined, onSelect: undefined }} />
         </StoreThemeScope>
       </div>

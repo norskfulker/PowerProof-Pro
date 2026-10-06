@@ -2,14 +2,15 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Clock, Eye, Loader2, Search, X } from "lucide-react";
+import { ArrowRight, Clock, CornerDownRight, Eye, Loader2, Search, X } from "lucide-react";
 import { Command as CommandPrimitive } from "cmdk";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { CREATOR_TYPES, TYPE_LABELS, TYPE_ORDER, search } from "@/lib/api";
 import type { SearchResponse, SearchResult, SearchScope, SearchType } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { ADMIN_NAV, CREATOR_NAV } from "@/components/pp/nav-config";
+import { useNav } from "@/components/nav/use-nav";
+import { navSearch } from "@/lib/nav/model";
 import { ActionButtons, ResultRow } from "./result-row";
 import { useSearchActions } from "./search-actions";
 
@@ -62,7 +63,7 @@ export function GlobalSearch({ scope }: { scope: SearchScope }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const { run, askReveal, revealed, dialogs } = useSearchActions(() => setRev((n) => n + 1));
   const typeChoices = scope === "admin" ? TYPE_ORDER : TYPE_ORDER.filter((t) => CREATOR_TYPES.includes(t));
-  const allHref = (q: string, type?: SearchType) => `/admin/search?q=${encodeURIComponent(q)}${type ? `&type=${type}` : ""}`;
+  const allHref = (q: string, type?: SearchType) => `/admin/system/search?q=${encodeURIComponent(q)}${type ? `&type=${type}` : ""}`;
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -98,11 +99,9 @@ export function GlobalSearch({ scope }: { scope: SearchScope }) {
 
   const flat = useMemo(() => data?.groups.flatMap((g) => g.results) ?? [], [data]);
   const current = flat.find((r) => itemValue(r) === active);
-  const pages = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return [];
-    return (scope === "admin" ? ADMIN_NAV : CREATOR_NAV).flatMap((g) => g.items).filter((i) => !i.soon && i.label.toLowerCase().includes(q)).slice(0, 4);
-  }, [query, scope]);
+  // Pages come from the one nav config, with their place in the menu as context (Part 7C)
+  const nav = useNav(scope === "admin" ? "admin" : "creator");
+  const pages = useMemo(() => navSearch(nav.tree, query, 5), [nav.tree, query]);
   const hasQuery = query.trim().length > 0;
 
   function onOpenChange(o: boolean) {
@@ -224,8 +223,10 @@ export function GlobalSearch({ scope }: { scope: SearchScope }) {
                   {pages.length > 0 && (
                     <CommandPrimitive.Group heading="Go to" className="mb-2 [&_[cmdk-group-heading]]:eyebrow [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1.5">
                       {pages.map((i) => (
-                        <CommandPrimitive.Item key={i.href} value={`page:${i.href}`} onSelect={() => { setOpen(false); router.push(i.href); }} className="flex min-h-11 cursor-pointer items-center gap-3 rounded-control px-2 text-sm data-[selected=true]:bg-muted">
-                          <i.icon className="size-4 text-muted-foreground" aria-hidden /> {i.label}
+                        <CommandPrimitive.Item key={i.id} value={`page:${i.href}`} onSelect={() => { setOpen(false); router.push(i.href!); }} className="flex min-h-11 cursor-pointer items-center gap-3 rounded-control px-2 text-sm data-[selected=true]:bg-muted">
+                          {i.icon ? <i.icon className="size-4 shrink-0 text-muted-foreground" aria-hidden /> : <CornerDownRight className="size-4 shrink-0 text-muted-foreground" aria-hidden />}
+                          <span className="min-w-0 flex-1 truncate">{i.label}</span>
+                          <span className="hidden truncate text-xs text-muted-foreground sm:inline">{i.path.slice(0, -1).join(" › ")}</span>
                         </CommandPrimitive.Item>
                       ))}
                     </CommandPrimitive.Group>

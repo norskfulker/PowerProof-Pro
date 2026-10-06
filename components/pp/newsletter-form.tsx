@@ -23,7 +23,7 @@ export function NewsletterForm({
       <div className="grid grid-cols-1 items-center gap-6 md:grid-cols-2">
         <div>
           <h2 id="nl-h" className="text-3xl">{heading}</h2>
-          <p className="mt-2 text-primary-foreground/80">{body}</p>
+          <p className="mt-2 text-primary-foreground">{body}</p>
         </div>
         {state === "done" ? (
           <p className="flex items-center gap-2 font-semibold" role="status"><Check className="size-5" aria-hidden /> You&apos;re on the list.</p>

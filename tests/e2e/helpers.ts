@@ -53,6 +53,8 @@ export async function prepare(page: Page, testInfo: TestInfo, opts: PrepareOptio
 /** Waits until data has loaded: network idle, no skeletons, nothing aria-busy. */
 export async function settle(page: Page) {
   await page.waitForLoadState("networkidle").catch(() => {});
+  // Typing before React hydrates is lost on slow engines: wait for the app to take over
+  await page.waitForFunction(() => document.documentElement.dataset.hydrated === "true", undefined, { timeout: 15000 }).catch(() => {});
   await page
     .waitForFunction(() => !document.querySelector('[data-slot="skeleton"], [aria-busy="true"]'), undefined, { timeout: 8000 })
     .catch(() => {});
