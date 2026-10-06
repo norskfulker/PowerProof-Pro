@@ -1,5 +1,6 @@
 "use client";
 
+import { ThemeToggle } from "@/components/theme/theme-toggle";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
@@ -43,6 +44,7 @@ export function SiteNav() {
           </ul>
         </nav>
         <div className="ml-auto flex items-center gap-2">
+          <ThemeToggle />
           <Button asChild variant="ghost" className="max-sm:hidden">
             <Link href="/login">Log in</Link>
           </Button>

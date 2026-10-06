@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { ExternalLink, Monitor, Smartphone } from "lucide-react";
+import { ExternalLink, Monitor, Moon, Smartphone, Sun } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { StoreDesign } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -17,6 +17,8 @@ export function StorePreview({ slug, design }: { slug: string; design: StoreDesi
   const [device, setDevice] = useState<"desktop" | "mobile">("desktop");
   const [width, setWidth] = useState(800);
   const [ready, setReady] = useState(false);
+  // "Preview as": the store's own default unless the creator wants to check the other theme
+  const [as, setAs] = useState<"default" | "light" | "dark">("default");
 
   useEffect(() => {
     const el = box.current;
@@ -36,8 +38,9 @@ export function StorePreview({ slug, design }: { slug: string; design: StoreDesi
 
   useEffect(() => {
     if (!ready) return;
-    frame.current?.contentWindow?.postMessage({ type: "pp-design", design }, window.location.origin);
-  }, [design, ready, device]);
+    const shown = as === "default" ? design : { ...design, theme: { ...design.theme, mode: as } };
+    frame.current?.contentWindow?.postMessage({ type: "pp-design", design: shown }, window.location.origin);
+  }, [design, ready, device, as]);
 
   const desktopW = 1280;
   const scale = device === "desktop" ? Math.min(1, width / desktopW) : 1;
@@ -48,7 +51,11 @@ export function StorePreview({ slug, design }: { slug: string; design: StoreDesi
     <section aria-label="Live preview" className="flex flex-col overflow-hidden rounded-card border bg-surface-sunken">
       <div className="flex items-center justify-between gap-2 border-b bg-surface px-3 py-2">
         <p className="eyebrow pl-1">Live preview{ready ? "" : " · loading"}</p>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          <div role="group" aria-label="Preview as" className="flex gap-2">
+            <Button size="icon-sm" variant={as === "light" ? "secondary" : "ghost"} aria-pressed={as === "light"} onClick={() => setAs(as === "light" ? "default" : "light")} aria-label="Preview as light"><Sun /></Button>
+            <Button size="icon-sm" variant={as === "dark" ? "secondary" : "ghost"} aria-pressed={as === "dark"} onClick={() => setAs(as === "dark" ? "default" : "dark")} aria-label="Preview as dark"><Moon /></Button>
+          </div>
           <div role="group" aria-label="Preview size" className="flex gap-2">
             <Button size="icon-sm" variant={device === "desktop" ? "secondary" : "ghost"} aria-pressed={device === "desktop"} onClick={() => { setReady(false); setDevice("desktop"); }} aria-label="Desktop preview"><Monitor /></Button>
             <Button size="icon-sm" variant={device === "mobile" ? "secondary" : "ghost"} aria-pressed={device === "mobile"} onClick={() => { setReady(false); setDevice("mobile"); }} aria-label="Phone preview"><Smartphone /></Button>

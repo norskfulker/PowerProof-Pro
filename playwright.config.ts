@@ -59,6 +59,29 @@ const matrix: Project[] = ENGINES.flatMap(({ name, device }) =>
   })
 );
 
+const lightProjects: Project[] = [
+  ...matrix,
+  // Browser zoom 200% at 1280 width behaves like a 640px CSS viewport at 2x
+  { name: "chromium-zoom200", grep: /@layout/, use: { ...devices["Desktop Chrome"], viewport: { width: 640, height: 360 }, deviceScaleFactor: 2 } },
+  // Large system text: root font size at 150%
+  { name: "chromium-largetext", grep: /@layout/, use: { ...devices["Desktop Chrome"], viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true }, metadata: { largeText: true, kind: "phone" } },
+  { name: "visual-mobile", grep: /@visual/, use: { ...devices["Desktop Chrome"], viewport: { width: 390, height: 844 }, deviceScaleFactor: 1, contextOptions: { reducedMotion: "reduce" } } },
+  { name: "visual-tablet", grep: /@visual/, use: { ...devices["Desktop Chrome"], viewport: { width: 820, height: 1180 }, deviceScaleFactor: 1, contextOptions: { reducedMotion: "reduce" } } },
+  { name: "visual-desktop", grep: /@visual/, use: { ...devices["Desktop Chrome"], viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1, contextOptions: { reducedMotion: "reduce" } } },
+];
+
+/**
+ * Part 7A: every project again in dark. The device prefers dark and the site's default is System,
+ * so pages render dark from the first paint. Visual baselines are stored per project, so light and
+ * dark snapshots sit side by side ({project}-dark).
+ */
+const darkProjects: Project[] = lightProjects.map((p) => ({
+  ...p,
+  name: `${p.name}-dark`,
+  use: { ...p.use, colorScheme: "dark" },
+  metadata: { ...p.metadata, theme: "dark" },
+}));
+
 export default defineConfig({
   testDir: "./tests/e2e",
   outputDir: "./test-results",
@@ -82,14 +105,5 @@ export default defineConfig({
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
   },
-  projects: [
-    ...matrix,
-    // Browser zoom 200% at 1280 width behaves like a 640px CSS viewport at 2x
-    { name: "chromium-zoom200", grep: /@layout/, use: { ...devices["Desktop Chrome"], viewport: { width: 640, height: 360 }, deviceScaleFactor: 2 } },
-    // Large system text: root font size at 150%
-    { name: "chromium-largetext", grep: /@layout/, use: { ...devices["Desktop Chrome"], viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true }, metadata: { largeText: true, kind: "phone" } },
-    { name: "visual-mobile", grep: /@visual/, use: { ...devices["Desktop Chrome"], viewport: { width: 390, height: 844 }, deviceScaleFactor: 1, contextOptions: { reducedMotion: "reduce" } } },
-    { name: "visual-tablet", grep: /@visual/, use: { ...devices["Desktop Chrome"], viewport: { width: 820, height: 1180 }, deviceScaleFactor: 1, contextOptions: { reducedMotion: "reduce" } } },
-    { name: "visual-desktop", grep: /@visual/, use: { ...devices["Desktop Chrome"], viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1, contextOptions: { reducedMotion: "reduce" } } },
-  ],
+  projects: [...lightProjects, ...darkProjects],
 });

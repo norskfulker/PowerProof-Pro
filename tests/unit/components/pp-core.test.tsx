@@ -19,8 +19,6 @@ import { ProductCard } from "@/components/pp/product-card";
 import { ProofReceipt } from "@/components/pp/proof-receipt";
 import { ScrollRegion } from "@/components/pp/scroll-region";
 import { Segmented } from "@/components/pp/segmented";
-import { SidebarNav } from "@/components/pp/sidebar-nav";
-import { CREATOR_NAV, MOBILE_TABS } from "@/components/pp/nav-config";
 import { MobileTabBar } from "@/components/pp/mobile-tab-bar";
 import { StarInput, Stars } from "@/components/pp/stars";
 import { StatCard } from "@/components/pp/stat-card";
@@ -97,7 +95,10 @@ describe("PageHeader", () => {
   it("renders title, eyebrow, back link and actions", () => {
     render(<PageHeader title="Orders" eyebrow="Sales" description="All of them" back={{ href: "/x", label: "Back" }} actions={<button>Export</button>} />);
     expect(screen.getByRole("heading", { name: "Orders" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /back/i })).toHaveAttribute("href", "/x");
+    // On a page that's in the menu (the test path is /dashboard), breadcrumbs replace the back link
+    const crumbs = screen.getByRole("navigation", { name: "Breadcrumb" });
+    expect(crumbs).toHaveTextContent("Home");
+    expect(crumbs).toHaveTextContent("Orders");
     expect(screen.getByRole("button", { name: "Export" })).toBeInTheDocument();
   });
 });
@@ -295,19 +296,13 @@ describe("ScrollRegion", () => {
   });
 });
 
-describe("SidebarNav and MobileTabBar", () => {
-  it("renders nav groups with the current page marked", () => {
-    render(<SidebarNav groups={CREATOR_NAV} />);
-    expect(screen.getByRole("link", { name: /overview/i })).toHaveAttribute("aria-current", "page");
-  });
-  it("renders the admin tone", () => {
-    render(<SidebarNav groups={CREATOR_NAV} tone="admin" />);
-    expect(screen.getAllByRole("link").length).toBeGreaterThan(3);
-  });
-  it("opens More", async () => {
+describe("MobileTabBar", () => {
+  it("shows Home, Products, Orders, Store and opens the menu", async () => {
     const onMore = vi.fn();
-    render(<MobileTabBar tabs={MOBILE_TABS} onMore={onMore} />);
-    await userEvent.click(screen.getByRole("button", { name: /more/i }));
+    render(<MobileTabBar area="creator" onMore={onMore} />);
+    for (const t of ["Home", "Products", "Orders", "Store"]) expect(screen.getByRole("link", { name: t })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Home" })).toHaveAttribute("aria-current", "page");
+    await userEvent.click(screen.getByRole("button", { name: /menu/i }));
     expect(onMore).toHaveBeenCalled();
   });
 });

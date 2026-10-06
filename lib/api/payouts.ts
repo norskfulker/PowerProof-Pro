@@ -111,7 +111,7 @@ export function requestPayout(amount: Money, methodId: string): Promise<Payout> 
         body: `Usually lands within a few hours.`,
         createdAt: payout.createdAt,
         read: false,
-        href: "/payouts",
+        href: "/sales/payouts/balance",
       });
     });
     return payout;

@@ -2,6 +2,7 @@ import { adminDb } from "../mock/admin";
 import { money } from "../money";
 import type { AdminCreator, AdminPayout, Dispute, Flag, Order } from "../types";
 import { commit } from "../mock/db";
+import { maskEmail } from "../mask";
 import { call } from "./client";
 import { allScopes } from "./scope";
 
@@ -117,5 +118,95 @@ export function setFlagStatus(id: string, status: Flag["status"]): Promise<Flag>
     const f = A().flags.find((x) => x.id === id)!;
     f.status = status;
     return f;
+  });
+}
+
+/* ------------------------------------------------------------------ */
+/* Part 7C: Stores, Refunds and review moderation for the admin menu    */
+/* ------------------------------------------------------------------ */
+
+export interface AdminStoreRow {
+  id: string;
+  name: string;
+  slug: string;
+  owner: string;
+  products: number;
+  live: boolean;
+  theme: "light" | "dark" | "auto";
+  domain?: string;
+}
+
+export function getAdminStores(): Promise<AdminStoreRow[]> {
+  return call(() =>
+    allScopes().map((s) => ({
+      id: s.store.id,
+      name: s.store.name,
+      slug: s.store.slug,
+      owner: s.store.ownerName,
+      products: s.products.length,
+      live: !!s.store.onboarded,
+      theme: s.design.theme.mode ?? "auto",
+      domain: s.domains?.custom?.status === "connected" ? s.domains.custom.host : undefined,
+    }))
+  );
+}
+
+export interface AdminRefundRow {
+  id: string;
+  number: string;
+  storeName: string;
+  buyerEmail: string;
+  amount: Order["total"];
+  status: "refund_requested" | "refunded";
+  reason?: string;
+  at: string;
+}
+
+export function getAdminRefunds(): Promise<AdminRefundRow[]> {
+  return call(() =>
+    allScopes()
+      .flatMap((s) =>
+        s.orders
+          .filter((o) => o.status === "refund_requested" || o.status === "refunded")
+          .map((o) => ({ id: o.id, number: o.number, storeName: s.store.name, buyerEmail: maskEmail(o.buyerEmail), amount: o.total, status: o.status as AdminRefundRow["status"], reason: o.refundReason, at: o.refundedAt ?? o.createdAt }))
+      )
+      .sort((a, b) => b.at.localeCompare(a.at))
+  );
+}
+
+export interface ModerationReview {
+  id: string;
+  storeId: string;
+  storeName: string;
+  productTitle: string;
+  rating: number;
+  title: string;
+  body: string;
+  author: string;
+  createdAt: string;
+  hidden: boolean;
+  reported: boolean;
+}
+
+/** Reviews buyers or creators reported, across every store. */
+export function getReviewsForModeration(): Promise<ModerationReview[]> {
+  return call(() =>
+    allScopes().flatMap((s) =>
+      s.reviews
+        .filter((r) => r.reported)
+        .map((r) => ({ id: r.id, storeId: s.store.id, storeName: s.store.name, productTitle: s.products.find((p) => p.id === r.productId)?.title ?? "A product", rating: r.rating, title: r.title, body: r.body, author: r.author, createdAt: r.createdAt, hidden: r.hidden, reported: r.reported }))
+    )
+  );
+}
+
+export function moderateReview(storeId: string, reviewId: string, action: "hide" | "keep"): Promise<void> {
+  return call(() => {
+    const s = allScopes().find((x) => x.store.id === storeId);
+    const r = s?.reviews.find((x) => x.id === reviewId);
+    if (!r) throw new Error("That review isn't there any more.");
+    commit(() => {
+      r.reported = false;
+      if (action === "hide") r.hidden = true;
+    });
   });
 }

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ArrowRight, Check, CircleAlert, ExternalLink, PartyPopper } from "lucide-react";
+import { ArrowRight, Check, CircleAlert, ExternalLink, Globe, PartyPopper } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { CopyField } from "@/components/pp/copy-field";
@@ -55,7 +55,19 @@ export function StepPublish({
             </Link>
           </Button>
         </div>
-        <Button asChild size="lg" className="mt-8 w-full sm:w-auto">
+        <div className="mx-auto mt-8 flex max-w-md flex-col gap-2 rounded-card border p-4 text-left" data-coach="onboarding-domain">
+          <p className="eyebrow">Step 6 · optional</p>
+          <p className="font-semibold">Use your own domain</p>
+          <p className="text-sm text-muted-foreground">
+            Your store already works at {link}. You can also connect a domain you own, like shop.{store.slug}.in. It takes a few minutes; we&apos;ll set it up for you where your domain host allows it.
+          </p>
+          <Button asChild variant="secondary" className="self-start">
+            <Link href={`/store/${store.id}/domain`}>
+              <Globe aria-hidden /> Set up a domain
+            </Link>
+          </Button>
+        </div>
+        <Button asChild size="lg" className="mt-6 w-full sm:w-auto">
           <Link href="/dashboard">
             Go to my dashboard <ArrowRight aria-hidden />
           </Link>

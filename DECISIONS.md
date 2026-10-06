@@ -241,3 +241,40 @@ Real auth and route guards, file storage and signed URLs, the gateway integratio
 2. **AI credits:** 10 and 200 a month are placeholders. What does a generation cost with the chosen provider?
 3. **Video backgrounds** are on both plans. Should they be Pro-only, given hosting costs?
 4. **Downgrades:** a creator with 5 products who drops to Free keeps selling all 5 and can't add more. Is that the policy, or should extra products be unpublished?
+
+# Part 7: light and dark, custom domains, nested navigation
+
+## Light and dark (7A)
+
+- **One token set per theme** in `app/globals.css`: `:root` (and `[data-theme="light"]`) for light, `[data-theme="dark"]` for dark. Components still never hold colours; the few new needs became tokens: `--inverse` (code editor and video placeholders, dark in both themes), `--scrim` (behind dialogs), `--toast-*`, `--sidebar-admin-foreground`.
+- **Dark values start from the brief** (`#0A1412` background, `#101D1A` surface, `#EAF0ED` text, `#93A39D` muted, `#1F322D` border, brass `#C9A24F`, button text `#06100D`). **One change:** primary is `#3AA584`, not `#2E8B6F`. `#2E8B6F` passes for button text but is only 4.2:1 as link text on the dark surface, and links use the same colour.
+- **Every pair is tested.** `lib/theme.test.ts` reads both token blocks from the CSS file and checks text, status, border and button pairs at 4.5:1 (3:1 for borders), plus all six store palettes in both modes. The check also caught a light-mode bug: form borders were 2.9:1, now `#85918B` (3.3:1).
+- **Shadows become borders in dark** (`--shadow-pop` is a 1px border-strong ring). Photos and video posters dim to 88% in dark through `.dim-media`; generated covers don't, because they're already designed colour.
+- **No flash:** a tiny inline script in `<head>` reads `pp:theme` (light, dark, or nothing for System) and sets `data-theme` before paint. `lib/api` has `getThemePref` / `setThemePref`, so moving the choice to the account later only changes those bodies.
+- **Stores:** each palette has a dark version (primary lifted so it reads as text). The creator picks Light, Dark or Auto; Auto follows each buyer's device. A buyer's footer choice is remembered per store in this browser and wins over the default. Custom accents get their text colour from contrast, in both modes.
+- **Stay light:** email previews and the invoice document set `data-theme="light"`; printing forces white paper.
+
+## Custom domains (7B)
+
+- **Free address for every store:** `<name>.powerproof.store`, editable with an availability check; old names redirect for 90 days.
+- **Wizard:** enter the domain, connect, verify. We detect the DNS host from the name (mocked; a backend reads the nameservers). Only hosts with a real one-click flow say **Automatic setup available** (GoDaddy and Cloudflare in the mock); everyone else sees **Manual setup needed**, the exact records with copy buttons, and a short guide for GoDaddy, Namecheap, Cloudflare, Hostinger, Squarespace Domains (which took over Google Domains) and others.
+- **Statuses:** Not connected, Waiting for DNS, Verifying, Issuing SSL, Connected, Needs attention. Needs attention always says what's wrong and the exact fix. Checks repeat every 30 seconds with a visible countdown (paused while the tab is hidden), plus **Verify now**.
+- **After connecting:** primary address, www redirect direction and redirecting the free address all use the Part 6 save bar. Removing asks first.
+- **Pro only,** set once in `lib/plans.ts` (`customDomain`). Free creators can type a domain and see what it needs; continuing opens the Upgrade dialog.
+- **Simulator:** `/design` › Custom domains forces any status or problem on any store.
+
+## Navigation (7C)
+
+- **One config** (`lib/nav/config.ts`) drives the sidebar, the phone drawer and tabs, breadcrumbs, command palette results and empty-state links (`navHref`). Live counts, collections and Pro locks are filled in by `lib/nav/model.ts` from `getNavCounts()`.
+- **Routes follow the tree.** Store screens live under `/store/[id]/…` and switch the active store to match the URL. Screens that don't know the id link to `/store/current/…`, which becomes the real id on arrival. Every old address redirects (`next.config.ts`).
+- **Tabs that are routes:** store design sections, offer types and payout sections are URL segments, so the menu, breadcrumbs and back button agree. Settings pages use `?tab=` tabs; hidden tabs stay mounted so unsaved changes still trigger the leave warning.
+- **Two placements beyond the brief:** **Store settings** (name, logo, colours, support email) sits under Store, because those belong to one store. **Sales pages** sit under Catalog, because each one sells a product.
+- **Accessibility:** the sidebar is a WAI-ARIA tree with a roving tab stop. Up/Down move, Right opens or steps in, Left closes or steps out, Home/End jump, Enter opens.
+- **Pro locks:** items like Domain show a lock on Free and open the Upgrade dialog instead of navigating. The domain page is still reachable from Store settings and onboarding, so Free creators can see what a domain involves.
+
+## Questions for the founder (Part 7)
+
+1. **Default theme:** System follows the device. Should the creator app default to Light until people opt in?
+2. **One-click domains:** which DNS hosts will we actually partner with? The UI only promises one click for those.
+3. **Locked menu items:** should Free creators be able to open Pro screens to look around (with the Upgrade prompt inside), rather than getting the dialog straight from the menu?
+

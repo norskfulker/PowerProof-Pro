@@ -6,7 +6,8 @@ export const metadata: Metadata = { title: "Email previews" };
 
 export default function EmailsLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-dvh">
+    // Emails are always light: mail apps don't follow the site theme
+    <div data-theme="light" className="min-h-dvh bg-background text-foreground">
       <header className="border-b bg-surface">
         <div className="gutter mx-auto flex h-16 max-w-[1200px] items-center gap-3">
           <Logo href="/dashboard" />

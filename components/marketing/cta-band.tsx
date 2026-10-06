@@ -14,7 +14,7 @@ export function CtaBand({
       <div className="flex flex-col items-start gap-6 rounded-dialog bg-primary px-6 py-12 text-primary-foreground md:flex-row md:items-center md:justify-between md:px-12">
         <div>
           <h2 className="text-3xl md:text-4xl">{title}</h2>
-          <p className="mt-2 text-primary-foreground/80">{body}</p>
+          <p className="mt-2 text-primary-foreground/90">{body}</p>
         </div>
         <Button asChild size="lg" variant="brass">
           <Link href="/signup">

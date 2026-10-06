@@ -35,7 +35,7 @@ export function getPlanState(): Promise<PlanState> {
 /** Thrown when a Free creator hits a limit; the UI opens the Upgrade dialog on `code: "limit"`. */
 export class LimitError extends ApiError {
   constructor(
-    public kind: "stores" | "products" | "aiCredits",
+    public kind: "stores" | "products" | "aiCredits" | "customDomain",
     message: string
   ) {
     super(message, "limit");
@@ -86,7 +86,7 @@ export function getOwnedStores(): Promise<OwnedStore[]> {
   , { fast: true });
 }
 
-const SCOPE_KEYS: (keyof StoreScope)[] = ["store", "company", "invoice", "products", "orders", "customers", "taxCodes", "design", "storePages", "collections", "coupons", "bundles", "deals", "dealRules", "visualPages", "reviews", "questions", "subscribers"];
+const SCOPE_KEYS: (keyof StoreScope)[] = ["store", "company", "invoice", "products", "orders", "customers", "taxCodes", "design", "storePages", "collections", "coupons", "bundles", "deals", "dealRules", "visualPages", "reviews", "questions", "subscribers", "domains"];
 
 /** Makes another of the creator's stores the active one. */
 export function switchStore(storeId: string): Promise<Store> {

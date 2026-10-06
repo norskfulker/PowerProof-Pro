@@ -4,9 +4,11 @@ import { Logo } from "@/components/pp/logo";
 import { Controls } from "./_controls";
 import { Foundations } from "./_foundations";
 import { Overlays } from "./_overlays";
+import { ThemeFrame } from "./_theme-frame";
 import { ProductComponents } from "./_product";
 import { Part4Components } from "./_part4";
 import { Part6Components } from "./_part6";
+import { Part7Components } from "./_part7";
 import { StoreComponents } from "./_store";
 
 export const metadata: Metadata = { title: "Design system" };
@@ -39,6 +41,7 @@ const TOC = [
   ["media", "Media"],
   ["savebar", "Save bar"],
   ["getting-started", "Getting started"],
+  ["domains", "Custom domains"],
 ];
 
 export default function DesignPage() {
@@ -69,7 +72,8 @@ export default function DesignPage() {
           <p className="mt-3 max-w-2xl text-lg text-muted-foreground">
             Tokens, components and states. If a screen needs something that isn&apos;t here, add it here first.
           </p>
-          <div className="mt-12">
+          <div className="mt-8">
+            <ThemeFrame>
             <Foundations />
             <Controls />
             <Overlays />
@@ -77,6 +81,8 @@ export default function DesignPage() {
             <StoreComponents />
             <Part4Components />
             <Part6Components />
+            <Part7Components />
+            </ThemeFrame>
           </div>
         </main>
       </div>

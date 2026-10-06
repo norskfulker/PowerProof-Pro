@@ -67,10 +67,10 @@ export function HtmlPasteEditor({
 
   return (
     <div className={cn("grid gap-4 lg:grid-cols-2", className)}>
-      <div className="flex min-h-[420px] flex-col overflow-hidden rounded-card border bg-foreground">
-        <div className="flex items-center justify-between gap-2 border-b border-white/10 px-4 py-2.5">
-          <span className="font-mono text-[0.6875rem] tracking-[0.08em] text-primary-foreground/70 uppercase">HTML</span>
-          <span className="font-mono text-[0.6875rem] text-primary-foreground/70">
+      <div className="flex min-h-[420px] flex-col overflow-hidden rounded-card border bg-inverse">
+        <div className="flex items-center justify-between gap-2 border-b border-inverse-foreground/15 px-4 py-2.5">
+          <span className="font-mono text-[0.6875rem] tracking-[0.08em] text-inverse-foreground/70 uppercase">HTML</span>
+          <span className="font-mono text-[0.6875rem] text-inverse-foreground/70">
             {buttons.length} buy button{buttons.length === 1 ? "" : "s"} found
           </span>
         </div>
@@ -78,7 +78,7 @@ export function HtmlPasteEditor({
           <div
             ref={gutter}
             aria-hidden
-            className="w-11 shrink-0 overflow-hidden py-3 pr-2 text-right font-mono text-xs leading-6 text-primary-foreground/40 select-none"
+            className="w-11 shrink-0 overflow-hidden py-3 pr-2 text-right font-mono text-xs leading-6 text-inverse-foreground/40 select-none"
           >
             {Array.from({ length: lines }, (_, i) => (
               <div key={i}>{i + 1}</div>
@@ -114,10 +114,10 @@ export function HtmlPasteEditor({
               }
             }}
             placeholder="<section>Paste your page here…</section>"
-            className="flex-1 resize-none bg-transparent py-3 pr-4 font-mono text-[0.8125rem] leading-6 whitespace-pre text-primary-foreground caret-accent outline-none placeholder:text-primary-foreground/40 focus-visible:outline-none"
+            className="flex-1 resize-none bg-transparent py-3 pr-4 font-mono text-[0.8125rem] leading-6 whitespace-pre text-inverse-foreground caret-accent outline-none placeholder:text-inverse-foreground/50 focus-visible:outline-none"
           />
         </div>
-        <p className="border-t border-white/10 px-4 py-2 text-xs text-primary-foreground/70">
+        <p className="border-t border-inverse-foreground/15 px-4 py-2 text-xs text-inverse-foreground/70">
           Tab indents. Esc then Tab moves focus out. Scripts you paste are stripped on publish.
         </p>
       </div>

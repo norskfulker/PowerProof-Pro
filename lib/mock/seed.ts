@@ -216,9 +216,9 @@ export function seedDb(now: number = Date.now()): Db {
 
   const latest = orders.find((o) => o.status === "paid");
   const notifications: Notification[] = [
-    latest && { id: "n1", kind: "sale" as const, title: "New sale", body: `${latest.buyerName} bought ${latest.productTitle}`, createdAt: latest.createdAt, read: false, href: `/orders/${latest.id}` },
-    { id: "n2", kind: "refund" as const, title: "Refund asked", body: "Order PP-1078 · Bought it twice by mistake", createdAt: iso(now - 3 * 3600 * 1000), read: false, href: "/orders?status=refund_requested" },
-    { id: "n3", kind: "payout" as const, title: "Payout on its way", body: "₹8,420.00 to HDFC Bank ····4821", createdAt: iso(now - 3 * DAY), read: true, href: "/payouts" },
+    latest && { id: "n1", kind: "sale" as const, title: "New sale", body: `${latest.buyerName} bought ${latest.productTitle}`, createdAt: latest.createdAt, read: false, href: `/sales/orders/${latest.id}` },
+    { id: "n2", kind: "refund" as const, title: "Refund asked", body: "Order PP-1078 · Bought it twice by mistake", createdAt: iso(now - 3 * 3600 * 1000), read: false, href: "/sales/orders?status=refund_requested" },
+    { id: "n3", kind: "payout" as const, title: "Payout on its way", body: "₹8,420.00 to HDFC Bank ····4821", createdAt: iso(now - 3 * DAY), read: true, href: "/sales/payouts/balance" },
   ].filter(Boolean) as Notification[];
 
   // Make the seeded balance land on a believable number: ₹12,480.50 available today.

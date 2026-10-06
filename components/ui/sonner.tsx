@@ -9,6 +9,7 @@ import {
 } from "lucide-react"
 import { useSyncExternalStore } from "react"
 import { Toaster as Sonner, type ToasterProps } from "sonner"
+import { useTheme } from "@/components/theme/theme-toggle"
 
 const PHONE = "(max-width: 767px)"
 const subscribe = (cb: () => void) => {
@@ -20,9 +21,10 @@ const subscribe = (cb: () => void) => {
 /** On phones toasts sit at the top, clear of the tab bar and the save bar at the bottom. */
 const Toaster = ({ position, ...props }: ToasterProps) => {
   const phone = useSyncExternalStore(subscribe, () => window.matchMedia(PHONE).matches, () => false)
+  const { mode } = useTheme()
   return (
     <Sonner
-      theme="light"
+      theme={mode}
       position={phone ? "top-center" : position}
       className="toaster group"
       icons={{
@@ -36,14 +38,14 @@ const Toaster = ({ position, ...props }: ToasterProps) => {
         classNames: {
           toast: "!font-sans !shadow-pop",
           title: "!font-semibold",
-          description: "!text-primary-foreground/75",
+          description: "![color:var(--toast-muted)]",
         },
       }}
       style={
         {
-          "--normal-bg": "var(--foreground)",
-          "--normal-text": "var(--primary-foreground)",
-          "--normal-border": "var(--foreground)",
+          "--normal-bg": "var(--toast-bg)",
+          "--normal-text": "var(--toast-fg)",
+          "--normal-border": "var(--toast-border)",
           "--border-radius": "12px",
         } as React.CSSProperties
       }

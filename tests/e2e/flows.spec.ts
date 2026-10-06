@@ -40,7 +40,7 @@ test.describe("admin search @flow", () => {
     await expect(dialog.getByRole("option", { name: /PP-1042/ })).not.toContainText("••••");
 
     await page.keyboard.press("Escape");
-    await page.goto("/admin/audit");
+    await page.goto("/admin/system/audit");
     await settle(page);
     await expect(page.getByText("Buyer asked for a resend").filter({ visible: true }).first()).toBeVisible();
     await expect(page.getByText("Revealed email").filter({ visible: true }).first()).toBeVisible();
@@ -49,7 +49,7 @@ test.describe("admin search @flow", () => {
 
   test("full results page with tabs and filters", async ({ page }, testInfo) => {
     const { errors } = await prepare(page, testInfo);
-    await page.goto("/admin/search?q=%40ananya");
+    await page.goto("/admin/system/search?q=%40ananya");
     await settle(page);
     await expect(page.getByRole("tab", { name: /Orders/ })).toBeVisible();
     await page.getByRole("tab", { name: /Orders/ }).click();
@@ -74,7 +74,7 @@ test.describe("admin search @flow", () => {
 test.describe("deal paths @flow", () => {
   test("buyer builds a deal, picks a gift, pays; the creator's stats move", async ({ page }, testInfo) => {
     const { errors } = await prepare(page, testInfo);
-    await page.goto("/store/offers/deal-paths");
+    await page.goto("/store/store_ananya/offers/deal-paths");
     await settle(page);
     const usesBefore = Number((await page.getByRole("row", { name: /Second Brain \+ Pricing Playbook/ }).or(page.getByRole("listitem").filter({ hasText: "Second Brain + Pricing Playbook" })).first().innerText()).match(/\b(\d{3,})\b/)?.[1] ?? "0");
 
@@ -114,7 +114,7 @@ test.describe("deal paths @flow", () => {
     await page.getByRole("button", { name: /approve payment/i }).click();
     await page.waitForURL(/\/success\//);
 
-    await page.goto("/store/offers/deal-paths");
+    await page.goto("/store/store_ananya/offers/deal-paths");
     await settle(page);
     const usesAfter = Number((await page.getByRole("row", { name: /Second Brain \+ Pricing Playbook/ }).or(page.getByRole("listitem").filter({ hasText: "Second Brain + Pricing Playbook" })).first().innerText()).match(/\b(\d{3,})\b/)?.[1] ?? "0");
     expect(usesAfter).toBe(usesBefore + 1);
@@ -136,7 +136,7 @@ test.describe("deal paths @flow", () => {
 
   test("creator builds a rule with the wizard, previews it and saves", async ({ page }, testInfo) => {
     const { errors } = await prepare(page, testInfo);
-    await page.goto("/store/offers/deal-paths/new");
+    await page.goto("/store/store_ananya/offers/deal-paths/new");
     await settle(page);
     await page.getByRole("radio", { name: /Order total reaches/ }).click();
     await page.getByRole("button", { name: /^Next/ }).click();
@@ -151,7 +151,7 @@ test.describe("deal paths @flow", () => {
     await page.getByRole("button", { name: "Save deal path" }).click();
     await page.waitForURL(/\/store\/offers\/deal-paths\/dr_/);
     await expect(page.getByRole("heading", { name: "Big basket 15%" })).toBeVisible();
-    await page.goto("/store/offers/deal-paths");
+    await page.goto("/store/store_ananya/offers/deal-paths");
     await settle(page);
     await expect(page.getByText("Big basket 15%").filter({ visible: true }).first()).toBeVisible();
     await expectNoConsoleErrors(errors);
@@ -161,7 +161,7 @@ test.describe("deal paths @flow", () => {
 test.describe("visual editor @flow", () => {
   test("edit, undo, add a block, publish, see it live, restore a version", async ({ page }, testInfo) => {
     const { errors } = await prepare(page, testInfo);
-    await page.goto("/store/pages/vp_ananya_about-ananya/edit");
+    await page.goto("/store/store_ananya/design/pages/vp_ananya_about-ananya/edit");
     await settle(page);
     const canvas = page.getByRole("region", { name: "Page canvas" });
     await canvas.locator("h1").first().click();
@@ -201,7 +201,7 @@ test.describe("visual editor @flow", () => {
     await settle(page);
     await expect(page.getByRole("heading", { level: 1, name: "Made slowly, with care" })).toBeVisible();
 
-    await page.goto("/store/pages/vp_ananya_about-ananya/versions");
+    await page.goto("/store/store_ananya/design/pages/vp_ananya_about-ananya/versions");
     await settle(page);
     await expect(page.getByRole("listitem").filter({ hasText: "Live now" })).toBeVisible();
     await page.getByRole("button", { name: "Restore" }).nth(1).click();
@@ -214,7 +214,7 @@ test.describe("visual editor @flow", () => {
 
   test("new page from a template, and the 5 MB image limit", async ({ page }, testInfo) => {
     await prepare(page, testInfo);
-    await page.goto("/store/pages");
+    await page.goto("/store/store_ananya/design/pages");
     await settle(page);
     await page.getByRole("button", { name: "New page" }).first().click();
     await page.getByLabel("Page name").fill("Launch week");

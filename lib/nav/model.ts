@@ -1,0 +1,145 @@
+import type { LucideIcon } from "lucide-react";
+import { ADMIN_NAV, CREATOR_NAV, type BadgeKey, type NavNode } from "./config";
+
+export type { NavNode };
+
+/** A node after the store id, live counts, collections and plan locks are filled in. */
+export interface ResolvedNode {
+  id: string;
+  label: string;
+  href?: string;
+  icon?: LucideIcon;
+  children?: ResolvedNode[];
+  count?: number;
+  badgeLabel?: string;
+  badgeTone?: "alert";
+  locked?: "customDomain";
+  match?: string[];
+  /** Labels of the ancestors, for breadcrumbs and search results */
+  path: string[];
+}
+
+export interface NavData {
+  storeId: string;
+  counts: Partial<Record<BadgeKey, number>>;
+  collections: { id: string; name: string; products: { id: string; title: string }[] }[];
+  /** Pro features the plan doesn't include */
+  locked: Set<"customDomain">;
+}
+
+const BADGE_LABEL: Record<BadgeKey, string> = {
+  products_all: "products",
+  products_live: "live",
+  products_draft: "drafts",
+  products_archived: "archived",
+  reviews_pending: "waiting for a reply",
+  questions_open: "unanswered",
+  disputes_open: "open disputes",
+  orders_disputed: "open disputes",
+};
+const ALERT: BadgeKey[] = ["reviews_pending", "questions_open", "disputes_open", "orders_disputed"];
+const SHOW_PRODUCTS = 5;
+
+const fill = (s: string, storeId: string) => s.replaceAll("{store}", storeId);
+
+export function resolveNav(tree: NavNode[], data: NavData, path: string[] = []): ResolvedNode[] {
+  return tree.map((n) => {
+    const here = [...path, n.label];
+    let children = n.children ? resolveNav(n.children, data, here) : undefined;
+    if (n.dynamic === "collections") {
+      const dyn: ResolvedNode[] = data.collections.map((c) => {
+        const cPath = [...here, c.name];
+        const items: ResolvedNode[] = c.products.slice(0, SHOW_PRODUCTS).map((p) => ({ id: `col-${c.id}-p-${p.id}`, label: p.title, href: `/catalog/products/${p.id}`, path: [...cPath, p.title] }));
+        if (c.products.length > SHOW_PRODUCTS || c.products.length === 0) items.push({ id: `col-${c.id}-all`, label: c.products.length ? `View all ${c.products.length}` : "Open collection", href: `/catalog/collections/${c.id}`, path: [...cPath, "View all"] });
+        return { id: `col-${c.id}`, label: c.name, href: `/catalog/collections/${c.id}`, count: c.products.length, badgeLabel: "products", children: items, path: cPath };
+      });
+      children = [...(children ?? []), ...dyn];
+    }
+    const count = n.badge ? data.counts[n.badge] : undefined;
+    return {
+      id: n.id,
+      label: n.label,
+      href: n.href ? fill(n.href, data.storeId) : undefined,
+      icon: n.icon,
+      children,
+      count: count === undefined || (ALERT.includes(n.badge!) && count === 0) ? undefined : count,
+      badgeLabel: n.badge ? BADGE_LABEL[n.badge] : undefined,
+      badgeTone: n.badge && ALERT.includes(n.badge) ? "alert" : undefined,
+      locked: n.pro && data.locked.has(n.pro) ? n.pro : undefined,
+      match: n.match?.map((m) => fill(m, data.storeId)),
+      path: here,
+    };
+  });
+}
+
+export function flattenNav(tree: ResolvedNode[]): ResolvedNode[] {
+  return tree.flatMap((n) => [n, ...(n.children ? flattenNav(n.children) : [])]);
+}
+
+function score(n: ResolvedNode, pathname: string, query: URLSearchParams): number {
+  if (!n.href) return 0;
+  const url = new URL(n.href, "http://x");
+  const want = [...url.searchParams.entries()];
+  if (url.pathname === pathname) {
+    if (want.every(([k, v]) => query.get(k) === v)) return 1000 + want.length * 10;
+    return 0;
+  }
+  if (n.match?.some((m) => pathname.startsWith(m))) return 500 + (n.match.find((m) => pathname.startsWith(m))?.length ?? 0);
+  return 0;
+}
+
+/** Ancestors and the active node, for breadcrumbs and auto-expanding the sidebar. */
+export function activeTrail(tree: ResolvedNode[], pathname: string, search = ""): ResolvedNode[] {
+  const query = new URLSearchParams(search);
+  let best: { s: number; trail: ResolvedNode[] } = { s: 0, trail: [] };
+  const walk = (nodes: ResolvedNode[], trail: ResolvedNode[]) => {
+    for (const n of nodes) {
+      const here = [...trail, n];
+      const s = score(n, pathname, query);
+      // Deeper wins on a tie, so "Products › All products" beats a parent with the same link
+      if (s > best.s || (s === best.s && s > 0 && here.length > best.trail.length)) best = { s, trail: here };
+      if (n.children) walk(n.children, here);
+    }
+  };
+  walk(tree, []);
+  return best.trail;
+}
+
+/** The menu, narrowed to items whose label (or an ancestor's) matches. */
+export function filterTree(tree: ResolvedNode[], q: string): ResolvedNode[] {
+  const t = q.trim().toLowerCase();
+  if (!t) return tree;
+  const out: ResolvedNode[] = [];
+  for (const n of tree) {
+    if (n.label.toLowerCase().includes(t)) out.push(n);
+    else if (n.children) {
+      const kids = filterTree(n.children, q);
+      if (kids.length) out.push({ ...n, children: kids });
+    }
+  }
+  return out;
+}
+
+/** Command palette: leaf links whose label or path matches, with the path as context. */
+export function navSearch(tree: ResolvedNode[], q: string, limit = 6): ResolvedNode[] {
+  const t = q.trim().toLowerCase();
+  if (!t) return [];
+  return flattenNav(tree)
+    .filter((n) => n.href && !n.id.includes("-p-") && n.path.join(" ").toLowerCase().includes(t))
+    .sort((a, b) => Number(!a.label.toLowerCase().startsWith(t)) - Number(!b.label.toLowerCase().startsWith(t)) || a.path.length - b.path.length)
+    .slice(0, limit);
+}
+
+/** The link for a menu item by id, for empty states and other "go there" buttons (Part 7C). */
+export function navHref(id: string, storeId = "current"): string {
+  const walk = (nodes: NavNode[]): string | undefined => {
+    for (const n of nodes) {
+      if (n.id === id && n.href) return n.href.replaceAll("{store}", storeId);
+      const hit = n.children && walk(n.children);
+      if (hit) return hit;
+    }
+  };
+  const href = walk(CREATOR_NAV) ?? walk(ADMIN_NAV);
+  if (!href) throw new Error(`No menu item "${id}"`);
+  return href;
+}

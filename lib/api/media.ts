@@ -85,16 +85,16 @@ function usesOf(src: string): MediaUse[] {
   for (const sc of ownedScopes()) {
     const tag = ownedScopes().length > 1 ? ` · ${sc.store.name}` : "";
     for (const p of sc.products) {
-      if (p.images.some((i) => i.src === src)) out.push({ label: `Product image: ${p.title}${tag}`, href: `/products/${p.id}` });
-      if (p.video?.src === src || p.video?.poster === src) out.push({ label: `Product video: ${p.title}${tag}`, href: `/products/${p.id}` });
-      if (has(p.tileBackground)) out.push({ label: `Product card: ${p.title}${tag}`, href: `/products/${p.id}` });
+      if (p.images.some((i) => i.src === src)) out.push({ label: `Product image: ${p.title}${tag}`, href: `/catalog/products/${p.id}` });
+      if (p.video?.src === src || p.video?.poster === src) out.push({ label: `Product video: ${p.title}${tag}`, href: `/catalog/products/${p.id}` });
+      if (has(p.tileBackground)) out.push({ label: `Product card: ${p.title}${tag}`, href: `/catalog/products/${p.id}` });
     }
-    for (const c of sc.collections) if (has(c.background)) out.push({ label: `Collection tile: ${c.name}${tag}`, href: "/store/collections" });
-    if (has(sc.design.hero.background)) out.push({ label: `Store hero${tag}`, href: "/store/design" });
-    if (sc.store.logo?.src === src) out.push({ label: `Store logo${tag}`, href: "/settings/store" });
+    for (const c of sc.collections) if (has(c.background)) out.push({ label: `Collection tile: ${c.name}${tag}`, href: "/catalog/collections" });
+    if (has(sc.design.hero.background)) out.push({ label: `Store hero${tag}`, href: "/store/current/design/theme" });
+    if (sc.store.logo?.src === src) out.push({ label: `Store logo${tag}`, href: "/store/current/settings" });
     if (has(sc.design.about.photo)) out.push({ label: `About page photo${tag}`, href: `/store/${sc.store.id}/pages/about` });
-    for (const p of sc.visualPages) if (has(p.draft) || has(p.published)) out.push({ label: `Page: ${p.title}${tag}`, href: `/store/pages/${p.id}/edit` });
-    for (const r of sc.reviews) if (r.photos.some((ph) => ph.src === src)) out.push({ label: `Review photo: “${r.title}”${tag}`, href: "/store/reviews" });
+    for (const p of sc.visualPages) if (has(p.draft) || has(p.published)) out.push({ label: `Page: ${p.title}${tag}`, href: `/store/current/design/pages/${p.id}/edit` });
+    for (const r of sc.reviews) if (r.photos.some((ph) => ph.src === src)) out.push({ label: `Review photo: “${r.title}”${tag}`, href: "/store/current/reviews" });
   }
   return out;
 }

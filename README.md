@@ -58,6 +58,9 @@ Want a full store instead? Log in at `/login` with any email and an 8+ character
 - **Free and Pro.** `/design` › Plans flips the demo account between Free (1 store, 1 product) and Pro. On Free, a second product or store opens the Upgrade dialog. Usage is in the sidebar and on `/settings/billing`; the comparison is on `/pricing`.
 - **Save bar.** Change anything on a settings, product, design, page, offer, deal path, collection or payout screen: the bar appears with Save and Discard, and it disappears again if you change the field back. Leaving with unsaved changes asks first.
 - **Getting started.** Sign up with a new email to see the tracker at 0%: the welcome dialog, the dashboard card, the sidebar ring, and **Next step** with a coach mark on arrival. Progress is kept per account, so it resumes after you log out and back in.
+- **Light and dark.** The sun/moon button in the top bar (or **Avatar menu › Theme**) picks Light, Dark or System. The choice applies before the page paints, so there's no flash. Stores have their own default in **Store › Design › Theme** (Light, Dark or Auto), buyers can switch in the store footer, and Grid & Grain (`/s/gridgrain`) is dark by default. The visual editor and the Store design preview have **Preview as Light / Dark**. `/design` has a theme switch and **Side by side**.
+- **Custom domains.** **Store › Domain and SEO › Domain** (`/store/<id>/domain`): the free `yourname.powerproof.store` address, then a 3-step wizard for your own domain. Try `ananya.dev` (automatic setup) or `shop.ananya.io` (manual records and host guides). `/design` › Custom domains forces any status or problem. Domains are Pro; on Free the Upgrade dialog opens after step 1.
+- **Menu.** Everything is grouped and nested: Home, Catalog, Store (for the store chosen in the switcher), Sales, Tools, Settings. Groups remember being open, the current page's group opens itself, counts show as badges, the filter box searches the menu, arrow keys move through it, and the collapse button turns it into an icon rail. Phones get a drawer with the same tree plus Home, Products, Orders and Store tabs. Old addresses redirect.
 - **Stress data.** **Avatar menu › Demo data › Load stress data** fills the store with very long and unbroken text, Hindi, Tamil, Telugu and Kannada titles, 500 products and orders, and 5,000 reviews.
 
 ## Where things are
@@ -67,14 +70,16 @@ app/
   (marketing)/      / , /pricing, /how-it-works, /templates
   (auth)/           /login, /signup, /forgot-password, /verify-email
   onboarding/       5-step setup
-  (app)/            creator app: dashboard, products, media, images (AI), pages, orders,
-                    customers, payouts, analytics, integrations, settings/*
+  (app)/            creator app, routed like the menu:
+                    dashboard, getting-started,
+                    catalog/ (products, collections, bundles, media, sales-pages),
+                    store/[id]/ (settings, design/[section], design/pages, pages/*, offers/[section],
+                    offers/deal-paths, reviews, questions, domain, seo, analytics-tags),
+                    sales/ (orders, customers, payouts/[section], analytics),
+                    tools/ (ai-images, integrations), settings/*
   (buyer)/          /s/[store] (home, products, c/[collection], [product], about,
                     faq, contact, policies/*), /checkout, /success, /order/[token],
                     /lookup, /invoice
-  (app)/store/      store design, collections, offers (+ deal-paths), reviews, questions,
-                    pages (visual pages list, versions), [id]/pages/* (per-store About,
-                    FAQ, policies), SEO, domain
   (editor)/         full-screen visual page editor: /store/pages/[id]/edit
   admin/            founder admin (darker shell), search, audit log
   emails/           React Email previews
@@ -89,6 +94,9 @@ components/
   plan/             plan limits, Upgrade dialog, usage meters, Free vs Pro table
   save/             SaveBar and the unsaved-changes guard
   getting-started/  checklist, progress ring, coach marks, welcome dialog
+  nav/              the menu tree (keyboard tree pattern), breadcrumbs, live counts
+  theme/            light/dark/system toggle
+  domains/          free subdomain card and the custom domain wizard
   page-builder/     visual editor (EditorShell, Canvas, panels) and the shared PageRenderer
   <area>/           screen pieces per area (dashboard, products, buyer, ...)
 emails/             React Email templates
@@ -102,6 +110,9 @@ lib/
   pages/            page schema (zod), templates, editor store (zustand)
   media/            upload limits, the in-browser file store, contrast maths
   plans.ts          Free and Pro limits, AI credits, prices (one place to change them)
+  nav/config.ts     the one navigation config: sidebar, drawer, tabs, breadcrumbs, palette
+  theme.ts          theme preference and the no-flash script
+next.config.ts      redirects from every old address
   pricing/          prices, coupons, bundles, and deals.ts (deal paths engine)
   types/            domain types (Money is integer minor units + currency)
   money.ts          formatting, conversion, fee maths

@@ -11,11 +11,13 @@ export interface PlanLimits {
   products: number | null;
   /** AI image credits per calendar month; one generation of 4 variations costs 1 credit */
   aiCredits: number;
+  /** Connect your own domain (Part 7B) */
+  customDomain: boolean;
 }
 
 export const PLAN_LIMITS: Record<PlanTier, PlanLimits> = {
-  free: { stores: 1, products: 1, aiCredits: 10 },
-  pro: { stores: null, products: null, aiCredits: 200 },
+  free: { stores: 1, products: 1, aiCredits: 10, customDomain: false },
+  pro: { stores: null, products: null, aiCredits: 200, customDomain: true },
 };
 
 /** What each AI action costs, in credits */
@@ -39,6 +41,7 @@ export const PLAN_COMPARISON: { feature: string; free: string; pro: string }[] =
   { feature: "Fee per sale", free: "3% (the gateway adds about 2%)", pro: "3% (the gateway adds about 2%)" },
   { feature: "Stores", free: "1", pro: "Unlimited" },
   { feature: "Products", free: "1", pro: "Unlimited" },
+  { feature: "Your own domain (shop.yourname.in)", free: "yourname.powerproof.store", pro: "Included, with free SSL" },
   { feature: "AI image credits each month", free: String(PLAN_LIMITS.free.aiCredits), pro: String(PLAN_LIMITS.pro.aiCredits) },
   { feature: "Visual pages, deal paths, coupons", free: "Included", pro: "Included" },
   { feature: "Payouts to your bank, two days after each sale", free: "Included", pro: "Included" },
@@ -46,7 +49,7 @@ export const PLAN_COMPARISON: { feature: string; free: string; pro: string }[] =
 ];
 
 /** Plain-words list for the Upgrade dialog */
-export const PRO_BENEFITS = ["Unlimited stores and products", `${PLAN_LIMITS.pro.aiCredits} AI image credits a month`, "Same 3% fee per sale, nothing hidden", "Cancel any time from Settings"];
+export const PRO_BENEFITS = ["Unlimited stores and products", "Connect your own domain, with free SSL", `${PLAN_LIMITS.pro.aiCredits} AI image credits a month`, "Same 3% fee per sale, nothing hidden", "Cancel any time from Settings"];
 
 export function limitFor(tier: PlanTier, kind: "stores" | "products"): number | null {
   return PLAN_LIMITS[tier][kind];

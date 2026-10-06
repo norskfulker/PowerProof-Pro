@@ -40,7 +40,8 @@ export default function InvoicePage({ params }: { params: Promise<{ orderId: str
         <p className="text-sm text-muted-foreground">Keep this for your records or your accountant.</p>
         <Button variant="secondary" onClick={() => window.print()}><Printer aria-hidden /> Print or save PDF</Button>
       </div>
-      <article className="rounded-card border bg-surface p-6 text-sm print:border-0 print:p-0 sm:p-8" aria-label={`Tax invoice ${order.invoiceNumber}`}>
+      {/* Invoices are documents: always light, on screen and on paper */}
+      <article data-theme="light" className="rounded-card border bg-surface p-6 text-sm text-foreground print:border-0 print:p-0 sm:p-8" aria-label={`Tax invoice ${order.invoiceNumber}`}>
         <header className="flex flex-wrap items-start justify-between gap-4 border-b pb-5">
           <div>
             <p className="eyebrow">{company.gstin && settings.showGstin ? "Tax invoice" : "Invoice"}</p>

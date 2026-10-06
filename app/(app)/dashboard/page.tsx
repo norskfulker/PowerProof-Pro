@@ -50,7 +50,7 @@ export default function DashboardPage() {
               </Button>
             )}
             <Button asChild>
-              <GuardedLink kind="products" href="/products/new" data-coach="new-product">
+              <GuardedLink kind="products" href="/catalog/products/new" data-coach="new-product">
                 <Plus aria-hidden /> Add product
               </GuardedLink>
             </Button>
@@ -106,7 +106,7 @@ export default function DashboardPage() {
                     {summary.data?.topProducts.slice(0, 4).map((p, i) => (
                       <li key={p.productId} className="flex items-center gap-3 text-sm">
                         <span className="font-mono text-xs text-muted-foreground">{i + 1}</span>
-                        <Link href={`/products/${p.productId}`} className="flex pointer-coarse:min-h-11 min-w-0 flex-1 items-center truncate font-medium hover:underline">
+                        <Link href={`/catalog/products/${p.productId}`} className="flex pointer-coarse:min-h-11 min-w-0 flex-1 items-center truncate font-medium hover:underline">
                           {p.title}
                         </Link>
                         <MoneyText value={p.revenue} mono />

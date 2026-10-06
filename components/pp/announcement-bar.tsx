@@ -27,7 +27,7 @@ export function AnnouncementBar({ announcement }: { announcement: Announcement }
           </button>
         )}
         {announcement.endsAt && (
-          <span className="inline-flex items-center gap-1.5 text-primary-foreground/80">
+          <span className="inline-flex items-center gap-1.5 text-primary-foreground/90">
             Ends in <CountdownTimer endsAt={announcement.endsAt} compact className="text-primary-foreground" />
           </span>
         )}

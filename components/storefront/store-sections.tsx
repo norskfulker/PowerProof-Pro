@@ -49,7 +49,7 @@ export function OffersSection() {
         <div className="mb-6 rounded-card border bg-primary p-5 text-primary-foreground md:p-6">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
-              <p className="font-mono text-xs tracking-[0.08em] uppercase opacity-80">Limited-time deal</p>
+              <p className="font-mono text-xs tracking-[0.08em] uppercase opacity-90">Limited-time deal</p>
               <p className="mt-1 font-display text-2xl">{deal.name}: {deal.percentOff}% off</p>
             </div>
             <CountdownTimer endsAt={deal.endsAt} onDark />

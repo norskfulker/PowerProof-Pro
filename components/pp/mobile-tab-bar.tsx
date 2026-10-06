@@ -3,31 +3,39 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Menu } from "lucide-react";
+import { useApi } from "@/hooks/use-api";
+import { getActiveStoreId } from "@/lib/api";
+import { ADMIN_TABS, MOBILE_TABS, type TabItem } from "@/lib/nav/config";
 import { cn } from "@/lib/utils";
-import { isActive, type NavItem } from "./nav-config";
 
-export function MobileTabBar({ tabs, onMore }: { tabs: NavItem[]; onMore: () => void }) {
+/** The longest matching prefix wins, so /admin/orders lights Disputes, not Overview. */
+export function activeTab(tabs: TabItem[], pathname: string): TabItem | undefined {
+  let best: { t: TabItem; len: number } | undefined;
+  for (const t of tabs)
+    for (const m of t.match)
+      if ((pathname === m || pathname.startsWith(m + "/")) && (!best || m.length > best.len)) best = { t, len: m.length };
+  return best?.t;
+}
+
+export function MobileTabBar({ area, onMore }: { area: "creator" | "admin"; onMore: () => void }) {
   const pathname = usePathname();
+  const store = useApi(getActiveStoreId, []);
+  const tabs = area === "admin" ? ADMIN_TABS : MOBILE_TABS;
+  const active = activeTab(tabs, pathname);
   return (
-    <nav
-      aria-label="Quick"
-      className="fixed inset-x-0 bottom-0 z-40 border-t bg-surface pb-[env(safe-area-inset-bottom)] md:hidden"
-    >
+    <nav aria-label="Quick" className="fixed inset-x-0 bottom-0 z-40 border-t bg-surface pb-[env(safe-area-inset-bottom)] md:hidden">
       <ul className="grid grid-cols-5">
         {tabs.map((t) => {
-          const active = isActive(pathname, t);
+          const on = t === active;
           const Icon = t.icon;
           return (
-            <li key={t.href} className="min-w-0">
+            <li key={t.label} className="min-w-0">
               <Link
-                href={t.href}
-                aria-current={active ? "page" : undefined}
-                className={cn(
-                  "flex min-h-14 min-w-0 flex-col items-center justify-center gap-1 text-[0.6875rem] font-medium",
-                  active ? "text-primary" : "text-muted-foreground"
-                )}
+                href={t.href.replace("{store}", store.data ?? "current")}
+                aria-current={on ? "page" : undefined}
+                className={cn("flex min-h-14 min-w-0 flex-col items-center justify-center gap-1 text-[0.6875rem] font-medium", on ? "text-primary" : "text-muted-foreground")}
               >
-                <span className={cn("grid h-7 w-full max-w-12 place-items-center rounded-full transition-colors", active && "bg-primary-soft")}>
+                <span className={cn("grid h-7 w-full max-w-12 place-items-center rounded-full transition-colors", on && "bg-primary-soft")}>
                   <Icon className="size-5" strokeWidth={1.5} aria-hidden />
                 </span>
                 <span className="max-w-full truncate px-0.5">{t.label}</span>
@@ -36,15 +44,11 @@ export function MobileTabBar({ tabs, onMore }: { tabs: NavItem[]; onMore: () => 
           );
         })}
         <li className="min-w-0">
-          <button
-            type="button"
-            onClick={onMore}
-            className="flex min-h-14 w-full min-w-0 flex-col items-center justify-center gap-1 text-[0.6875rem] font-medium text-muted-foreground"
-          >
+          <button type="button" onClick={onMore} className="flex min-h-14 w-full min-w-0 flex-col items-center justify-center gap-1 text-[0.6875rem] font-medium text-muted-foreground" aria-haspopup="dialog">
             <span className="grid h-7 w-full max-w-12 place-items-center">
               <Menu className="size-5" strokeWidth={1.5} aria-hidden />
             </span>
-            <span className="max-w-full truncate px-0.5">More</span>
+            <span className="max-w-full truncate px-0.5">Menu</span>
           </button>
         </li>
       </ul>

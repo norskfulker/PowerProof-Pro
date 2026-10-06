@@ -27,7 +27,7 @@ export function DealPathEditor({ rule, rules, products, storeDeals }: { rule?: D
         setBaseline(d);
       } else {
         setBaseline(d);
-        router.push(`/store/offers/deal-paths/${saved.id}`);
+        router.push(`/store/current/offers/deal-paths/${saved.id}`);
       }
     },
     onDiscard: () => setDraft(baseline),
@@ -40,7 +40,7 @@ export function DealPathEditor({ rule, rules, products, storeDeals }: { rule?: D
     return withOthers ? [mine, ...rules.filter((r) => r.id !== mine.id)] : [mine];
   }, [draft, now, withOthers, rules]);
 
-  const leave = () => router.push("/store/offers/deal-paths");
+  const leave = () => router.push("/store/current/offers/deal-paths");
 
   return (
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,24rem)]">

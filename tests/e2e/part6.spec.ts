@@ -30,7 +30,7 @@ async function saveAndExpectHidden(page: Page) {
 test.describe("media uploads @flow", () => {
   test("image and video on the store hero, then on a product", async ({ page }, testInfo) => {
     const { errors } = await prepare(page, testInfo);
-    await page.goto("/store/design");
+    await page.goto("/store/store_ananya/design/backgrounds");
     await settle(page);
     await expect(saveBar(page)).toBeHidden();
 
@@ -46,7 +46,7 @@ test.describe("media uploads @flow", () => {
     await expect(page.getByRole("button", { name: "Replace" })).toHaveCount(2, { timeout: 10_000 });
     await saveAndExpectHidden(page);
 
-    await page.goto("/products/prod_01");
+    await page.goto("/catalog/products/prod_01");
     await settle(page);
     await expect(saveBar(page)).toBeHidden();
     const list = page.getByRole("list", { name: "Product images, in order" });
@@ -58,7 +58,7 @@ test.describe("media uploads @flow", () => {
     await expect(page.getByRole("button", { name: "Replace" })).toHaveCount(replaces + 1, { timeout: 10_000 });
     await saveAndExpectHidden(page);
 
-    await page.goto("/media");
+    await page.goto("/catalog/media");
     await settle(page);
     const files = page.getByRole("list", { name: "Files" });
     await expect(files.getByRole("button", { name: /hero, Image/ })).toBeVisible();
@@ -73,7 +73,7 @@ test.describe("media uploads @flow", () => {
 
   test("collection tile switches between colour and image with a live preview", async ({ page }, testInfo) => {
     const { errors } = await prepare(page, testInfo);
-    await page.goto("/store/collections");
+    await page.goto("/catalog/collections");
     await settle(page);
     await page.getByRole("button", { name: /^Edit / }).first().click();
     const sheet = page.getByRole("dialog");
@@ -164,7 +164,7 @@ test.describe("free plan and getting started @flow", () => {
     await settle(page);
 
     // First product: allowed on Free
-    await page.goto("/products/new/upload");
+    await page.goto("/catalog/products/new/upload");
     await settle(page);
     await page.getByLabel("Title").fill("Calm Desk Planner");
     await page.getByLabel("Description").fill("A printable planner for slow, focused weeks. Twelve pages, A4 and Letter.");
@@ -210,7 +210,7 @@ test.describe("AI images @flow", () => {
   test.setTimeout(120_000);
   test("from a hero field: generate, regenerate, edit, use, and find it in the library", async ({ page }, testInfo) => {
     const { errors } = await prepare(page, testInfo);
-    await page.goto("/store/design");
+    await page.goto("/store/store_ananya/design/backgrounds");
     await settle(page);
     await page.getByRole("tab", { name: "Hero" }).click();
     await page.getByRole("switch", { name: "Hero background image or video" }).click();
@@ -235,7 +235,7 @@ test.describe("AI images @flow", () => {
     await expect(page.getByRole("button", { name: "Replace" }).first()).toBeVisible();
     await saveAndExpectHidden(page);
 
-    await page.goto("/media");
+    await page.goto("/catalog/media");
     await settle(page);
     await page.getByRole("group", { name: "File type" }).getByRole("button", { name: "Made with AI" }).click();
     await expect(page.getByRole("list", { name: "Files" }).getByRole("button", { name: /Illustrated hills/ }).first()).toBeVisible();
@@ -247,12 +247,12 @@ test.describe("save bars @flow", () => {
   // Every editable screen: hidden on load, shows on edit, hides on revert, warns on leaving
   const SCREENS: { path: string; field: (p: Page) => Locator }[] = [
     { path: "/settings/profile", field: (p) => p.getByLabel(/Your name|Name/).first() },
-    { path: "/settings/store", field: (p) => p.getByLabel("Store name") },
+    { path: "/store/store_ananya/settings", field: (p) => p.getByLabel("Store name") },
     { path: "/settings/company", field: (p) => p.getByLabel(/Legal name/) },
     { path: "/settings/tax", field: (p) => p.getByLabel("Footer note") },
-    { path: "/store/seo", field: (p) => p.getByLabel("Page title") },
+    { path: "/store/store_ananya/seo", field: (p) => p.getByLabel("Page title") },
     { path: "/store/store_ananya/pages/about", field: (p) => p.getByLabel("Your story") },
-    { path: "/pages/page_launch/edit", field: (p) => p.getByLabel("Page name") },
+    { path: "/catalog/sales-pages/page_launch/edit", field: (p) => p.getByLabel("Page name") },
   ];
   for (const s of SCREENS) {
     test(`save bar on ${s.path}`, async ({ page }, testInfo) => {
@@ -283,7 +283,7 @@ test.describe("save bars @flow", () => {
 test.describe("save bars @flow", () => {
   test("save bar on a deal path", async ({ page }, testInfo) => {
     const { errors } = await prepare(page, testInfo);
-    await page.goto("/store/offers/deal-paths/dr_ananya_pair");
+    await page.goto("/store/store_ananya/offers/deal-paths/dr_ananya_pair");
     await settle(page);
     await expect(saveBar(page)).toBeHidden();
     // The wizard's product list comes before the test-mode preview's

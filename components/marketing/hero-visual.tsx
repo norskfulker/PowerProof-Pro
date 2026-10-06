@@ -40,7 +40,7 @@ export function HeroVisual() {
         </div>
       </div>
 
-      <div className="absolute -bottom-6 -left-2 rounded-card border bg-foreground px-4 py-3 text-primary-foreground sm:-left-10">
+      <div className="absolute -bottom-6 -left-2 rounded-card border bg-inverse px-4 py-3 text-inverse-foreground sm:-left-10">
         <p className="font-mono text-[0.625rem] tracking-[0.08em] uppercase opacity-70">You keep</p>
         <p className="font-display text-2xl text-accent">₹1,424.05</p>
       </div>

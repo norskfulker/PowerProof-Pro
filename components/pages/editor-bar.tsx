@@ -28,7 +28,7 @@ export function EditorBar({
     <div className="mb-6 flex flex-col gap-4 rounded-card border bg-surface p-4 md:p-5">
       <div className="flex flex-wrap items-center gap-3">
         <Button asChild variant="ghost" size="icon-sm" aria-label="Back to pages">
-          <Link href="/pages"><ArrowLeft /></Link>
+          <Link href="/catalog/sales-pages"><ArrowLeft /></Link>
         </Button>
         <label htmlFor="pg-name" className="sr-only">Page name</label>
         <Input id="pg-name" value={page.title} onChange={(e) => onChange({ title: e.target.value })} className="h-11 max-w-sm min-w-0 flex-[1_1_12rem] font-display text-lg font-extrabold" />

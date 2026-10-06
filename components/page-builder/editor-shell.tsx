@@ -70,6 +70,8 @@ function Inner({ page, context }: { page: StorePageDoc; context: RenderContext }
   const { undo, redo, setDevice, setFocusSection, setCompare, insert, reset, markSaved } = store.getState();
 
   const [title, setTitle] = useState(page.title);
+  // Creators check both themes without changing the store's own default
+  const [previewAs, setPreviewAs] = useState<"light" | "dark">(() => (context.theme.mode === "dark" ? "dark" : "light"));
   const [published, setPublished] = useState(page.published);
   const [status, setStatus] = useState<VisualPageStatus>(page.published ? "published" : "draft");
   const [save, setSave] = useState<SaveState>("saved");
@@ -189,7 +191,7 @@ function Inner({ page, context }: { page: StorePageDoc; context: RenderContext }
       {/* Top bar */}
       <header className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b bg-surface px-3 py-2 md:px-4">
         <Button asChild variant="ghost" size="icon" aria-label="Back to store pages">
-          <Link href="/store/pages">
+          <Link href="/store/current/design/pages">
             <ArrowLeft />
           </Link>
         </Button>
@@ -218,6 +220,16 @@ function Inner({ page, context }: { page: StorePageDoc; context: RenderContext }
           </div>
           <DevicePreviewSwitch value={device} onChange={setDevice} className="max-md:hidden" />
           <Segmented
+            label="Preview as"
+            value={previewAs}
+            onChange={setPreviewAs}
+            options={[
+              { value: "light", label: "Light" },
+              { value: "dark", label: "Dark" },
+            ]}
+            className="max-sm:hidden"
+          />
+          <Segmented
             label="Preview"
             value={focusSection ? "section" : "page"}
             onChange={(v) => setFocusSection(v === "section")}
@@ -232,7 +244,7 @@ function Inner({ page, context }: { page: StorePageDoc; context: RenderContext }
             Before and after
           </label>
           <Button asChild variant="ghost" size="sm">
-            <Link href={`/store/pages/${page.id}/versions`}>
+            <Link href={`/store/current/design/pages/${page.id}/versions`}>
               <History aria-hidden /> <span className="max-sm:sr-only">Versions</span>
             </Link>
           </Button>
@@ -283,7 +295,7 @@ function Inner({ page, context }: { page: StorePageDoc; context: RenderContext }
         </aside>
 
         <main id="main" className="min-h-0 pb-[calc(4.5rem+env(safe-area-inset-bottom))] lg:pb-0">
-          <Canvas context={context} published={published} />
+          <Canvas context={context} published={published} previewAs={previewAs} />
         </main>
 
         <aside aria-label="Block settings" className="hidden min-h-0 overflow-y-auto border-l bg-surface p-4 lg:block">

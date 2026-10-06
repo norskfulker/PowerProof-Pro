@@ -2,6 +2,7 @@
 
 import { Check } from "lucide-react";
 import { Label } from "@/components/ui/label";
+import { Segmented } from "@/components/pp/segmented";
 import { FONT_PAIRS, HERO_STYLES, PALETTES } from "@/lib/store-themes";
 import type { StoreTheme } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -13,6 +14,20 @@ export function ThemePicker({ theme, onChange }: { theme: StoreTheme; onChange: 
 
   return (
     <div className="flex flex-col gap-6">
+      <fieldset>
+        <legend className="eyebrow mb-2">Light or dark</legend>
+        <Segmented
+          label="Store default theme"
+          value={theme.mode ?? "auto"}
+          onChange={(mode) => set({ mode })}
+          options={[
+            { value: "light", label: "Light" },
+            { value: "dark", label: "Dark" },
+            { value: "auto", label: "Auto" },
+          ]}
+        />
+        <p className="mt-1.5 text-sm text-muted-foreground">Auto follows each buyer&apos;s device. Buyers can switch with the toggle in your store&apos;s footer.</p>
+      </fieldset>
       <fieldset>
         <legend className="eyebrow mb-2">Palette</legend>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
@@ -28,6 +43,7 @@ export function ThemePicker({ theme, onChange }: { theme: StoreTheme; onChange: 
                 <span className="size-6" style={{ background: p.background }} />
                 <span className="size-6" style={{ background: p.primary }} />
                 <span className="size-6" style={{ background: p.accent }} />
+                <span className="size-6" style={{ background: p.dark.background }} title="Dark" />
               </span>
               {p.name}
               {theme.palette === p.id && <Check className="ml-auto size-4 text-primary" aria-hidden />}

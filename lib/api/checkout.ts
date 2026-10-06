@@ -291,7 +291,7 @@ export function payOrder(input: PayInput): Promise<Order> {
         }
       }
       if (isPrimary(scope)) {
-        db().notifications.unshift({ id: uid("n"), kind: "sale", title: "New sale", body: `${c.name} bought ${o.productTitle}`, createdAt: new Date().toISOString(), read: false, href: `/orders/${o.id}` });
+        db().notifications.unshift({ id: uid("n"), kind: "sale", title: "New sale", body: `${c.name} bought ${o.productTitle}`, createdAt: new Date().toISOString(), read: false, href: `/sales/orders/${o.id}` });
       }
     });
     return o;

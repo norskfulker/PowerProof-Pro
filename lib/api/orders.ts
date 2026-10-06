@@ -1,3 +1,4 @@
+import { adminDb } from "../mock/admin";
 import { commit, db } from "../mock/db";
 import type { Customer, Order, OrderStatus } from "../types";
 import { call, notFound } from "./client";
@@ -8,12 +9,15 @@ export interface OrderQuery {
   status?: OrderStatus | "all";
   productId?: string;
   customerId?: string;
+  /** Only orders with an open dispute (Sales › Orders › Disputed) */
+  disputed?: boolean;
   limit?: number;
 }
 
 export function getOrders(q: OrderQuery = {}): Promise<Order[]> {
   return call(() => {
     const s = q.search?.trim().toLowerCase();
+    const disputed = q.disputed ? new Set(adminDb().disputes.filter((x) => x.status === "open" || x.status === "under_review").map((x) => x.orderNumber)) : undefined;
     const list = db().orders.filter(
       (o) =>
         (!s ||
@@ -23,7 +27,8 @@ export function getOrders(q: OrderQuery = {}): Promise<Order[]> {
           o.productTitle.toLowerCase().includes(s)) &&
         (!q.status || q.status === "all" || o.status === q.status) &&
         (!q.productId || o.productId === q.productId) &&
-        (!q.customerId || o.customerId === q.customerId)
+        (!q.customerId || o.customerId === q.customerId) &&
+        (!disputed || disputed.has(o.number))
     );
     return q.limit ? list.slice(0, q.limit) : list;
   });

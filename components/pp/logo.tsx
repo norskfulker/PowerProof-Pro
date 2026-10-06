@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 export function LogoMark({ className, inverted }: { className?: string; inverted?: boolean }) {
   return (
     <svg viewBox="0 0 32 32" aria-hidden className={cn("size-8 shrink-0", className)}>
-      <rect width="32" height="32" rx="9" className={inverted ? "fill-primary-foreground" : "fill-primary"} />
+      <rect width="32" height="32" rx="9" className={inverted ? "fill-sidebar-admin-foreground" : "fill-primary"} />
       <path d="M9 16.5l4.5 4.5L23 11.5" fill="none" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" className="stroke-accent" />
     </svg>
   );
@@ -29,7 +29,7 @@ export function Logo({
         <span
           className={cn(
             "font-display text-[1.25rem] leading-none font-extrabold tracking-[-0.03em]",
-            inverted ? "text-primary-foreground" : "text-foreground"
+            inverted ? "text-sidebar-admin-foreground" : "text-foreground"
           )}
         >
           PowerProof

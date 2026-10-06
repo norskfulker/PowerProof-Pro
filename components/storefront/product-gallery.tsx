@@ -13,7 +13,7 @@ function GalleryVideo({ video, title }: { video: MediaRef; title: string }) {
   const poster = useMediaUrl(video.poster);
   if (!v.url) {
     return (
-      <div className="grid aspect-[4/3] place-items-center bg-foreground text-center text-primary-foreground">
+      <div className="grid aspect-[4/3] place-items-center bg-inverse text-center text-inverse-foreground">
         <span className="flex flex-col items-center gap-2 px-6">
           <PlayCircle className="size-12" aria-hidden />
           <span className="font-semibold">{v.missing ? "Video not available" : "Loading video…"}</span>
@@ -38,7 +38,7 @@ export function ProductGallery({ images, title, hasVideo, video, fallback }: { i
           video?.src ? (
             <GalleryVideo video={video} title={title} />
           ) : (
-            <div className="grid aspect-[4/3] place-items-center bg-foreground text-center text-primary-foreground">
+            <div className="grid aspect-[4/3] place-items-center bg-inverse text-center text-inverse-foreground">
               <span className="flex flex-col items-center gap-2 px-6">
                 <PlayCircle className="size-12" aria-hidden />
                 <span className="font-semibold">Preview video</span>
@@ -87,7 +87,7 @@ export function ProductGallery({ images, title, hasVideo, video, fallback }: { i
               onClick={() => setActive(images.length)}
               aria-label="Show preview video"
               aria-pressed={showingVideo}
-              className={cn("grid aspect-[4/3] w-20 shrink-0 place-items-center rounded-media bg-foreground text-primary-foreground", showingVideo ? "outline-2 outline-offset-2 outline-primary" : "opacity-80")}
+              className={cn("grid aspect-[4/3] w-20 shrink-0 place-items-center rounded-media bg-inverse text-inverse-foreground", showingVideo ? "outline-2 outline-offset-2 outline-primary" : "opacity-80")}
             >
               <PlayCircle className="size-6" aria-hidden />
             </button>

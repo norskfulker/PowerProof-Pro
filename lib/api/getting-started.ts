@@ -99,15 +99,15 @@ function build(flags: ProgressFlags): Checklist {
   const email = getSessionRaw()?.email ?? s.ownerEmail;
   const href: Record<StepId, string> = {
     verify_email: `/verify-email?email=${encodeURIComponent(email)}`,
-    create_store: "/settings/store",
+    create_store: "/store/current/settings",
     business: "/settings/company",
-    payout: "/payouts",
-    first_product: "/products/new",
-    customize: "/store/design",
-    publish: "/store/design",
+    payout: "/sales/payouts/methods",
+    first_product: "/catalog/products/new",
+    customize: "/store/current/design/backgrounds",
+    publish: "/store/current/design/theme",
     share: "/dashboard",
     first_sale: "/dashboard",
-    analytics: "/integrations",
+    analytics: "/tools/integrations",
   };
   const tier = d.plan.tier ?? "pro";
   const productsFull = PLAN_LIMITS[tier].products !== null && all.reduce((t, x) => t + x.products.length, 0) >= (PLAN_LIMITS[tier].products ?? Infinity);

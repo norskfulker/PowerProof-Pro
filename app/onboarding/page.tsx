@@ -13,7 +13,8 @@ import { useApi } from "@/hooks/use-api";
 import { getCompany, getStore } from "@/lib/api";
 import type { Product } from "@/lib/types";
 
-const STEPS = ["Store", "Business", "Payouts", "Product", "Publish"];
+// Step 6 (Domain) is optional and shown on the "you're live" screen
+const STEPS = ["Store", "Business", "Payouts", "Product", "Publish", "Domain"];
 
 export default function OnboardingPage() {
   const [step, setStep] = useState(0);

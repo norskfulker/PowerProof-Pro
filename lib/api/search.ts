@@ -109,13 +109,13 @@ function scopeItems(sc: StoreScope, scope: SearchScope): Indexed[] {
   const storeName = sc.store.name;
   const base = { storeSlug: slug, storeName };
   // Admins open orders in the platform order list; creators open their own order page
-  const orderHref = (id: string, number: string) => (scope === "creator" || primary ? `/orders/${id}` : `/admin/orders?q=${encodeURIComponent(number)}`);
+  const orderHref = (id: string, number: string) => (scope === "creator" || primary ? `/sales/orders/${id}` : `/admin/orders?q=${encodeURIComponent(number)}`);
   const out: Indexed[] = [];
 
   out.push({ ...base, type: "store", id: slug, title: storeName, subtitle: `powerproof.store/${slug} · ${sc.store.ownerName}`, href: `/s/${slug}`, date: sc.store.createdAt, text: text(storeName, slug, sc.store.ownerName, sc.store.tagline), rawEmails: [sc.store.ownerEmail.toLowerCase()], rawPhones: [], actions: scope === "admin" ? ["open", "copy", "suspend_store"] : ["open", "copy"] });
 
   for (const p of sc.products) {
-    out.push({ ...base, type: "product", id: p.id, title: p.title, subtitle: `${p.sku} · ${p.kind}`, status: p.status, amount: p.price, date: p.createdAt, href: primary && scope === "creator" ? `/products/${p.id}` : `/s/${slug}/${p.slug}`, text: text(p.title, p.sku, p.slug, p.kind, p.id), rawEmails: [], rawPhones: [], actions: ["open", "copy"] });
+    out.push({ ...base, type: "product", id: p.id, title: p.title, subtitle: `${p.sku} · ${p.kind}`, status: p.status, amount: p.price, date: p.createdAt, href: primary && scope === "creator" ? `/catalog/products/${p.id}` : `/s/${slug}/${p.slug}`, text: text(p.title, p.sku, p.slug, p.kind, p.id), rawEmails: [], rawPhones: [], actions: ["open", "copy"] });
   }
 
   for (const o of sc.orders) {
@@ -145,19 +145,19 @@ function scopeItems(sc: StoreScope, scope: SearchScope): Indexed[] {
 
   for (const c of sc.customers) {
     const phone = sc.orders.find((o) => o.customerId === c.id && o.buyerPhone)?.buyerPhone;
-    out.push({ ...base, ...contact(scope, c.email, phone), type: "buyer", id: c.id, title: c.name, subtitle: `${c.ordersCount} order${c.ordersCount === 1 ? "" : "s"} · ${c.country}`, amount: c.totalSpent, date: c.lastOrderAt, href: primary && scope === "creator" ? `/customers/${c.id}` : primary ? `/customers/${c.id}` : `/admin/orders?q=${encodeURIComponent(c.name)}`, text: text(c.name, c.country, c.id), actions: ["open", "copy"] });
+    out.push({ ...base, ...contact(scope, c.email, phone), type: "buyer", id: c.id, title: c.name, subtitle: `${c.ordersCount} order${c.ordersCount === 1 ? "" : "s"} · ${c.country}`, amount: c.totalSpent, date: c.lastOrderAt, href: primary && scope === "creator" ? `/sales/customers/${c.id}` : primary ? `/sales/customers/${c.id}` : `/admin/orders?q=${encodeURIComponent(c.name)}`, text: text(c.name, c.country, c.id), actions: ["open", "copy"] });
   }
 
   for (const r of sc.reviews) {
-    out.push({ ...base, type: "review", id: r.id, title: r.title, subtitle: `${r.rating}★ · ${r.author}`, status: r.hidden ? "hidden" : r.reported ? "reported" : "shown", date: r.createdAt, href: primary && scope === "creator" ? `/store/reviews` : `/s/${slug}/${sc.products.find((p) => p.id === r.productId)?.slug ?? ""}#reviews`, text: text(r.title, r.body, r.author), rawEmails: [], rawPhones: [], actions: r.hidden ? ["open", "copy"] : ["open", "copy", "hide_review"] });
+    out.push({ ...base, type: "review", id: r.id, title: r.title, subtitle: `${r.rating}★ · ${r.author}`, status: r.hidden ? "hidden" : r.reported ? "reported" : "shown", date: r.createdAt, href: primary && scope === "creator" ? `/store/current/reviews` : `/s/${slug}/${sc.products.find((p) => p.id === r.productId)?.slug ?? ""}#reviews`, text: text(r.title, r.body, r.author), rawEmails: [], rawPhones: [], actions: r.hidden ? ["open", "copy"] : ["open", "copy", "hide_review"] });
   }
 
   for (const q of sc.questions) {
-    out.push({ ...base, ...contact(scope, q.askerEmail), type: "question", id: q.id, title: q.body.length > 80 ? `${q.body.slice(0, 80)}…` : q.body, subtitle: `${q.asker} · ${q.answers.length ? "answered" : "waiting"}`, status: q.hidden ? "hidden" : q.answers.length ? "answered" : "open", date: q.createdAt, href: primary && scope === "creator" ? `/store/questions` : `/s/${slug}/${sc.products.find((p) => p.id === q.productId)?.slug ?? ""}#questions`, text: text(q.body, q.asker), actions: ["open", "copy"] });
+    out.push({ ...base, ...contact(scope, q.askerEmail), type: "question", id: q.id, title: q.body.length > 80 ? `${q.body.slice(0, 80)}…` : q.body, subtitle: `${q.asker} · ${q.answers.length ? "answered" : "waiting"}`, status: q.hidden ? "hidden" : q.answers.length ? "answered" : "open", date: q.createdAt, href: primary && scope === "creator" ? `/store/current/questions` : `/s/${slug}/${sc.products.find((p) => p.id === q.productId)?.slug ?? ""}#questions`, text: text(q.body, q.asker), actions: ["open", "copy"] });
   }
 
   for (const c of sc.coupons) {
-    out.push({ ...base, type: "coupon", id: c.id, title: c.code, subtitle: `${c.kind === "percent" ? `${c.value}% off` : "Fixed amount off"} · used ${c.used}${c.usageLimit ? ` of ${c.usageLimit}` : ""}`, status: c.active ? "active" : "inactive", href: primary && scope === "creator" ? `/store/offers` : `/s/${slug}`, text: text(c.code), rawEmails: [], rawPhones: [], actions: ["open", "copy"] });
+    out.push({ ...base, type: "coupon", id: c.id, title: c.code, subtitle: `${c.kind === "percent" ? `${c.value}% off` : "Fixed amount off"} · used ${c.used}${c.usageLimit ? ` of ${c.usageLimit}` : ""}`, status: c.active ? "active" : "inactive", href: primary && scope === "creator" ? `/store/current/offers/coupons` : `/s/${slug}`, text: text(c.code), rawEmails: [], rawPhones: [], actions: ["open", "copy"] });
   }
 
   return out;
@@ -170,7 +170,7 @@ function buildIndex(scope: SearchScope): Indexed[] {
 
   // The creator's own payouts
   for (const p of d.payouts) {
-    items.push({ type: "payout", id: p.id, title: `Payout ${p.reference ?? p.id}`, subtitle: p.methodLabel, status: p.status, amount: p.amount, date: p.createdAt, storeSlug: d.store.slug, storeName: d.store.name, href: scope === "creator" ? `/payouts` : `/admin/payouts`, text: text("payout", p.reference, p.methodLabel, p.id), rawEmails: [], rawPhones: [], actions: ["open", "copy"] });
+    items.push({ type: "payout", id: p.id, title: `Payout ${p.reference ?? p.id}`, subtitle: p.methodLabel, status: p.status, amount: p.amount, date: p.createdAt, storeSlug: d.store.slug, storeName: d.store.name, href: scope === "creator" ? `/sales/payouts/balance` : `/admin/money/payouts`, text: text("payout", p.reference, p.methodLabel, p.id), rawEmails: [], rawPhones: [], actions: ["open", "copy"] });
   }
 
   if (scope === "admin") {
@@ -184,13 +184,13 @@ function buildIndex(scope: SearchScope): Indexed[] {
     }
     const slugOf = (name: string) => a.creators.find((c) => c.storeName === name)?.slug;
     for (const dp of a.disputes) {
-      items.push({ ...contact(scope, dp.buyerEmail), type: "dispute", id: dp.id, number: dp.orderNumber, title: `Dispute · ${dp.orderNumber}`, subtitle: `${dp.reason.replace(/_/g, " ")} · ${dp.storeName}`, status: dp.status, amount: dp.amount, date: dp.openedAt, storeSlug: slugOf(dp.storeName), storeName: dp.storeName, href: `/admin/disputes`, text: text("dispute", dp.orderNumber, dp.storeName, dp.reason.replace(/_/g, " ")), actions: ["open", "copy"] });
+      items.push({ ...contact(scope, dp.buyerEmail), type: "dispute", id: dp.id, number: dp.orderNumber, title: `Dispute · ${dp.orderNumber}`, subtitle: `${dp.reason.replace(/_/g, " ")} · ${dp.storeName}`, status: dp.status, amount: dp.amount, date: dp.openedAt, storeSlug: slugOf(dp.storeName), storeName: dp.storeName, href: `/admin/orders/disputed`, text: text("dispute", dp.orderNumber, dp.storeName, dp.reason.replace(/_/g, " ")), actions: ["open", "copy"] });
     }
     for (const p of a.payouts) {
-      items.push({ type: "payout", id: p.id, title: `Payout to ${p.storeName}`, subtitle: p.method + (p.note ? ` · ${p.note}` : ""), status: p.status, amount: p.amount, date: p.requestedAt, storeSlug: slugOf(p.storeName), storeName: p.storeName, href: `/admin/payouts`, text: text("payout", p.storeName, p.method, p.note, p.id), rawEmails: [], rawPhones: [], actions: ["open", "copy"] });
+      items.push({ type: "payout", id: p.id, title: `Payout to ${p.storeName}`, subtitle: p.method + (p.note ? ` · ${p.note}` : ""), status: p.status, amount: p.amount, date: p.requestedAt, storeSlug: slugOf(p.storeName), storeName: p.storeName, href: `/admin/money/payouts`, text: text("payout", p.storeName, p.method, p.note, p.id), rawEmails: [], rawPhones: [], actions: ["open", "copy"] });
     }
     for (const f of a.flags) {
-      items.push({ type: "flag", id: f.id, title: f.target, subtitle: `${f.kind} · ${f.reason}`, status: f.status, date: f.createdAt, storeSlug: slugOf(f.storeName), storeName: f.storeName, href: `/admin/flags`, text: text(f.target, f.reason, f.storeName, f.kind), rawEmails: [], rawPhones: [], actions: ["open", "copy"] });
+      items.push({ type: "flag", id: f.id, title: f.target, subtitle: `${f.kind} · ${f.reason}`, status: f.status, date: f.createdAt, storeSlug: slugOf(f.storeName), storeName: f.storeName, href: `/admin/moderation/flags`, text: text(f.target, f.reason, f.storeName, f.kind), rawEmails: [], rawPhones: [], actions: ["open", "copy"] });
     }
   }
   return items;

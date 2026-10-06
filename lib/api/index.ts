@@ -22,3 +22,6 @@ export * from "./account";
 export * from "./media";
 export * from "./ai";
 export * from "./getting-started";
+export * from "./preferences";
+export * from "./domains";
+export * from "./nav";

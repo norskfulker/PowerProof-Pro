@@ -17,7 +17,7 @@ export function MediaImg({ src, alt, focal, className, fit = "cover", decorative
   }
   if (loading || !url) return <div className={cn("animate-pulse bg-muted", className)} aria-hidden />;
   // eslint-disable-next-line @next/next/no-img-element
-  return <img src={url} alt={decorative ? "" : alt} loading="lazy" className={cn("h-full w-full", fit === "cover" ? "object-cover" : "object-contain", className)} style={focal ? { objectPosition: `${focal.x}% ${focal.y}%` } : undefined} />;
+  return <img src={url} alt={decorative ? "" : alt} loading="lazy" className={cn("dim-media h-full w-full", fit === "cover" ? "object-cover" : "object-contain", className)} style={focal ? { objectPosition: `${focal.x}% ${focal.y}%` } : undefined} />;
 }
 
 /** Looping, muted background video. Phones and reduced-motion users see the poster instead. */
@@ -27,7 +27,7 @@ export function MediaVideoBackground({ src, poster, focal }: { src: string; post
     <>
       <MediaImg src={poster} alt="" decorative focal={focal} className="absolute inset-0" />
       {video.url && (
-        <video src={video.url} autoPlay muted loop playsInline aria-hidden className="absolute inset-0 hidden h-full w-full object-cover motion-safe:md:block" style={{ objectPosition: `${focal.x}% ${focal.y}%` }} />
+        <video src={video.url} autoPlay muted loop playsInline aria-hidden className="dim-media absolute inset-0 hidden h-full w-full object-cover motion-safe:md:block" style={{ objectPosition: `${focal.x}% ${focal.y}%` }} />
       )}
     </>
   );

@@ -2,7 +2,10 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { SETTINGS_NAV } from "@/components/pp/nav-config";
+import { CREATOR_NAV } from "@/lib/nav/config";
+
+// The Settings section of the one nav config (Part 7C)
+const SETTINGS = CREATOR_NAV.find((n) => n.id === "settings")!.children!.map((n) => ({ href: n.href!, label: n.label }));
 import { cn } from "@/lib/utils";
 
 export function SettingsNav() {
@@ -10,7 +13,7 @@ export function SettingsNav() {
   return (
     <nav aria-label="Settings" className="-mx-[16px] overflow-x-auto px-[16px] lg:mx-0 lg:overflow-visible lg:px-0">
       <ul className="flex gap-2 lg:gap-1 lg:sticky lg:top-24 lg:flex-col lg:pointer-coarse:gap-2">
-        {SETTINGS_NAV.map((i) => {
+        {SETTINGS.map((i) => {
           const active = pathname === i.href;
           return (
             <li key={i.href} className="shrink-0">

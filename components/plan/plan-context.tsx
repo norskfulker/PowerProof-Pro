@@ -12,7 +12,7 @@ import { ApiError, getPlanState, setPlanTier, type PlanState } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { PLAN_LIMITS, PRO_BENEFITS, PRO_PRICE_USD, PRO_TRIAL_DAYS } from "@/lib/plans";
 
-export type LimitKind = "stores" | "products" | "aiCredits";
+export type LimitKind = "stores" | "products" | "aiCredits" | "customDomain";
 
 interface PlanCtx {
   state?: PlanState;
@@ -33,6 +33,7 @@ const Ctx = createContext<PlanCtx | null>(null);
 const REASON: Record<LimitKind, string> = {
   products: `The Free plan includes ${PLAN_LIMITS.free.products} product. Pro lets you add as many as you like.`,
   stores: `The Free plan includes ${PLAN_LIMITS.free.stores} store. Pro lets you open more, each with its own look, products and policies.`,
+  customDomain: "Connecting your own domain is part of Pro. Your free address keeps working on Free.",
   aiCredits: `You've used this month's ${PLAN_LIMITS.free.aiCredits} AI image credits. Pro includes ${PLAN_LIMITS.pro.aiCredits} a month.`,
 };
 
