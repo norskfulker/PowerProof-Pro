@@ -1,130 +1,80 @@
-# PowerProof frontend
+# PowerProof
 
-Instant stores for creators selling digital products: add a product, share a link, get paid. This repo is the complete frontend. **There is no backend yet.** Every screen runs on a typed mock data layer that lives in the browser.
+Instant stores for creators selling digital products: add a product, share a link, get paid.
+
+The app talks to **Supabase only**. There is no demo mode, no mock data layer and no sample content. Every screen shows what is in the database, and a screen with nothing to show says so, with one clear next step. Anything that needs a server we don't have yet (payments, emails, DNS checks, an image service) is labelled **Coming soon** instead of being faked.
 
 ## Run it
 
 ```bash
+cp .env.example .env.local   # then fill in the Supabase URL and anon key
 npm install
 npm run dev
 ```
 
-Open http://localhost:3000.
+Open http://localhost:3000. If the Supabase variables are missing the app says so and stops; it never falls back to made-up data.
 
 | Script | What it does |
 | --- | --- |
 | `npm run dev` | Dev server |
 | `npm run build` | Production build (also typechecks) |
-| `npm run lint` | ESLint |
+| `npm run lint` | ESLint (also bans importing test fixtures from app code) |
 | `npm run typecheck` | TypeScript only |
-| `npm test` | Unit and component tests (Vitest) |
-| `npm run test:ui` | Component tests only |
-| `npm run test:e2e` | Playwright: layout on every screen size and engine, flows, stress data |
+| `npm test` | Unit and component tests (Vitest, with test-only fixtures in `tests/fixtures`) |
+| `npm run test:integration` | Row level security checks against the real project |
+| `npm run test:e2e` | Playwright: layout on every screen size and engine, flows, empty states, persistence |
 | `npm run test:a11y` | axe on every route (zero serious or critical issues) |
 | `npm run test:visual` | Screenshot comparisons at phone, tablet and desktop |
-| `npm run test:all` | Everything above, plus a production build |
+| `npm run test:all` | Typecheck, lint, unit tests, a production build, then Playwright |
 
-Playwright runs against a production build on port 3100, so run `npm run build` first (test:all does). First time only: `npx playwright install`. See `QA_REPORT.md` for the screen matrix and results.
+## Tests run against the real database
 
-Deploy: push to Vercel. No environment variables are needed.
+The end-to-end and integration tests use two throwaway creator accounts on the real project. Put their logins in `.env.test.local` (see `.env.example`):
 
-## Walk the main flow
+- **Creator A** gets test data (a product, collection, coupon, page, and with the service-role key also a second product, a deal path, and a paid order with a review). Everything is named `e2e …` and deleted again at the end. A crashed run's leftovers are swept at the next start.
+- **Creator B** is never given data. The empty-state tests use it to check what a brand-new account sees.
 
-1. **Sign up** at `/signup` (any name and email, 8+ character password). The code on `/verify-email` is any 6 digits.
-2. **Onboarding** (`/onboarding`): name your store, skip or fill business details, add a bank account (`HDFC0000123` works as an IFSC), add your first product, publish.
-3. **Buyer:** open your store at `/s/<your-slug>` in another tab. Buy, fill name, email and phone, accept the terms, tap **Approve payment** in the test-mode sheet.
-4. **Buyer downloads** from the success page.
-5. **Creator sees the sale** appear in *Live orders* on `/dashboard`, without reloading.
-6. **Creator opens payouts** at `/payouts`. New sales are pending for two days; the sample store has money available to withdraw.
+Playwright's global setup creates the data and signs both creators in through the real login page; the teardown removes it. Playwright runs against a production build on port 3100, so run `npm run build` first. First time only: `npx playwright install`.
 
-Want a full store instead? Log in at `/login` with any email and an 8+ character password, or use **Avatar menu › Demo data › Load sample data**. The same menu can empty the store or make every request fail, to review error states.
-
-## Walk the store
-
-1. Open a store: `/s/ananya`, `/s/inkwell` or `/s/gridgrain` (each has its own theme).
-2. Browse `/s/ananya/products`, search, filter by collection, open a product and read the reviews.
-3. **Buy now** → fill name, email and phone → apply `FESTIVE20` → accept the terms → **Approve payment**.
-4. On the success page, open your files or **Write a review** (both go to your private `/order/[token]` page).
-5. As the creator: `/store/design` (toggle sections, change theme, publish), `/store/offers` (add a coupon), `/store/reviews` (reply).
-
-## Walk the new pieces
-
-- **Global search.** In the founder admin (`/admin`) press **Ctrl K** (or use the search box). Try `#1042`, an email, `+91 98`, or `@inkwell`. Buyer emails and phones are masked; highlight a result, press **Ctrl Enter**, choose **Reveal email**, give a reason, and see it logged at `/admin/audit`. `/admin/search?q=...` has every result in tabs. Creators get the same palette inside the app, limited to their own store.
-- **Deal paths.** Buy *Second Brain for Founders* on `/s/ananya`. At checkout the **Build your deal** panel offers the Pricing Playbook at 25% off together and a free gift over ₹1,500. Add, remove, pick a gift, or say **No thanks**. Creators manage rules at `/store/offers/deal-paths` (wizard with a live test mode, and stats).
-- **Visual page editor.** `/store/pages` lists each store's visual pages (three per store). Open one to edit: add blocks, change backgrounds, switch phone/tablet/desktop, undo with Ctrl Z, then **Publish changes**. Published pages live at `/s/<store>/p/<slug>` and are linked from the store footer. About, FAQ and policies moved to `/store/info`.
-- **Media.** Any image field takes a drop, a click or a paste, shows progress and limits, and has Replace, Library, Remove, a focal point, alt text and **Create with AI**. Try the store hero (`/store/design` › Hero › Background), a product's images and video, a collection tile, the store logo and the About photo. Everything lands in `/media` (search, filter, rename, delete, where used).
-- **AI images.** `/images`, or **Create with AI** next to any image field. Four variations per generation; regenerate, vary, edit by instruction, remove or replace the background, upscale, add text, download, report. The generator is a mock with a 3 to 6 second wait; credits per plan are in `lib/plans.ts`.
-- **Several stores.** The store switcher in the top bar lists your stores (the sample account has two). Each has its own products, design, About, FAQ and policies at `/store/<id>/pages/...`; new stores start with default text marked **Not edited yet**.
-- **Free and Pro.** `/design` › Plans flips the demo account between Free (1 store, 1 product) and Pro. On Free, a second product or store opens the Upgrade dialog. Usage is in the sidebar and on `/settings/billing`; the comparison is on `/pricing`.
-- **Save bar.** Change anything on a settings, product, design, page, offer, deal path, collection or payout screen: the bar appears with Save and Discard, and it disappears again if you change the field back. Leaving with unsaved changes asks first.
-- **Getting started.** Sign up with a new email to see the tracker at 0%: the welcome dialog, the dashboard card, the sidebar ring, and **Next step** with a coach mark on arrival. Progress is kept per account, so it resumes after you log out and back in.
-- **Light and dark.** The sun/moon button in the top bar (or **Avatar menu › Theme**) picks Light, Dark or System. The choice applies before the page paints, so there's no flash. Stores have their own default in **Store › Design › Theme** (Light, Dark or Auto), buyers can switch in the store footer, and Grid & Grain (`/s/gridgrain`) is dark by default. The visual editor and the Store design preview have **Preview as Light / Dark**. `/design` has a theme switch and **Side by side**.
-- **Custom domains.** **Store › Domain and SEO › Domain** (`/store/<id>/domain`): the free `yourname.powerproof.store` address, then a 3-step wizard for your own domain. Try `ananya.dev` (automatic setup) or `shop.ananya.io` (manual records and host guides). `/design` › Custom domains forces any status or problem. Domains are Pro; on Free the Upgrade dialog opens after step 1.
-- **Menu.** Everything is grouped and nested: Home, Catalog, Store (for the store chosen in the switcher), Sales, Tools, Settings. Groups remember being open, the current page's group opens itself, counts show as badges, the filter box searches the menu, arrow keys move through it, and the collapse button turns it into an icon rail. Phones get a drawer with the same tree plus Home, Products, Orders and Store tabs. Old addresses redirect.
-- **Stress data.** **Avatar menu › Demo data › Load stress data** fills the store with very long and unbroken text, Hindi, Tamil, Telugu and Kannada titles, 500 products and orders, and 5,000 reviews.
+Visual baselines are not committed: create them once with `npx playwright test --grep @visual --update-snapshots`, look at every image, then commit them.
 
 ## Where things are
 
 ```
 app/
-  (marketing)/      / , /pricing, /how-it-works, /templates
+  (marketing)/      / , /pricing, /how-it-works
   (auth)/           /login, /signup, /forgot-password, /verify-email
   onboarding/       5-step setup
-  (app)/            creator app, routed like the menu:
-                    dashboard, getting-started,
-                    catalog/ (products, collections, bundles, media, sales-pages),
-                    store/[id]/ (settings, design/[section], design/pages, pages/*, offers/[section],
-                    offers/deal-paths, reviews, questions, domain, seo, analytics-tags),
-                    sales/ (orders, customers, payouts/[section], analytics),
-                    tools/ (ai-images, integrations), settings/*
-  (buyer)/          /s/[store] (home, products, c/[collection], [product], about,
-                    faq, contact, policies/*), /checkout, /success, /order/[token],
-                    /lookup, /invoice
-  (editor)/         full-screen visual page editor: /store/pages/[id]/edit
-  admin/            founder admin (darker shell), search, audit log
-  emails/           React Email previews
-  design/           design system reference (kitchen sink)
-components/
-  ui/               shadcn components, restyled with PowerProof tokens
-  pp/               product components (MoneyText, DataTable, StatCard, store and checkout pieces, ...)
-  storefront/       the store shell, home sections and product page parts
-  search/           global search palette, result rows, audited quick actions
-  media/            MediaUploader, BackgroundPicker, focal point, library dialog
-  ai/               AI image maker and its side panel
-  plan/             plan limits, Upgrade dialog, usage meters, Free vs Pro table
-  save/             SaveBar and the unsaved-changes guard
-  getting-started/  checklist, progress ring, coach marks, welcome dialog
-  nav/              the menu tree (keyboard tree pattern), breadcrumbs, live counts
-  theme/            light/dark/system toggle
-  domains/          free subdomain card and the custom domain wizard
-  page-builder/     visual editor (EditorShell, Canvas, panels) and the shared PageRenderer
-  <area>/           screen pieces per area (dashboard, products, buyer, ...)
-emails/             React Email templates
-hooks/              useApi, useDirtyForm, useMediaUrl, useBuyerCurrency, useNow, useScrollFocus
-tests/
-  unit/             component tests (Testing Library); lib tests sit next to their code
-  e2e/              Playwright specs: layout, a11y, flows, stress, visual
+  (app)/            creator app: dashboard, getting-started, catalog/, store/[id]/, sales/, tools/, settings/
+  (buyer)/          /s/[store] (home, products, c/[collection], [product], about, faq, contact, policies/*, p/[slug]);
+                    /checkout, /success, /order, /invoice, /lookup say "opens soon" until payments are connected
+  (editor)/         full-screen visual page editor
+  admin/            founder console (not connected yet: every screen says so)
+components/         ui/ (shadcn), pp/ (product components), and one folder per area
+hooks/              useApi, useDirtyForm, useMediaUrl, useNow, useScrollFocus
 lib/
-  api/              the only data door for pages; swap bodies for fetch()
-  mock/             in-browser mock database, seed and stress data
-  pages/            page schema (zod), templates, editor store (zustand)
-  media/            upload limits, the in-browser file store, contrast maths
-  plans.ts          Free and Pro limits, AI credits, prices (one place to change them)
-  nav/config.ts     the one navigation config: sidebar, drawer, tabs, breadcrumbs, palette
-  theme.ts          theme preference and the no-flash script
-next.config.ts      redirects from every old address
-  pricing/          prices, coupons, bundles, and deals.ts (deal paths engine)
-  types/            domain types (Money is integer minor units + currency)
-  money.ts          formatting, conversion, fee maths
+  api/              the only data door for pages; every function reads and writes Supabase
+  api/live/         the Supabase queries and the row <-> app type mapping
+  defaults/         starter copy for a new store (policies, FAQ, design) with no names, prices or links
+  tax-codes.ts      the GST reference list (products save their own code and rate)
+  database.types.ts generated from the Supabase schema
+tests/
+  fixtures/         made-up records for unit tests only (app code can't import them)
+  unit/             component tests; lib tests sit next to their code
+  integration/      row level security tests against the real project
+  e2e/              Playwright specs and the setup that creates and removes their data
 ```
 
-## Connecting the backend
+## What lives where
 
-Pages call `@/lib/api` only. Each function there (for example `getProducts`, `createProduct`, `payOrder`) currently reads and writes `lib/mock`. Replace the body with a request to the real API and keep the signature. `lib/api/client.ts` is where latency and simulated failures live; drop it when the real client lands.
+- **In the database:** stores (including PAN and business type), products (SKU, HSN/SAC code, tax rate), collections, coupons, deal paths and bundles, reviews (including `pinned`), questions, store pages, custom (visual) pages, payout methods, payouts, plan limits, getting-started progress (`profiles.onboarding`).
+- **In Supabase Storage:** the media library and product files. The library list is read from the bucket.
+- **In the browser:** only who is signed in (a cache of the Supabase session), a change signal between tabs, and display preferences (theme, collapsed menu groups, recent searches). Nothing about the business is kept there; a test checks it.
+- **Not tracked yet, so shown as "No data yet":** visitors, conversion, traffic sources, funnels, deal path usage and revenue lift. Buyer currency conversion is off until an exchange-rate source is connected: prices show in the store's currency.
 
 ## Design system
 
-Tokens are CSS variables in `app/globals.css`: porcelain, ink, emerald (actions) and brass (emphasis), plus status colours, radii and type scale. Bricolage Grotesque 800 for headings, Hanken Grotesk for body, IBM Plex Mono for labels and amounts. Browse `/design` for every component and state.
+Tokens are CSS variables in `app/globals.css`: porcelain, ink, emerald (actions) and brass (emphasis), plus status colours, radii and type scale. Bricolage Grotesque 800 for headings, Hanken Grotesk for body, IBM Plex Mono for labels and amounts.
 
 ## More
 

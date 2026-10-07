@@ -3,6 +3,18 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { onDataChange } from "@/lib/api";
 
+/** A request that never answers becomes an error with a Retry button, never an endless spinner. */
+const GIVE_UP_MS = 30_000;
+function withTimeout<T>(p: Promise<T>): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const t = setTimeout(() => reject(new Error("This is taking too long. Check your connection and try again.")), GIVE_UP_MS);
+    p.then(
+      (v) => (clearTimeout(t), resolve(v)),
+      (e) => (clearTimeout(t), reject(e))
+    );
+  });
+}
+
 export interface ApiState<T> {
   data: T | undefined;
   error: string | undefined;
@@ -36,7 +48,7 @@ export function useApi<T>(fn: () => Promise<T>, deps: unknown[] = [], opts: { li
 
   useEffect(() => {
     let alive = true;
-    fnRef.current().then(
+    withTimeout(fnRef.current()).then(
       (data) => alive && setSnap({ key, data }),
       (e: unknown) => alive && setSnap((s) => ({ key, data: s.data, error: e instanceof Error ? e.message : "Something went wrong." }))
     );

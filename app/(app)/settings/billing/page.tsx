@@ -1,10 +1,9 @@
 "use client";
 
 import { SettingsTabs } from "@/components/settings/settings-tabs";
-import { CreditCard, Download, Sparkles } from "lucide-react";
-import { toast } from "sonner";
+import { CreditCard, Receipt, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { EmptyState } from "@/components/pp/empty-state";
 import { MoneyText } from "@/components/pp/money-text";
 import { StatusPill } from "@/components/pp/status-pill";
 import { usePlan } from "@/components/plan/plan-context";
@@ -18,7 +17,7 @@ export default function BillingPage() {
   const { data, error, reload } = useApi(getPlan, [], { live: true });
   const planCtx = usePlan();
   if (!data) return <SettingsLoading error={error} onRetry={reload} />;
-  const { plan, invoices } = data;
+  const { plan } = data;
   const trial = plan.status === "trial";
 
   return (
@@ -40,7 +39,7 @@ export default function BillingPage() {
             </p>
             <p className="mt-1 text-sm text-muted-foreground">Plus {plan.platformFeePct}% per sale. The gateway takes about {plan.gatewayFeePct}% on its own.</p>
           </div>
-          {trial ? (
+          {trial && plan.trialEndsAt ? (
             <div className="rounded-card border border-accent/40 bg-accent-soft p-4 md:w-72">
               <p className="flex items-center gap-2 font-semibold text-accent-ink"><Sparkles className="size-4" aria-hidden /> Free month</p>
               <p className="mt-1 text-sm">Until {formatDate(plan.trialEndsAt)}. Add a card before then so your store doesn&apos;t pause.</p>
@@ -82,34 +81,15 @@ export default function BillingPage() {
               <><span className="block font-medium">No card yet</span><span className="text-sm text-muted-foreground">Needed when the free month ends</span></>
             )}
           </span>
-          <Button variant="secondary" onClick={() => toast("This opens the gateway's card page", { description: "Mocked in this preview." })}>
-            {plan.cardLast4 ? "Change card" : "Add card"}
+          <Button variant="secondary" disabled title="Card payments open soon">
+            {plan.cardLast4 ? "Change card" : "Add card (opens soon)"}
           </Button>
         </div>
       </SettingsSection>
         ) },
         { id: "invoices", label: "Invoices", content: (
       <SettingsSection title="PowerProof invoices" description="Subscription plus platform fees, one invoice a month. GST invoice if you've added your GSTIN.">
-        <div className="overflow-hidden rounded-card border">
-          <Table aria-label="Billing invoices">
-            <TableHeader>
-              <TableRow><TableHead>Month</TableHead><TableHead className="text-right">Plan</TableHead><TableHead className="text-right">Sale fees</TableHead><TableHead>Status</TableHead><TableHead><span className="sr-only">Download</span></TableHead></TableRow>
-            </TableHeader>
-            <TableBody>
-              {invoices.map((i) => (
-                <TableRow key={i.id}>
-                  <TableCell className="font-medium">{i.period}</TableCell>
-                  <TableCell className="text-right"><MoneyText value={i.amount} mono /></TableCell>
-                  <TableCell className="text-right"><MoneyText value={i.platformFees} mono /></TableCell>
-                  <TableCell><StatusPill status={i.status} /></TableCell>
-                  <TableCell className="text-right">
-                    <Button variant="ghost" size="icon-sm" aria-label={`Download ${i.period} invoice`} onClick={() => toast.success("Invoice downloaded", { description: i.period })}><Download /></Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+        <EmptyState compact icon={Receipt} title="No invoices yet." body="PowerProof invoices appear here once billing is connected and your first month is over." />
       </SettingsSection>
         ) },
       ]}

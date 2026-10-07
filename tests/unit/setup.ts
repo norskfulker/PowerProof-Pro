@@ -1,7 +1,5 @@
 import "@testing-library/jest-dom/vitest";
 
-// Unit tests run against the in-browser mock, never the live project
-process.env.NEXT_PUBLIC_BACKEND = "mock";
 import { cleanup } from "@testing-library/react";
 import { afterEach, beforeEach, vi } from "vitest";
 
@@ -29,8 +27,7 @@ vi.mock("next/navigation", () => ({
   redirect: vi.fn(),
 }));
 
-// Mock API layer: no artificial latency in unit tests
+// Each test starts with empty browser storage
 beforeEach(() => {
   localStorage.clear();
-  localStorage.setItem("pp:demo", JSON.stringify({ fail: false, latency: [0, 0] }));
 });

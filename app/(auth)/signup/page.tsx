@@ -12,7 +12,6 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import { Input } from "@/components/ui/input";
 import { AuthCard, FormError } from "@/components/auth/auth-card";
 import { GoogleSignIn } from "@/components/auth/google-button";
-import { isLive } from "@/lib/supabase/env";
 import { signup } from "@/lib/api";
 
 const schema = z.object({
@@ -35,7 +34,7 @@ function SignupForm() {
     try {
       const session = await signup(v.name, v.email, v.password);
       // Signed straight in (email confirmation off in this project): no code to enter
-      if (session.storeId && isLive()) {
+      if (!session.needsVerification) {
         router.push(template ? `/onboarding?template=${template}` : "/onboarding");
         return;
       }
@@ -56,7 +55,7 @@ function SignupForm() {
       description="No card needed. You'll have a store in about three minutes."
       footer={<>Already selling? <Link href="/login" className="font-semibold text-foreground underline underline-offset-4">Log in</Link></>}
     >
-      {isLive() && <GoogleSignIn next={template ? `/onboarding?template=${template}` : "/onboarding"} onError={setError} />}
+      <GoogleSignIn next={template ? `/onboarding?template=${template}` : "/onboarding"} onError={setError} />
       <Form {...form}>
         <form noValidate onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-4">
           <FormError message={error} />

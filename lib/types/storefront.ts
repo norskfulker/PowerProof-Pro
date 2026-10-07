@@ -36,6 +36,10 @@ export interface StoreTheme {
   heroStyle: HeroStyle;
   /** The store's default look (Part 7A). Auto follows the visitor's device. Buyers can switch. */
   mode?: "light" | "dark" | "auto";
+  /** The brand colour (stores.brand_color), mirrored here so the storefront can paint with it. The column wins. */
+  brand?: string;
+  /** Buttons and corners, in three steps */
+  corners?: "sharp" | "soft" | "round";
 }
 
 export interface HeroContent {
@@ -114,7 +118,6 @@ export interface Collection {
   id: string;
   slug: string;
   name: string;
-  description: string;
   productIds: string[];
   cover: CoverSpec;
   /** Tile colour or image chosen by the creator; the cover is the fallback */
@@ -167,7 +170,7 @@ export interface Review {
   body: string;
   /** Up to 3 */
   photos: ProductImage[];
-  /** "Priya S." */
+  /** "Asha K." */
   author: string;
   createdAt: ISODate;
   helpful: number;

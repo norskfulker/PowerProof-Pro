@@ -23,6 +23,8 @@ export const productSchema = z
     taxCode: z.string().min(4, "Pick a tax code."),
     status: z.enum(["published", "draft", "archived"]),
     sourceUrl: z.string().optional(),
+    /** Optional: collections only help organize products, nothing requires one */
+    collectionIds: z.array(z.string()).optional(),
   })
   .refine((v) => !v.compareAt || v.compareAt.amount > v.price.amount, { path: ["compareAt"], message: "The original price should be higher than the price." })
   .refine((v) => v.status !== "published" || v.files.length > 0, {

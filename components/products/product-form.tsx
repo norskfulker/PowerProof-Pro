@@ -16,7 +16,9 @@ import { FeeBreakdown } from "@/components/pp/fee-breakdown";
 import { FileDrop } from "@/components/pp/file-drop";
 import { kindLabel } from "@/components/pp/product-card";
 import { useApi } from "@/hooks/use-api";
-import { getTaxCodes } from "@/lib/api";
+import Link from "next/link";
+import { Checkbox } from "@/components/ui/checkbox";
+import { getCollections, getTaxCodes } from "@/lib/api";
 import { money } from "@/lib/money";
 import { BackgroundPicker } from "@/components/media/background-picker";
 import { MediaUploader } from "@/components/media/media-uploader";
@@ -55,6 +57,7 @@ export function ProductForm({
 }) {
   const form = useForm<ProductValues>({ resolver: zodResolver(productSchema), defaultValues: initial, mode: "onTouched" });
   const taxCodes = useApi(getTaxCodes, []);
+  const collections = useApi(getCollections, []);
   const price = useWatch({ control: form.control, name: "price" });
   const title = useWatch({ control: form.control, name: "title" });
   const pending = form.formState.isSubmitting;
@@ -263,6 +266,37 @@ export function ProductForm({
                   <FormMessage />
                 </FormItem>
               )}
+            />
+          </Panel>
+          <Panel title="Add to collection" description="Optional. Collections just help organize products; you can sell without one.">
+            <Controller
+              control={form.control}
+              name="collectionIds"
+              render={({ field }) =>
+                collections.error ? (
+                  <p role="alert" className="text-sm text-danger">We couldn&apos;t load your collections. <button type="button" className="underline underline-offset-4" onClick={collections.reload}>Try again</button></p>
+                ) : !collections.data ? (
+                  <p className="min-h-11 text-sm text-muted-foreground">Loading collections…</p>
+                ) : collections.data.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    No collections yet. <Link href="/catalog/collections" className="font-medium text-primary underline underline-offset-4">Make one</Link> whenever you like.
+                  </p>
+                ) : (
+                  <ul className="flex flex-col">
+                    {collections.data.map((c) => {
+                      const on = (field.value ?? []).includes(c.id);
+                      return (
+                        <li key={c.id}>
+                          <label className="flex min-h-11 cursor-pointer items-center gap-3 rounded-control px-2 text-sm hover:bg-muted">
+                            <Checkbox checked={on} onCheckedChange={(v) => field.onChange(v ? [...(field.value ?? []), c.id] : (field.value ?? []).filter((x) => x !== c.id))} />
+                            <span className="truncate">{c.name}</span>
+                          </label>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )
+              }
             />
           </Panel>
           {aside}

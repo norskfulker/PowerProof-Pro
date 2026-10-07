@@ -3,7 +3,7 @@ import { ADMIN_NAV, CREATOR_NAV, MOBILE_TABS, type NavNode } from "./config";
 import { activeTrail, filterTree, flattenNav, navSearch, resolveNav, type NavData } from "./model";
 
 const data: NavData = {
-  storeId: "store_ananya",
+  storeId: "store_fx",
   counts: { products_all: 17, products_live: 12, products_draft: 4, products_archived: 1, reviews_pending: 3, orders_disputed: 0 },
   collections: [
     { id: "col_a", name: "Notion kits", products: Array.from({ length: 7 }, (_, i) => ({ id: `p${i}`, title: `Kit ${i}` })) },
@@ -22,19 +22,19 @@ describe("nav config", () => {
       for (const n of all) if (!n.children?.length && !n.dynamic) expect(n.href, n.id).toBeTruthy();
     }
   });
-  it("has the creator groups in order", () => {
-    expect(CREATOR_NAV.map((g) => g.label)).toEqual(["Home", "Catalog", "Store", "Sales", "Tools", "Settings"]);
+  it("keeps the nested groups in business-flow order: Catalog, Sales, then Store", () => {
+    expect(CREATOR_NAV.map((g) => g.label)).toEqual(["Home", "Catalog", "Sales", "Store", "Tools", "Settings"]);
     expect(ADMIN_NAV.map((g) => g.label)).toEqual(["Overview", "Creators", "Stores", "Orders", "Money", "Moderation", "System"]);
   });
-  it("puts Home, Products, Orders and Store in the tab bar", () => {
-    expect(MOBILE_TABS.map((t) => t.label)).toEqual(["Home", "Products", "Orders", "Store"]);
+  it("puts Home, Products, Orders and Settings in the tab bar", () => {
+    expect(MOBILE_TABS.map((t) => t.label)).toEqual(["Home", "Products", "Orders", "Settings"]);
   });
 });
 
 describe("resolveNav", () => {
   it("fills the store id, counts and locks", () => {
     const flat = flattenNav(tree);
-    expect(flat.find((n) => n.id === "design-theme")?.href).toBe("/store/store_ananya/design/theme");
+    expect(flat.find((n) => n.id === "design-base")?.href).toBe("/store/store_fx/design/base");
     expect(flat.find((n) => n.id === "products-live")?.count).toBe(12);
     expect(flat.find((n) => n.id === "reviews")?.count).toBe(3);
     expect(flat.find((n) => n.id === "orders-disputed")?.count).toBeUndefined();
@@ -54,7 +54,7 @@ describe("activeTrail", () => {
   });
   it("covers detail pages with match prefixes", () => {
     expect(activeTrail(tree, "/sales/orders/ord_1078").map((n) => n.label)).toEqual(["Sales", "Orders", "All"]);
-    expect(activeTrail(tree, "/store/store_ananya/pages/policies/refund").map((n) => n.label)).toEqual(["Store", "Pages", "Policies", "Refund"]);
+    expect(activeTrail(tree, "/store/store_fx/pages/policies/refund").map((n) => n.label)).toEqual(["Store", "Info pages", "Policies", "Refund"]);
   });
   it("returns nothing for pages outside the menu", () => {
     expect(activeTrail(tree, "/nowhere")).toEqual([]);
@@ -64,11 +64,11 @@ describe("activeTrail", () => {
 describe("filter and search", () => {
   it("keeps the ancestors of matching items", () => {
     const f = filterTree(tree, "refund");
-    expect(f.map((n) => n.label)).toEqual(["Store", "Sales"]);
+    expect(f.map((n) => n.label)).toEqual(["Sales", "Store"]);
   });
   it("finds leaf links by label or path, best first", () => {
     const r = navSearch(tree, "coupons");
-    expect(r[0].href).toBe("/store/store_ananya/offers/coupons");
+    expect(r[0].href).toBe("/store/store_fx/offers/coupons");
     expect(navSearch(tree, "")).toEqual([]);
   });
 });

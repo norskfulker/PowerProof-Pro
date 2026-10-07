@@ -5,6 +5,7 @@ import Link from "next/link";
 import type { ColumnDef } from "@tanstack/react-table";
 import { Users } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/pp/data-table";
 import { EmptyState } from "@/components/pp/empty-state";
 import { MoneyText } from "@/components/pp/money-text";
@@ -69,7 +70,7 @@ export default function CustomersPage() {
             <MoneyText value={c.totalSpent} className="font-semibold" />
           </Link>
         )}
-        empty={<EmptyState nextStep icon={Users} title="No customers yet." body="People who buy from you land here, with everything they've bought." />}
+        empty={<EmptyState nextStep icon={Users} title="No customers yet." body="People who buy from you land here, with everything they've bought." action={<Button asChild><Link href="/dashboard">Get your store link</Link></Button>} />}
       />
     </>
   );

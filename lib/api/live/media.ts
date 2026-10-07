@@ -65,7 +65,7 @@ async function usesBySrc(): Promise<(src: string) => MediaUse[]> {
       if (has(p.tileBackground, src)) out.push({ label: `Product card: ${p.title}`, href: `/catalog/products/${p.id}` });
     }
     for (const c of collections) if (has(c.background, src)) out.push({ label: `Collection tile: ${c.name}`, href: "/catalog/collections" });
-    if (has(design.hero.background, src)) out.push({ label: "Store hero", href: "/store/current/design/theme" });
+    if (has(design.hero.background, src)) out.push({ label: "Store hero", href: "/store/current/design/base" });
     if (store.logo?.src === src) out.push({ label: "Store logo", href: "/store/current/settings" });
     if (has(design.about.photo, src)) out.push({ label: "About page photo", href: `/store/${store.id}/pages/about` });
     return out;

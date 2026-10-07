@@ -6,7 +6,7 @@ import { usePlan } from "@/components/plan/plan-context";
 import { PageHeader } from "@/components/pp/page-header";
 import { ProductForm } from "@/components/products/product-form";
 import { BLANK_PRODUCT, toInput } from "@/components/products/to-values";
-import { createProduct } from "@/lib/api";
+import { createProduct, setProductCollections } from "@/lib/api";
 
 export default function UploadProductPage() {
   const router = useRouter();
@@ -20,6 +20,7 @@ export default function UploadProductPage() {
         onSubmit={async (v) => {
           try {
             const p = await createProduct(toInput(v));
+            if (v.collectionIds?.length) await setProductCollections(p.id, v.collectionIds);
             toast.success(p.status === "published" ? "Product is live" : "Saved as a draft", { description: p.title });
             router.push("/catalog/products");
           } catch (e) {

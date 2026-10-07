@@ -3,9 +3,9 @@ import { CHILDREN, cloneNode, countNodes, findNode, locate, makeNode, mediaSrc, 
 import { PAGE_TEMPLATES } from "./templates";
 
 const ctx = {
-  storeName: "Ananya Makes",
-  ownerName: "Ananya Rao",
-  slug: "ananya",
+  storeName: "Fixture Store",
+  ownerName: "Test Owner",
+  slug: "my-store",
   products: [
     { id: "p1", title: "One" },
     { id: "p2", title: "Two" },
@@ -23,11 +23,11 @@ describe("templates", () => {
     const d = t.build(ctx);
     const r = pageDocSchema.safeParse(d);
     expect(r.success, r.success ? "" : JSON.stringify(r.error.issues.slice(0, 3))).toBe(true);
-    expect(d.blocks.length).toBeGreaterThan(1);
+    expect(d.blocks.length).toBeGreaterThan(t.id === "blank" ? 0 : 1);
   });
 
-  it("has six templates with unique ids", () => {
-    expect(new Set(PAGE_TEMPLATES.map((t) => t.id)).size).toBe(6);
+  it("has four templates (launch, sale, bio, blank) with unique ids", () => {
+    expect(new Set(PAGE_TEMPLATES.map((t) => t.id)).size).toBe(4);
   });
 
   it("works for a store with no products or collections", () => {
@@ -81,14 +81,14 @@ describe("no scripts", () => {
   it.each(["javascript:alert(1)", "JAVASCRIPT:alert(1)", "data:text/html,<script>", "//evil.com", "vbscript:x"])("rejects link %s", (v) => {
     expect(safeHref.safeParse(v).success).toBe(false);
   });
-  it.each(["/s/ananya", "#faq", "https://example.com", "mailto:help@example.com", ""])("accepts link %s", (v) => {
+  it.each(["/s/my-store", "#faq", "https://test.invalid", "mailto:help@test.invalid", ""])("accepts link %s", (v) => {
     expect(safeHref.safeParse(v).success).toBe(true);
   });
   it("only accepts uploads, product covers or https media", () => {
     expect(mediaSrc.safeParse("asset:abc123").success).toBe(true);
     expect(mediaSrc.safeParse("product:prod_01").success).toBe(true);
-    expect(mediaSrc.safeParse("https://cdn.example.com/a.jpg").success).toBe(true);
-    expect(mediaSrc.safeParse("http://insecure.example.com/a.jpg").success).toBe(false);
+    expect(mediaSrc.safeParse("https://cdn.test.invalid/a.jpg").success).toBe(true);
+    expect(mediaSrc.safeParse("http://insecure.test.invalid/a.jpg").success).toBe(false);
     expect(mediaSrc.safeParse("data:image/png;base64,AAAA").success).toBe(false);
   });
 });

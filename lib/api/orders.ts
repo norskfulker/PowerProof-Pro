@@ -1,9 +1,4 @@
-import { adminDb } from "../mock/admin";
-import { commit, db } from "../mock/db";
 import type { Customer, Order, OrderStatus } from "../types";
-import { call, notFound } from "./client";
-import { ApiError } from "./client";
-import { isLive } from "../supabase/env";
 import * as live from "./live/orders";
 
 export interface OrderQuery {
@@ -16,91 +11,16 @@ export interface OrderQuery {
   limit?: number;
 }
 
-export function getOrders(q: OrderQuery = {}): Promise<Order[]> {
-  if (isLive()) return live.getOrders(q);
-  return call(() => {
-    const s = q.search?.trim().toLowerCase();
-    const disputed = q.disputed ? new Set(adminDb().disputes.filter((x) => x.status === "open" || x.status === "under_review").map((x) => x.orderNumber)) : undefined;
-    const list = db().orders.filter(
-      (o) =>
-        (!s ||
-          o.number.toLowerCase().includes(s) ||
-          o.buyerEmail.toLowerCase().includes(s) ||
-          o.buyerName.toLowerCase().includes(s) ||
-          o.productTitle.toLowerCase().includes(s)) &&
-        (!q.status || q.status === "all" || o.status === q.status) &&
-        (!q.productId || o.productId === q.productId) &&
-        (!q.customerId || o.customerId === q.customerId) &&
-        (!disputed || disputed.has(o.number))
-    );
-    return q.limit ? list.slice(0, q.limit) : list;
-  });
-}
-
-/** Lightweight read for the live feed: short latency, no failure injection noise. */
-export function getRecentOrders(limit = 8): Promise<Order[]> {
-  if (isLive()) return live.getRecentOrders(limit);
-  return call(() => db().orders.filter((o) => o.status !== "pending").slice(0, limit), { fast: true });
-}
-
-export function getOrder(id: string): Promise<Order> {
-  if (isLive()) return live.getOrder(id);
-  return call(() => db().orders.find((o) => o.id === id || o.number === id) ?? notFound("Order"));
-}
-
-export function refundOrder(id: string, reason: string): Promise<Order> {
-  if (isLive()) return live.refundOrder();
-  return call(() => {
-    const d = db();
-    const o = d.orders.find((x) => x.id === id) ?? notFound("Order");
-    if (o.status !== "paid" && o.status !== "refund_requested") {
-      throw new ApiError("Only paid orders can be refunded.", "conflict");
-    }
-    commit(() => {
-      o.status = "refunded";
-      o.refundedAt = new Date().toISOString();
-      o.refundReason = reason || o.refundReason || "Refunded by creator";
-      const p = d.products.find((x) => x.id === o.productId);
-      if (p) {
-        p.salesCount = Math.max(0, p.salesCount - 1);
-        p.revenue = { ...p.revenue, amount: p.revenue.amount - o.total.amount };
-      }
-    });
-    return o;
-  });
-}
-
-export function resendReceipt(id: string): Promise<void> {
-  if (isLive()) return live.resendReceipt();
-  return call(() => {
-    if (!db().orders.some((x) => x.id === id)) notFound("Order");
-  });
-}
-
 export interface CustomerQuery {
   search?: string;
   country?: string;
 }
 
-export function getCustomers(q: CustomerQuery = {}): Promise<Customer[]> {
-  if (isLive()) return live.getCustomers(q);
-  return call(() => {
-    const s = q.search?.trim().toLowerCase();
-    return db()
-      .customers.filter(
-        (c) =>
-          (!s || c.name.toLowerCase().includes(s) || c.email.toLowerCase().includes(s)) &&
-          (!q.country || q.country === "all" || c.countryCode === q.country)
-      )
-      .sort((a, b) => b.lastOrderAt.localeCompare(a.lastOrderAt));
-  });
-}
-
-export function getCustomer(id: string): Promise<{ customer: Customer; orders: Order[] }> {
-  if (isLive()) return live.getCustomer(id);
-  return call(() => {
-    const d = db();
-    const customer = d.customers.find((c) => c.id === id) ?? notFound("Customer");
-    return { customer, orders: d.orders.filter((o) => o.customerId === id) };
-  });
-}
+export const getOrders = (q: OrderQuery = {}): Promise<Order[]> => live.getOrders(q);
+export const getRecentOrders = (limit = 8): Promise<Order[]> => live.getRecentOrders(limit);
+export const getOrder = (id: string): Promise<Order> => live.getOrder(id);
+/** Refunds and receipts need the payment gateway and email sending; the screens say "coming soon". */
+export const refundOrder = (_id: string, _reason: string): Promise<Order> => live.refundOrder();
+export const resendReceipt = (_id: string): Promise<void> => live.resendReceipt();
+export const getCustomers = (q: CustomerQuery = {}): Promise<Customer[]> => live.getCustomers(q);
+export const getCustomer = (id: string): Promise<{ customer: Customer; orders: Order[] }> => live.getCustomer(id);

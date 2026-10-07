@@ -1,5 +1,5 @@
 /**
- * Domain types shared by the mock layer and (later) the real backend.
+ * Domain types shared by the app and the database mapping.
  * Money is always integer minor units plus an ISO currency code.
  */
 

@@ -9,16 +9,14 @@ import { ConfirmDialog } from "@/components/pp/confirm-dialog";
 import { DataTable } from "@/components/pp/data-table";
 import { KIND_LABEL, RuleSummaryChip } from "@/components/pp/deal-parts";
 import { EmptyState } from "@/components/pp/empty-state";
-import { MoneyText } from "@/components/pp/money-text";
 import { PageHeader } from "@/components/pp/page-header";
-import { StatCard } from "@/components/pp/stat-card";
+import { NoData, StatCard } from "@/components/pp/stat-card";
 import { StatusPill } from "@/components/pp/status-pill";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Switch } from "@/components/ui/switch";
 import { useApi } from "@/hooks/use-api";
 import { dealRuleStatus, deleteDealRule, getDealRules, getProducts, setDealRuleActive } from "@/lib/api";
-import { money } from "@/lib/money";
 import type { DealRule } from "@/lib/types";
 
 export default function DealPathsPage() {
@@ -54,8 +52,6 @@ export default function DealPathsPage() {
       },
       { id: "kind", accessorFn: (r) => KIND_LABEL[r.kind], header: "Type" },
       { id: "status", accessorFn: (r) => dealRuleStatus(r), header: "Status", filterFn: "equals", cell: ({ getValue }) => <StatusPill status={getValue() as string} /> },
-      { id: "uses", accessorFn: (r) => r.stats.uses, header: "Uses", enableSorting: true, meta: { align: "right" }, cell: ({ row }) => <span className="font-mono text-[0.8125rem]">{row.original.stats.uses.toLocaleString("en-IN")}</span> },
-      { id: "lift", accessorFn: (r) => r.stats.revenueLift.amount, header: "Extra revenue", enableSorting: true, meta: { align: "right" }, cell: ({ row }) => <MoneyText value={row.original.stats.revenueLift} mono /> },
       {
         id: "on",
         header: "On",
@@ -90,8 +86,7 @@ export default function DealPathsPage() {
     [titleOf, data]
   );
 
-  const totals = (rules ?? []).reduce((t, r) => ({ uses: t.uses + r.stats.uses, lift: t.lift + r.stats.revenueLift.amount, views: t.views + r.stats.views }), { uses: 0, lift: 0, views: 0 });
-  const live = (rules ?? []).filter((r) => dealRuleStatus(r) === "active").length;
+    const live = (rules ?? []).filter((r) => dealRuleStatus(r) === "active").length;
 
   return (
     <>
@@ -111,9 +106,9 @@ export default function DealPathsPage() {
       {rules && rules.length > 0 && (
         <section aria-label="All deal paths" className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
           <StatCard label="Running now" value={live} />
-          <StatCard label="Orders that used one" value={totals.uses.toLocaleString("en-IN")} />
-          <StatCard label="Take-up" value={totals.views ? `${((totals.uses / totals.views) * 100).toFixed(1)}%` : "–"} hint="Orders ÷ times shown" />
-          <StatCard label="Extra revenue" value={<MoneyText value={money(totals.lift)} />} emphasis />
+          <StatCard label="Orders that used one" value={<NoData />} />
+          <StatCard label="Take-up" value={<NoData />} hint="Orders ÷ times shown" />
+          <StatCard label="Extra revenue" value={<NoData />} />
         </section>
       )}
       <DataTable
@@ -148,10 +143,6 @@ export default function DealPathsPage() {
               <StatusPill status={dealRuleStatus(r)} />
             </div>
             <RuleSummaryChip rule={r} titleOf={titleOf} className="self-start" />
-            <dl className="grid grid-cols-2 gap-2 text-sm">
-              <div><dt className="text-xs text-muted-foreground">Uses</dt><dd className="font-mono">{r.stats.uses.toLocaleString("en-IN")}</dd></div>
-              <div><dt className="text-xs text-muted-foreground">Extra revenue</dt><dd><MoneyText value={r.stats.revenueLift} mono /></dd></div>
-            </dl>
             <label className="flex min-h-11 items-center justify-between gap-3 border-t pt-3 text-sm">
               Switched on
               <Switch checked={r.active} onCheckedChange={(v) => toggle(r, v)} aria-label={`${r.name} is switched on`} />

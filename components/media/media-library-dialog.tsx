@@ -23,7 +23,7 @@ export function MediaLibraryDialog({ open, onOpenChange, kinds, onPick }: { open
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-3xl">
+      <DialogContent className="sm:max-w-3xl">
         <DialogHeader>
           <DialogTitle className="font-display text-xl">Media library</DialogTitle>
           <DialogDescription>Everything you&apos;ve uploaded or made with AI, across your stores.</DialogDescription>

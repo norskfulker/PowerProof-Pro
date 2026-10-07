@@ -35,9 +35,5 @@ export interface Company {
 
 export interface InvoiceSettings {
   prefix: string;
-  nextNumber: number;
-  showGstin: boolean;
   footerNote: string;
-  defaultTaxCode: string;
-  pricesIncludeTax: boolean;
 }

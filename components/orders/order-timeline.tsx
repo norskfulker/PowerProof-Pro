@@ -1,4 +1,4 @@
-import { CheckCircle2, CircleDashed, Download, Mail, RotateCcw, ShoppingCart, XCircle } from "lucide-react";
+import { CheckCircle2, CircleDashed, Download, RotateCcw, ShoppingCart, XCircle } from "lucide-react";
 import { formatDate } from "@/lib/format";
 import type { Order } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -21,13 +21,8 @@ function stepsFor(o: Order): Step[] {
     s.push({ icon: CircleDashed, title: "Waiting for payment", body: "Buyer hasn't finished paying.", tone: "pending" });
     return s;
   }
-  s.push({ icon: CheckCircle2, title: `Paid by ${o.paymentMethod.toUpperCase()}`, at: o.paidAt, tone: "done" });
-  s.push({ icon: Mail, title: "Receipt and download link emailed", body: o.buyerEmail, at: o.paidAt, tone: "done" });
-  s.push({
-    icon: Download,
-    title: o.downloads ? `Downloaded ${o.downloads} time${o.downloads === 1 ? "" : "s"}` : "Not downloaded yet",
-    tone: o.downloads ? "done" : "pending",
-  });
+  s.push({ icon: CheckCircle2, title: o.paymentMethod ? `Paid by ${o.paymentMethod.toUpperCase()}` : "Paid", at: o.paidAt, tone: "done" });
+  if (o.downloads) s.push({ icon: Download, title: `Downloaded ${o.downloads} time${o.downloads === 1 ? "" : "s"}`, tone: "done" });
   if (o.status === "refund_requested") s.push({ icon: RotateCcw, title: "Refund requested", body: o.refundReason, tone: "pending" });
   if (o.status === "refunded") s.push({ icon: RotateCcw, title: "Refunded", body: o.refundReason, at: o.refundedAt, tone: "bad" });
   return s;

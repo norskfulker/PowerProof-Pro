@@ -1,17 +1,30 @@
-import { getSessionRaw, resetDb, db, setSessionRaw } from "../../mock/db";
-import { readProgress, writeProgress, type ProgressFlags } from "../../mock/progress";
-import { slugify } from "../../mock/random";
+import { getSessionRaw, setSessionRaw } from "./local";
+import { readProgress, writeProgress, type ProgressFlags } from "./flags";
+import { THEME_EVENT, THEME_KEY } from "../../theme";
 import { sb } from "../../supabase/browser";
 import type { Session } from "../../types";
 import { ApiError } from "../client";
+import { must } from "./errors";
 
 /**
  * The signed-in creator, as the app sees it. `getSession()` in the UI is synchronous, so the
- * session (name, email, active store) is cached in the same place the mock kept it and refreshed
+ * session (name, email, active store) is cached in this browser and refreshed
  * from Supabase on sign-in and whenever the auth state changes.
  */
 
 const ACTIVE = "pp:active-store";
+
+function applySavedTheme(mode: "light" | "dark") {
+  try {
+    if (window.localStorage.getItem(THEME_KEY) === mode) return;
+    window.localStorage.setItem(THEME_KEY, mode);
+    document.documentElement.dataset.theme = mode;
+    document.documentElement.style.colorScheme = mode;
+    window.dispatchEvent(new Event(THEME_EVENT));
+  } catch {
+    /* storage blocked */
+  }
+}
 
 export interface LiveUser {
   id: string;
@@ -45,32 +58,41 @@ function rememberActive(storeId: string) {
   }
 }
 
-const isUuid = (v: string | undefined | null): v is string => !!v && /^[0-9a-f-]{36}$/i.test(v);
 
-/** The store the switcher has chosen, or the creator's first store. */
+let resolved: { user: string; id: string } | null = null;
+
+/**
+ * The store the switcher has chosen, or the creator's first store. Always checked against the
+ * database (once per signed-in user per page load), so a stale browser copy can never point at a
+ * store that isn't theirs or no longer exists.
+ */
 export async function activeStoreId(): Promise<string> {
-  const cached = getSessionRaw()?.storeId;
-  if (isUuid(cached)) return cached;
-  return (await syncSession()).storeId;
+  const user = await currentUser();
+  if (resolved?.user === user.id) return resolved.id;
+  const rows = must(await sb().from("stores").select("id").eq("owner_id", user.id).order("created_at"));
+  if (!rows.length) throw new ApiError("Create your store first.", "not_found");
+  const wanted = readActive() ?? getSessionRaw()?.storeId;
+  const id = rows.find((r) => r.id === wanted)?.id ?? rows[0].id;
+  rememberActive(id);
+  const s = getSessionRaw();
+  if (s && s.storeId !== id) setSessionRaw({ ...s, storeId: id });
+  resolved = { user: user.id, id };
+  return id;
 }
 
 export function setActiveStore(storeId: string) {
+  resolved = null;
   rememberActive(storeId);
   const s = getSessionRaw();
   if (s) setSessionRaw({ ...s, storeId });
 }
 
-function newStoreSlug(name: string) {
-  const base = (slugify(name) || "store").slice(0, 28);
-  return `${base.length >= 3 ? base : `${base}-shop`}-${Math.random().toString(36).slice(2, 6)}`;
-}
-
 /**
- * Loads the profile and stores after sign-in. A new account gets its first (draft) store here,
- * so onboarding finds one to set up, as it always has. Also points the browser-only features
- * (media library, page builder, team …) at a clean local workspace for this account.
+ * Loads the profile and stores after sign-in. A new account has no store yet: onboarding creates
+ * the first one, and until then `storeId` is empty.
  */
 export async function syncSession(): Promise<Session> {
+  resolved = null;
   const user = await currentUser();
   const client = sb();
   const [{ data: profile }, { data: stores, error }] = await Promise.all([
@@ -79,30 +101,16 @@ export async function syncSession(): Promise<Session> {
   ]);
   if (error) throw new ApiError("We couldn't load your account. Refresh to try again.");
   const name = profile?.full_name || user.name;
-  let list = stores ?? [];
-  if (list.length === 0) {
-    const first = name.trim().split(" ")[0] || "My";
-    const { data: created, error: e } = await client
-      .from("stores")
-      .insert({ owner_id: user.id, name: `${first}'s Store`.slice(0, 80), slug: newStoreSlug(first), tagline: `Digital downloads by ${name}.`, support_email: user.email || null })
-      .select("id, name")
-      .single();
-    if (e || !created) throw new ApiError("We couldn't set up your store. Refresh to try again.");
-    list = [created];
-  }
+  const list = stores ?? [];
   const wanted = readActive();
-  const storeId = list.find((s) => s.id === wanted)?.id ?? list[0].id;
-  rememberActive(storeId);
-
-  // Browser-only features keep their data in the local workspace: start it empty for this account
-  const local = db();
-  if (local.mode !== "fresh" || local.store.ownerEmail !== user.email.toLowerCase()) {
-    resetDb("fresh", { ownerName: name, ownerEmail: user.email.toLowerCase(), name: list[0].name, supportEmail: user.email.toLowerCase() });
-  }
+  const storeId = list.find((s) => s.id === wanted)?.id ?? list[0]?.id ?? "";
+  if (storeId) rememberActive(storeId);
 
   // Getting-started flags live in profiles.onboarding; the local copy keeps reads synchronous
   const saved = (profile?.onboarding ?? {}) as Partial<ProgressFlags>;
   writeProgress({ ...readProgress(user.email), ...saved, emailVerified: user.emailConfirmed }, user.email);
+  // The colour mode they chose on another device
+  if (saved.theme === "light" || saved.theme === "dark") applySavedTheme(saved.theme);
 
   const session: Session = { name, email: user.email.toLowerCase(), storeId };
   setSessionRaw(session);
@@ -120,6 +128,7 @@ export async function persistProgress(flags: ProgressFlags) {
 }
 
 export function clearSession() {
+  resolved = null;
   setSessionRaw(null);
   try {
     window.localStorage.removeItem(ACTIVE);

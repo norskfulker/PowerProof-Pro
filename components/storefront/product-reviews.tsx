@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ReviewItem } from "@/components/pp/review-item";
 import { ReviewSummary } from "@/components/pp/review-summary";
-import { reportReview, voteHelpful } from "@/lib/api";
+import { reportReview } from "@/lib/api";
 import { ratingSummary } from "@/lib/pricing";
 import type { Review, ReviewSort } from "@/lib/types";
 
@@ -14,7 +14,6 @@ const SORTS: { id: ReviewSort; label: string }[] = [
   { id: "newest", label: "Newest" },
   { id: "highest", label: "Highest rated" },
   { id: "lowest", label: "Lowest rated" },
-  { id: "helpful", label: "Most helpful" },
 ];
 
 /** Summary, star filter, sort and the list. Pinned reviews lead; imported testimonials are labelled. */
@@ -22,7 +21,7 @@ const PAGE = 10;
 
 export function ProductReviews({ reviews, creatorName }: { reviews: Review[]; creatorName: string }) {
   const [star, setStar] = useState<number>();
-  const [sort, setSort] = useState<ReviewSort>("helpful");
+  const [sort, setSort] = useState<ReviewSort>("newest");
   /** Reviews are shown 10 at a time; a product can have thousands */
   const [shown, setShown] = useState(PAGE);
   const summary = useMemo(() => ratingSummary(reviews), [reviews]);
@@ -33,7 +32,6 @@ export function ProductReviews({ reviews, creatorName }: { reviews: Review[]; cr
     if (sort === "newest") s.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
     if (sort === "highest") s.sort((a, b) => b.rating - a.rating);
     if (sort === "lowest") s.sort((a, b) => a.rating - b.rating);
-    if (sort === "helpful") s.sort((a, b) => b.helpful - a.helpful);
     return s.sort((a, b) => Number(b.pinned) - Number(a.pinned));
   }, [reviews, star, sort]);
 
@@ -66,7 +64,7 @@ export function ProductReviews({ reviews, creatorName }: { reviews: Review[]; cr
         {list.length === 0 ? (
           <p className="py-8 text-center text-sm text-muted-foreground">No {star}-star reviews.</p>
         ) : (
-          list.slice(0, shown).map((r) => <ReviewItem key={r.id} review={r} creatorName={creatorName} onHelpful={voteHelpful} onReport={reportReview} />)
+          list.slice(0, shown).map((r) => <ReviewItem key={r.id} review={r} creatorName={creatorName} onReport={reportReview} />)
         )}
       </div>
       {list.length > shown && (

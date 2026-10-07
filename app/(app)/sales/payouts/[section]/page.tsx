@@ -20,8 +20,9 @@ import { BankForm } from "@/components/payouts/bank-form";
 import { Statements } from "@/components/payouts/statements";
 import { WithdrawDialog } from "@/components/payouts/withdraw-dialog";
 import { useApi } from "@/hooks/use-api";
+import { useCurrentStore } from "@/hooks/use-current-store";
 import { cn } from "@/lib/utils";
-import { getBalance, getOrders, getPayoutMethods, getPayouts, getStore, usdtPlaceholder } from "@/lib/api";
+import { getBalance, getOrders, getPayoutMethods, getPayouts, usdtPlaceholder } from "@/lib/api";
 import { formatDate } from "@/lib/format";
 import type { Payout } from "@/lib/types";
 
@@ -39,7 +40,7 @@ function PayoutsInner({ section }: { section: Section }) {
   const payouts = useApi(getPayouts, [], { live: true });
   const methods = useApi(getPayoutMethods, [], { live: true });
   const orders = useApi(() => getOrders(), []);
-  const store = useApi(getStore, []);
+  const store = useCurrentStore();
   const [withdrawOpen, setWithdrawOpen] = useState(params.get("withdraw") === "1");
   const [bankOpen, setBankOpen] = useState(false);
   const unsaved = useUnsavedGuard();
@@ -163,7 +164,7 @@ function PayoutsInner({ section }: { section: Section }) {
               <StatusPill status={p.status} />
             </div>
           )}
-          empty={<EmptyState nextStep icon={Wallet} title="No payouts yet." body="When you withdraw, it shows up here with the bank reference." compact />}
+          empty={<EmptyState nextStep icon={Wallet} title="No payouts yet." body="When you withdraw, it shows up here with the bank reference." action={<Button asChild variant="secondary"><Link href="/sales/payouts/methods">Add a payout method</Link></Button>} compact />}
         />
       </section>
       )}

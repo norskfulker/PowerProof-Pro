@@ -1,90 +1,69 @@
 import { expect, test } from "@playwright/test";
-import { expectNoConsoleErrors, layoutIssues, prepare, report, settle } from "./helpers";
+import { expectNoConsoleErrors, failDatabase, layoutIssues, prepare, report, settle, slowDatabase } from "./helpers";
+import { readManifest } from "./support/manifest";
+import { signInAs } from "./support/supabase";
 
 /**
- * QA Part 5 F: every list and card against the stress dataset (lib/mock/stress.ts):
- * long and unbroken text, Indic scripts, 500 products/orders, missing images,
- * huge and tiny prices, 0 / 1 / 5000 reviews, 100%-off coupon.
+ * QA Part 5 F, on real rows: long and unbroken text, Indic scripts, a huge price. The seeded
+ * product is given the stress values for these tests and put back afterwards. Error and loading
+ * states are forced by failing or delaying the database requests, not by a demo switch.
  */
-const STRESS_ROUTES = [
-  "/dashboard",
-  "/catalog/products",
-  "/catalog/products/prod_01",
-  "/sales/orders",
-  "/sales/orders/ord_1078",
-  "/sales/customers",
-  "/sales/customers/cus_01",
-  "/sales/analytics",
-  "/store/store_ananya/reviews",
-  "/store/store_ananya/offers/coupons",
-  "/catalog/collections",
-  "/s/ananya",
-  "/s/ananya/products",
-  "/s/ananya/second-brain-for-founders",
-  "/s/ananya/monsoon-moods-12-lightroom-presets",
-  "/s/ananya/the-freelance-pricing-playbook",
-  "/checkout/ord_1080",
-  "/s/ananya/contact",
-  "/s/ananya/policies/refund",
-  "/s/ananya/p/about-ananya",
-  "/store/store_ananya/offers/deal-paths",
-  "/store/store_ananya/design/pages",
-  "/invoice/ord_1081",
-  "/admin/orders",
-  "/admin/creators",
-];
+const A = readManifest().A;
+const STRESS_TITLE = "The Complete Ultimate Second Brain Operating System for Busy Founders, Freelancers, Students and Teams (2026 Edition) नोशन में दूसरा दिमाग़ Supercalifragilisticexpialidociousproductivitysystemwithnospaces";
 
-for (const path of STRESS_ROUTES) {
-  test(`stress ${path} @stress`, async ({ page }, testInfo) => {
-    const { errors } = await prepare(page, testInfo, { stress: true });
-    await page.goto(path);
-    await settle(page);
-    const issues = await layoutIssues(page);
-    expect(issues, report(issues)).toEqual([]);
-    await expectNoConsoleErrors(errors);
+test.describe.configure({ mode: "serial" });
+
+test.describe("stress text on real rows @stress", () => {
+  test.beforeAll(async () => {
+    const { client } = await signInAs("A");
+    await client.from("products").update({ title: STRESS_TITLE, price_minor: 999999900, compare_at_price_minor: 1999999900 }).eq("id", A.productId);
   });
-}
+  test.afterAll(async () => {
+    const { client } = await signInAs("A");
+    await client.from("products").update({ title: A.productTitle, price_minor: 49900, compare_at_price_minor: null }).eq("id", A.productId);
+  });
 
-test("5000 reviews are summarised, not rendered @stress", async ({ page }, testInfo) => {
-  await prepare(page, testInfo, { stress: true });
-  await page.goto("/s/ananya/second-brain-for-founders");
-  await settle(page);
-  await expect(page.getByText(/5,000 reviews|5000 reviews/).first()).toBeVisible();
-  expect(await page.locator("#reviews li, #reviews article").count()).toBeLessThan(50);
+  for (const path of ["/dashboard", "/catalog/products", `/catalog/products/${A.productId}`, `/s/${A.slug}`, `/s/${A.slug}/products`, `/s/${A.slug}/${A.productSlug}`]) {
+    test(`stress ${path}`, async ({ page }, testInfo) => {
+      const { errors } = await prepare(page, testInfo);
+      await page.goto(path);
+      await settle(page);
+      const issues = await layoutIssues(page);
+      expect(issues, report(issues)).toEqual([]);
+      await expectNoConsoleErrors(errors);
+    });
+  }
 });
 
-test("100% off coupon gives a zero total and skips payment @stress", async ({ page }, testInfo) => {
-  await prepare(page, testInfo, { stress: true });
-  await page.goto("/s/ananya/the-freelance-pricing-playbook");
-  await settle(page);
-  await page.getByRole("button", { name: /buy now/i }).first().click();
-  await page.waitForURL(/\/checkout\//);
-  await settle(page);
-  await page.getByRole("button", { name: /have a coupon|add a coupon|coupon/i }).first().click();
-  await page.getByLabel(/coupon/i).fill("DIWALIMEGAFESTIVESALE2026EXTRA100PERCENTOFF");
-  await page.getByRole("button", { name: /^apply$/i }).click();
-  await expect(page.getByRole("button", { name: /get it now/i })).toBeVisible();
-});
-
-test("slow network shows skeletons @stress", async ({ page }, testInfo) => {
-  await prepare(page, testInfo, { slow: true });
-  await page.goto("/sales/orders");
+test("slow database shows skeletons @stress", async ({ page }, testInfo) => {
+  await prepare(page, testInfo);
+  await slowDatabase(page);
+  await page.goto("/catalog/products");
   await expect(page.locator('[data-slot="skeleton"]').filter({ visible: true }).first()).toBeVisible();
   await settle(page);
+  await expect(page.getByText(A.productTitle).first()).toBeVisible();
 });
 
-test("failed request shows an error with retry @stress", async ({ page }, testInfo) => {
-  await prepare(page, testInfo, { fail: true });
-  await page.goto("/sales/orders");
+test("failed requests show an error with retry, and retrying recovers @stress", async ({ page }, testInfo) => {
+  await prepare(page, testInfo);
+  await failDatabase(page);
+  await page.goto("/catalog/products");
   await expect(page.getByRole("alert").filter({ hasText: /didn't load|couldn't/i }).first()).toBeVisible();
   const issues = await layoutIssues(page);
   expect(issues, report(issues)).toEqual([]);
+  await page.unroute(/\/rest\/v1\//);
+  await page.getByRole("button", { name: /try again/i }).first().click();
+  await expect(page.getByText(A.productTitle).first()).toBeVisible();
 });
 
-test("empty search results say so @stress", async ({ page }, testInfo) => {
-  await prepare(page, testInfo, { stress: true });
-  await page.goto("/s/ananya/products");
-  await settle(page);
-  await page.getByRole("main").getByRole("searchbox").first().fill("zzzz-nothing-matches");
-  await expect(page.getByText(/no products match|nothing matches|no results/i).first()).toBeVisible();
+test.describe("store search @stress", () => {
+  test.use({ storageState: { cookies: [], origins: [] } });
+
+  test("a search with no matches says so", async ({ page }, testInfo) => {
+    await prepare(page, testInfo);
+    await page.goto(`/s/${A.slug}/products`);
+    await settle(page);
+    await page.getByRole("main").getByRole("searchbox").first().fill("zzzz-nothing-matches");
+    await expect(page.getByText(/no products match|nothing matches|no results/i).first()).toBeVisible();
+  });
 });

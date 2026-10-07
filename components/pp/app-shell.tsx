@@ -5,7 +5,6 @@ import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { SidebarProgress } from "@/components/getting-started/getting-started-card";
 import { NavTree } from "@/components/nav/nav-tree";
 import { useNav } from "@/components/nav/use-nav";
-import { PlanUsage } from "@/components/plan/plan-usage";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
@@ -65,12 +64,7 @@ export function AppShell({ children, variant = "creator" }: { children: React.Re
   const [more, setMore] = useState(false);
   const admin = variant === "admin";
   const rail = useSyncExternalStore((cb) => (railListeners.add(cb), () => railListeners.delete(cb)), readRail, () => false);
-  const footer = admin ? undefined : (
-    <div className="flex flex-col gap-2">
-      <SidebarProgress />
-      <PlanUsage />
-    </div>
-  );
+  const footer = admin ? undefined : <SidebarProgress />;
   return (
     <CreatorProviders tracker={!admin}>
       <div className={cn("min-h-dvh md:grid", rail ? "md:grid-cols-[72px_minmax(0,1fr)]" : "md:grid-cols-[272px_minmax(0,1fr)]")}>

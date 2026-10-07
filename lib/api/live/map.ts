@@ -1,5 +1,6 @@
 import type { Database, Json } from "../../database.types";
-import { freshScope } from "../../mock/base";
+import { defaultDesign as defaultDesignFor, defaultPages } from "../../defaults/store";
+import { initialsOf } from "../../slug";
 import type {
   AboutContent,
   Collection,
@@ -37,7 +38,7 @@ const CURRENCIES: CurrencyCode[] = ["INR", "USD", "EUR", "GBP", "AED", "SGD", "A
 export const currency = (c: string | null | undefined): CurrencyCode => (CURRENCIES.includes(c as CurrencyCode) ? (c as CurrencyCode) : "INR");
 export const money = (amount: number | null | undefined, cur: string | null | undefined): Money => ({ amount: Number(amount ?? 0), currency: currency(cur) });
 
-export const initials = (name: string) => name.split(/\s+/).filter(Boolean).map((w) => w[0]).join("").slice(0, 2).toUpperCase() || "PP";
+export const initials = initialsOf;
 
 /* Products ---------------------------------------------------------------- */
 
@@ -132,16 +133,17 @@ export function storeFrom(row: StoreRow, owner: { name: string; email: string },
   };
 }
 
-/** The look a store starts with until the creator changes it (the same defaults as the demo). */
+/** The look a store starts with until the creator changes it. */
 export function defaultDesign(store: Store): StoreDesign {
-  return freshScope(Date.parse(store.createdAt) || Date.now(), store).design;
+  return defaultDesignFor(store);
 }
 
 /** stores.theme holds the whole design; theme_mode mirrors its light/dark default for the server. */
 export function designFrom(store: Store, theme: Json, mode: string, about?: AboutContent): StoreDesign {
   const saved = (theme && typeof theme === "object" && !Array.isArray(theme) ? theme : {}) as Partial<StoreDesign>;
   const base = defaultDesign(store);
-  const design: StoreDesign = { ...base, ...saved, theme: { ...base.theme, ...saved.theme, mode: (mode as StoreDesign["theme"]["mode"]) ?? "auto" } };
+  // The brand colour lives in stores.brand_color: it always wins over any copy in the JSON
+  const design: StoreDesign = { ...base, ...saved, theme: { ...base.theme, ...saved.theme, mode: (mode as StoreDesign["theme"]["mode"]) ?? "auto", brand: store.brandColor } };
   if (about) design.about = about;
   return design;
 }
@@ -150,7 +152,10 @@ export function designFrom(store: Store, theme: Json, mode: string, about?: Abou
 export function designToTheme(d: StoreDesign): Json {
   const { about: _about, ...rest } = d;
   void _about;
-  return JSON.parse(JSON.stringify(rest)) as Json;
+  // brand and mode have their own columns (brand_color, theme_mode): not kept twice
+  const { brand: _brand, ...theme } = rest.theme;
+  void _brand;
+  return JSON.parse(JSON.stringify({ ...rest, theme })) as Json;
 }
 
 /* About, FAQ and policies -------------------------------------------------- */
@@ -163,7 +168,7 @@ type PageRow = Pick<T["store_pages"]["Row"], "kind" | "content" | "edited">;
  * the About fields, policies hold `{ text }`.
  */
 export function pagesFrom(store: Store, rows: PageRow[], design?: StoreDesign): { pages: StorePages; about: AboutContent } {
-  const defaults = freshScope(Date.now(), store);
+  const defaults = { storePages: defaultPages(store) };
   const by = new Map(rows.map((r) => [r.kind, r]));
   const content = (k: StorePageKey) => (by.get(k)?.content ?? {}) as Record<string, unknown>;
   const edited = (k: StorePageKey) => Boolean(by.get(k)?.edited);
@@ -178,7 +183,7 @@ export function pagesFrom(store: Store, rows: PageRow[], design?: StoreDesign): 
     edited: Object.fromEntries((["about", "faq", "refund", "terms", "privacy"] as StorePageKey[]).map((k) => [k, edited(k)])),
   };
   const aboutRow = content("about");
-  const about = edited("about") && typeof aboutRow.story === "string" ? (aboutRow as unknown as AboutContent) : (design?.about ?? defaults.design.about);
+  const about = edited("about") && typeof aboutRow.story === "string" ? (aboutRow as unknown as AboutContent) : (design?.about ?? defaultDesign(store).about);
   return { pages, about };
 }
 
@@ -186,12 +191,11 @@ export function pagesFrom(store: Store, rows: PageRow[], design?: StoreDesign): 
 
 /** collections.bg holds the tile look: `{ background?, cover, description }`. */
 export function collectionFrom(row: T["collections"]["Row"], items: T["collection_items"]["Row"][]): Collection {
-  const bg = (row.bg ?? {}) as { background?: TileBackground; cover?: CoverSpec; description?: string };
+  const bg = (row.bg ?? {}) as { background?: TileBackground; cover?: CoverSpec };
   return {
     id: row.id,
     slug: row.slug,
     name: row.name,
-    description: bg.description ?? "",
     productIds: items.filter((i) => i.collection_id === row.id).sort((a, b) => a.sort_order - b.sort_order).map((i) => i.product_id),
     cover: bg.cover ?? { template: "block", title: row.name, bg: DEFAULT_BRAND, fg: "#F5F6F4", accent: "#C9A24F" },
     background: bg.background,
@@ -213,7 +217,6 @@ export function dealRuleFrom(row: T["deal_rules"]["Row"]): DealRule {
     startsAt: row.starts_at ?? undefined,
     endsAt: row.ends_at ?? undefined,
     createdAt: row.created_at,
-    stats: { views: 0, uses: 0, revenueLift: money(0, "INR") },
   };
   if (row.reward === "free_product") return { ...common, kind: "free_gift", triggerIds: row.trigger_product_ids, giftId: row.reward_product_id! };
   return { ...common, kind: "bundle_discount", productIds: row.trigger_product_ids, percent: Math.round((row.percent_bps ?? 0) / 100) };
@@ -221,7 +224,9 @@ export function dealRuleFrom(row: T["deal_rules"]["Row"]): DealRule {
 
 /* Reviews and questions --------------------------------------------------- */
 
-type ReviewRow = Omit<T["reviews"]["Row"], "order_id"> & { order_id?: string };
+/** A review as the creator or the storefront reads it (never every column of the base table). */
+export type ReviewInput = Pick<T["reviews"]["Row"], "id" | "product_id" | "rating" | "title" | "body" | "photos" | "reviewer_name" | "status" | "creator_reply" | "replied_at" | "created_at">;
+type ReviewRow = ReviewInput;
 
 export function reviewFrom(row: ReviewRow, pinned = false): Review {
   return {
@@ -236,14 +241,16 @@ export function reviewFrom(row: ReviewRow, pinned = false): Review {
     helpful: 0,
     verified: true,
     imported: false,
-    reply: row.creator_reply ? { body: row.creator_reply, createdAt: row.replied_at ?? row.updated_at } : undefined,
+    reply: row.creator_reply ? { body: row.creator_reply, createdAt: row.replied_at ?? row.created_at } : undefined,
     pinned,
     hidden: row.status === "hidden",
     reported: false,
   };
 }
 
-type QuestionRow = Omit<T["questions"]["Row"], "asker_email" | "updated_at">;
+/** A question as read by creators or visitors: never the asker's email. */
+export type QuestionInput = Pick<T["questions"]["Row"], "id" | "product_id" | "asker_name" | "body" | "answer" | "answered_at" | "status" | "created_at">;
+type QuestionRow = QuestionInput;
 
 export function questionFrom(row: QuestionRow, creatorName: string): Question {
   return {

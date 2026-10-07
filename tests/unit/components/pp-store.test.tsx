@@ -14,7 +14,6 @@ import { NewsletterForm } from "@/components/pp/newsletter-form";
 import { OfferCard } from "@/components/pp/offer-card";
 import { OrderBump } from "@/components/pp/order-bump";
 import { QuestionThread } from "@/components/pp/question-thread";
-import { ReviewForm } from "@/components/pp/review-form";
 import { ReviewItem } from "@/components/pp/review-item";
 import { ReviewSummary } from "@/components/pp/review-summary";
 import { SectionToggleList } from "@/components/pp/section-toggle-list";
@@ -26,7 +25,7 @@ import { StoreThemeScope } from "@/components/pp/store-theme";
 import { ThemePicker } from "@/components/pp/theme-picker";
 import { money } from "@/lib/money";
 import { ratingSummary } from "@/lib/pricing";
-import { COLLECTION, COUPON, DB, INR, LONG, PRODUCT, QUESTION, REVIEW, card } from "./fixtures";
+import { COLLECTION, COUPON, DB, INR, LONG, PRODUCT, QUESTION, REVIEW, card } from "@/tests/fixtures";
 
 const LINES: CartLine[] = [{ id: "l1", title: "Planner", unit: INR(499), qty: 2, image: PRODUCT.images[0] }];
 
@@ -81,12 +80,12 @@ describe("CheckoutForm", () => {
   it("submits valid details", async () => {
     const onPay = vi.fn();
     render(<CheckoutForm {...props} total={INR(1499)} onPay={onPay} />);
-    await userEvent.type(screen.getByLabelText("Full name"), "Priya Sharma");
-    await userEvent.type(screen.getByLabelText("Email"), "priya@example.com");
+    await userEvent.type(screen.getByLabelText("Full name"), "Asha Kumar");
+    await userEvent.type(screen.getByLabelText("Email"), "name@test.invalid");
     await userEvent.type(screen.getByRole("textbox", { name: /phone number/i }), "9876543210");
     await userEvent.click(screen.getByRole("checkbox", { name: /agree/i }));
     await userEvent.click(screen.getByRole("button", { name: /pay/i }));
-    await waitFor(() => expect(onPay).toHaveBeenCalledWith(expect.objectContaining({ name: "Priya Sharma", dial: "+91", phone: "9876543210", method: "upi" })));
+    await waitFor(() => expect(onPay).toHaveBeenCalledWith(expect.objectContaining({ name: "Asha Kumar", dial: "+91", phone: "9876543210", method: "upi" })));
   });
   it("rejects an Indian number that doesn't start with 6-9", async () => {
     render(<CheckoutForm {...props} total={INR(10)} onPay={() => {}} />);
@@ -143,7 +142,7 @@ describe("HeroSection", () => {
 
 describe("HighlightsStrip", () => {
   it("lists trust signals", () => {
-    render(<HighlightsStrip refundDays={7} rating={4.8} reviewCount={38} totalSales={1240} />);
+    render(<HighlightsStrip refundDays={7} rating={4.8} reviewCount={38} />);
     expect(screen.getByRole("region", { name: "Why buy here" })).toBeInTheDocument();
   });
 });
@@ -152,9 +151,9 @@ describe("NewsletterForm", () => {
   it("validates and subscribes", async () => {
     const onSubscribe = vi.fn().mockResolvedValue(undefined);
     render(<NewsletterForm heading="Stay close" body="One email a month." onSubscribe={onSubscribe} />);
-    await userEvent.type(screen.getByRole("textbox"), "me@example.com");
+    await userEvent.type(screen.getByRole("textbox"), "me@test.invalid");
     await userEvent.click(screen.getByRole("button", { name: /subscribe|join|sign up/i }));
-    await waitFor(() => expect(onSubscribe).toHaveBeenCalledWith("me@example.com"));
+    await waitFor(() => expect(onSubscribe).toHaveBeenCalledWith("me@test.invalid"));
   });
 });
 
@@ -187,13 +186,13 @@ describe("Questions and reviews", () => {
     expect(screen.getByText(QUESTION.body)).toBeInTheDocument();
   });
   it("renders a review with a creator reply", () => {
-    render(<ReviewItem review={REVIEW} creatorName="Ananya" />);
+    render(<ReviewItem review={REVIEW} creatorName="Creator" />);
     expect(screen.getByText(REVIEW.title)).toBeInTheDocument();
     expect(screen.getByText(REVIEW.reply!.body)).toBeInTheDocument();
   });
   it("renders long text and three photos", () => {
     const photos = [0, 1, 2].map((i) => ({ ...PRODUCT.images[0], id: `p${i}`, alt: `Photo ${i}` }));
-    render(<ReviewItem review={{ ...REVIEW, body: LONG.longReview, photos }} creatorName="Ananya" />);
+    render(<ReviewItem review={{ ...REVIEW, body: LONG.longReview, photos }} creatorName="Creator" />);
     expect(screen.getAllByRole("img", { name: /Photo/ })).toHaveLength(3);
   });
   it("summarises 0, 1 and 5000 reviews", () => {
@@ -208,12 +207,6 @@ describe("Questions and reviews", () => {
     render(<ReviewSummary summary={ratingSummary(DB.reviews)} onFilter={onFilter} />);
     await userEvent.click(screen.getAllByRole("button", { name: /5 star/ })[0]);
     expect(onFilter).toHaveBeenCalledWith(5);
-  });
-  it("requires a rating before submitting a review", async () => {
-    const onSubmit = vi.fn();
-    render(<ReviewForm productTitle="Planner" onSubmit={onSubmit} />);
-    await userEvent.click(screen.getByRole("button", { name: /post|submit|send/i }));
-    expect(onSubmit).not.toHaveBeenCalled();
   });
 });
 
@@ -245,7 +238,7 @@ describe("Store chrome", () => {
     render(
       <>
         <StoreLogo store={DB.store} />
-        <StoreNavbar store={DB.store} collections={DB.collections} currency="INR" onCurrency={() => {}} />
+        <StoreNavbar store={DB.store} collections={DB.collections} />
         <StoreFooter store={DB.store} socials={DB.design.socials} showPoweredBy />
       </>
     );

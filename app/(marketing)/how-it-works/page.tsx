@@ -1,10 +1,6 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import { ArrowRight, Clock } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Clock } from "lucide-react";
 import { CtaBand } from "@/components/marketing/cta-band";
-import { ProofReceipt } from "@/components/pp/proof-receipt";
-import type { Order } from "@/lib/types";
 
 export const metadata: Metadata = { title: "How it works" };
 
@@ -25,7 +21,7 @@ const STEPS = [
     n: "03",
     time: "1 minute",
     title: "Add your first product",
-    body: "Paste a link from where you sell now, upload the file, or build a page from a template. Set a price in rupees.",
+    body: "Upload the file buyers get, name it and set a price in rupees.",
   },
   {
     n: "04",
@@ -34,32 +30,6 @@ const STEPS = [
     body: "Your store goes live. Put the link in your bio, your newsletter, your WhatsApp status. Wherever your people are.",
   },
 ];
-
-const EXAMPLE: Order = {
-  id: "x",
-  token: "tok_demo",
-  storeId: "store_ananya",
-  items: [{ productId: "x", title: "Monsoon Moods: 12 Lightroom Presets", price: { amount: 79900, currency: "INR" }, kind: "product" }],
-  number: "PP-1081",
-  productId: "x",
-  productTitle: "Monsoon Moods: 12 Lightroom Presets",
-  customerId: "x",
-  buyerName: "Oliver Brown",
-  buyerEmail: "oliver.b@outlook.com",
-  country: "United Kingdom",
-  countryCode: "GB",
-  buyerTotal: { amount: 799, currency: "GBP" },
-  total: { amount: 79900, currency: "INR" },
-  fees: { gateway: { amount: 1598, currency: "INR" }, platform: { amount: 2397, currency: "INR" } },
-  net: { amount: 75905, currency: "INR" },
-  status: "paid",
-  source: "instagram",
-  downloads: 1,
-  invoiceNumber: "INV-0081",
-  paymentMethod: "card",
-  createdAt: "2026-10-05T08:30:00.000Z",
-  paidAt: "2026-10-05T08:30:20.000Z",
-};
 
 export default function HowItWorksPage() {
   return (
@@ -87,23 +57,16 @@ export default function HowItWorksPage() {
         </ol>
       </section>
 
-      <section className="gutter mx-auto mt-24 grid grid-cols-1 max-w-[1200px] items-start gap-10 lg:grid-cols-2" aria-labelledby="buyer">
+      <section className="gutter mx-auto mt-24 max-w-[1200px]" aria-labelledby="buyer">
         <div>
           <p className="eyebrow">The buyer&apos;s side</p>
           <h2 id="buyer" className="mt-3 text-3xl md:text-4xl">They pay, they download, they get a proof.</h2>
           <ul className="mt-6 flex flex-col gap-4 text-muted-foreground">
             <li><strong className="text-foreground">No account.</strong> Email and payment, nothing else.</li>
-            <li><strong className="text-foreground">Their currency.</strong> A buyer in London sees pounds. You receive rupees.</li>
             <li><strong className="text-foreground">Instant file.</strong> The download page opens the moment payment clears. The link is emailed too.</li>
             <li><strong className="text-foreground">A real receipt.</strong> Order number, invoice, refund link. Fewer “did it go through?” DMs.</li>
           </ul>
-          <Button asChild variant="secondary" className="mt-8">
-            <Link href="/s/ananya">
-              Try buying from a demo store <ArrowRight />
-            </Link>
-          </Button>
         </div>
-        <ProofReceipt order={EXAMPLE} storeName="Ananya Makes" />
       </section>
 
       <section className="gutter mx-auto mt-24 max-w-[1200px]" aria-labelledby="money-flow">

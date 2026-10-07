@@ -45,10 +45,12 @@ export interface Order {
   fees: OrderFees;
   net: Money;
   status: OrderStatus;
-  source: TrafficSource;
-  downloads: number;
+  /** Not tracked yet: unset until visits are recorded */
+  source?: TrafficSource;
+  /** Not tracked yet */
+  downloads?: number;
   invoiceNumber?: string;
-  paymentMethod: "upi" | "card" | "netbanking" | "wallet";
+  paymentMethod?: "upi" | "card" | "netbanking" | "wallet";
   createdAt: ISODate;
   paidAt?: ISODate;
   refundedAt?: ISODate;

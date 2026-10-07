@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { FlaskConical } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
-import type { CheckoutDeals } from "@/lib/api";
+import type { CheckoutDeals } from "@/lib/types";
 import { priceInfo, ratingSummary } from "@/lib/pricing";
 import { evaluateDeals } from "@/lib/pricing/deals";
 import type { Deal, DealRule, OrderItem, Product } from "@/lib/types";

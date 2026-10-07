@@ -6,7 +6,7 @@ import { GuardedLink } from "@/components/plan/plan-context";
 import { ExternalLink, Plus, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Segmented } from "@/components/pp/segmented";
-import { ChartCard, RevenueBars, ShareBars } from "@/components/pp/chart-card";
+import { ChartCard, RevenueBars } from "@/components/pp/chart-card";
 import { MoneyText } from "@/components/pp/money-text";
 import { PageHeader } from "@/components/pp/page-header";
 import { GettingStartedCard } from "@/components/getting-started/getting-started-card";
@@ -14,8 +14,9 @@ import { Glance } from "@/components/dashboard/glance";
 import { LiveFeed } from "@/components/dashboard/live-feed";
 import { QuickActions } from "@/components/dashboard/quick-actions";
 import { useApi } from "@/hooks/use-api";
-import { getBalance, getPlan, getProducts, getStore, getSummary } from "@/lib/api";
-import { formatDate, sourceLabel } from "@/lib/format";
+import { useCurrentStore } from "@/hooks/use-current-store";
+import { getBalance, getPlan, getProducts, getSummary } from "@/lib/api";
+import { formatDate } from "@/lib/format";
 import type { RangeKey } from "@/lib/types";
 
 function greeting() {
@@ -25,7 +26,7 @@ function greeting() {
 
 export default function DashboardPage() {
   const [range, setRange] = useState<RangeKey>("today");
-  const store = useApi(getStore, [], { live: true });
+  const store = useCurrentStore();
   const summary = useApi(() => getSummary(range), [range], { live: true });
   const balance = useApi(getBalance, [], { live: true });
   const products = useApi(() => getProducts(), [], { live: true });
@@ -58,7 +59,7 @@ export default function DashboardPage() {
         }
       />
 
-      {plan.data?.plan.status === "trial" && (
+      {plan.data?.plan.status === "trial" && plan.data.plan.trialEndsAt && (
         <div className="mb-6 flex flex-col gap-3 rounded-card border border-accent/40 bg-accent-soft px-5 py-4 sm:flex-row sm:items-center">
           <Sparkles className="size-5 shrink-0 text-accent-ink" aria-hidden />
           <p className="flex-1 text-sm">
@@ -73,11 +74,11 @@ export default function DashboardPage() {
       <div className="flex flex-col gap-6">
         <GettingStartedCard />
 
-        {!isNew && (
+        {(
           <section aria-labelledby="glance-h" className="flex flex-col gap-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <h2 id="glance-h" className="text-xl">At a glance</h2>
-              <Segmented label="Date range" value={range} onChange={setRange} options={[{ value: "today", label: "Today" }, { value: "7d", label: "7 days" }, { value: "30d", label: "30 days" }]} />
+              <h2 id="glance-h" className="text-xl">Sales and analytics</h2>
+              <Segmented label="Date range" value={range} onChange={setRange} options={[{ value: "today", label: "Today" }, { value: "7d", label: "7 days" }, { value: "30d", label: "30 days" }, { value: "90d", label: "90 days" }]} />
             </div>
             <Glance summary={summary.data} balance={balance.data} loading={summary.loading && !summary.data} error={summary.error} onRetry={summary.reload} />
           </section>
@@ -86,10 +87,10 @@ export default function DashboardPage() {
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
           <div className="flex flex-col gap-6">
             <QuickActions store={store.data} />
-            {!isNew && (
+            {(
               <ChartCard
                 title="Revenue"
-                description={range === "today" ? "Today, by hour" : range === "7d" ? "Last 7 days" : "Last 30 days"}
+                description={{ today: "Today", "7d": "Last 7 days", "30d": "Last 30 days", "90d": "Last 90 days" }[range]}
                 loading={summary.loading && !summary.data}
                 error={summary.error}
                 onRetry={summary.reload}
@@ -99,7 +100,7 @@ export default function DashboardPage() {
                 {summary.data && <RevenueBars data={summary.data.series} />}
               </ChartCard>
             )}
-            {!isNew && (
+            {(
               <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                 <ChartCard title="Top products" loading={summary.loading && !summary.data} height={180} empty={summary.data?.topProducts.length === 0}>
                   <ol className="flex flex-col gap-3">
@@ -114,8 +115,18 @@ export default function DashboardPage() {
                     ))}
                   </ol>
                 </ChartCard>
-                <ChartCard title="Where buyers come from" loading={summary.loading && !summary.data} height={180} empty={summary.data?.sources.length === 0}>
-                  {summary.data && <ShareBars rows={summary.data.sources.slice(0, 4).map((s) => ({ label: sourceLabel(s.source), value: s.visitors, share: s.share }))} />}
+                <ChartCard title="Where buyers come from" loading={summary.loading && !summary.data} height={180} empty emptyText="No data yet. Visitor tracking isn't connected.">
+                  {null}
+                </ChartCard>
+              </div>
+            )}
+            {(
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                <ChartCard title="Visitors" description="Visits aren't tracked yet" loading={summary.loading && !summary.data} height={180} empty emptyText="No data yet. Visitor tracking isn't connected.">
+                  {null}
+                </ChartCard>
+                <ChartCard title="Funnel" description="Visit to payment" loading={summary.loading && !summary.data} height={180} empty emptyText="No data yet. Visitor tracking isn't connected.">
+                  {null}
                 </ChartCard>
               </div>
             )}

@@ -11,6 +11,7 @@ export function StepFrame({
   skipLabel = "Skip for now",
   submitLabel = "Continue",
   pending,
+  disabled,
   formId,
 }: {
   title: string;
@@ -22,6 +23,7 @@ export function StepFrame({
   skipLabel?: string;
   submitLabel?: string;
   pending?: boolean;
+  disabled?: boolean;
   /** The step's <form id> so the footer button submits it. */
   formId: string;
 }) {
@@ -47,7 +49,7 @@ export function StepFrame({
               {skipLabel}
             </Button>
           )}
-          <Button type="submit" form={formId} disabled={pending}>
+          <Button type="submit" form={formId} disabled={pending || disabled}>
             {pending && <Loader2 className="animate-spin" aria-hidden />}
             {submitLabel}
           </Button>

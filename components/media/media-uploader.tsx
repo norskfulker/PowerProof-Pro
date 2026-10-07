@@ -1,8 +1,7 @@
 "use client";
 
 import { useId, useRef, useState } from "react";
-import { AlertTriangle, Film, ImagePlus, Library, Loader2, RefreshCw, Sparkles, Trash2, Upload, X } from "lucide-react";
-import { useAiPanel } from "@/components/ai/ai-panel-context";
+import { AlertTriangle, Film, ImagePlus, Library, Loader2, RefreshCw, Trash2, Upload, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -39,7 +38,6 @@ export function MediaUploader({
   withAlt = true,
   withFocal = true,
   withPoster = true,
-  aiPurpose,
   compact,
   className,
 }: {
@@ -65,7 +63,6 @@ export function MediaUploader({
   const [progress, setProgress] = useState<number | null>(null);
   const [error, setError] = useState<string>();
   const [library, setLibrary] = useState(false);
-  const ai = useAiPanel();
   const accept = kinds.flatMap((k) => MEDIA_LIMITS[k].types).join(",");
   const kind = value?.kind ?? (value?.src ? "image" : undefined);
   const limits = kinds.map((k) => MEDIA_LIMITS[k].label).join(" · ");
@@ -124,11 +121,6 @@ export function MediaUploader({
             <Button type="button" variant="ghost" size="sm" onClick={() => setLibrary(true)}>
               <Library aria-hidden /> Library
             </Button>
-            {aiPurpose && ai && kinds.includes("image") && (
-              <Button type="button" variant="ghost" size="sm" onClick={() => ai.open({ purpose: aiPurpose, onUse: pick })}>
-                <Sparkles aria-hidden /> Create with AI
-              </Button>
-            )}
             <Button type="button" variant="ghost" size="sm" className="text-danger" onClick={() => onChange(undefined)}>
               <Trash2 aria-hidden /> Remove
             </Button>
@@ -187,11 +179,6 @@ export function MediaUploader({
                 <Button type="button" variant="secondary" size="sm" onClick={() => setLibrary(true)}>
                   <Library aria-hidden /> Library
                 </Button>
-                {aiPurpose && ai && kinds.includes("image") && (
-                  <Button type="button" variant="secondary" size="sm" onClick={() => ai.open({ purpose: aiPurpose, onUse: pick })}>
-                    <Sparkles aria-hidden /> Create with AI
-                  </Button>
-                )}
               </div>
             </>
           )}

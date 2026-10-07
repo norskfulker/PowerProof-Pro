@@ -11,23 +11,22 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { PALETTES } from "@/lib/palettes";
+import { BrandColorPicker } from "@/components/pp/brand-color-picker";
 import { MediaUploader } from "@/components/media/media-uploader";
 import { MediaImg } from "@/components/media/tile-background";
 import { SaveBar } from "@/components/save/save-bar";
 import { SettingsLoading, SettingsSection } from "@/components/settings/settings-section";
 import { useFormSaveBar } from "@/hooks/use-dirty-form";
-import { useApi } from "@/hooks/use-api";
-import { getStore, updateStore } from "@/lib/api";
+import { useCurrentStore } from "@/hooks/use-current-store";
+import { updateStore } from "@/lib/api";
 import { SITE_URL } from "@/lib/format";
 import type { Store } from "@/lib/types";
-import { cn } from "@/lib/utils";
+import { initialsOf } from "@/lib/slug";
 
 const schema = z.object({
   name: z.string().trim().min(2, "Your store needs a name."),
   slug: z.string().min(3, "At least 3 characters.").regex(/^[a-z0-9-]+$/, "Lowercase letters, numbers and dashes."),
   tagline: z.string().max(120, "Keep it under 120 characters."),
-  logoText: z.string().trim().min(1, "One or two letters.").max(2, "One or two letters."),
   brandColor: z.string(),
   supportEmail: z.string().email("Buyers need a working email for help."),
   refundDays: z.coerce.number(),
@@ -36,17 +35,16 @@ const schema = z.object({
 });
 
 type Values = z.input<typeof schema>;
-const BRAND = PALETTES.filter((p) => !["Porcelain", "Sage"].includes(p.name));
 
 function StoreForm({ store, onSaved }: { store: Store; onSaved: (s: Store) => void }) {
   const form = useForm<Values>({ resolver: zodResolver(schema), defaultValues: { ...store }, mode: "onTouched" });
-  const [name, logoText, brandColor, tagline, logo] = useWatch({ control: form.control, name: ["name", "logoText", "brandColor", "tagline", "logo"] });
+  const [name, brandColor, tagline, logo] = useWatch({ control: form.control, name: ["name", "brandColor", "tagline", "logo"] });
   const bar = useFormSaveBar(
     form,
     async (raw) => {
       const v = schema.parse(raw);
       try {
-        const s = await updateStore({ ...v, logoText: v.logoText.toUpperCase() });
+        const s = await updateStore(v);
         onSaved(s);
       } catch (e) {
         form.setError("slug", { message: e instanceof Error ? e.message : "Couldn't save." });
@@ -72,7 +70,7 @@ function StoreForm({ store, onSaved }: { store: Store; onSaved: (s: Store) => vo
             {logo?.src ? (
               <span className="relative size-12 shrink-0 overflow-hidden rounded-[12px]"><MediaImg src={logo.src} alt={logo.alt || "Logo"} className="absolute inset-0" /></span>
             ) : (
-              <span className="grid size-12 shrink-0 place-items-center rounded-[12px] font-mono text-sm font-semibold" style={{ background: brandColor, color: readableOn(brandColor) }}>{logoText?.toUpperCase()}</span>
+              <span className="grid size-12 shrink-0 place-items-center rounded-[12px] font-mono text-sm font-semibold" style={{ background: brandColor, color: readableOn(brandColor) }}>{initialsOf(name)}</span>
             )}
             <span className="min-w-0">
               <span className="block font-display text-xl">{name || "Your store"}</span>
@@ -89,24 +87,13 @@ function StoreForm({ store, onSaved }: { store: Store; onSaved: (s: Store) => vo
             <FormField control={form.control} name="tagline" render={({ field }) => (
               <FormItem className="sm:col-span-2"><FormLabel>Tagline</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
             )} />
-            <FormField control={form.control} name="logoText" render={({ field }) => (
-              <FormItem><FormLabel>Logo letters</FormLabel><FormControl><Input maxLength={2} className="font-mono uppercase" {...field} /></FormControl><FormDescription>Shown when there&apos;s no logo image.</FormDescription><FormMessage /></FormItem>
-            )} />
             <Controller control={form.control} name="logo" render={({ field }) => (
               <div className="sm:col-span-2">
                 <MediaUploader compact label="Logo (optional)" kinds={["image"]} aspect="1:1" withFocal={false} hint="Square works best" value={field.value ? { ...field.value, kind: "image" } : undefined} onChange={(m) => field.onChange(m ? { src: m.src, alt: m.alt } : undefined)} />
               </div>
             )} />
             <Controller control={form.control} name="brandColor" render={({ field }) => (
-              <fieldset>
-                <legend className="mb-2 text-sm font-medium">Brand colour</legend>
-                <div className="flex flex-wrap gap-2">
-                  {BRAND.map((p) => (
-                    <button key={p.name} type="button" aria-label={p.name} aria-pressed={field.value === p.bg} onClick={() => field.onChange(p.bg)}
-                      className={cn("size-11 rounded-full border", field.value === p.bg && "outline-2 outline-offset-2 outline-primary")} style={{ background: p.bg }} />
-                  ))}
-                </div>
-              </fieldset>
+              <BrandColorPicker value={field.value} onChange={field.onChange} />
             )} />
           </div>
         </SettingsSection>
@@ -143,7 +130,7 @@ function StoreForm({ store, onSaved }: { store: Store; onSaved: (s: Store) => vo
 }
 
 export default function StoreSettingsPage() {
-  const { data, error, reload, setData } = useApi(getStore, []);
+  const { data, error, reload, setData } = useCurrentStore();
   if (!data) return <SettingsLoading error={error} onRetry={reload} />;
   return <StoreForm store={data} onSaved={setData} />;
 }

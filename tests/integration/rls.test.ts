@@ -19,7 +19,7 @@ const haveProject = Boolean(URL && ANON);
 const haveCreators = haveProject && Boolean(A.email && A.password && B.email && B.password);
 
 describe.skipIf(!haveProject)("anonymous visitor", () => {
-  const anon = client();
+  const anon = haveProject ? client() : (undefined as unknown as Client);
 
   it("sees only published stores", async () => {
     const { data, error } = await anon.from("stores").select("id, status");
@@ -64,7 +64,7 @@ describe.skipIf(!haveProject)("anonymous visitor", () => {
 
   it("can't write anything", async () => {
     const store = await anon.from("stores").insert({ owner_id: "00000000-0000-0000-0000-000000000000", name: "x", slug: "anon-write-test" });
-    const question = await anon.from("questions").insert({ store_id: "00000000-0000-0000-0000-000000000000", product_id: "00000000-0000-0000-0000-000000000000", asker_name: "x", asker_email: "x@example.com", body: "hello there" });
+    const question = await anon.from("questions").insert({ store_id: "00000000-0000-0000-0000-000000000000", product_id: "00000000-0000-0000-0000-000000000000", asker_name: "x", asker_email: "x@test.invalid", body: "hello there" });
     expect(store.error).not.toBeNull();
     expect(question.error).not.toBeNull();
   });
@@ -76,8 +76,8 @@ describe.skipIf(!haveProject)("anonymous visitor", () => {
 });
 
 describe.skipIf(!haveCreators)("two creators", () => {
-  const a = client();
-  const b = client();
+  const a = haveProject ? client() : (undefined as unknown as Client);
+  const b = haveProject ? client() : (undefined as unknown as Client);
   let aId = "";
   let bId = "";
   let storeA = "";
@@ -163,7 +163,7 @@ describe.skipIf(!haveCreators)("two creators", () => {
   it("Free plan: no custom domain", async () => {
     const { data: profile } = await a.from("profiles").select("plan").eq("id", aId).single();
     if (profile?.plan !== "free") return;
-    const r = await a.from("domains").insert({ store_id: storeA, hostname: `qa-${Date.now().toString(36)}.example.com` });
+    const r = await a.from("domains").insert({ store_id: storeA, hostname: `qa-${Date.now().toString(36)}.test.invalid` });
     expect(r.error?.message).toMatch(/Pro plan/);
   });
 

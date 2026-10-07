@@ -1,11 +1,9 @@
 "use client";
 
 import { useEffect, useSyncExternalStore } from "react";
-import { Monitor, Moon, Sun } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuLabel, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { ColorModeToggle, LIGHT_DARK } from "@/components/theme/color-mode-toggle";
 import { getThemePref, setThemePref } from "@/lib/api";
-import { isThemePref, resolveTheme, THEME_EVENT, type ThemeMode, type ThemePref } from "@/lib/theme";
+import { resolveTheme, THEME_EVENT, type ThemeMode, type ThemePref } from "@/lib/theme";
 
 const DARK_QUERY = "(prefers-color-scheme: dark)";
 
@@ -53,42 +51,8 @@ export function ThemeSync() {
   return null;
 }
 
-export const THEME_OPTIONS: { value: ThemePref; label: string; icon: typeof Sun }[] = [
-  { value: "light", label: "Light", icon: Sun },
-  { value: "dark", label: "Dark", icon: Moon },
-  { value: "system", label: "System", icon: Monitor },
-];
-
-/** Icon button with a three-way menu, for top bars and footers. */
-export function ThemeToggle({ className }: { className?: string }) {
-  const { pref, mode, setPref } = useTheme();
-  const Icon = pref === "system" ? Monitor : mode === "dark" ? Moon : Sun;
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className={className} aria-label={`Theme: ${THEME_OPTIONS.find((o) => o.value === pref)!.label}. Change theme`}>
-          <Icon aria-hidden />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-44">
-        <DropdownMenuLabel>Theme</DropdownMenuLabel>
-        <ThemeRadioItems pref={pref} onChange={setPref} />
-      </DropdownMenuContent>
-    </DropdownMenu>
-  );
-}
-
-/** The same three choices, for use inside another menu (the avatar menu). */
-export function ThemeRadioItems({ pref, onChange }: { pref?: ThemePref; onChange?: (p: ThemePref) => void }) {
-  const t = useTheme();
-  const value = pref ?? t.pref;
-  return (
-    <DropdownMenuRadioGroup value={value} onValueChange={(v) => isThemePref(v) && (onChange ?? t.setPref)(v)}>
-      {THEME_OPTIONS.map((o) => (
-        <DropdownMenuRadioItem key={o.value} value={o.value} className="pointer-coarse:min-h-11">
-          <o.icon className="size-4" aria-hidden /> {o.label}
-        </DropdownMenuRadioItem>
-      ))}
-    </DropdownMenuRadioGroup>
-  );
+/** The creator's (or visitor's) colour mode: Light or Dark, saved per person and applied before first paint. */
+export function ThemeToggle({ className, iconOnly = true }: { className?: string; iconOnly?: boolean }) {
+  const { mode, setPref } = useTheme();
+  return <ColorModeToggle label="Colour mode" value={mode} onChange={setPref} options={LIGHT_DARK} iconOnly={iconOnly} className={className} />;
 }

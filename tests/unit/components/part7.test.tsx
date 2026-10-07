@@ -1,17 +1,15 @@
 import { describe, expect, it, vi } from "vitest";
-import { act, fireEvent, render, renderHook, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { NavTree } from "@/components/nav/nav-tree";
-import { RecordsTable, RECHECK_SECONDS, useCountdown } from "@/components/domains/domain-wizard";
 import { StatusPill } from "@/components/pp/status-pill";
 import { CREATOR_NAV } from "@/lib/nav/config";
 import { resolveNav } from "@/lib/nav/model";
-import type { StoreDomain } from "@/lib/types";
 
 const tree = resolveNav(CREATOR_NAV, {
-  storeId: "store_ananya",
+  storeId: "store_fx",
   counts: { products_all: 17, products_live: 12, reviews_pending: 3 },
-  collections: [{ id: "col_a", name: "Notion kits", products: [{ id: "p1", title: "Second Brain" }] }],
+  collections: [{ id: "col_a", name: "Fixture collection", products: [{ id: "p1", title: "Fixture product" }] }],
   locked: new Set(["customDomain"]),
 });
 
@@ -35,7 +33,7 @@ describe("NavTree", () => {
     await userEvent.keyboard("{ArrowRight}");
     expect(catalog).toHaveAttribute("aria-expanded", "true");
     await userEvent.keyboard("{ArrowRight}");
-    expect(screen.getByRole("treeitem", { name: "Products" })).toHaveFocus();
+    expect(screen.getByRole("treeitem", { name: /^Collections/ })).toHaveFocus();
     await userEvent.keyboard("{ArrowLeft}");
     expect(catalog).toHaveFocus();
     await userEvent.keyboard("{ArrowLeft}");
@@ -69,39 +67,7 @@ describe("NavTree", () => {
   });
 });
 
-describe("Domain wizard parts", () => {
-  it("re-checks every 30 seconds with a visible countdown", () => {
-    vi.useFakeTimers();
-    const check = vi.fn();
-    const { result } = renderHook(() => useCountdown(RECHECK_SECONDS, check, true));
-    expect(result.current.left).toBe(30);
-    act(() => vi.advanceTimersByTime(10_000));
-    expect(result.current.left).toBe(20);
-    act(() => vi.advanceTimersByTime(20_000));
-    expect(check).toHaveBeenCalledTimes(1);
-    expect(result.current.left).toBe(30);
-    vi.useRealTimers();
-  });
-
-  it("shows each record with copy buttons and what's wrong", () => {
-    const d: StoreDomain = {
-      host: "ananya.in",
-      provider: "godaddy",
-      auto: true,
-      status: "needs_attention",
-      issue: "wrong_target",
-      records: [{ type: "A", name: "@", value: "76.76.21.21", found: "192.0.2.44" }, { type: "CNAME", name: "www", value: "stores.powerproof.store" }],
-      primary: true,
-      wwwRedirect: "www_to_root",
-      redirectSubdomain: true,
-      addedAt: "2026-10-05T00:00:00.000Z",
-    };
-    render(<RecordsTable domain={d} />);
-    expect(screen.getAllByRole("listitem")).toHaveLength(2);
-    expect(screen.getByText(/Right now it points to/)).toHaveTextContent("192.0.2.44");
-    expect(screen.getAllByRole("button", { name: /copy/i }).length).toBeGreaterThanOrEqual(4);
-  });
-
+describe("Domain status labels", () => {
   it("names every domain status in plain words", () => {
     const labels = ["not_connected", "waiting_dns", "verifying", "issuing_ssl", "connected", "needs_attention"].map((s) => {
       const { container, unmount } = render(<StatusPill status={s} />);
@@ -119,15 +85,15 @@ describe("Theme toggle in the store footer", () => {
     const onChange = vi.fn();
     render(
       <StoreFooter
-        store={{ id: "s", name: "Ananya Makes", slug: "ananya" } as never}
+        store={{ id: "s", name: "Fixture Store", slug: "fixture-store" } as never}
         socials={{}}
         showPoweredBy={false}
         theme={{ mode: "light", onChange }}
       />
     );
-    const group = screen.getByRole("group", { name: "Store theme" });
-    expect(screen.getByRole("button", { name: "Light" })).toHaveAttribute("aria-pressed", "true");
-    fireEvent.click(screen.getByRole("button", { name: "Dark" }));
+    const group = screen.getByRole("radiogroup", { name: "Store colour mode" });
+    expect(screen.getByRole("radio", { name: "Light" })).toHaveAttribute("aria-checked", "true");
+    fireEvent.click(screen.getByRole("radio", { name: "Dark" }));
     expect(onChange).toHaveBeenCalledWith("dark");
     expect(group).toBeInTheDocument();
   });

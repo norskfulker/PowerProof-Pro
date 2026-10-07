@@ -1,7 +1,7 @@
 "use client";
 
 import { MoneyText } from "@/components/pp/money-text";
-import { StatCard } from "@/components/pp/stat-card";
+import { NoData, StatCard } from "@/components/pp/stat-card";
 import { ErrorState } from "@/components/pp/empty-state";
 import { formatDate, formatNumber } from "@/lib/format";
 import type { Balance, Summary } from "@/lib/types";
@@ -34,8 +34,8 @@ export function Glance({
     <div className="grid grid-cols-2 gap-3 md:gap-4 lg:grid-cols-3 xl:grid-cols-5">
       <StatCard label="Sales" loading={!show} value={s && formatNumber(s.sales)} delta={s?.deltas.sales} hint={hint} />
       <StatCard label="Revenue" loading={!show} value={s && <MoneyText value={s.revenue} />} delta={s?.deltas.revenue} hint={hint} />
-      <StatCard label="Visitors" loading={!show} value={s && formatNumber(s.visitors)} delta={s?.deltas.visitors} hint={hint} />
-      <StatCard label="Conversion" loading={!show} value={s && `${s.conversion.toFixed(2)}%`} delta={s?.deltas.conversion} hint={hint} />
+      <StatCard label="Visitors" loading={!show} value={s && <NoData />} hint="Visits aren't tracked yet" />
+      <StatCard label="Conversion" loading={!show} value={s && <NoData />} hint="Needs visitor tracking" />
       <StatCard
         label="Available to withdraw"
         className="col-span-2 lg:col-span-1"

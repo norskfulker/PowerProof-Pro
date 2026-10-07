@@ -1,156 +1,109 @@
-/** Every route in the app, with ids from the deterministic seed (lib/mock/seed.ts). */
-const token = (n: number) => `tok_${n}_${(n * 7919).toString(36)}`;
+import type { Manifest } from "./support/manifest";
+
+/**
+ * Every route in the app. Screens that show one record use the ids of the data the global setup
+ * created for creator A (see support/seed.ts); nothing here refers to a built-in demo.
+ */
 
 export interface RouteDef {
   path: string;
   /** Group used in the QA report */
-  area: "marketing" | "auth" | "creator" | "store-admin" | "buyer" | "admin" | "system";
-  /** Skip the tap-target check (e.g. the design kitchen sink renders raw specimens) */
-  relaxTargets?: boolean;
+  area: "marketing" | "auth" | "creator" | "store-admin" | "buyer" | "system";
+  /** Must be viewed signed out (the app sends signed-in creators away from login and signup) */
+  signedOut?: boolean;
   /** HTTP status the document itself returns (error pages) */
   expectStatus?: number;
 }
 
-export const ROUTES: RouteDef[] = [
-  // Marketing and auth
-  { path: "/", area: "marketing" },
-  { path: "/pricing", area: "marketing" },
-  { path: "/how-it-works", area: "marketing" },
-  { path: "/templates", area: "marketing" },
-  { path: "/login", area: "auth" },
-  { path: "/signup", area: "auth" },
-  { path: "/forgot-password", area: "auth" },
-  { path: "/verify-email?email=a@example.com", area: "auth" },
-  { path: "/onboarding", area: "auth" },
-  // Creator app (Part 7C: routes follow the menu)
-  { path: "/dashboard", area: "creator" },
-  { path: "/getting-started", area: "creator" },
-  { path: "/catalog/products", area: "creator" },
-  { path: "/catalog/products?status=live", area: "creator" },
-  { path: "/catalog/products?status=draft", area: "creator" },
-  { path: "/catalog/products?status=archived", area: "creator" },
-  { path: "/catalog/products/new", area: "creator" },
-  { path: "/catalog/products/new/link", area: "creator" },
-  { path: "/catalog/products/new/upload", area: "creator" },
-  { path: "/catalog/products/new/page", area: "creator" },
-  { path: "/catalog/products/prod_01", area: "creator" },
-  { path: "/catalog/collections", area: "creator" },
-  { path: "/catalog/collections/col_notion-kits_d_01", area: "creator" },
-  { path: "/catalog/bundles", area: "creator" },
-  { path: "/catalog/media", area: "creator" },
-  { path: "/catalog/sales-pages", area: "creator" },
-  { path: "/catalog/sales-pages/new", area: "creator" },
-  { path: "/catalog/sales-pages/page_launch/edit", area: "creator" },
-  { path: "/catalog/sales-pages/page_html/html", area: "creator" },
-  { path: "/sales/orders", area: "creator" },
-  { path: "/sales/orders?status=paid", area: "creator" },
-  { path: "/sales/orders?status=refunded", area: "creator" },
-  { path: "/sales/orders?status=disputed", area: "creator" },
-  { path: "/sales/orders/ord_1078", area: "creator" },
-  { path: "/sales/customers", area: "creator" },
-  { path: "/sales/customers/cus_01", area: "creator" },
-  { path: "/sales/payouts/balance", area: "creator" },
-  { path: "/sales/payouts/history", area: "creator" },
-  { path: "/sales/payouts/methods", area: "creator" },
-  { path: "/sales/analytics", area: "creator" },
-  { path: "/tools/ai-images", area: "creator" },
-  { path: "/tools/integrations", area: "creator" },
-  { path: "/settings/profile", area: "creator" },
-  { path: "/settings/profile?tab=password", area: "creator" },
-  { path: "/settings/company", area: "creator" },
-  { path: "/settings/tax", area: "creator" },
-  { path: "/settings/skus", area: "creator" },
-  { path: "/settings/team", area: "creator" },
-  { path: "/settings/billing", area: "creator" },
-  { path: "/settings/billing?tab=usage", area: "creator" },
-  // Store management, per store
-  { path: "/store/store_ananya/settings", area: "store-admin" },
-  { path: "/store/store_ananya/design/theme", area: "store-admin" },
-  { path: "/store/store_ananya/design/sections", area: "store-admin" },
-  { path: "/store/store_ananya/design/backgrounds", area: "store-admin" },
-  { path: "/store/store_ananya/design/content", area: "store-admin" },
-  { path: "/store/store_ananya/design/pages", area: "store-admin" },
-  { path: "/store/store_ananya/design/pages/vp_ananya_about-ananya/edit", area: "store-admin" },
-  { path: "/store/store_ananya/design/pages/vp_ananya_about-ananya/versions", area: "store-admin" },
-  { path: "/store/store_ananya/pages/home", area: "store-admin" },
-  { path: "/store/store_ananya/pages/about", area: "store-admin" },
-  { path: "/store/store_ananya/pages/faq", area: "store-admin" },
-  { path: "/store/store_ananya/pages/policies/refund", area: "store-admin" },
-  { path: "/store/store_ananya_photo/pages/about", area: "store-admin" },
-  { path: "/store/store_ananya_photo/pages/policies/privacy", area: "store-admin" },
-  { path: "/store/store_ananya/offers/coupons", area: "store-admin" },
-  { path: "/store/store_ananya/offers/bundles", area: "store-admin" },
-  { path: "/store/store_ananya/offers/deals", area: "store-admin" },
-  { path: "/store/store_ananya/offers/deal-paths", area: "store-admin" },
-  { path: "/store/store_ananya/offers/deal-paths/new", area: "store-admin" },
-  { path: "/store/store_ananya/offers/deal-paths/dr_ananya_pair", area: "store-admin" },
-  { path: "/store/store_ananya/reviews", area: "store-admin" },
-  { path: "/store/store_ananya/questions", area: "store-admin" },
-  { path: "/store/store_ananya/domain", area: "store-admin" },
-  { path: "/store/store_ananya/seo", area: "store-admin" },
-  { path: "/store/store_ananya/analytics-tags", area: "store-admin" },
-  // Buyer
-  { path: "/s/ananya", area: "buyer" },
-  { path: "/s/inkwell", area: "buyer" },
-  { path: "/s/gridgrain", area: "buyer" },
-  { path: "/s/ananya/products", area: "buyer" },
-  { path: "/s/ananya/c/notion-kits", area: "buyer" },
-  { path: "/s/ananya/second-brain-for-founders", area: "buyer" },
-  { path: "/s/inkwell/the-quiet-freelancer", area: "buyer" },
-  { path: "/s/gridgrain/pitch-deck-kit", area: "buyer" },
-  { path: "/s/ananya/about", area: "buyer" },
-  { path: "/s/ananya/faq", area: "buyer" },
-  { path: "/s/ananya/contact", area: "buyer" },
-  { path: "/s/ananya/policies/refund", area: "buyer" },
-  { path: "/s/ananya/p/about-ananya", area: "buyer" },
-  { path: "/s/ananya-photo", area: "buyer" },
-  { path: "/s/ananya-photo/about", area: "buyer" },
-  { path: "/s/ananya-photo/faq", area: "buyer" },
-  { path: "/s/ananya-photo/policies/refund", area: "buyer" },
-  { path: "/s/ananya/p/diwali-sale", area: "buyer" },
-  { path: "/s/inkwell/p/links", area: "buyer" },
-  { path: "/s/gridgrain/p/work", area: "buyer" },
-  { path: "/checkout/ord_1080", area: "buyer" },
-  { path: "/success/ord_1081", area: "buyer" },
-  { path: `/order/${token(1081)}`, area: "buyer" },
-  { path: "/lookup", area: "buyer" },
-  { path: "/invoice/ord_1081", area: "buyer" },
-  // Emails
-  { path: "/emails", area: "system" },
-  { path: "/emails/receipt", area: "system" },
-  // Admin
-  { path: "/admin", area: "admin" },
-  { path: "/admin/creators", area: "admin" },
-  { path: "/admin/stores", area: "admin" },
-  { path: "/admin/orders", area: "admin" },
-  { path: "/admin/orders/disputed", area: "admin" },
-  { path: "/admin/money/payouts", area: "admin" },
-  { path: "/admin/money/refunds", area: "admin" },
-  { path: "/admin/moderation/flags", area: "admin" },
-  { path: "/admin/moderation/reviews", area: "admin" },
-  { path: "/admin/system/search", area: "admin" },
-  { path: "/admin/system/search?q=%40ananya", area: "admin" },
-  { path: "/admin/system/audit", area: "admin" },
-  // System
-  { path: "/design", area: "system", relaxTargets: true },
-  { path: "/500", area: "system", expectStatus: 500 },
-  { path: "/this-page-does-not-exist", area: "system", expectStatus: 404 },
-];
+export function buildRoutes(m: Manifest): RouteDef[] {
+  const A = m.A;
+  const store = (rest: string) => `/store/${A.storeId}${rest}`;
+  const routes: RouteDef[] = [
+    // Marketing and auth (signed out)
+    { path: "/", area: "marketing", signedOut: true },
+    { path: "/pricing", area: "marketing", signedOut: true },
+    { path: "/how-it-works", area: "marketing", signedOut: true },
+    { path: "/login", area: "auth", signedOut: true },
+    { path: "/signup", area: "auth", signedOut: true },
+    { path: "/forgot-password", area: "auth", signedOut: true },
+    // Creator app
+    { path: "/onboarding", area: "auth" },
+    { path: "/dashboard", area: "creator" },
+    { path: "/getting-started", area: "creator" },
+    { path: "/catalog/products", area: "creator" },
+    { path: "/catalog/products?status=live", area: "creator" },
+    { path: "/catalog/products?status=draft", area: "creator" },
+    { path: "/catalog/products?status=archived", area: "creator" },
+    { path: "/catalog/products/new", area: "creator" },
+    { path: "/catalog/products/new/upload", area: "creator" },
+    { path: `/catalog/products/${A.productId}`, area: "creator" },
+    { path: "/catalog/collections", area: "creator" },
+    { path: "/catalog/bundles", area: "creator" },
+    { path: "/catalog/media", area: "creator" },
+    { path: "/sales/orders", area: "creator" },
+    { path: "/sales/orders?status=paid", area: "creator" },
+    { path: "/sales/customers", area: "creator" },
+    { path: "/sales/payouts/balance", area: "creator" },
+    { path: "/sales/payouts/history", area: "creator" },
+    { path: "/sales/payouts/methods", area: "creator" },
+    { path: "/tools/ai-images", area: "creator" },
+    { path: "/tools/integrations", area: "creator" },
+    { path: "/settings/profile", area: "creator" },
+    { path: "/settings/company", area: "creator" },
+    { path: "/settings/tax", area: "creator" },
+    { path: "/settings/skus", area: "creator" },
+    { path: "/settings/team", area: "creator" },
+    { path: "/settings/billing", area: "creator" },
+    // Store management
+    { path: store("/settings"), area: "store-admin" },
+    { path: store("/design/base"), area: "store-admin" },
+    { path: store("/design/pages"), area: "store-admin" },
+    { path: store(`/design/pages/${A.pageId}/edit`), area: "store-admin" },
+    { path: store(`/design/pages/${A.pageId}/versions`), area: "store-admin" },
+    { path: store("/pages/home"), area: "store-admin" },
+    { path: store("/pages/about"), area: "store-admin" },
+    { path: store("/pages/faq"), area: "store-admin" },
+    { path: store("/pages/policies/refund"), area: "store-admin" },
+    { path: store("/offers/coupons"), area: "store-admin" },
+    { path: store("/offers/bundles"), area: "store-admin" },
+    { path: store("/offers/deals"), area: "store-admin" },
+    { path: store("/offers/deal-paths"), area: "store-admin" },
+    { path: store("/offers/deal-paths/new"), area: "store-admin" },
+    { path: store("/reviews"), area: "store-admin" },
+    { path: store("/questions"), area: "store-admin" },
+    { path: store("/domain"), area: "store-admin" },
+    { path: store("/seo"), area: "store-admin" },
+    { path: store("/analytics-tags"), area: "store-admin" },
+    // Buyer (public)
+    { path: `/s/${A.slug}`, area: "buyer", signedOut: true },
+    { path: `/s/${A.slug}/products`, area: "buyer", signedOut: true },
+    { path: `/s/${A.slug}/c/${A.collectionSlug}`, area: "buyer", signedOut: true },
+    { path: `/s/${A.slug}/${A.productSlug}`, area: "buyer", signedOut: true },
+    { path: `/s/${A.slug}/about`, area: "buyer", signedOut: true },
+    { path: `/s/${A.slug}/faq`, area: "buyer", signedOut: true },
+    { path: `/s/${A.slug}/contact`, area: "buyer", signedOut: true },
+    { path: `/s/${A.slug}/policies/refund`, area: "buyer", signedOut: true },
+    { path: `/s/${A.slug}/p/${A.pageSlug}`, area: "buyer", signedOut: true },
+    { path: "/lookup", area: "buyer", signedOut: true },
+    { path: "/checkout/none", area: "buyer", signedOut: true },
+    // System
+    { path: "/500", area: "system", signedOut: true, expectStatus: 500 },
+    { path: "/this-page-does-not-exist", area: "system", signedOut: true, expectStatus: 404 },
+  ];
+  if (A.dealRuleId) routes.push({ path: store(`/offers/deal-paths/${A.dealRuleId}`), area: "store-admin" });
+  return routes;
+}
 
-export const ORDER_TOKEN = token(1081);
-
-/** Old addresses that must keep working (Part 7C), with where they land. */
-export const REDIRECTS: [from: string, to: RegExp][] = [
-  ["/products", /\/catalog\/products$/],
-  ["/products/prod_01", /\/catalog\/products\/prod_01$/],
-  ["/orders/ord_1078", /\/sales\/orders\/ord_1078$/],
-  ["/payouts?withdraw=1", /\/sales\/payouts\/balance\?withdraw=1$/],
-  ["/images", /\/tools\/ai-images$/],
-  ["/store/design", /\/store\/store_ananya\/design\/theme$/],
-  ["/store/offers/deal-paths", /\/store\/store_ananya\/offers\/deal-paths$/],
-  ["/store/pages/vp_ananya_about-ananya/edit", /\/store\/store_ananya\/design\/pages\/vp_ananya_about-ananya\/edit$/],
-  ["/store/info", /\/store\/store_ananya\/pages\/about$/],
-  ["/settings/store", /\/store\/store_ananya\/settings$/],
-  ["/admin/disputes", /\/admin\/orders\/disputed$/],
-  ["/admin/search?q=%40ananya", /\/admin\/system\/search\?q=%40ananya$/],
-];
+/** Old addresses that must keep working */
+export function buildRedirects(m: Manifest): [from: string, to: RegExp][] {
+  return [
+    ["/products", /\/catalog\/products$/],
+    [`/products/${m.A.productId}`, new RegExp(`/catalog/products/${m.A.productId}$`)],
+    ["/payouts?withdraw=1", /\/sales\/payouts\/balance\?withdraw=1$/],
+    ["/images", /\/tools\/ai-images$/],
+    ["/analytics", /\/dashboard$/],
+    ["/sales/analytics", /\/dashboard$/],
+    ["/catalog/sales-pages", /\/store\/[^/]+\/design\/pages$/],
+    ["/admin/disputes", /\/admin\/orders\/disputed$|\/dashboard$/],
+  ];
+}

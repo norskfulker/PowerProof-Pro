@@ -16,14 +16,16 @@ import { StatusPill } from "@/components/pp/status-pill";
 import { ProductForm } from "@/components/products/product-form";
 import { toInput, toValues } from "@/components/products/to-values";
 import { useApi } from "@/hooks/use-api";
-import { deleteProduct, getProduct, getStore, updateProduct } from "@/lib/api";
+import { useCurrentStore } from "@/hooks/use-current-store";
+import { deleteProduct, getProduct, getProductCollectionIds, setProductCollections, updateProduct } from "@/lib/api";
 import { SITE_URL } from "@/lib/format";
 
 export default function ProductEditorPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
   const product = useApi(() => getProduct(id), [id]);
-  const store = useApi(getStore, []);
+  const memberOf = useApi(() => getProductCollectionIds(id), [id]);
+  const store = useCurrentStore();
   const [confirm, setConfirm] = useState(false);
 
   if (product.error) {
@@ -35,7 +37,7 @@ export default function ProductEditorPage({ params }: { params: Promise<{ id: st
     );
   }
 
-  if (!product.data) {
+  if (!product.data || !memberOf.data) {
     return (
       <>
         <Skeleton className="mb-8 h-12 w-72" />
@@ -73,10 +75,11 @@ export default function ProductEditorPage({ params }: { params: Promise<{ id: st
       <ProductForm
         key={p.id}
         mode="edit"
-        initial={toValues(p)}
+        initial={toValues(p, memberOf.data)}
         onSubmit={async (v) => {
           // Errors stay in the save bar; success shows a short Saved toast
           const saved = await updateProduct(p.id, toInput(v));
+          await setProductCollections(p.id, v.collectionIds ?? []);
           product.setData(saved);
         }}
         aside={

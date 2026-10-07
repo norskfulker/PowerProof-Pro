@@ -1,6 +1,6 @@
 import {
-  AlertOctagon, BarChart3, Banknote, Box, Brush, FileText, Flag, FolderOpen, Globe, Home, Images, LayoutDashboard, LifeBuoy, MessagesSquare,
-  Package, PanelsTopLeft, Plug, Receipt, ScrollText, Search, Settings, Shield, Sparkles, Star, Store, Ticket, Users, Wallet, Wrench, type LucideIcon,
+  AlertOctagon, Banknote, Box, Brush, FileText, Flag, FolderOpen, Globe, Home, Images, LayoutDashboard, LifeBuoy, MessagesSquare,
+  Package, Plug, Receipt, ScrollText, Search, Settings, Shield, Sparkles, Star, Store, Ticket, Users, Wallet, Wrench, type LucideIcon,
 } from "lucide-react";
 
 /**
@@ -35,8 +35,15 @@ export const CREATOR_NAV: NavNode[] = [
       { id: "getting-started", label: "Getting started", href: "/getting-started", icon: LifeBuoy },
     ],
   },
+  // The business flow, in order: Catalog (Collections, Products), Sales (Orders, Customers, Payouts),
+  // then the Store's look and the rest. Store settings live under Settings.
   {
     id: "catalog", label: "Catalog", icon: Package, children: [
+      {
+        id: "collections", label: "Collections", icon: FolderOpen, dynamic: "collections", children: [
+          { id: "collections-all", label: "All collections", href: "/catalog/collections", match: ["/catalog/collections/"] },
+        ],
+      },
       {
         id: "products", label: "Products", icon: Package, children: [
           { id: "products-all", label: "All products", href: "/catalog/products", badge: "products_all", match: ["/catalog/products/"] },
@@ -45,29 +52,40 @@ export const CREATOR_NAV: NavNode[] = [
           { id: "products-archived", label: "Archived", href: "/catalog/products?status=archived", badge: "products_archived" },
         ],
       },
-      {
-        id: "collections", label: "Collections", icon: FolderOpen, dynamic: "collections", children: [
-          { id: "collections-all", label: "All collections", href: "/catalog/collections" },
-        ],
-      },
       { id: "bundles", label: "Bundles", href: "/catalog/bundles", icon: Box },
-      { id: "sales-pages", label: "Sales pages", href: "/catalog/sales-pages", icon: PanelsTopLeft, match: ["/catalog/sales-pages/"] },
       { id: "media", label: "Media library", href: "/catalog/media", icon: Images },
     ],
   },
   {
+    id: "sales", label: "Sales", icon: Receipt, children: [
+      {
+        id: "orders", label: "Orders", icon: Receipt, children: [
+          { id: "orders-all", label: "All", href: "/sales/orders", match: ["/sales/orders/"] },
+          { id: "orders-paid", label: "Paid", href: "/sales/orders?status=paid" },
+          { id: "orders-refunded", label: "Refunded", href: "/sales/orders?status=refunded" },
+          { id: "orders-disputed", label: "Disputed", href: "/sales/orders?status=disputed", badge: "orders_disputed" },
+        ],
+      },
+      { id: "customers", label: "Customers", href: "/sales/customers", icon: Users, match: ["/sales/customers/"] },
+      {
+        id: "payouts", label: "Payouts", icon: Wallet, children: [
+          { id: "payouts-balance", label: "Balance", href: "/sales/payouts/balance" },
+          { id: "payouts-history", label: "History", href: "/sales/payouts/history" },
+          { id: "payouts-methods", label: "Methods", href: "/sales/payouts/methods" },
+        ],
+      },
+    ],
+  },
+  {
     id: "store", label: "Store", icon: Store, children: [
-      { id: "store-settings", label: "Store settings", href: "/store/{store}/settings", icon: Settings },
       {
         id: "design", label: "Design", icon: Brush, children: [
-          { id: "design-theme", label: "Theme", href: "/store/{store}/design/theme" },
-          { id: "design-sections", label: "Sections", href: "/store/{store}/design/sections" },
-          { id: "design-pages", label: "Visual editor pages", href: "/store/{store}/design/pages", match: ["/store/{store}/design/pages/"] },
-          { id: "design-backgrounds", label: "Backgrounds", href: "/store/{store}/design/backgrounds" },
+          { id: "design-base", label: "Base design", href: "/store/{store}/design/base", match: ["/store/{store}/design/theme", "/store/{store}/design/sections", "/store/{store}/design/backgrounds", "/store/{store}/design/content"] },
+          { id: "design-pages", label: "Pages", href: "/store/{store}/design/pages", match: ["/store/{store}/design/pages/"] },
         ],
       },
       {
-        id: "pages", label: "Pages", icon: FileText, children: [
+        id: "info-pages", label: "Info pages", icon: FileText, children: [
           { id: "pages-home", label: "Home", href: "/store/{store}/pages/home" },
           { id: "pages-about", label: "About", href: "/store/{store}/pages/about" },
           { id: "pages-faq", label: "FAQ", href: "/store/{store}/pages/faq" },
@@ -104,27 +122,6 @@ export const CREATOR_NAV: NavNode[] = [
     ],
   },
   {
-    id: "sales", label: "Sales", icon: Receipt, children: [
-      {
-        id: "orders", label: "Orders", icon: Receipt, children: [
-          { id: "orders-all", label: "All", href: "/sales/orders", match: ["/sales/orders/"] },
-          { id: "orders-paid", label: "Paid", href: "/sales/orders?status=paid" },
-          { id: "orders-refunded", label: "Refunded", href: "/sales/orders?status=refunded" },
-          { id: "orders-disputed", label: "Disputed", href: "/sales/orders?status=disputed", badge: "orders_disputed" },
-        ],
-      },
-      { id: "customers", label: "Customers", href: "/sales/customers", icon: Users, match: ["/sales/customers/"] },
-      {
-        id: "payouts", label: "Payouts", icon: Wallet, children: [
-          { id: "payouts-balance", label: "Balance", href: "/sales/payouts/balance" },
-          { id: "payouts-history", label: "History", href: "/sales/payouts/history" },
-          { id: "payouts-methods", label: "Methods", href: "/sales/payouts/methods" },
-        ],
-      },
-      { id: "analytics", label: "Analytics", href: "/sales/analytics", icon: BarChart3 },
-    ],
-  },
-  {
     id: "tools", label: "Tools", icon: Wrench, children: [
       { id: "ai-images", label: "AI image maker", href: "/tools/ai-images", icon: Sparkles },
       { id: "integrations", label: "Integrations", href: "/tools/integrations", icon: Plug },
@@ -132,6 +129,7 @@ export const CREATOR_NAV: NavNode[] = [
   },
   {
     id: "settings", label: "Settings", icon: Settings, children: [
+      { id: "settings-store", label: "Store", href: "/store/{store}/settings", icon: Store, match: ["/store/{store}/settings"] },
       { id: "settings-profile", label: "Profile", href: "/settings/profile" },
       { id: "settings-company", label: "Company", href: "/settings/company" },
       { id: "settings-tax", label: "Tax (HSN/SAC)", href: "/settings/tax" },
@@ -184,7 +182,7 @@ export const MOBILE_TABS: TabItem[] = [
   { label: "Home", href: "/dashboard", icon: LayoutDashboard, match: ["/dashboard", "/getting-started"] },
   { label: "Products", href: "/catalog/products", icon: Package, match: ["/catalog"] },
   { label: "Orders", href: "/sales/orders", icon: Receipt, match: ["/sales/orders"] },
-  { label: "Store", href: "/store/{store}/design/theme", icon: Store, match: ["/store"] },
+  { label: "Settings", href: "/settings/profile", icon: Settings, match: ["/settings", "/store/{store}/settings"] },
 ];
 
 export const ADMIN_TABS: TabItem[] = [

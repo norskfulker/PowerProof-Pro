@@ -10,7 +10,7 @@ export function withOverlay(hex: string, overlay = 0): string {
 }
 
 /**
- * The colour text sits on: the colour itself, or the image's average colour (sampled in the
+ * The colour text sits on: the colour itself, or the image's average colour (read in the
  * browser) under the overlay. Unknown images are treated as mid-grey, the hardest case.
  */
 export function effectiveBackground(bg: TileBackground, imageAverage?: string): string {

@@ -57,6 +57,10 @@ export default function SkusPage() {
     value: draft,
     saved: original,
     validate: () => {
+      if (draft && !draft.productId) {
+        setError("Pick the product this SKU belongs to.");
+        return false;
+      }
       if (draft && !/^[A-Za-z0-9-_]{2,32}$/.test(draft.code)) {
         setError("2 to 32 letters, numbers, dashes or underscores.");
         return false;
@@ -74,7 +78,7 @@ export default function SkusPage() {
   });
 
   return (
-    <SettingsSection title="SKUs" description="Short codes for your own tracking and your accountant. Each product gets one automatically; edit them here.">
+    <SettingsSection title="SKUs" description="Short codes for your own tracking and your accountant. A SKU belongs to a product: setting it here sets it on the product.">
       <DataTable
         label="SKUs"
         columns={columns}

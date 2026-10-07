@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext } from "react";
 import Link from "next/link";
 import { Check, Download, Globe, Heart, ImageOff, Play, RotateCcw, ShieldCheck, Star, Zap, type LucideIcon } from "lucide-react";
 import { CountdownTimer } from "@/components/pp/countdown-timer";
@@ -11,7 +11,6 @@ import { ScrollRegion } from "@/components/pp/scroll-region";
 import { StoreProductCard } from "@/components/pp/store-product-card";
 import type { RenderContext } from "@/lib/api";
 import { contrast } from "@/lib/color";
-import { assetUrl } from "@/lib/media/store";
 import { paragraphs, parseInline } from "@/lib/pages/rich-text";
 import { HIGHLIGHT_ICONS, type Background, type BlockProps, type BlockStyle, type PageDoc, type PageNode } from "@/lib/pages/schema";
 import type { CurrencyCode } from "@/lib/types";
@@ -98,17 +97,7 @@ export function contrastWarning(style: BlockStyle): string | undefined {
 /* ------------------------------------------------------------------ */
 
 function useMedia(src: string): { url?: string; missing: boolean } {
-  const [state, setState] = useState<{ src: string; url?: string; missing: boolean }>({ src, url: src.startsWith("https://") ? src : undefined, missing: false });
-  useEffect(() => {
-    if (!src.startsWith("asset:")) return;
-    let alive = true;
-    assetUrl(src).then((url) => alive && setState({ src, url, missing: !url }));
-    return () => {
-      alive = false;
-    };
-  }, [src]);
-  if (state.src !== src) return { url: src.startsWith("https://") ? src : undefined, missing: false };
-  return state;
+  return { url: src.startsWith("https://") ? src : undefined, missing: !!src && !src.startsWith("https://") };
 }
 
 function MediaImage({ src, alt, className, fit = "cover", focal, decorative }: { src: string; alt: string; className?: string; fit?: "cover" | "contain"; focal?: { x: number; y: number }; decorative?: boolean }) {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { add, convert, feeBreakdown, formatBytes, formatMoney, fromMajor, localPrice, money, sub, sum, toMajor } from "./money";
+import { add, feeBreakdown, formatBytes, formatMoney, fromMajor, localPrice, money, sub, sum, toMajor } from "./money";
 
 describe("money basics", () => {
   it("rounds to whole minor units", () => {
@@ -50,20 +50,12 @@ describe("formatMoney", () => {
   });
 });
 
-describe("conversion", () => {
-  it("is identity in the same currency", () => {
-    const m = fromMajor(10, "USD");
-    expect(convert(m, "USD")).toBe(m);
+describe("buyer prices", () => {
+  it("are shown as they are: no exchange rate is connected, so nothing is converted or estimated", () => {
+    const m = fromMajor(1499);
     expect(localPrice(m, "USD")).toBe(m);
-  });
-
-  it("converts through INR", () => {
-    expect(convert(fromMajor(834), "USD").amount).toBe(1000);
-  });
-
-  it("rounds buyer prices up to .99 above one unit, and leaves small ones alone", () => {
-    expect(localPrice(fromMajor(1499), "USD")).toEqual({ amount: 1799, currency: "USD" });
-    expect(localPrice(money(10000), "USD").amount).toBe(120);
+    expect(localPrice(m)).toBe(m);
+    expect(localPrice(m, "INR")).toBe(m);
   });
 });
 

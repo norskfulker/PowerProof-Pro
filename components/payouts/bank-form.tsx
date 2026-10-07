@@ -135,7 +135,7 @@ export function BankForm({
               <FormControl>
                 <Input className="font-mono uppercase" maxLength={11} autoCapitalize="characters" {...field} />
               </FormControl>
-              <FormDescription>Try HDFC0000123 in the demo.</FormDescription>
+              <FormDescription>11 characters, like HDFC0001234. It&apos;s printed on your cheque book and in your banking app.</FormDescription>
               <FormMessage />
             </FormItem>
           )}

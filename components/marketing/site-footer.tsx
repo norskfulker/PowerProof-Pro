@@ -2,8 +2,8 @@ import Link from "next/link";
 import { Logo } from "@/components/pp/logo";
 
 const COLS: [string, [string, string][]][] = [
-  ["Product", [["How it works", "/how-it-works"], ["Pricing", "/pricing"], ["Templates", "/templates"], ["Design system", "/design"]]],
-  ["Creators", [["Log in", "/login"], ["Start free", "/signup"], ["Example store", "/s/ananya"]]],
+  ["Product", [["How it works", "/how-it-works"], ["Pricing", "/pricing"]]],
+  ["Creators", [["Log in", "/login"], ["Start free", "/signup"]]],
   ["Buyers", [["Find my order", "/lookup"], ["Refunds and support", "/lookup#help"]]],
 ];
 

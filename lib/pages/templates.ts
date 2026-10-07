@@ -26,35 +26,8 @@ const cover = (ctx: TemplateContext, i = 0) => (first(ctx, i) ? `product:${first
 
 export const PAGE_TEMPLATES: PageTemplateDef[] = [
   {
-    id: "about",
-    name: "About me",
-    description: "Your story, what you make, and what buyers say.",
-    build: (ctx) =>
-      doc(
-        n("hero", { eyebrow: "Hello", headline: `I'm ${ctx.ownerName.split(" ")[0]}. I make ${ctx.storeName}.`, subtext: "Everything here started as something I made for myself. Then friends asked. Then everyone else did.", ctaLabel: "See what I make", ctaHref: `/s/${ctx.slug}/products`, layout: "centered" }, { style: { background: { kind: "gradient", from: ctx.brand, to: "#0C1F1B", angle: 135 }, tone: "light", align: "center", overlay: 0 }, layout: { paddingY: "xl", width: "normal", minHeight: "md", gap: "md" } }),
-        n("section", { label: "Story" }, {
-          children: [
-            n("columns", { ratio: "equal", stackOnMobile: true }, {
-              children: [
-                n("column", {}, { children: [n("image", { src: cover(ctx), alt: `${ctx.storeName} product cover`, aspect: "4:3" })] }),
-                n("column", {}, {
-                  children: [
-                    n("heading", { text: "Why I started", level: 2, size: "md" }),
-                    n("text", { text: "I couldn't find tools that fit how I actually work, so I built my own. Every product is something I use every week, tidied up so it's easy for you to start with.\n\nNo upsells, no fluff. If something doesn't work for you, write to me and I'll fix it or refund you." }),
-                  ],
-                }),
-              ],
-            }),
-          ],
-        }),
-        n("section", { label: "Highlights" }, { children: [n("highlights", { items: [{ title: "Instant download", body: "Files arrive the moment you pay." }, { title: "Made in India", body: "By one person, carefully." }, { title: "Real refunds", body: "Write within 7 days." }] })] }),
-        n("section", { label: "Reviews" }, { children: [n("heading", { text: "What buyers say", level: 2, size: "md" }), n("testimonials", { source: "reviews", limit: 3 })] }),
-        n("section", { label: "Newsletter" }, { style: { background: { kind: "solid", color: "#F6EFDF" }, tone: "dark", align: "center", overlay: 0 }, children: [n("newsletter", { heading: "Hear about new things first", body: "One short email when something new is out. Nothing else." })] })
-      ),
-  },
-  {
     id: "launch",
-    name: "Product launch",
+    name: "Launch page",
     description: "One product, front and centre, with proof and a clear buy button.",
     build: (ctx) =>
       doc(
@@ -66,7 +39,7 @@ export const PAGE_TEMPLATES: PageTemplateDef[] = [
   },
   {
     id: "sale",
-    name: "Sale",
+    name: "Sale page",
     description: "A countdown, the products on offer, and one strong button.",
     build: (ctx) =>
       doc(
@@ -84,7 +57,7 @@ export const PAGE_TEMPLATES: PageTemplateDef[] = [
       ),
   },
   {
-    id: "link_in_bio",
+    id: "bio",
     name: "Link in bio",
     description: "A tidy, phone-first list of your best links and products.",
     build: (ctx) =>
@@ -108,28 +81,10 @@ export const PAGE_TEMPLATES: PageTemplateDef[] = [
       ),
   },
   {
-    id: "waitlist",
-    name: "Freebie or waitlist",
-    description: "Collect emails for something free or coming soon.",
-    build: (ctx) =>
-      doc(
-        n("hero", { eyebrow: "Free", headline: "Get the starter kit, free", subtext: "A small sample of how I work. Enter your email and it's yours.", layout: "centered" }, { style: { background: { kind: "gradient", from: "#F6EFDF", to: "#F5F6F4", angle: 180 }, tone: "dark", align: "center", overlay: 0 }, layout: { paddingY: "xl", width: "narrow", minHeight: "auto", gap: "md" } }),
-        n("section", { label: "Sign up" }, { layout: { paddingY: "md", width: "narrow", minHeight: "auto", gap: "md" }, children: [n("newsletter", { heading: "Send me the kit", body: "One email with the download link. Unsubscribe anytime." })] }),
-        n("section", { label: "Inside" }, { children: [n("heading", { text: "What's inside", level: 2, size: "md" }), n("text", { text: "Three templates, a one-page guide, and the checklist I use before every launch." })] }),
-        n("section", { label: "FAQ" }, { children: [n("faq", { items: [{ q: "Is it really free?", a: "Yes. No card needed." }, { q: "Will you spam me?", a: `No. ${ctx.storeName} sends one email a month at most.` }] })] })
-      ),
-  },
-  {
-    id: "portfolio",
-    name: "Portfolio",
-    description: "Show your work in a gallery, with kind words and a way to buy.",
-    build: (ctx) =>
-      doc(
-        n("section", { label: "Intro" }, { layout: { paddingY: "lg", width: "normal", minHeight: "auto", gap: "sm" }, children: [n("heading", { text: "Selected work", level: 1, size: "xl" }), n("text", { text: "A few things I've made recently. Most of them are in the store.", size: "lg" })] }),
-        n("section", { label: "Gallery" }, { layout: { paddingY: "md", width: "wide", minHeight: "auto", gap: "md" }, children: [n("gallery", { images: ctx.products.slice(0, 6).map((p) => ({ src: `product:${p.id}`, alt: p.title })), columns: 3 })] }),
-        n("section", { label: "Kind words" }, { style: { background: { kind: "solid", color: "#0F3D33" }, tone: "light", align: "center", overlay: 0 }, children: [n("testimonials", { source: "manual", items: [{ quote: "Exactly what I needed, and it looked great on day one.", author: "Priya S." }, { quote: "Thoughtful, clear and genuinely useful.", author: "Rahul M." }] })] }),
-        n("section", { label: "Shop" }, { style: { background: { kind: "none" }, tone: "auto", align: "center", overlay: 0 }, children: [n("button", { label: "Visit the store", href: `/s/${ctx.slug}`, variant: "brass" })] })
-      ),
+    id: "blank",
+    name: "Blank page",
+    description: "Start from nothing and add your own blocks.",
+    build: () => doc(n("section", { label: "Section" }, { children: [n("heading", { text: "Page title", level: 1, size: "lg" }), n("text", { text: "Write what you want buyers to read." })] })),
   },
 ];
 

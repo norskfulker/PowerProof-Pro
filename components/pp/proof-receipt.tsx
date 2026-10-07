@@ -5,7 +5,7 @@ import { LogoMark } from "./logo";
 import { MoneyText } from "./money-text";
 import { StatusPill } from "./status-pill";
 
-const METHOD: Record<Order["paymentMethod"], string> = {
+const METHOD: Record<NonNullable<Order["paymentMethod"]>, string> = {
   upi: "UPI",
   card: "Card",
   netbanking: "Netbanking",
@@ -56,8 +56,12 @@ export function ProofReceipt({
             <dd className="truncate text-right">{order.buyerEmail}</dd>
           </>
         )}
-        <dt className="text-muted-foreground">Paid with</dt>
-        <dd className="text-right">{METHOD[order.paymentMethod]}</dd>
+        {order.paymentMethod && (
+          <>
+            <dt className="text-muted-foreground">Paid with</dt>
+            <dd className="text-right">{METHOD[order.paymentMethod]}</dd>
+          </>
+        )}
         {order.invoiceNumber && (
           <>
             <dt className="text-muted-foreground">Invoice</dt>

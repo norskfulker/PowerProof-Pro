@@ -1,38 +1,24 @@
-import { ArrowRight, FileUp, LayoutTemplate, Link2 } from "lucide-react";
+import { ArrowRight, FileUp } from "lucide-react";
 import { GuardedLink, LimitNotice } from "@/components/plan/plan-context";
 import { PageHeader } from "@/components/pp/page-header";
 
 const WAYS = [
   {
-    href: "/catalog/products/new/link",
-    icon: Link2,
-    title: "Paste a link",
-    body: "Already selling on Gumroad, Instamojo or Etsy? We'll pull in the title, price, description and images for you to check.",
-    meta: "Fastest · about 20 seconds",
-    primary: true,
-  },
-  {
     href: "/catalog/products/new/upload",
     icon: FileUp,
     title: "Upload a file",
     body: "Drop in the PDF, ZIP or video. Add a name and a price. Images are optional.",
-    meta: "Simplest · about a minute",
-  },
-  {
-    href: "/catalog/products/new/page",
-    icon: LayoutTemplate,
-    title: "Create a page",
-    body: "Start from a template or paste your own HTML. Best when the product needs a proper sales page.",
-    meta: "Most control · a few minutes",
+    meta: "About a minute",
+    primary: true,
   },
 ];
 
 export default function NewProductPage() {
   return (
     <>
-      <PageHeader back={{ href: "/catalog/products", label: "Products" }} title="Add a product" description="Three ways in. They all end in the same place: a product you can sell." />
+      <PageHeader back={{ href: "/catalog/products", label: "Products" }} title="Add a product" description="Upload what buyers get, then name it and set a price. Importing from a link opens soon." />
       <LimitNotice kind="products" />
-      <ul className="grid grid-cols-1 gap-4 md:grid-cols-3">
+      <ul className="grid grid-cols-1 gap-4 md:grid-cols-2">
         {WAYS.map((w) => (
           <li key={w.href} data-coach={w.primary ? "new-product" : undefined}>
             <GuardedLink

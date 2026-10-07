@@ -167,7 +167,7 @@ export default function MediaPage() {
           nextStep
           icon={ImageIcon}
           title={q || filter !== "all" ? "Nothing matches." : "No files yet."}
-          body={q || filter !== "all" ? "Try another word or file type." : "Upload a picture or video, or make one with AI. It's kept here so you can use it anywhere."}
+          body={q || filter !== "all" ? "Try another word or file type." : "Upload a picture or video. It's kept here so you can use it anywhere."}
           action={!q && filter === "all" ? <Button onClick={() => setUploadOpen(true)}><Upload aria-hidden /> Upload a file</Button> : undefined}
         />
       ) : (

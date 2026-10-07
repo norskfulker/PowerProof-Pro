@@ -9,10 +9,11 @@ export async function liveFacts() {
   const { data: stores } = await client.from("stores").select("id, name, status, legal_name, company_address").eq("owner_id", me.id);
   const ids = (stores ?? []).map((s) => s.id);
   const active = stores?.find((s) => s.id === storeId);
-  const [products, methods, paid] = await Promise.all([
+  const [products, collections, methods, paid] = await Promise.all([
     ids.length ? client.from("products").select("status").in("store_id", ids) : Promise.resolve({ data: [] as { status: string }[] }),
+    ids.length ? client.from("collections").select("id", { count: "exact", head: true }).in("store_id", ids) : Promise.resolve({ count: 0 }),
     client.from("payout_methods").select("id", { count: "exact", head: true }).eq("owner_id", me.id),
-    ids.length ? client.from("orders").select("id", { count: "exact", head: true }).in("store_id", ids).in("status", ["paid", "refunded"]) : Promise.resolve({ count: 0 }),
+    ids.length ? client.from("creator_orders").select("id", { count: "exact", head: true }).in("store_id", ids).in("status", ["paid", "refunded"]) : Promise.resolve({ count: 0 }),
   ]);
   const ps = products.data ?? [];
   const address = (active?.company_address ?? "").split("\n");
@@ -21,6 +22,7 @@ export async function liveFacts() {
     storeName: active?.name ?? "",
     onboarded: active?.status === "published",
     anyProduct: ps.length > 0,
+    anyCollection: (collections.count ?? 0) > 0,
     draftOnly: ps.length > 0 && !ps.some((p) => p.status === "live"),
     paid: (paid.count ?? 0) > 0,
     analytics: false,

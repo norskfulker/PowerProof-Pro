@@ -2,16 +2,14 @@
 
 import { use } from "react";
 import { ErrorState } from "@/components/pp/empty-state";
-import { MoneyText } from "@/components/pp/money-text";
 import { PageHeader } from "@/components/pp/page-header";
 import { RuleSummaryChip } from "@/components/pp/deal-parts";
-import { StatCard } from "@/components/pp/stat-card";
+import { NoData, StatCard } from "@/components/pp/stat-card";
 import { StatusPill } from "@/components/pp/status-pill";
 import { DealPathEditor } from "@/components/store-admin/deal-path-editor";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useApi } from "@/hooks/use-api";
 import { dealRuleStatus, getDealRule, getDealRules, getOffers, getProducts } from "@/lib/api";
-import { formatPct } from "@/lib/format";
 
 export default function DealPathPage({ params }: { params: Promise<{ id: string; ruleId: string }> }) {
   const { ruleId: id } = use(params);
@@ -36,10 +34,10 @@ export default function DealPathPage({ params }: { params: Promise<{ id: string;
       ) : (
         <div className="flex flex-col gap-8">
           <section aria-label="How it's doing" className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-            <StatCard label="Shown at checkout" value={rule.stats.views.toLocaleString("en-IN")} />
-            <StatCard label="Orders that used it" value={rule.stats.uses.toLocaleString("en-IN")} />
-            <StatCard label="Take-up" value={rule.stats.views ? formatPct((rule.stats.uses / rule.stats.views) * 100) : "–"} hint="Orders ÷ times shown" />
-            <StatCard label="Extra revenue" value={<MoneyText value={rule.stats.revenueLift} />} hint="From items buyers added" emphasis />
+            <StatCard label="Shown at checkout" value={<NoData />} />
+            <StatCard label="Orders that used it" value={<NoData />} />
+            <StatCard label="Take-up" value={<NoData />} hint="Orders ÷ times shown" />
+            <StatCard label="Extra revenue" value={<NoData />} hint="From items buyers added" />
           </section>
           <DealPathEditor key={rule.id} rule={rule} products={data[1]} rules={data[2]} storeDeals={data[3].deals} />
         </div>

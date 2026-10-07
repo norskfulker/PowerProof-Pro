@@ -47,3 +47,6 @@ next-env.d.ts
 /test-results/
 /playwright-report/
 /blob-report/
+
+# end-to-end test data and sign-in state (created and removed by the tests)
+/tests/e2e/.data/

@@ -8,8 +8,7 @@ import { Menu, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import type { Collection, CurrencyCode, Store } from "@/lib/types";
-import { CurrencyPicker } from "@/components/buyer/buyer-shell";
+import type { Collection, Store } from "@/lib/types";
 
 export function StoreLogo({ store }: { store: Store }) {
   return (
@@ -28,13 +27,9 @@ export function StoreLogo({ store }: { store: Store }) {
 export function StoreNavbar({
   store,
   collections,
-  currency,
-  onCurrency,
 }: {
   store: Store;
   collections: Collection[];
-  currency: CurrencyCode;
-  onCurrency: (c: CurrencyCode) => void;
 }) {
   const router = useRouter();
   const [q, setQ] = useState("");
@@ -59,7 +54,6 @@ export function StoreNavbar({
           <Input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder={`Search ${store.name}`} aria-label="Search products" className="h-10 pl-10 pointer-coarse:h-11" />
         </form>
         <div className="ml-auto flex items-center gap-2 md:ml-0">
-          <CurrencyPicker value={currency} onChange={onCurrency} />
           <Sheet open={open} onOpenChange={setOpen}>
             <SheetTrigger asChild>
               <Button variant="ghost" size="icon" className="lg:hidden" aria-label="Open menu"><Menu /></Button>

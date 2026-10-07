@@ -11,12 +11,13 @@ import { EmptyState, ErrorState } from "@/components/pp/empty-state";
 import { PageHeader } from "@/components/pp/page-header";
 import { QuestionThread } from "@/components/pp/question-thread";
 import { useApi } from "@/hooks/use-api";
-import { answerQuestion, getQuestionsInbox, getStore, reportQuestion, setQuestionHidden } from "@/lib/api";
+import { useCurrentStore } from "@/hooks/use-current-store";
+import { answerQuestion, getQuestionsInbox, reportQuestion, setQuestionHidden } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 export default function QuestionsInboxPage() {
   const { data, loading, error, reload, setData } = useApi(getQuestionsInbox, [], { live: true });
-  const store = useApi(getStore, []);
+  const store = useCurrentStore();
   const [filter, setFilter] = useState<"open" | "answered" | "hidden">("open");
 
   const list = useMemo(() => (data ?? []).filter((q) =>
@@ -28,7 +29,7 @@ export default function QuestionsInboxPage() {
     <>
       <PageHeader title="Questions" description="Asked on your product pages. Answers show to everyone and the asker gets an email. Verified buyers can answer too." />
       {error ? <ErrorState message={error} onRetry={reload} /> : loading && !data ? <Skeleton className="h-96 rounded-card" /> : data && data.length === 0 ? (
-        <EmptyState icon={MessagesSquare} title="No questions yet." body="When someone asks about a product, it lands here." />
+        <EmptyState icon={MessagesSquare} title="No questions yet." body="When someone asks about a product, it lands here." action={<Button asChild variant="secondary"><Link href="/catalog/products">See your products</Link></Button>} />
       ) : data && (
         <div className="flex flex-col gap-4">
           <Segmented label="Filter questions" value={filter} onChange={setFilter} options={[{ value: "open", label: `Waiting (${openCount})` }, { value: "answered", label: "Answered" }, { value: "hidden", label: "Hidden" }]} />

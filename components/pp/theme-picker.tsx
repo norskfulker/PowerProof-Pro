@@ -2,32 +2,17 @@
 
 import { Check } from "lucide-react";
 import { Label } from "@/components/ui/label";
-import { Segmented } from "@/components/pp/segmented";
-import { FONT_PAIRS, HERO_STYLES, PALETTES } from "@/lib/store-themes";
+import { HERO_STYLES, PALETTES } from "@/lib/store-themes";
 import type { StoreTheme } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-/** Palette, accent, font pairing and hero layout for a store. Values are creator data. */
+/** Advanced look: palette, accent and hero layout. Brand colour, fonts, corners and colour mode are on the Base design panel. */
 export function ThemePicker({ theme, onChange }: { theme: StoreTheme; onChange: (t: StoreTheme) => void }) {
   const palette = PALETTES.find((p) => p.id === theme.palette) ?? PALETTES[0];
   const set = (p: Partial<StoreTheme>) => onChange({ ...theme, ...p });
 
   return (
     <div className="flex flex-col gap-6">
-      <fieldset>
-        <legend className="eyebrow mb-2">Light or dark</legend>
-        <Segmented
-          label="Store default theme"
-          value={theme.mode ?? "auto"}
-          onChange={(mode) => set({ mode })}
-          options={[
-            { value: "light", label: "Light" },
-            { value: "dark", label: "Dark" },
-            { value: "auto", label: "Auto" },
-          ]}
-        />
-        <p className="mt-1.5 text-sm text-muted-foreground">Auto follows each buyer&apos;s device. Buyers can switch with the toggle in your store&apos;s footer.</p>
-      </fieldset>
       <fieldset>
         <legend className="eyebrow mb-2">Palette</legend>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
@@ -68,27 +53,6 @@ export function ThemePicker({ theme, onChange }: { theme: StoreTheme; onChange: 
           <button type="button" className="ml-auto min-h-11 text-sm font-medium underline underline-offset-4" onClick={() => set({ accent: undefined })}>Reset</button>
         )}
       </div>
-
-      <fieldset>
-        <legend className="eyebrow mb-2">Fonts</legend>
-        <div className="grid grid-cols-1 gap-2">
-          {FONT_PAIRS.map((f) => (
-            <button
-              key={f.id}
-              type="button"
-              aria-pressed={theme.fonts === f.id}
-              onClick={() => set({ fonts: f.id })}
-              className={cn("flex items-center justify-between gap-3 rounded-control border bg-surface px-3 py-2.5 text-left", theme.fonts === f.id ? "border-primary outline-2 outline-primary" : "hover:border-border-strong")}
-            >
-              <span>
-                <span className="block text-xl leading-tight" style={{ fontFamily: f.display, fontWeight: 700 }}>{f.name}</span>
-                <span className="block text-xs text-muted-foreground" style={{ fontFamily: f.body }}>{f.sample}</span>
-              </span>
-              {theme.fonts === f.id && <Check className="size-4 text-primary" aria-hidden />}
-            </button>
-          ))}
-        </div>
-      </fieldset>
 
       <fieldset>
         <legend className="eyebrow mb-2">Hero layout</legend>

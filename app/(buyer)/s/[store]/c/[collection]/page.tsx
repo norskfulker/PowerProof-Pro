@@ -21,7 +21,7 @@ function Inner({ slug }: { slug: string }) {
   return (
     <>
       <title>{`${c.name} · ${view.store.name}`}</title>
-      <ProductBrowser collectionSlug={c.slug} title={c.name} description={c.description} />
+      <ProductBrowser collectionSlug={c.slug} title={c.name} />
     </>
   );
 }

@@ -39,7 +39,7 @@ export function StoreHome() {
         images={heroImages}
       />
     ),
-    highlights: () => <HighlightsStrip refundDays={store.refundDays} rating={view.rating.average} reviewCount={view.rating.count} totalSales={view.totalSales} />,
+    highlights: () => <HighlightsStrip refundDays={store.refundDays} rating={view.rating.average} reviewCount={view.rating.count} />,
     collections: () =>
       view.collections.length > 0 && (
         <section aria-label="Collections" className={wrap}>

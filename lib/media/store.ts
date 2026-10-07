@@ -1,7 +1,6 @@
 /**
- * Uploaded media for store pages. In this frontend-only build, uploads live in the browser's
- * IndexedDB (localStorage is far too small for video) and pages refer to them as "asset:<id>".
- * When the backend lands, putAsset uploads to storage and returns a CDN URL instead.
+ * What media files a store takes, and checks run in the browser before upload. The files
+ * themselves live in Supabase Storage (see lib/api/media.ts).
  */
 
 export const MB = 1024 * 1024;
@@ -25,105 +24,6 @@ export function checkMedia(file: { name: string; size: number; type: string }, a
   if (file.size > MEDIA_LIMITS[kind].max) return `${file.name} is ${(file.size / MB).toFixed(1)} MB. ${kind === "video" ? "Videos" : kind === "gif" ? "GIFs" : "Images"} can be up to ${MEDIA_LIMITS[kind].max / MB} MB.`;
   if (file.size === 0) return `${file.name} is empty.`;
   return undefined;
-}
-
-/* ------------------------------------------------------------------ */
-/* IndexedDB store                                                      */
-/* ------------------------------------------------------------------ */
-
-const DB_NAME = "pp-media";
-const STORE = "assets";
-
-function open(): Promise<IDBDatabase> {
-  return new Promise((resolve, reject) => {
-    if (typeof indexedDB === "undefined") return reject(new Error("Storage isn't available in this browser."));
-    const req = indexedDB.open(DB_NAME, 1);
-    req.onupgradeneeded = () => req.result.createObjectStore(STORE);
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error ?? new Error("Couldn't open storage."));
-  });
-}
-
-interface AssetRecord {
-  name: string;
-  type: string;
-  /** Most browsers keep the file itself */
-  blob?: Blob;
-  /** Some (WebKit in certain modes) can't keep a Blob in IndexedDB; the raw bytes always work */
-  bytes?: ArrayBuffer;
-}
-
-function write(db: IDBDatabase, id: string, rec: AssetRecord): Promise<void> {
-  return new Promise<void>((resolve, reject) => {
-    try {
-      const tx = db.transaction(STORE, "readwrite");
-      tx.objectStore(STORE).put(rec, id);
-      tx.oncomplete = () => resolve();
-      tx.onerror = () => reject(tx.error ?? new Error("Couldn't save the file. Your browser storage may be full."));
-      tx.onabort = () => reject(tx.error ?? new Error("Couldn't save the file."));
-    } catch (e) {
-      reject(e);
-    }
-  });
-}
-
-export async function putAsset(file: File): Promise<string> {
-  const id = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
-  const db = await open();
-  try {
-    await write(db, id, { blob: file, name: file.name, type: file.type });
-  } catch {
-    await write(db, id, { bytes: await file.arrayBuffer(), name: file.name, type: file.type });
-  } finally {
-    db.close();
-  }
-  return `asset:${id}`;
-}
-
-const urls = new Map<string, string>();
-
-/** Object URL for an uploaded asset, or undefined if it isn't in this browser. */
-export async function assetUrl(src: string): Promise<string | undefined> {
-  if (!src.startsWith("asset:")) return src.startsWith("https://") ? src : undefined;
-  const id = src.slice(6);
-  if (urls.has(id)) return urls.get(id);
-  try {
-    const db = await open();
-    const rec = await new Promise<AssetRecord | undefined>((resolve, reject) => {
-      const req = db.transaction(STORE).objectStore(STORE).get(id);
-      req.onsuccess = () => resolve(req.result as AssetRecord | undefined);
-      req.onerror = () => reject(req.error);
-    });
-    db.close();
-    const blob = rec?.blob ?? (rec?.bytes ? new Blob([rec.bytes], { type: rec.type }) : undefined);
-    if (!blob) return undefined;
-    const url = URL.createObjectURL(blob);
-    urls.set(id, url);
-    return url;
-  } catch {
-    return undefined;
-  }
-}
-
-/** Removes an uploaded file from this browser. Remote URLs are left alone. */
-export async function deleteAsset(src: string): Promise<void> {
-  if (!src.startsWith("asset:")) return;
-  const id = src.slice(6);
-  const url = urls.get(id);
-  if (url) URL.revokeObjectURL(url);
-  urls.delete(id);
-  try {
-    const db = await open();
-    await new Promise<void>((resolve) => {
-      const tx = db.transaction(STORE, "readwrite");
-      tx.objectStore(STORE).delete(id);
-      tx.oncomplete = () => resolve();
-      tx.onerror = () => resolve();
-    });
-    db.close();
-  } catch {
-    /* storage unavailable: nothing to delete */
-  }
 }
 
 /** Width and height of an image or video file, when the browser can read them. */

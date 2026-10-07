@@ -1,11 +1,14 @@
-import { commit, db } from "../../mock/db";
-import { writeProgress } from "../../mock/progress";
-import { slugify } from "../../mock/random";
+import { cleanStoreName, slugify, storeNameError } from "../../slug";
+import { normalizeHex } from "../../color";
+import { writeProgress } from "./flags";
+import { PRO_PRICE_USD } from "../../plans";
+import { money as moneyOf } from "../../money";
 import { type PlanLimits, type PlanTier } from "../../plans";
 import { limitsFromRows } from "../../plan-limits";
 import { sb } from "../../supabase/browser";
 import type { TablesUpdate } from "../../database.types";
 import type { AboutContent, Company, InvoiceSettings, Plan, Store, StoreDesign, StorePageKey, StorePages } from "../../types";
+import { defaultInvoiceSettings } from "../../defaults/store";
 import { ApiError } from "../client";
 import type { OwnedStore, PlanState, StoreInfo, StorePageUpdate } from "../account";
 import { fail, must } from "./errors";
@@ -15,7 +18,7 @@ import { activeStoreId, currentUser, setActiveStore, syncSession } from "./sessi
 /** The creator's stores, their settings, design and pages, and the plan, from Supabase. */
 
 /** Columns a creator reads for their own store (they may read all of them). */
-const STORE_COLS = "id, owner_id, name, slug, tagline, logo_url, status, theme, theme_mode, currency_base, brand_color, support_email, refund_days, legal_name, company_address, gstin, invoice_prefix, invoice_footer, created_at, updated_at";
+const STORE_COLS = "id, owner_id, name, slug, tagline, logo_url, status, theme, theme_mode, currency_base, brand_color, support_email, refund_days, legal_name, company_address, gstin, invoice_prefix, invoice_footer, pan, business_type, created_at, updated_at";
 
 async function owner() {
   const u = await currentUser();
@@ -40,15 +43,45 @@ export async function getStore(storeId?: string): Promise<Store> {
 
 /* Store settings ------------------------------------------------------------ */
 
-export async function checkSlug(slug: string): Promise<{ available: boolean; suggestion?: string }> {
-  const s = slugify(slug);
-  if (s.length < 3) return { available: false };
-  // Visible to this creator: their own stores and every published one. Drafts of other creators
-  // are hidden by RLS, so the unique index still has the last word when saving.
-  const { data } = await sb().from("stores").select("id").eq("slug", s).limit(1);
-  const mine = await activeStoreId();
-  const taken = (data ?? []).some((r) => r.id !== mine);
-  return { available: !taken, suggestion: taken ? `${s}-studio` : undefined };
+/** Live availability: the database decides (format, reserved words and collisions). */
+export async function checkSlug(slug: string): Promise<{ available: boolean }> {
+  const r = await sb().rpc("store_slug_available", { p_slug: slug });
+  if (r.error) fail(r.error);
+  return { available: r.data === true };
+}
+
+/** The link for a store name, made by the database (3 to 40 characters, reserved words, collisions, non-Latin names). */
+export async function suggestSlug(name: string): Promise<string> {
+  const r = await sb().rpc("suggest_store_slug", { p_name: cleanStoreName(name) });
+  if (r.error || typeof r.data !== "string") fail(r.error);
+  return r.data as string;
+}
+
+/** Creates the creator's store: the first onboarding step. Retries once if the link was taken a moment ago. */
+export async function createStore(input: { name: string; brandColor: string; slug: string }): Promise<{ slug: string }> {
+  const nameError = storeNameError(input.name);
+  if (nameError) throw new ApiError(nameError, "validation");
+  const color = normalizeHex(input.brandColor);
+  if (!color) throw new ApiError("Pick a colour as #RRGGBB.", "validation");
+  const user = await currentUser();
+  const name = cleanStoreName(input.name);
+  let slug = input.slug;
+  for (let attempt = 0; ; attempt++) {
+    const r = await sb()
+      .from("stores")
+      .insert({ owner_id: user.id, name, slug, brand_color: color, tagline: `Digital downloads by ${user.name || name}.`, support_email: user.email || null })
+      .select("id")
+      .single();
+    if (!r.error) break;
+    if (r.error.code === "23505" && attempt === 0) {
+      slug = await suggestSlug(name);
+      continue;
+    }
+    fail(r.error, { conflict: "That link was just taken. Try again." });
+  }
+  await syncSession();
+  writeProgress({ storeConfirmed: true });
+  return { slug };
 }
 
 export async function updateStore(patch: Partial<Store>): Promise<Store> {
@@ -61,7 +94,11 @@ export async function updateStore(patch: Partial<Store>): Promise<Store> {
     row.slug = s;
   }
   if (patch.tagline !== undefined) row.tagline = patch.tagline;
-  if (patch.brandColor !== undefined) row.brand_color = /^#[0-9a-f]{6}$/i.test(patch.brandColor) ? patch.brandColor : DEFAULT_BRAND;
+  if (patch.brandColor !== undefined) {
+    const c = normalizeHex(patch.brandColor);
+    if (!c) throw new ApiError("Pick a colour as #RRGGBB.", "validation");
+    row.brand_color = c;
+  }
   if (patch.supportEmail !== undefined) row.support_email = patch.supportEmail.trim() || null;
   if (patch.refundDays !== undefined) row.refund_days = Math.max(0, Math.min(365, Math.round(patch.refundDays)));
   if (patch.currency !== undefined) row.currency_base = patch.currency;
@@ -81,18 +118,31 @@ export async function updateStore(patch: Partial<Store>): Promise<Store> {
 /* Company and invoice settings ------------------------------------------------ */
 
 /**
- * Legal name, GSTIN and the address are stored on the store (they print on invoices). The address
- * is kept as six lines: address 1, address 2, city, state, PIN code, country. Business type and
- * PAN have no column yet and stay in this browser.
+ * Legal name, GSTIN, PAN, business type and the address are stored on the store (they print on
+ * invoices). The address is kept as six lines: address 1, address 2, city, state, PIN code, country.
  */
 const ADDRESS: (keyof Company)[] = ["address1", "address2", "city", "state", "pincode", "country"];
+
+/** The app's business types and the values the database accepts. */
+const TYPE_TO_DB: Record<Company["businessType"], string> = { individual: "individual", proprietorship: "sole_proprietor", partnership: "partnership", llp: "llp", private_limited: "company" };
+const TYPE_FROM_DB: Record<string, Company["businessType"]> = { individual: "individual", sole_proprietor: "proprietorship", partnership: "partnership", llp: "llp", company: "private_limited" };
 
 export async function getCompany(): Promise<Company> {
   const row = await storeRow();
   const lines = (row.company_address ?? "").split("\n");
-  const local = db().company;
-  const fromDb = Object.fromEntries(ADDRESS.map((k, i) => [k, lines[i] ?? ""])) as Partial<Company>;
-  return { ...local, ...(row.company_address ? fromDb : {}), legalName: row.legal_name ?? "", gstin: row.gstin ?? undefined, country: fromDb.country || local.country || "India" };
+  const at = (i: number) => lines[i] ?? "";
+  return {
+    legalName: row.legal_name ?? "",
+    businessType: TYPE_FROM_DB[row.business_type ?? ""] ?? "individual",
+    gstin: row.gstin ?? undefined,
+    pan: row.pan ?? undefined,
+    address1: at(0),
+    address2: at(1) || undefined,
+    city: at(2),
+    state: at(3),
+    pincode: at(4),
+    country: at(5) || "India",
+  };
 }
 
 export async function updateCompany(patch: Partial<Company>): Promise<Company> {
@@ -101,21 +151,28 @@ export async function updateCompany(patch: Partial<Company>): Promise<Company> {
   const address = ADDRESS.map((k) => String(next[k] ?? "").replace(/\n/g, " ").trim()).join("\n");
   const r = await sb()
     .from("stores")
-    .update({ legal_name: next.legalName.trim() || null, gstin: next.gstin?.trim().toUpperCase() || null, company_address: address.replace(/\n/g, "").length ? address.slice(0, 400) : null })
+    .update({
+      legal_name: next.legalName.trim() || null,
+      gstin: next.gstin?.trim().toUpperCase() || null,
+      pan: next.pan?.trim().toUpperCase() || null,
+      business_type: TYPE_TO_DB[next.businessType] ?? null,
+      company_address: address.replace(/\n/g, "").length ? address.slice(0, 400) : null,
+    })
     .eq("id", await activeStoreId())
     .select("id")
     .single();
   if (r.error) {
     if (r.error.code === "23514" && r.error.message.includes("gstin")) throw new ApiError("That GSTIN doesn't look right. It's 15 characters, like 29ABCDE1234F1Z5.", "validation");
+    if (r.error.code === "23514" && r.error.message.includes("pan")) throw new ApiError("That PAN doesn't look right. It's 10 characters, like ABCDE1234F.", "validation");
     fail(r.error);
   }
-  commit((d) => Object.assign(d.company, { businessType: next.businessType, pan: next.pan }));
   return getCompany();
 }
 
+/** The invoice prefix and footer are saved on the store; numbering and GST display are set by the server. */
 export async function getInvoiceSettings(): Promise<InvoiceSettings> {
   const row = await storeRow();
-  return { ...db().invoice, prefix: row.invoice_prefix ?? db().invoice.prefix, footerNote: row.invoice_footer ?? db().invoice.footerNote };
+  return { prefix: row.invoice_prefix ?? defaultInvoiceSettings.prefix, footerNote: row.invoice_footer ?? defaultInvoiceSettings.footerNote };
 }
 
 export async function updateInvoiceSettings(patch: Partial<InvoiceSettings>): Promise<InvoiceSettings> {
@@ -127,8 +184,6 @@ export async function updateInvoiceSettings(patch: Partial<InvoiceSettings>): Pr
   }
   if (patch.footerNote !== undefined) row.invoice_footer = patch.footerNote.slice(0, 500) || null;
   if (Object.keys(row).length) must(await sb().from("stores").update(row).eq("id", await activeStoreId()).select("id").single());
-  // The rest (numbering preview, GST display options) stays in this browser for now
-  commit((d) => Object.assign(d.invoice, patch));
   return getInvoiceSettings();
 }
 
@@ -254,8 +309,7 @@ export async function getPlanState(): Promise<PlanState> {
   const lim: PlanLimits = limitsFromRows(limits)[tier];
   const ids = (stores ?? []).map((s) => s.id);
   const { count } = ids.length ? await sb().from("products").select("id", { count: "exact", head: true }).in("store_id", ids) : { count: 0 };
-  const local = db().plan;
-  const plan: Plan = { ...local, tier, name: tier === "pro" ? "Pro" : "Free", platformFeePct: (row?.platform_fee_bps ?? 300) / 100, status: "active" };
+  const plan: Plan = { tier, name: tier === "pro" ? "Pro" : "Free", monthly: moneyOf(tier === "pro" ? PRO_PRICE_USD * 100 : 0, "USD"), platformFeePct: (row?.platform_fee_bps ?? 300) / 100, gatewayFeePct: 2, status: "active" };
   return { plan, tier, limits: lim, usage: { stores: ids.length, products: count ?? 0 } };
 }
 

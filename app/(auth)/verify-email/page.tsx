@@ -9,7 +9,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AuthCard } from "@/components/auth/auth-card";
 import { resendVerification, verifyEmail } from "@/lib/api";
-import { isLive } from "@/lib/supabase/env";
 
 function VerifyForm() {
   const router = useRouter();
@@ -72,7 +71,7 @@ function VerifyForm() {
             <p id="code-error" className="text-sm font-medium text-danger">{error}</p>
           ) : (
             <p id="code-help" className="text-sm text-muted-foreground">
-              {isLive() ? "Or open the link in the same email." : "Demo: any 6 digits work. 000000 shows the expired message."}
+              Or open the link in the same email.
             </p>
           )}
         </div>

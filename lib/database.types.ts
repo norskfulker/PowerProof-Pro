@@ -232,6 +232,50 @@ export type Database = {
           },
         ]
       }
+      custom_pages: {
+        Row: {
+          created_at: string
+          id: string
+          layout: Json
+          slug: string
+          sort_order: number
+          status: Database["public"]["Enums"]["page_status"]
+          store_id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          layout?: Json
+          slug: string
+          sort_order?: number
+          status?: Database["public"]["Enums"]["page_status"]
+          store_id: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          layout?: Json
+          slug?: string
+          sort_order?: number
+          status?: Database["public"]["Enums"]["page_status"]
+          store_id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "custom_pages_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       deal_rules: {
         Row: {
           active: boolean
@@ -1057,6 +1101,7 @@ export type Database = {
           id: string
           order_id: string
           photos: string[]
+          pinned: boolean
           product_id: string
           rating: number
           replied_at: string | null
@@ -1073,6 +1118,7 @@ export type Database = {
           id?: string
           order_id: string
           photos?: string[]
+          pinned?: boolean
           product_id: string
           rating: number
           replied_at?: string | null
@@ -1089,6 +1135,7 @@ export type Database = {
           id?: string
           order_id?: string
           photos?: string[]
+          pinned?: boolean
           product_id?: string
           rating?: number
           replied_at?: string | null
@@ -1157,6 +1204,7 @@ export type Database = {
       stores: {
         Row: {
           brand_color: string | null
+          business_type: string | null
           company_address: string | null
           created_at: string
           currency_base: string
@@ -1168,6 +1216,7 @@ export type Database = {
           logo_url: string | null
           name: string
           owner_id: string
+          pan: string | null
           refund_days: number
           slug: string
           status: Database["public"]["Enums"]["store_status"]
@@ -1179,6 +1228,7 @@ export type Database = {
         }
         Insert: {
           brand_color?: string | null
+          business_type?: string | null
           company_address?: string | null
           created_at?: string
           currency_base?: string
@@ -1190,6 +1240,7 @@ export type Database = {
           logo_url?: string | null
           name: string
           owner_id: string
+          pan?: string | null
           refund_days?: number
           slug: string
           status?: Database["public"]["Enums"]["store_status"]
@@ -1201,6 +1252,7 @@ export type Database = {
         }
         Update: {
           brand_color?: string | null
+          business_type?: string | null
           company_address?: string | null
           created_at?: string
           currency_base?: string
@@ -1212,6 +1264,7 @@ export type Database = {
           logo_url?: string | null
           name?: string
           owner_id?: string
+          pan?: string | null
           refund_days?: number
           slug?: string
           status?: Database["public"]["Enums"]["store_status"]
@@ -1266,6 +1319,100 @@ export type Database = {
       }
     }
     Views: {
+      creator_orders: {
+        Row: {
+          id: string | null
+          ref: string | null
+          store_id: string | null
+          buyer_name: string | null
+          buyer_email: string | null
+          buyer_country: string | null
+          currency: string | null
+          subtotal_minor: number | null
+          discount_minor: number | null
+          tax_minor: number | null
+          total_minor: number | null
+          deals_applied: Json | null
+          status: string | null
+          paid_at: string | null
+          available_at: string | null
+          invoice_no: string | null
+          created_at: string | null
+        }
+        Relationships: []
+      }
+      creator_customers: {
+        Row: {
+          store_id: string | null
+          buyer_email: string | null
+          currency: string | null
+          buyer_name: string | null
+          buyer_country: string | null
+          orders_count: number | null
+          total_spent_minor: number | null
+          first_order_at: string | null
+          last_order_at: string | null
+        }
+        Relationships: []
+      }
+      creator_sales_daily: {
+        Row: {
+          store_id: string | null
+          day: string | null
+          currency: string | null
+          orders_count: number | null
+          gross_minor: number | null
+          discount_minor: number | null
+          tax_minor: number | null
+          net_minor: number | null
+        }
+        Relationships: []
+      }
+      creator_product_sales: {
+        Row: {
+          store_id: string | null
+          product_id: string | null
+          title: string | null
+          currency: string | null
+          units: number | null
+          revenue_minor: number | null
+        }
+        Relationships: []
+      }
+      creator_reviews: {
+        Row: {
+          id: string | null
+          store_id: string | null
+          product_id: string | null
+          product_title: string | null
+          reviewer_name: string | null
+          rating: number | null
+          title: string | null
+          body: string | null
+          photos: string[] | null
+          status: string | null
+          pinned: boolean | null
+          creator_reply: string | null
+          replied_at: string | null
+          created_at: string | null
+        }
+        Relationships: []
+      }
+      creator_questions: {
+        Row: {
+          id: string | null
+          store_id: string | null
+          product_id: string | null
+          product_title: string | null
+          asker_name: string | null
+          body: string | null
+          answer: string | null
+          answered_at: string | null
+          status: string | null
+          created_at: string | null
+        }
+        Relationships: []
+      }
       creator_balances: {
         Row: {
           available_minor: number | null
@@ -1338,6 +1485,8 @@ export type Database = {
       is_product_owner: { Args: { p_product: string }; Returns: boolean }
       is_store_owner: { Args: { p_store: string }; Returns: boolean }
       next_invoice_no: { Args: never; Returns: string }
+      store_slug_available: { Args: { p_slug: string }; Returns: boolean }
+      suggest_store_slug: { Args: { p_name: string }; Returns: string }
       product_is_public: { Args: { p_product: string }; Returns: boolean }
       request_payout: {
         Args: { p_amount: number; p_method: string; p_store: string }
@@ -1373,6 +1522,7 @@ export type Database = {
       domain_status: "pending" | "verifying" | "active" | "failed"
       moderation_status: "published" | "hidden"
       order_status: "pending" | "paid" | "failed" | "refunded"
+      page_status: "draft" | "published"
       payout_status:
         | "requested"
         | "processing"
@@ -1515,6 +1665,7 @@ export const Constants = {
       domain_status: ["pending", "verifying", "active", "failed"],
       moderation_status: ["published", "hidden"],
       order_status: ["pending", "paid", "failed", "refunded"],
+      page_status: ["draft", "published"],
       payout_status: ["requested", "processing", "paid", "failed", "cancelled"],
       plan_tier: ["free", "pro"],
       product_status: ["draft", "live", "archived"],

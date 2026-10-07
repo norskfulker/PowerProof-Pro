@@ -14,7 +14,6 @@ import { cn } from "@/lib/utils";
 const LINKS = [
   { href: "/how-it-works", label: "How it works" },
   { href: "/pricing", label: "Pricing" },
-  { href: "/templates", label: "Templates" },
 ];
 
 export function SiteNav() {
@@ -44,7 +43,7 @@ export function SiteNav() {
           </ul>
         </nav>
         <div className="ml-auto flex items-center gap-2">
-          <ThemeToggle />
+          <ThemeToggle className="max-sm:hidden" />
           <Button asChild variant="ghost" className="max-sm:hidden">
             <Link href="/login">Log in</Link>
           </Button>
@@ -75,6 +74,10 @@ export function SiteNav() {
                   ))}
                 </ul>
               </nav>
+              <div className="mt-6 flex items-center justify-between gap-3 border-t pt-4">
+                <span className="text-sm font-medium">Colour mode</span>
+                <ThemeToggle iconOnly={false} />
+              </div>
               <Button asChild size="lg" className="mt-6 w-full">
                 <Link href="/signup" onClick={() => setOpen(false)}>
                   Start free

@@ -1,6 +1,5 @@
 import Link from "next/link";
-import { Moon, Sun } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { ColorModeToggle, LIGHT_DARK } from "@/components/theme/color-mode-toggle";
 import type { SocialLinks, Store } from "@/lib/types";
 import { LogoMark } from "./logo";
 import { StoreLogo } from "./store-navbar";
@@ -56,20 +55,7 @@ export function StoreFooter({
       <div className="mx-auto flex max-w-[1200px] flex-col gap-2 border-t px-4 py-5 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between md:px-6">
         <p>© {new Date().getFullYear()} {store.name}. Prices include any GST that applies.</p>
         {theme && (
-          <div role="group" aria-label="Store theme" className="inline-flex items-center gap-1 rounded-full border bg-background p-0.5 pointer-coarse:gap-2 sm:order-last">
-            {(["light", "dark"] as const).map((m) => (
-              <button
-                key={m}
-                type="button"
-                aria-pressed={theme.mode === m}
-                onClick={() => theme.onChange(m)}
-                className={cn("inline-flex min-h-8 items-center gap-1.5 rounded-full px-3 text-xs font-medium pointer-coarse:min-h-11", theme.mode === m ? "bg-surface text-foreground shadow-pop" : "text-muted-foreground hover:text-foreground")}
-              >
-                {m === "light" ? <Sun className="size-3.5" aria-hidden /> : <Moon className="size-3.5" aria-hidden />}
-                {m === "light" ? "Light" : "Dark"}
-              </button>
-            ))}
-          </div>
+          <ColorModeToggle label="Store colour mode" value={theme.mode} onChange={theme.onChange} options={LIGHT_DARK} className="sm:order-last" />
         )}
         {showPoweredBy && (
           <Link href="/" className="inline-flex min-h-11 items-center gap-1.5"><LogoMark className="size-4" /> Powered by PowerProof</Link>

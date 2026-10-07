@@ -2,12 +2,13 @@
 
 import { Store as StoreIcon } from "lucide-react";
 import { useApi } from "@/hooks/use-api";
-import { getOwnedStores, getStore } from "@/lib/api";
+import { useCurrentStore } from "@/hooks/use-current-store";
+import { getOwnedStores } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
-/** "Store: Ananya Makes" on every screen whose settings belong to one store (Part 6C). */
+/** "Store: <store name>" on every screen whose settings belong to one store (Part 6C). */
 export function StoreBadge({ className, storeName }: { className?: string; storeName?: string; /** @deprecated kept for older call sites */ layout?: boolean }) {
-  const { data: store } = useApi(getStore, [], { live: true });
+  const { data: store } = useCurrentStore();
   const { data: stores } = useApi(getOwnedStores, [], { live: true });
   const name = storeName ?? store?.name;
   if (!name) return null;

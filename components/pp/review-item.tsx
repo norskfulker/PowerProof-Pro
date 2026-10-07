@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { BadgeCheck, Flag, Pin, ThumbsUp } from "lucide-react";
+import { BadgeCheck, Flag, Pin } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { formatDate } from "@/lib/format";
@@ -10,34 +10,20 @@ import { cn } from "@/lib/utils";
 import { ProductImageView } from "./product-cover";
 import { Stars } from "./stars";
 
-const VOTED_KEY = "pp:helpful";
-
-function votedSet(): Set<string> {
-  try {
-    return new Set(JSON.parse(window.localStorage.getItem(VOTED_KEY) ?? "[]"));
-  } catch {
-    return new Set();
-  }
-}
-
-/** One review. Helpful votes are limited to one per device; reports go to the founder's flags queue. */
+/** One review. Reports go to the founder's flags queue. */
 export function ReviewItem({
   review,
   creatorName,
   productTitle,
-  onHelpful,
   onReport,
   className,
 }: {
   review: Review;
   creatorName: string;
   productTitle?: string;
-  onHelpful?: (id: string) => Promise<number>;
   onReport?: (id: string) => Promise<void>;
   className?: string;
 }) {
-  const [helpful, setHelpful] = useState(review.helpful);
-  const [voted, setVoted] = useState(() => (typeof window === "undefined" ? false : votedSet().has(review.id)));
   const [reported, setReported] = useState(false);
 
   return (
@@ -77,28 +63,8 @@ export function ReviewItem({
           <p className="text-foreground/85">{review.reply.body}</p>
         </div>
       )}
-      {(onHelpful || onReport) && (
+      {onReport && (
         <div className="flex items-center gap-2">
-          {onHelpful && (
-            <Button
-              variant="ghost"
-              size="sm"
-              disabled={voted}
-              aria-pressed={voted}
-              onClick={async () => {
-                setVoted(true);
-                setHelpful((h) => h + 1);
-                try {
-                  window.localStorage.setItem(VOTED_KEY, JSON.stringify([...votedSet(), review.id]));
-                } catch {
-                  /* private mode */
-                }
-                await onHelpful(review.id);
-              }}
-            >
-              <ThumbsUp aria-hidden /> Helpful ({helpful})
-            </Button>
-          )}
           {onReport && (
             <Button
               variant="ghost"

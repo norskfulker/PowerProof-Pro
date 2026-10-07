@@ -5,7 +5,7 @@
 
 const DOT = "•";
 
-/** "priya.sharma@gmail.com" → "pr••••@gmail.com". Keeps the domain so staff can tell accounts apart. */
+/** "name@gmail.com" → "na••••@gmail.com". Keeps the domain so staff can tell accounts apart. */
 export function maskEmail(email: string): string {
   const at = email.lastIndexOf("@");
   if (at < 1) return DOT.repeat(4);

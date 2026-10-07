@@ -5,9 +5,8 @@ import {
   Bell,
   FileCheck2,
   FileUp,
-  Globe2,
   LayoutTemplate,
-  Link2,
+  Share2,
   Mail,
   ReceiptText,
   Smartphone,
@@ -16,17 +15,15 @@ import {
 import { Button } from "@/components/ui/button";
 import { CtaBand } from "@/components/marketing/cta-band";
 import { Faq } from "@/components/marketing/faq";
-import { HeroVisual } from "@/components/marketing/hero-visual";
-import { FeeBreakdown } from "@/components/pp/fee-breakdown";
 
 const WAYS = [
-  { icon: Link2, title: "Paste a link", body: "Selling on Gumroad or Instamojo already? Paste the link. We pull in the title, price, description and images." },
-  { icon: FileUp, title: "Upload a file", body: "Drop a PDF, ZIP or anything up to 2 GB. Name it, price it, done." },
-  { icon: LayoutTemplate, title: "Build a page", body: "Pick a template or paste your own HTML. Buy buttons wire themselves." },
+  { icon: FileUp, title: "Upload a file", body: "Drop a PDF, ZIP or video. Name it, price it, done." },
+  { icon: LayoutTemplate, title: "Make the store yours", body: "Pick colours, write your story and arrange the sections. No code." },
+  { icon: Share2, title: "Share your link", body: "Put your store link in your bio, your newsletter, your WhatsApp status." },
 ];
 
 const AFTER = [
-  { icon: BadgeIndianRupee, title: "Buyer pays", body: "UPI, cards or netbanking. In their own currency." },
+  { icon: BadgeIndianRupee, title: "Buyer pays", body: "UPI, cards or netbanking." },
   { icon: FileCheck2, title: "File delivered", body: "Download page on screen, link in their inbox. Instantly." },
   { icon: ReceiptText, title: "Invoice sent", body: "GST-ready, numbered, with your HSN/SAC code." },
   { icon: Bell, title: "You hear about it", body: "A sale alert on your phone and a new row on your dashboard." },
@@ -35,7 +32,6 @@ const AFTER = [
 
 const INDIA = [
   { icon: Smartphone, title: "UPI first", body: "The way India actually pays. Cards and netbanking too." },
-  { icon: Globe2, title: "Priced for every buyer", body: "Visitors see local prices. You get rupees in your bank." },
   { icon: ReceiptText, title: "Invoices that add up", body: "GSTIN, HSN/SAC, numbering and tax lines handled." },
   { icon: Mail, title: "Receipts that look like you", body: "Your name and logo on every email a buyer gets." },
 ];
@@ -43,7 +39,7 @@ const INDIA = [
 export default function HomePage() {
   return (
     <>
-      <section className="gutter mx-auto grid grid-cols-1 max-w-[1200px] items-center gap-14 pt-10 pb-16 md:pt-16 lg:grid-cols-[1.1fr_1fr] lg:gap-10">
+      <section className="gutter mx-auto grid grid-cols-1 max-w-[1200px] items-center gap-14 pt-10 pb-16 md:pt-16 lg:gap-10">
         <div>
           <p className="eyebrow">For creators selling digital products</p>
           <h1 className="mt-4 text-[2.75rem] leading-[1.02] sm:text-5xl lg:text-[4rem]">
@@ -63,21 +59,18 @@ export default function HomePage() {
               </Link>
             </Button>
             <Button asChild size="lg" variant="secondary">
-              <Link href="/s/ananya">See a live store</Link>
+              <Link href="/how-it-works">How it works</Link>
             </Button>
           </div>
           <p className="mt-4 text-sm text-muted-foreground">
             First month free, then $20/month. <Link href="/pricing" className="font-medium text-foreground underline underline-offset-4">3% per sale</Link>.
           </p>
         </div>
-        <div className="py-6">
-          <HeroVisual />
-        </div>
       </section>
 
       <section className="gutter mx-auto max-w-[1200px]" aria-labelledby="ways">
         <p className="eyebrow">Step one is the only step</p>
-        <h2 id="ways" className="mt-3 max-w-xl text-3xl md:text-4xl">Three ways to put something up for sale.</h2>
+        <h2 id="ways" className="mt-3 max-w-xl text-3xl md:text-4xl">Three steps to put something up for sale.</h2>
         <ul className="mt-8 grid grid-cols-1 gap-4 md:grid-cols-3">
           {WAYS.map((w, i) => (
             <li key={w.title} className="rounded-card border bg-surface p-6">
@@ -144,7 +137,6 @@ export default function HomePage() {
             </Link>
           </Button>
         </div>
-        <FeeBreakdown sale={{ amount: 99900, currency: "INR" }} title="On a ₹999 sale" />
       </section>
 
       <section className="gutter mx-auto mt-24 max-w-[820px]" aria-labelledby="faq">

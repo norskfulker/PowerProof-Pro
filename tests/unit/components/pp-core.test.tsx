@@ -25,11 +25,8 @@ import { StatCard } from "@/components/pp/stat-card";
 import { StatusPill } from "@/components/pp/status-pill";
 import { StepProgress } from "@/components/pp/step-progress";
 import { SystemPage } from "@/components/pp/system-page";
-import { TemplateCard } from "@/components/pp/template-card";
-import { HtmlPasteEditor, findBuyButtons } from "@/components/pp/html-paste-editor";
-import { TEMPLATES } from "@/lib/templates";
 import { contrast } from "@/lib/color";
-import { DB, INR, LONG, ORDER, PRODUCT } from "./fixtures";
+import { DB, INR, LONG, ORDER, PRODUCT } from "@/tests/fixtures";
 
 describe("MoneyText", () => {
   it("formats and labels money", () => {
@@ -166,9 +163,9 @@ describe("CopyField", () => {
   it("copies the value", async () => {
     const writeText = vi.fn().mockResolvedValue(undefined);
     Object.defineProperty(navigator, "clipboard", { value: { writeText }, configurable: true });
-    render(<CopyField label="Link" value="https://powerproof.store/ananya" />);
+    render(<CopyField label="Link" value="https://powerproof.store/my-store" />);
     await userEvent.click(screen.getByRole("button", { name: /copy/i }));
-    expect(writeText).toHaveBeenCalledWith("https://powerproof.store/ananya");
+    expect(writeText).toHaveBeenCalledWith("https://powerproof.store/my-store");
   });
   it("renders multiline code inside a labelled scroll region", () => {
     render(<CopyField label="Embed" value={"<script>\n</script>"} multiline />);
@@ -284,7 +281,7 @@ describe("PayoutMethodCard", () => {
 
 describe("ProofReceipt", () => {
   it("shows order number and total", () => {
-    render(<ProofReceipt order={ORDER} storeName="Ananya Makes" showFees />);
+    render(<ProofReceipt order={ORDER} storeName="Fixture Store" showFees />);
     expect(screen.getByText(new RegExp(ORDER.number))).toBeInTheDocument();
   });
 });
@@ -297,10 +294,10 @@ describe("ScrollRegion", () => {
 });
 
 describe("MobileTabBar", () => {
-  it("shows Home, Products, Orders, Store and opens the menu", async () => {
+  it("shows Home, Products, Orders, Settings and opens the menu", async () => {
     const onMore = vi.fn();
     render(<MobileTabBar area="creator" onMore={onMore} />);
-    for (const t of ["Home", "Products", "Orders", "Store"]) expect(screen.getByRole("link", { name: t })).toBeInTheDocument();
+    for (const t of ["Home", "Products", "Orders", "Settings"]) expect(screen.getByRole("link", { name: t })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Home" })).toHaveAttribute("aria-current", "page");
     await userEvent.click(screen.getByRole("button", { name: /menu/i }));
     expect(onMore).toHaveBeenCalled();
@@ -311,19 +308,6 @@ describe("SystemPage", () => {
   it("renders code, title and action", () => {
     render(<SystemPage code="404" title="Not here" body="Gone." action={<button type="button">Home</button>} />);
     expect(screen.getByRole("heading", { name: "Not here" })).toBeInTheDocument();
-  });
-});
-
-describe("TemplateCard", () => {
-  it("selects a template", async () => {
-    const onSelect = vi.fn();
-    render(<TemplateCard template={TEMPLATES[0]} onSelect={onSelect} />);
-    await userEvent.click(screen.getByRole("button", { name: new RegExp(TEMPLATES[0].name) }));
-    expect(onSelect).toHaveBeenCalled();
-  });
-  it("shows the selected state", () => {
-    render(<TemplateCard template={TEMPLATES[1]} selected />);
-    expect(screen.getByRole("button", { pressed: true })).toBeInTheDocument();
   });
 });
 
@@ -344,16 +328,6 @@ describe("DataTable", () => {
     expect(screen.getByRole("alert")).toBeInTheDocument();
     rerender(<DataTable label="Orders" columns={cols} data={[]} />);
     expect(screen.getAllByText(/nothing|no /i).length).toBeGreaterThan(0);
-  });
-});
-
-describe("HtmlPasteEditor", () => {
-  it("finds buy buttons", () => {
-    expect(findBuyButtons('<button data-pp-buy="a">x</button><a data-pp-buy=\'b\'>y</a>')).toEqual(["a", "b"]);
-  });
-  it("renders the editor and preview", () => {
-    render(<HtmlPasteEditor value="<h1>Hi</h1>" onChange={() => {}} />);
-    expect(screen.getByRole("textbox")).toBeInTheDocument();
   });
 });
 

@@ -1,4 +1,4 @@
-import { Download, RotateCcw, ShieldCheck, ShoppingBag, Star } from "lucide-react";
+import { Download, RotateCcw, ShieldCheck, Star } from "lucide-react";
 import { formatNumber } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
@@ -6,13 +6,11 @@ export function HighlightsStrip({
   refundDays,
   rating,
   reviewCount,
-  totalSales,
   className,
 }: {
   refundDays: number;
   rating: number;
   reviewCount: number;
-  totalSales: number;
   className?: string;
 }) {
   const items = [
@@ -20,7 +18,6 @@ export function HighlightsStrip({
     { icon: ShieldCheck, title: "Secure payment", body: "UPI, cards, netbanking" },
     { icon: RotateCcw, title: `${refundDays}-day refunds`, body: "If it isn't right" },
     reviewCount > 0 && { icon: Star, title: `${rating.toFixed(1)} out of 5`, body: `${formatNumber(reviewCount)} verified reviews` },
-    totalSales > 0 && { icon: ShoppingBag, title: `${formatNumber(totalSales)}+ sold`, body: "Buyers in 20+ countries" },
   ].filter(Boolean) as { icon: React.ComponentType<{ className?: string }>; title: string; body: string }[];
 
   return (

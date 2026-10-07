@@ -56,7 +56,7 @@ export async function signup(name: string, email: string, password?: string): Pr
   }
   // With email confirmation on there's no session yet; the code (or link) signs them in
   if (data.session) return syncSession();
-  return { name: name.trim(), email: clean, storeId: "" };
+  return { name: name.trim(), email: clean, storeId: "", needsVerification: true };
 }
 
 export async function verifyEmail(code: string, email?: string): Promise<void> {

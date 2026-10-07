@@ -1,11 +1,10 @@
 /**
- * Where data comes from. With the Supabase URL and anon key set, `/lib/api` talks to the real
- * backend; without them (unit tests, the design review build) it keeps using the in-browser mock.
- * NEXT_PUBLIC_BACKEND=mock forces the mock even when keys are present.
+ * Where data comes from: Supabase, always. There is no fallback backend: if these are missing the
+ * app says so (see `missingEnv`) instead of showing anything made up.
  */
 export const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
 export const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "";
 
-export function isLive(): boolean {
-  return Boolean(SUPABASE_URL && SUPABASE_ANON_KEY) && process.env.NEXT_PUBLIC_BACKEND !== "mock";
+export function missingEnv(): string[] {
+  return [SUPABASE_URL ? "" : "NEXT_PUBLIC_SUPABASE_URL", SUPABASE_ANON_KEY ? "" : "NEXT_PUBLIC_SUPABASE_ANON_KEY"].filter(Boolean);
 }

@@ -3,8 +3,6 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { BundleBox } from "@/components/pp/bundle-box";
-import { CountdownTimer } from "@/components/pp/countdown-timer";
-import { OfferCard } from "@/components/pp/offer-card";
 import { ReviewItem } from "@/components/pp/review-item";
 import { Stars } from "@/components/pp/stars";
 import { StoreProductCard, type CardProduct } from "@/components/pp/store-product-card";
@@ -39,35 +37,11 @@ export function ProductGrid({ products, className }: { products: CardProduct[]; 
 
 export function OffersSection() {
   const { view, slug, currency, buy, buying } = useStorefront();
-  const { coupons, bundles, deal, products } = view;
-  if (!coupons.length && !bundles.length && !deal) return null;
-  const dealProducts = deal ? products.filter((p) => deal.productIds.length === 0 || deal.productIds.includes(p.id)) : [];
+  const { bundles } = view;
+  if (!bundles.length) return null;
   return (
     <section aria-label="Offers" className="mx-auto max-w-[1200px] px-4 md:px-6">
       <SectionHead title="Offers" />
-      {deal && (
-        <div className="mb-6 rounded-card border bg-primary p-5 text-primary-foreground md:p-6">
-          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <div>
-              <p className="font-mono text-xs tracking-[0.08em] uppercase">Limited-time deal</p>
-              <p className="mt-1 font-display text-2xl">{deal.name}: {deal.percentOff}% off</p>
-            </div>
-            <CountdownTimer endsAt={deal.endsAt} onDark />
-          </div>
-          {dealProducts.length > 0 && (
-            <ul className="mt-5 grid grid-cols-1 gap-3 text-foreground sm:grid-cols-2 lg:grid-cols-4">
-              {dealProducts.slice(0, 4).map((p) => (
-                <li key={p.id}><StoreProductCard product={p} href={`/s/${slug}/${p.slug}`} currency={currency} onBuy={() => buy({ productId: p.id })} buying={buying === p.id} /></li>
-              ))}
-            </ul>
-          )}
-        </div>
-      )}
-      {coupons.length > 0 && (
-        <ul className="mb-6 grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
-          {coupons.slice(0, 3).map((c) => <li key={c.id}><OfferCard coupon={c} /></li>)}
-        </ul>
-      )}
       {bundles.length > 0 && (
         <ul className="grid grid-cols-1 gap-3 md:grid-cols-2">
           {bundles.map((b) => (

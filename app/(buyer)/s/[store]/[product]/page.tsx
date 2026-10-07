@@ -8,8 +8,6 @@ import { BundleBox } from "@/components/pp/bundle-box";
 import { ErrorState } from "@/components/pp/empty-state";
 import { ProductImageView } from "@/components/pp/product-cover";
 import { StickyBuyBar } from "@/components/pp/sticky-buy-bar";
-import { HtmlPageFrame } from "@/components/buyer/html-page-frame";
-import { PageRenderer } from "@/components/pages/page-renderer";
 import { ProductBuyBox } from "@/components/storefront/product-buy-box";
 import { ProductGallery } from "@/components/storefront/product-gallery";
 import { ProductQuestions } from "@/components/storefront/product-questions";
@@ -22,7 +20,6 @@ import { formatBytes, localPrice } from "@/lib/money";
 
 const ANCHORS = [
   ["description", "Description"],
-  ["included", "What's included"],
   ["preview", "Preview"],
   ["reviews", "Reviews"],
   ["questions", "Questions"],
@@ -55,7 +52,7 @@ export default function ProductPage({ params }: { params: Promise<{ store: strin
     );
   }
 
-  const { product, reviews, questions, related, bundles, page } = data;
+  const { product, reviews, questions, related, bundles } = data;
   const creator = view.design.about.name;
   const hasVideo = product.kind === "course" || product.kind === "preset";
   const onBuy = () => buy({ productId: product.id });
@@ -89,18 +86,9 @@ export default function ProductPage({ params }: { params: Promise<{ store: strin
         <section id="description" aria-labelledby="h-desc" className="scroll-mt-32">
           <h2 id="h-desc" className="mb-4 text-2xl">Description</h2>
           <p className="text-lg leading-relaxed whitespace-pre-line text-foreground/90">{product.description}</p>
-          {page && (
-            <div className="mt-6 overflow-hidden rounded-card border">
-              {page.mode === "html" && page.html ? (
-                <HtmlPageFrame html={page.html} title={product.title} onBuy={(id) => buy({ productId: id })} />
-              ) : (
-                <PageRenderer blocks={page.blocks} storeName={view.store.name} product={{ title: product.title, price: localPrice(product.info.price, currency), image: product.images[0] }} onBuy={onBuy} />
-              )}
-            </div>
-          )}
         </section>
 
-        <section id="included" aria-labelledby="h-inc" className="scroll-mt-32">
+        {product.files.length > 0 && <section id="included" aria-labelledby="h-inc" className="scroll-mt-32">
           <h2 id="h-inc" className="mb-4 text-2xl">What&apos;s included</h2>
           <ul className="divide-y rounded-card border bg-surface">
             {product.files.map((f) => (
@@ -113,7 +101,7 @@ export default function ProductPage({ params }: { params: Promise<{ store: strin
             ))}
           </ul>
           <p className="mt-2 text-sm text-muted-foreground">Delivered instantly on screen and by email. Updates are free.</p>
-        </section>
+        </section>}
 
         <section id="preview" aria-labelledby="h-prev" className="scroll-mt-32">
           <h2 id="h-prev" className="mb-4 text-2xl">Preview</h2>
@@ -122,7 +110,7 @@ export default function ProductPage({ params }: { params: Promise<{ store: strin
               {product.images.slice(1).map((img) => <li key={img.id}><ProductImageView image={img} size="sm" /></li>)}
             </ul>
           ) : (
-            <p className="text-muted-foreground">The creator hasn&apos;t added sample pages yet.</p>
+            <p className="text-muted-foreground">No preview images yet.</p>
           )}
         </section>
 

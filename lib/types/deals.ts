@@ -1,4 +1,7 @@
+import type { DealResult } from "../pricing/deals";
 import type { ISODate, Money } from "./money";
+import type { Product } from "./product";
+import type { PriceInfo, RatingSummary } from "./storefront";
 
 /**
  * Deal paths (Part 4B): rules that reward buyers for adding to their order at checkout.
@@ -40,5 +43,24 @@ export type DealRule = DealRuleSpec & {
   startsAt?: ISODate;
   endsAt?: ISODate;
   createdAt: ISODate;
-  stats: DealRuleStats;
+  /** Not tracked yet: screens show "No data yet" */
+  stats?: DealRuleStats;
 };
+
+/** A product shown in the checkout deal panel, with its buyer-facing price and rating. */
+export interface DealCardProduct extends Product {
+  info: PriceInfo;
+  rating: RatingSummary;
+}
+
+/** What the checkout deal panel shows: offers, pending gift choices and the products they mention. */
+export interface CheckoutDeals {
+  /** Offers, best first. The panel shows three and a "See more". */
+  offers: DealResult["offers"];
+  pendingChoices: string[];
+  saving: Money;
+  rules: DealRule[];
+  /** Every product an offer, gift picker or buyer add mentions, with buyer-facing price info */
+  products: DealCardProduct[];
+  skipped: boolean;
+}

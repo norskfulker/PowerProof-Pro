@@ -11,8 +11,12 @@ const MOVED: [from: string, to: string][] = [
   ["/products", "/catalog/products"],
   ["/products/:path*", "/catalog/products/:path*"],
   ["/media", "/catalog/media"],
-  ["/pages", "/catalog/sales-pages"],
-  ["/pages/:path*", "/catalog/sales-pages/:path*"],
+  ["/pages", "/store/current/design/pages"],
+  // The old Design tabs now live under Design › Base design (Advanced)
+  ["/store/:id/design/theme", "/store/:id/design/base"],
+  ["/store/:id/design/sections", "/store/:id/design/base"],
+  ["/store/:id/design/backgrounds", "/store/:id/design/base"],
+  ["/store/:id/design/content", "/store/:id/design/base"],
   ["/store/collections", "/catalog/collections"],
   // Sales
   ["/orders", "/sales/orders"],
@@ -20,7 +24,8 @@ const MOVED: [from: string, to: string][] = [
   ["/customers", "/sales/customers"],
   ["/customers/:path*", "/sales/customers/:path*"],
   ["/payouts", "/sales/payouts/balance"],
-  ["/analytics", "/sales/analytics"],
+  ["/analytics", "/dashboard"],
+  ["/sales/analytics", "/dashboard"],
   // Tools
   ["/images", "/tools/ai-images"],
   ["/integrations", "/tools/integrations"],

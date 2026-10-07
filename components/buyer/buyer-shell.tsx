@@ -2,30 +2,11 @@
 
 import Link from "next/link";
 import { Download, RotateCcw, ShieldCheck } from "lucide-react";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SkipLink } from "@/components/pp/app-shell";
 import { LogoMark } from "@/components/pp/logo";
-import { CURRENCIES } from "@/lib/money";
-import type { CurrencyCode, Store, StoreTheme } from "@/lib/types";
+import type { Store, StoreTheme } from "@/lib/types";
 import { StoreThemeScope } from "@/components/pp/store-theme";
 import { cn } from "@/lib/utils";
-
-export function CurrencyPicker({ value, onChange }: { value: CurrencyCode; onChange: (c: CurrencyCode) => void }) {
-  return (
-    <Select value={value} onValueChange={(v) => onChange(v as CurrencyCode)}>
-      <SelectTrigger size="sm" className="w-[104px] font-mono text-xs pointer-coarse:h-11" aria-label="Show prices in">
-        <SelectValue />
-      </SelectTrigger>
-      <SelectContent align="end">
-        {(Object.keys(CURRENCIES) as CurrencyCode[]).map((c) => (
-          <SelectItem key={c} value={c}>
-            <span className="font-mono text-xs">{c}</span> <span className="text-muted-foreground">{CURRENCIES[c].symbol}</span>
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
-  );
-}
 
 export function TrustBar({ refundDays, className }: { refundDays?: number; className?: string }) {
   const items = [
@@ -48,8 +29,6 @@ export function TrustBar({ refundDays, className }: { refundDays?: number; class
 /** Buyer pages: store-branded header, no creator chrome, help links on every page. */
 export function BuyerShell({
   store,
-  currency,
-  onCurrency,
   children,
   narrow,
   theme,
@@ -58,8 +37,6 @@ export function BuyerShell({
   /** A fixed bar sits at the bottom on phones (checkout Pay bar): reserve room for it */
   bottomBar?: boolean;
   store?: Store;
-  currency?: CurrencyCode;
-  onCurrency?: (c: CurrencyCode) => void;
   children: React.ReactNode;
   narrow?: boolean;
   /** The store's theme, so checkout and order pages match the store. */
@@ -79,11 +56,6 @@ export function BuyerShell({
             </Link>
           ) : (
             <span className="h-9 w-40 animate-pulse rounded-control bg-muted" aria-hidden />
-          )}
-          {currency && onCurrency && (
-            <div className="ml-auto">
-              <CurrencyPicker value={currency} onChange={onCurrency} />
-            </div>
           )}
         </div>
       </header>
@@ -107,11 +79,3 @@ export function BuyerShell({
   return theme ? <StoreThemeScope theme={theme}>{body}</StoreThemeScope> : body;
 }
 
-export function ConversionNote({ currency, className }: { currency: CurrencyCode; className?: string }) {
-  if (currency === "INR") return null;
-  return (
-    <p className={cn("text-xs text-muted-foreground", className)}>
-      Prices in {CURRENCIES[currency].name}s are converted from Indian rupees at today&apos;s rate. You&apos;re charged in {currency}; your bank may add its own fee.
-    </p>
-  );
-}

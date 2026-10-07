@@ -56,7 +56,7 @@ export function ratingSummary(reviews: Review[]): RatingSummary {
   return { average, count, bars };
 }
 
-/** "Priya Sharma" → "Priya S." */
+/** A full name → first name and last initial, like "Asha K." */
 export function publicName(full: string): string {
   const parts = full.trim().split(/\s+/);
   if (parts.length < 2) return parts[0] || "Buyer";

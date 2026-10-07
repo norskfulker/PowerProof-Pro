@@ -28,10 +28,10 @@ export const PALETTES: Palette[] = [
   { id: "graphite", name: "Graphite", background: "#F5F5F4", surfaceSunken: "#EDEDEB", muted: "#EDEDEB", primary: "#1F1F1F", primaryHover: "#363636", primarySoft: "#E8E8E6", accent: "#E8613F", dark: { background: "#111111", surface: "#181818", surfaceSunken: "#141414", muted: "#212121", primary: "#A3A3A3", primaryHover: "#B5B5B5", primarySoft: "#292929" } },
 ];
 
-export const FONT_PAIRS: { id: FontPairId; name: string; display: string; body: string; sample: string }[] = [
-  { id: "modern", name: "Modern", display: "var(--font-bricolage)", body: "var(--font-hanken)", sample: "Bricolage Grotesque + Hanken Grotesk" },
-  { id: "editorial", name: "Editorial", display: "var(--font-fraunces)", body: "var(--font-hanken)", sample: "Fraunces + Hanken Grotesk" },
-  { id: "clean", name: "Clean", display: "var(--font-space)", body: "var(--font-plex-sans)", sample: "Space Grotesk + IBM Plex Sans" },
+export const FONT_PAIRS: { id: FontPairId; name: string; display: string; body: string; pair: string }[] = [
+  { id: "modern", name: "Modern", display: "var(--font-bricolage)", body: "var(--font-hanken)", pair: "Bricolage Grotesque + Hanken Grotesk" },
+  { id: "editorial", name: "Editorial", display: "var(--font-fraunces)", body: "var(--font-hanken)", pair: "Fraunces + Hanken Grotesk" },
+  { id: "clean", name: "Clean", display: "var(--font-space)", body: "var(--font-plex-sans)", pair: "Space Grotesk + IBM Plex Sans" },
 ];
 
 export const HERO_STYLES: { id: HeroStyle; name: string; description: string }[] = [
@@ -65,6 +65,32 @@ export function resolveStoreMode(theme: StoreTheme, siteMode: "light" | "dark", 
 
 /** CSS variables a theme sets on the store's root element, in light or dark. */
 export function themeVars(theme: StoreTheme, mode: "light" | "dark" = "light"): Record<string, string> {
+  return { ...paletteVars(theme, mode), ...brandVars(theme, mode), ...CORNERS[theme.corners ?? "soft"] };
+}
+
+const CORNERS: Record<NonNullable<StoreTheme["corners"]>, Record<string, string>> = {
+  sharp: { "--radius-control": "2px", "--radius-card": "4px", "--radius-media": "2px" },
+  soft: {},
+  round: { "--radius-control": "999px", "--radius-card": "24px", "--radius-media": "20px" },
+};
+
+/** The creator's own brand colour becomes the store's primary: buttons, links and focus rings. */
+function brandVars(theme: StoreTheme, mode: "light" | "dark"): Record<string, string> {
+  const brand = theme.brand;
+  if (!brand || !/^#[0-9a-f]{6}$/i.test(brand)) return {};
+  // Dark mode needs a lighter brand to stay readable on dark surfaces
+  const primary = mode === "dark" ? mixHex(brand, "#FFFFFF", 0.4) : brand;
+  return {
+    "--primary": primary,
+    "--primary-hover": `color-mix(in oklab, ${primary} 86%, ${mode === "dark" ? "white" : "black"})`,
+    "--primary-soft": mode === "dark" ? `color-mix(in oklab, ${primary} 22%, black)` : `color-mix(in oklab, ${primary} 12%, white)`,
+    "--primary-foreground": readableOn(primary),
+    "--ring": primary,
+    "--chart-1": primary,
+  };
+}
+
+function paletteVars(theme: StoreTheme, mode: "light" | "dark"): Record<string, string> {
   const p = PALETTES.find((x) => x.id === theme.palette) ?? PALETTES[0];
   if (mode === "dark") return darkVars(theme, p);
   const f = FONT_PAIRS.find((x) => x.id === theme.fonts) ?? FONT_PAIRS[0];

@@ -15,7 +15,7 @@ export function StatCard({
   label: string;
   value?: React.ReactNode;
   /** Percent change versus the previous period. */
-  delta?: number;
+  delta?: number | null;
   hint?: React.ReactNode;
   /** Brass key number: use once per area. */
   emphasis?: boolean;
@@ -43,7 +43,7 @@ export function StatCard({
             {value}
           </p>
           <div className="mt-1.5 flex min-h-5 items-center gap-2 text-sm">
-            {delta !== undefined && (
+            {delta != null && (
               <span className={cn("inline-flex items-center gap-0.5 font-semibold", up ? "text-success" : "text-danger")}>
                 {up ? <ArrowUpRight className="size-4" aria-hidden /> : <ArrowDownRight className="size-4" aria-hidden />}
                 <span className="sr-only">{up ? "Up" : "Down"}</span>
@@ -57,4 +57,9 @@ export function StatCard({
       {children}
     </div>
   );
+}
+
+/** The value for a figure that has no source yet. Never replace it with an estimate. */
+export function NoData() {
+  return <span className="text-muted-foreground">No data yet</span>;
 }

@@ -1,9 +1,6 @@
-import { db, getSessionRaw, notifyChange } from "../mock/db";
-import { readProgress, writeProgress, type ProgressFlags } from "../mock/progress";
-import { PLAN_LIMITS } from "../plans";
-import { ApiError, call } from "./client";
-import { ownedScopes } from "./scope";
-import { isLive } from "../supabase/env";
+import { ApiError } from "./client";
+import { readProgress, writeProgress, type ProgressFlags } from "./live/flags";
+import { notifyChange } from "./live/local";
 import { liveFacts } from "./live/progress";
 
 /**
@@ -12,7 +9,7 @@ import { liveFacts } from "./live/progress";
  * the data can't show (email verified, link shared). Optional steps can be skipped.
  */
 
-export type StepId = "verify_email" | "create_store" | "business" | "payout" | "first_product" | "customize" | "publish" | "share" | "first_sale" | "analytics";
+export type StepId = "verify_email" | "collections" | "business" | "payout" | "first_product" | "customize" | "publish" | "share" | "first_sale" | "analytics";
 export type StepState = "not_started" | "in_progress" | "done" | "skipped";
 
 export interface ChecklistStep {
@@ -46,16 +43,17 @@ export interface Checklist {
   coachSeen: string[];
 }
 
+/** In the order of the business flow: Collections, Products, Sales, Orders, Payouts, then the rest. */
 const DEF: Omit<ChecklistStep, "state" | "href" | "detail" | "n">[] = [
   { id: "verify_email", title: "Verify your email", why: "So buyers' receipts and your payouts reach you.", optional: false, coach: "verify-code", coachText: "Type the 6-digit code from the email we sent." },
-  { id: "create_store", title: "Create your store", why: "Pick a name and the link buyers will visit.", optional: false, coach: "store-name", coachText: "Check your store name and link, then save." },
-  { id: "business", title: "Add business details", why: "Needed for GST invoices. You can do this later.", optional: true, coach: "company-form", coachText: "Fill in your legal name and address. Skip if you're not registered yet." },
-  { id: "payout", title: "Add a payout method", why: "Where your money goes.", optional: false, coach: "add-payout-method", coachText: "Add the bank account (or UPI ID) to send your earnings to." },
-  { id: "first_product", title: "Add your first product", why: "The thing you sell.", optional: false, coach: "new-product", coachText: "Pick how you want to add it: upload files, a link, or a page." },
-  { id: "customize", title: "Customize your store", why: "Your hero, colours and About page.", optional: false, coach: "design-hero", coachText: "Change the headline and colours, then publish." },
+  { id: "collections", title: "Group products into collections", why: "Optional. Collections just help organize products; you can sell without one.", optional: true, coach: "new-collection", coachText: "Name a collection and pick a colour or image for its tile." },
+  { id: "first_product", title: "Add your first product", why: "The thing you sell.", optional: false, coach: "new-product", coachText: "Upload the file, then name it and set a price." },
   { id: "publish", title: "Publish your store", why: "Make it visible to buyers.", optional: false, coach: "publish-store", coachText: "Publish to put your store live." },
   { id: "share", title: "Share your link", why: "Buyers can't find a store nobody links to.", optional: false, coach: "share-link", coachText: "Copy your store link and post it where your audience is." },
-  { id: "first_sale", title: "Get your first sale", why: "It'll show up here the moment it happens.", optional: false, coach: "share-link", coachText: "Share your link again, or run a launch offer." },
+  { id: "first_sale", title: "Get your first sale", why: "It'll show up under Sales › Orders the moment it happens.", optional: false, coach: "share-link", coachText: "Share your link again, or run a launch offer." },
+  { id: "payout", title: "Add a payout method", why: "Where your money goes.", optional: false, coach: "add-payout-method", coachText: "Add the bank account (or UPI ID) to send your earnings to." },
+  { id: "customize", title: "Customize your store", why: "Your colour, fonts and pages.", optional: false, coach: "design-hero", coachText: "Pick your brand colour and fonts, then build a page." },
+  { id: "business", title: "Add business details", why: "Needed for GST invoices. You can do this later.", optional: true, coach: "company-form", coachText: "Fill in your legal name and address. Skip if you're not registered yet." },
   { id: "analytics", title: "Connect analytics", why: "See where buyers come from. Optional.", optional: true, coach: "integration-google-analytics", coachText: "Paste your Google Analytics ID to start tracking." },
 ];
 
@@ -64,6 +62,7 @@ interface Facts {
   storeName: string;
   onboarded: boolean;
   anyProduct: boolean;
+  anyCollection: boolean;
   draftOnly: boolean;
   paid: boolean;
   analytics: boolean;
@@ -73,32 +72,7 @@ interface Facts {
   email: string;
 }
 
-function mockFacts(): Facts {
-  const d = db();
-  const all = ownedScopes();
-  const company = d.company;
-  const anyProduct = all.some((x) => x.products.length > 0);
-  const tier = d.plan.tier ?? "pro";
-  return {
-    storeName: d.store.name,
-    onboarded: d.store.onboarded,
-    anyProduct,
-    draftOnly: anyProduct && !all.some((x) => x.products.some((p) => p.status === "published")),
-    paid: all.some((x) => x.orders.some((o) => o.status === "paid" || o.status === "refund_requested" || o.status === "refunded")),
-    analytics: d.integrations.some((i) => i.connected),
-    businessFields: [company.legalName, company.address1, company.city, company.pincode].filter((v) => v?.trim()).length,
-    payout: d.payoutMethods.length > 0,
-    productsFull: PLAN_LIMITS[tier].products !== null && all.reduce((t, x) => t + x.products.length, 0) >= (PLAN_LIMITS[tier].products ?? Infinity),
-    email: getSessionRaw()?.email ?? d.store.ownerEmail,
-  };
-}
-
-async function facts(): Promise<Facts> {
-  if (!isLive()) return mockFacts();
-  const f = await liveFacts();
-  // Analytics IDs are a browser-only feature for now
-  return { ...f, analytics: db().integrations.some((i) => i.connected) };
-}
+const facts = (): Promise<Facts> => liveFacts();
 
 function build(flags: ProgressFlags, f: Facts): Checklist {
   const { anyProduct, draftOnly, paid, analytics, businessFields } = f;
@@ -110,8 +84,8 @@ function build(flags: ProgressFlags, f: Facts): Checklist {
     switch (id) {
       case "verify_email":
         return [flags.emailVerified ? "done" : "not_started"];
-      case "create_store":
-        return [flags.storeConfirmed || f.onboarded ? "done" : f.storeName ? "in_progress" : "not_started"];
+      case "collections":
+        return [f.anyCollection ? "done" : "not_started"];
       case "business":
         return [businessFields >= 3 ? "done" : businessFields > 0 ? "in_progress" : "not_started"];
       case "payout":
@@ -134,20 +108,20 @@ function build(flags: ProgressFlags, f: Facts): Checklist {
   const email = f.email;
   const href: Record<StepId, string> = {
     verify_email: `/verify-email?email=${encodeURIComponent(email)}`,
-    create_store: "/store/current/settings",
+    collections: "/catalog/collections",
     business: "/settings/company",
     payout: "/sales/payouts/methods",
     first_product: "/catalog/products/new",
-    customize: "/store/current/design/backgrounds",
-    publish: "/store/current/design/theme",
+    customize: "/store/current/design/base",
+    publish: "/store/current/design/base",
     share: "/dashboard",
     first_sale: "/dashboard",
     analytics: "/tools/integrations",
   };
   const productsFull = f.productsFull;
 
-  // Live: analytics integrations are coming soon, so that optional step isn't offered yet
-  const defs = isLive() ? DEF.filter((d) => d.id !== "analytics") : DEF;
+  // Analytics integrations are coming soon, so that optional step isn't offered yet
+  const defs = DEF.filter((d) => d.id !== "analytics");
   const steps: ChecklistStep[] = defs.map((def, i) => {
     const [st, detail] = state(def.id);
     return { ...def, n: i + 1, state: st, detail, href: `${href[def.id]}${href[def.id].includes("?") ? "&" : "?"}coach=${def.id}`, needsUpgrade: def.id === "first_product" && st !== "done" && productsFull ? true : undefined };
@@ -166,8 +140,8 @@ function build(flags: ProgressFlags, f: Facts): Checklist {
   };
 }
 
-export function getChecklist(): Promise<Checklist> {
-  return call(async () => build(readProgress(), await facts()), { fast: true });
+export async function getChecklist(): Promise<Checklist> {
+  return build(readProgress(), await facts());
 }
 
 /** Records something the data can't show by itself, then tells every screen to refresh. */
@@ -176,31 +150,27 @@ export function recordProgress(patch: Partial<ProgressFlags> | ((p: ProgressFlag
   notifyChange();
 }
 
-export function skipStep(id: StepId, skip = true): Promise<Checklist> {
-  return call(async () => {
-    const def = DEF.find((x) => x.id === id);
-    if (!def?.optional) throw new ApiError("Only optional steps can be skipped.", "validation");
-    recordProgress((p) => ({ skipped: skip ? [...new Set([...p.skipped, id])] : p.skipped.filter((x) => x !== id) }));
-    return build(readProgress(), await facts());
-  }, { fast: true });
+export async function skipStep(id: StepId, skip = true): Promise<Checklist> {
+  const def = DEF.find((x) => x.id === id);
+  if (!def?.optional) throw new ApiError("Only optional steps can be skipped.", "validation");
+  recordProgress((p) => ({ skipped: skip ? [...new Set([...p.skipped, id])] : p.skipped.filter((x) => x !== id) }));
+  return build(readProgress(), await facts());
 }
 
-export function dismissChecklist(dismissed = true): Promise<Checklist> {
-  return call(async () => {
-    const f = await facts();
-    const now = build(readProgress(), f);
-    if (dismissed && !now.complete) throw new ApiError("Finish the required steps first. Optional ones can be skipped.", "conflict");
-    recordProgress({ dismissed });
-    return build(readProgress(), f);
-  }, { fast: true });
+export async function dismissChecklist(dismissed = true): Promise<Checklist> {
+  const f = await facts();
+  const now = build(readProgress(), f);
+  if (dismissed && !now.complete) throw new ApiError("Finish the required steps first. Optional ones can be skipped.", "conflict");
+  recordProgress({ dismissed });
+  return build(readProgress(), f);
 }
 
-export function markWelcomed(): Promise<void> {
-  return call(() => recordProgress({ welcomed: true }), { fast: true });
+export async function markWelcomed(): Promise<void> {
+  recordProgress({ welcomed: true });
 }
 
-export function markCoachSeen(id: string, skipTour = false): Promise<void> {
-  return call(() => recordProgress((p) => ({ coachSeen: [...new Set([...p.coachSeen, id])], tourSkipped: p.tourSkipped || skipTour })), { fast: true });
+export async function markCoachSeen(id: string, skipTour = false): Promise<void> {
+  recordProgress((p) => ({ coachSeen: [...new Set([...p.coachSeen, id])], tourSkipped: p.tourSkipped || skipTour }));
 }
 
 /** Called wherever the creator copies or shares their store link. */

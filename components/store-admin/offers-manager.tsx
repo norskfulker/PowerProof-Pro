@@ -13,9 +13,7 @@ import { useDirtyForm } from "@/hooks/use-dirty-form";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ConfirmDialog } from "@/components/pp/confirm-dialog";
-import { CountdownTimer } from "@/components/pp/countdown-timer";
 import { EmptyState, ErrorState } from "@/components/pp/empty-state";
-import { isLive } from "@/lib/supabase/env";
 import { MoneyText } from "@/components/pp/money-text";
 import { couponLabel } from "@/components/pp/offer-card";
 import { PageHeader } from "@/components/pp/page-header";
@@ -24,7 +22,7 @@ import { BundleEditor, CouponEditor, DealEditor, type BundleDraft, type CouponDr
 import { useApi } from "@/hooks/use-api";
 import { deleteOffer, getOffers, getProducts, saveBundle, saveCoupon, saveDeal, type Offers } from "@/lib/api";
 import { formatDate } from "@/lib/format";
-import { bundleTotals, isDealLive } from "@/lib/pricing";
+import { bundleTotals } from "@/lib/pricing";
 
 type Editing = { kind: "coupon"; d: CouponDraft } | { kind: "bundle"; d: BundleDraft } | { kind: "deal"; d: DealDraft };
 
@@ -85,7 +83,6 @@ export function OffersManager({ section, storeId, tabs = true }: { section: Offe
   const start = (e: Editing) => { setEditing(e); setOriginal(e); };
   const newCoupon = (): Editing => ({ kind: "coupon", d: { code: "", kind: "percent", value: 10, scope: "store", productIds: [], active: true } });
   const newBundle = (): Editing => ({ kind: "bundle", d: { name: "", productIds: [], pricing: { kind: "percent", percent: 30 }, active: true } });
-  const newDeal = (): Editing => ({ kind: "deal", d: { name: "", productIds: [], percentOff: 25, startsAt: new Date(now).toISOString(), endsAt: new Date(now + 48 * 3600000).toISOString() } });
 
   return (
     <>
@@ -109,7 +106,7 @@ export function OffersManager({ section, storeId, tabs = true }: { section: Offe
           </TabsList>
           <TabsContent value="coupons" className="flex flex-col gap-3 pt-4">
             <Button className="self-start" onClick={() => start(newCoupon())}><Plus aria-hidden /> New coupon</Button>
-            {data.coupons.length === 0 ? <EmptyState compact icon={Ticket} title="No coupons yet." body="Make one for your newsletter or a launch." /> : (
+            {data.coupons.length === 0 ? <EmptyState compact icon={Ticket} title="No coupons yet." body="Make one for your newsletter or a launch." action={<Button onClick={() => start(newCoupon())}><Plus aria-hidden /> New coupon</Button>} /> : (
               <ul className="flex flex-col gap-2">
                 {data.coupons.map((c) => {
                   const expired = !!c.expiresAt && Date.parse(c.expiresAt) < now;
@@ -126,7 +123,7 @@ export function OffersManager({ section, storeId, tabs = true }: { section: Offe
           </TabsContent>
           <TabsContent value="bundles" className="flex flex-col gap-3 pt-4">
             <Button className="self-start" onClick={() => start(newBundle())}><Plus aria-hidden /> New bundle</Button>
-            {data.bundles.length === 0 ? <EmptyState compact icon={Layers} title="No bundles yet." body="Pair products people buy together and price them as one." /> : (
+            {data.bundles.length === 0 ? <EmptyState compact icon={Layers} title="No bundles yet." body="Pair products people buy together and price them as one." action={<Button onClick={() => start(newBundle())}><Plus aria-hidden /> New bundle</Button>} /> : (
               <ul className="flex flex-col gap-2">
                 {data.bundles.map((b) => {
                   const t = bundleTotals(b, ps, data.deals);
@@ -141,27 +138,7 @@ export function OffersManager({ section, storeId, tabs = true }: { section: Offe
             )}
           </TabsContent>
           <TabsContent value="deals" className="flex flex-col gap-3 pt-4">
-            {isLive() ? (
-              // No table for timed store-wide sales yet; don't keep them in the browser
-              <EmptyState compact icon={Timer} title="Limited-time deals are coming soon." body="For now, make a deal path with an end date: it shows a countdown at checkout." />
-            ) : (
-            <>
-            <Button className="self-start" onClick={() => start(newDeal())}><Plus aria-hidden /> New deal</Button>
-            {data.deals.length === 0 ? <EmptyState compact icon={Timer} title="No deals yet." body="A deal with a countdown is the quickest way to wake up a quiet week." /> : (
-              <ul className="flex flex-col gap-2">
-                {data.deals.map((d) => {
-                  const live = isDealLive(d, now);
-                  return (
-                    <Row key={d.id} icon={Timer} onEdit={() => start({ kind: "deal", d: { ...d } })} onDelete={() => setToDelete({ kind: "deal", id: d.id, name: d.name })}
-                      title={`${d.name}: ${d.percentOff}% off`}
-                      meta={<>{d.productIds.length ? `${d.productIds.length} products` : "Everything"} · {formatDate(d.startsAt, { time: true })} to {formatDate(d.endsAt, { time: true })}</>}
-                      status={live ? <span className="flex items-center gap-2 text-sm"><StatusPill status="live" /><CountdownTimer endsAt={d.endsAt} compact /></span> : <StatusPill status={Date.parse(d.endsAt) < now ? "ended" : "scheduled"} label={Date.parse(d.endsAt) < now ? "Ended" : "Scheduled"} tone={Date.parse(d.endsAt) < now ? "neutral" : "info"} />} />
-                  );
-                })}
-              </ul>
-            )}
-            </>
-            )}
+            <EmptyState compact icon={Timer} title="Limited-time deals are coming soon." body="For now, make a deal path with an end date: it shows a countdown at checkout." />
           </TabsContent>
         </Tabs>
       )}

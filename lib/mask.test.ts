@@ -3,14 +3,14 @@ import { maskEmail, maskPhone, phoneDigits } from "./mask";
 
 describe("maskEmail", () => {
   it("keeps two characters and the domain", () => {
-    expect(maskEmail("priya.sharma@gmail.com")).toBe("pr••••@gmail.com");
+    expect(maskEmail("name.surname@gmail.com")).toBe("na••••@gmail.com");
   });
   it("handles very short local parts and junk", () => {
     expect(maskEmail("a@b.co")).toBe("a••••@b.co");
     expect(maskEmail("not-an-email")).toBe("••••");
   });
   it("never leaks the full local part", () => {
-    const long = "support.refunds.and.everything.else@example.com";
+    const long = "support.refunds.and.everything.else@test.invalid";
     expect(maskEmail(long)).not.toContain("refunds");
   });
 });

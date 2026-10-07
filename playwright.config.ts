@@ -1,9 +1,16 @@
 import { defineConfig, devices, type Project } from "@playwright/test";
+import { loadTestEnv } from "./tests/e2e/support/env";
+import { STATE } from "./tests/e2e/support/manifest";
+
+// Real database, two test creators: keys come from .env.local and .env.test.local
+loadTestEnv();
 
 /**
  * Screen matrix from QA Part 5. Layout checks run on every size in all three engines;
  * flows, accessibility and visual snapshots run on a representative subset.
- * Needs a production build: `npm run build` first (test:all does it).
+ * Needs a production build: `npm run build` first (test:all does it), and the two test creators
+ * in .env.test.local. Global setup creates creator A's data against the real database and signs
+ * both creators in; global teardown deletes what it made.
  */
 const PORT = 3100;
 
@@ -82,8 +89,18 @@ const darkProjects: Project[] = lightProjects.map((p) => ({
   metadata: { ...p.metadata, theme: "dark" },
 }));
 
+/**
+ * Onboarding empties creator B's account (no store) while it runs, so it can't share a run with
+ * the specs that use B. `npm run test:onboarding` turns it on; the normal projects never match it.
+ */
+const onboardingProjects: Project[] = process.env.E2E_ONBOARDING
+  ? [{ name: "onboarding", grep: /@onboarding/, workers: 1, use: { ...devices["Desktop Chrome"], viewport: { width: 1280, height: 720 }, storageState: STATE.B } }]
+  : [];
+
 export default defineConfig({
   testDir: "./tests/e2e",
+  globalSetup: "./tests/e2e/global-setup.ts",
+  globalTeardown: "./tests/e2e/global-teardown.ts",
   outputDir: "./test-results",
   // Baselines are per platform: fonts rasterise differently on Windows, macOS and Linux
   snapshotPathTemplate: "{testDir}/__screenshots__/{projectName}/{arg}-{platform}{ext}",
@@ -96,6 +113,8 @@ export default defineConfig({
   reporter: [["list"], ["json", { outputFile: "test-results/results.json" }], ["html", { open: "never", outputFolder: "playwright-report" }]],
   use: {
     baseURL: `http://localhost:${PORT}`,
+    // Creator A (the one with data) unless a spec asks for B or for no one
+    storageState: STATE.A,
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
   },
@@ -105,5 +124,5 @@ export default defineConfig({
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
   },
-  projects: [...lightProjects, ...darkProjects],
+  projects: process.env.E2E_ONBOARDING ? onboardingProjects : [...lightProjects, ...darkProjects],
 });

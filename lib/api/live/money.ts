@@ -76,7 +76,12 @@ export async function addBankAccount(input: BankInput): Promise<PayoutMethod> {
 }
 
 export async function requestPayout(amount: Money, methodId: string): Promise<Payout> {
-  void amount;
-  void methodId;
-  throw new ApiError("Withdrawals open once payouts are connected. Your balance is safe and keeps adding up.", "validation");
+  if (!/^[0-9a-f-]{36}$/i.test(methodId)) throw new ApiError("That payout method isn't available yet. Pick your bank account.", "validation");
+  const { data, error } = await sb().rpc("request_payout", { p_store: await activeStoreId(), p_method: methodId, p_amount: Math.round(amount.amount) });
+  if (error) {
+    // The function explains why in plain words (not enough balance, below the minimum, unverified account)
+    if (error.code === "P0001" || error.code === "22023") throw new ApiError(error.message, "validation");
+    fail(error);
+  }
+  return getPayout(data as string);
 }

@@ -47,7 +47,7 @@ export interface PricedLine {
 export interface DealOffer {
   ruleId: string;
   ruleName: string;
-  /** What the buyer sees: "Add Monsoon Moods and save ₹450" is built by the UI from these fields */
+  /** What the buyer sees: "Add this product and save ₹450" is built by the UI from these fields */
   kind: "add" | "choose_gift" | "progress";
   addProductIds: string[];
   /** Extra saving if the buyer accepts, in store currency */

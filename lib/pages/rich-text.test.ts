@@ -3,13 +3,13 @@ import { paragraphs, parseInline } from "./rich-text";
 
 describe("rich text", () => {
   it("parses bold, italic and links", () => {
-    expect(parseInline("Get **two** for _one_ at [the store](/s/ananya).")).toEqual([
+    expect(parseInline("Get **two** for _one_ at [the store](/s/my-store).")).toEqual([
       { kind: "text", text: "Get " },
       { kind: "bold", text: "two" },
       { kind: "text", text: " for " },
       { kind: "italic", text: "one" },
       { kind: "text", text: " at " },
-      { kind: "link", text: "the store", href: "/s/ananya" },
+      { kind: "link", text: "the store", href: "/s/my-store" },
       { kind: "text", text: "." },
     ]);
   });

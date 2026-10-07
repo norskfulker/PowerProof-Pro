@@ -10,13 +10,14 @@ import { SaveBar } from "@/components/save/save-bar";
 import { UnsavedChangesProvider } from "@/components/save/unsaved-guard";
 import { sameValues, useDirtyForm } from "@/hooks/use-dirty-form";
 import type { ChecklistStep } from "@/lib/api";
-import { PLAN_LIMITS, planComparison } from "@/lib/plans";
+import { planComparison } from "@/lib/plans";
+import { TEST_PLAN_LIMITS } from "@/tests/fixtures";
 import type { TileBackground } from "@/lib/types";
 
-const PLAN_COMPARISON = planComparison(PLAN_LIMITS);
+const PLAN_COMPARISON = planComparison(TEST_PLAN_LIMITS);
 
 function Harness({ onSave }: { onSave: (v: { name: string }) => Promise<void> }) {
-  const [saved, setSaved] = useState({ name: "Inkwell" });
+  const [saved, setSaved] = useState({ name: "Fixture name" });
   const [value, setValue] = useState(saved);
   const bar = useDirtyForm({
     value,
@@ -59,15 +60,15 @@ describe("SaveBar with useDirtyForm", () => {
   it("is hidden on load and appears after an edit", () => {
     const { input } = renderHarness();
     expect(bar()).toBeNull();
-    fireEvent.change(input, { target: { value: "Inkwell Studio" } });
+    fireEvent.change(input, { target: { value: "Fixture name edited" } });
     expect(bar()).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Save changes" })).toBeInTheDocument();
   });
 
   it("hides again when the field is changed back", () => {
     const { input } = renderHarness();
-    fireEvent.change(input, { target: { value: "Inkwell Studio" } });
-    fireEvent.change(input, { target: { value: "Inkwell" } });
+    fireEvent.change(input, { target: { value: "Fixture name edited" } });
+    fireEvent.change(input, { target: { value: "Fixture name" } });
     expect(bar()).toBeNull();
   });
 
@@ -75,21 +76,21 @@ describe("SaveBar with useDirtyForm", () => {
     const { input } = renderHarness();
     fireEvent.change(input, { target: { value: "Something else" } });
     fireEvent.click(screen.getByRole("button", { name: "Discard" }));
-    expect(input).toHaveValue("Inkwell");
+    expect(input).toHaveValue("Fixture name");
     expect(bar()).toBeNull();
   });
 
   it("hides after a successful save", async () => {
     const { input, onSave } = renderHarness();
-    fireEvent.change(input, { target: { value: "Inkwell Studio" } });
+    fireEvent.change(input, { target: { value: "Fixture name edited" } });
     fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
     await waitFor(() => expect(bar()).toBeNull());
-    expect(onSave).toHaveBeenCalledWith({ name: "Inkwell Studio" });
+    expect(onSave).toHaveBeenCalledWith({ name: "Fixture name edited" });
   });
 
   it("stays and shows the error when saving fails", async () => {
     const { input } = renderHarness(vi.fn(async () => Promise.reject(new Error("The server didn't answer."))));
-    fireEvent.change(input, { target: { value: "Inkwell Studio" } });
+    fireEvent.change(input, { target: { value: "Fixture name edited" } });
     fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
     expect(await screen.findByText("The server didn't answer.")).toBeInTheDocument();
     expect(bar()).toBeInTheDocument();
@@ -99,16 +100,16 @@ describe("SaveBar with useDirtyForm", () => {
     const { input } = renderHarness();
     fireEvent.click(screen.getByRole("link", { name: "Products" }));
     expect(screen.queryByText("Leave without saving?")).toBeNull();
-    fireEvent.change(input, { target: { value: "Inkwell Studio" } });
+    fireEvent.change(input, { target: { value: "Fixture name edited" } });
     fireEvent.click(screen.getByRole("link", { name: "Products" }));
     expect(await screen.findByText("Leave without saving?")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Stay" }));
-    expect(input).toHaveValue("Inkwell Studio");
+    expect(input).toHaveValue("Fixture name edited");
   });
 
   it("warns on refresh or closing the tab", () => {
     const { input } = renderHarness();
-    fireEvent.change(input, { target: { value: "Inkwell Studio" } });
+    fireEvent.change(input, { target: { value: "Fixture name edited" } });
     const e = new Event("beforeunload", { cancelable: true });
     act(() => {
       window.dispatchEvent(e);
@@ -175,7 +176,7 @@ describe("Getting started parts", () => {
 
 describe("PlanComparisonTable", () => {
   it("lists every row and marks the current plan", () => {
-    render(<PlanComparisonTable current="free" />);
+    render(<PlanComparisonTable current="free" limits={TEST_PLAN_LIMITS} />);
     expect(screen.getAllByRole("row")).toHaveLength(PLAN_COMPARISON.length + 1);
     expect(screen.getByRole("columnheader", { name: "Free (yours)" })).toBeInTheDocument();
   });

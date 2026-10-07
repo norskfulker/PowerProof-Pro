@@ -25,7 +25,8 @@ import { kindLabel } from "@/components/pp/product-card";
 import { ProductImageView } from "@/components/pp/product-cover";
 import { StatusPill } from "@/components/pp/status-pill";
 import { useApi } from "@/hooks/use-api";
-import { deleteProduct, duplicateProduct, getProducts, getStore } from "@/lib/api";
+import { useCurrentStore } from "@/hooks/use-current-store";
+import { deleteProduct, duplicateProduct, getProducts } from "@/lib/api";
 import type { Product } from "@/lib/types";
 
 export default function ProductsPage() {
@@ -42,7 +43,7 @@ const STATUS_PARAM: Record<string, string> = { live: "published", draft: "draft"
 function ProductsPageInner() {
   const status = STATUS_PARAM[useSearchParams().get("status") ?? ""];
   const { data, loading, error, reload } = useApi(() => getProducts(), [], { live: true });
-  const store = useApi(getStore, []);
+  const store = useCurrentStore();
   const [toDelete, setToDelete] = useState<Product | null>(null);
 
   const columns = useMemo<ColumnDef<Product, unknown>[]>(
@@ -151,7 +152,7 @@ function ProductsPageInner() {
             nextStep
             icon={Package}
             title="No products yet."
-            body="Paste a link, upload a file or build a page. Your first one takes about a minute."
+            body="Upload the file buyers get, name it and set a price. Your first one takes about a minute."
             action={
               <Button asChild>
                 <GuardedLink kind="products" href="/catalog/products/new"><Plus aria-hidden /> Add your first product</GuardedLink>

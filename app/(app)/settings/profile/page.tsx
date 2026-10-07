@@ -12,8 +12,8 @@ import { SaveBar } from "@/components/save/save-bar";
 import { SettingsTabs } from "@/components/settings/settings-tabs";
 import { SettingsLoading, SettingsSection } from "@/components/settings/settings-section";
 import { useFormSaveBar } from "@/hooks/use-dirty-form";
-import { useApi } from "@/hooks/use-api";
-import { getStore, updateStore } from "@/lib/api";
+import { useCurrentStore } from "@/hooks/use-current-store";
+import { updateStore } from "@/lib/api";
 import type { Store } from "@/lib/types";
 
 const schema = z.object({
@@ -100,7 +100,7 @@ const PREFS = [
 ] as const;
 
 export default function ProfileSettingsPage() {
-  const { data, error, reload, setData } = useApi(getStore, []);
+  const { data, error, reload, setData } = useCurrentStore();
   const [prefs, setPrefs] = useState<Record<string, boolean>>({ sale: true, payout: true, refund: true, weekly: false });
   if (!data) return <SettingsLoading error={error} onRetry={reload} />;
   return (

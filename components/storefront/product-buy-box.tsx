@@ -7,7 +7,6 @@ import { CountdownTimer } from "@/components/pp/countdown-timer";
 import { MoneyText } from "@/components/pp/money-text";
 import { kindLabel } from "@/components/pp/product-card";
 import { Stars } from "@/components/pp/stars";
-import { ConversionNote } from "@/components/buyer/buyer-shell";
 import type { StoreProduct } from "@/lib/api";
 import { localPrice } from "@/lib/money";
 import type { CurrencyCode, Store } from "@/lib/types";
@@ -61,7 +60,6 @@ export function ProductBuyBox({
             Deal ends in <CountdownTimer endsAt={info.dealEndsAt} compact />
           </p>
         )}
-        <ConversionNote currency={currency} className="mt-2" />
       </div>
 
       <div id="main-buy" className="flex flex-col gap-3">

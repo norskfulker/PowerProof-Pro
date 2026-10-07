@@ -5,17 +5,17 @@ import Link from "next/link";
 import { ArrowRight, ExternalLink, LayoutList, Megaphone, PanelTop, Search } from "lucide-react";
 import { PageHeader } from "@/components/pp/page-header";
 import { Button } from "@/components/ui/button";
-import { useApi } from "@/hooks/use-api";
-import { getStore } from "@/lib/api";
+import { useCurrentStore } from "@/hooks/use-current-store";
+
 
 /** Store › Pages › Home. The store home is built from sections in Design; this is the way in. */
 export default function StoreHomePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const store = useApi(getStore, []);
+  const store = useCurrentStore();
   const LINKS = [
-    { href: `/store/${id}/design/backgrounds`, icon: PanelTop, title: "Headline, button and background", body: "The first thing buyers see: words, one button and an image, GIF or video." },
-    { href: `/store/${id}/design/sections`, icon: LayoutList, title: "Sections", body: "Turn sections on or off and put them in order: collections, bestsellers, reviews and more." },
-    { href: `/store/${id}/design/content`, icon: Megaphone, title: "Announcement and newsletter", body: "The bar across the top and the sign-up box near the bottom." },
+    { href: `/store/${id}/design/base`, icon: PanelTop, title: "Headline, button and background", body: "The first thing buyers see: words, one button and an image, GIF or video." },
+    { href: `/store/${id}/design/base`, icon: LayoutList, title: "Sections", body: "Turn sections on or off and put them in order: collections, bestsellers, reviews and more." },
+    { href: `/store/${id}/design/base`, icon: Megaphone, title: "Announcement and newsletter", body: "The bar across the top and the sign-up box near the bottom." },
     { href: `/store/${id}/seo`, icon: Search, title: "Search and social", body: "The title and description Google and link previews show." },
   ];
   return (

@@ -1,58 +1,12 @@
-"use client";
-
-import { Suspense, useMemo } from "react";
-import { useSearchParams } from "next/navigation";
-import type { ColumnDef } from "@tanstack/react-table";
-import { DataTable } from "@/components/pp/data-table";
-import { MoneyText } from "@/components/pp/money-text";
+import { ComingSoon } from "@/components/pp/coming-soon";
 import { PageHeader } from "@/components/pp/page-header";
-import { StatusPill } from "@/components/pp/status-pill";
-import { useApi } from "@/hooks/use-api";
-import { getPlatformOrders } from "@/lib/api";
-import { countryShort, timeAgo } from "@/lib/format";
-import type { Order } from "@/lib/types";
 
-type Row = Order & { storeName: string };
-
-export default function AdminOrdersPage() {
-  return (
-    <Suspense>
-      <AdminOrdersPageInner />
-    </Suspense>
-  );
-}
-
-function AdminOrdersPageInner() {
-  const q = useSearchParams().get("q") ?? "";
-  const { data, loading, error, reload } = useApi(getPlatformOrders, [], { live: true });
-  const columns = useMemo<ColumnDef<Row, unknown>[]>(
-    () => [
-      { accessorKey: "number", header: "Order", cell: ({ getValue }) => <span className="font-mono text-[0.8125rem]">{getValue() as string}</span> },
-      { accessorKey: "storeName", header: "Store" },
-      { id: "buyer", accessorFn: (o) => `${o.buyerName} ${o.buyerEmail}`, header: "Buyer", cell: ({ row }) => <span className="flex flex-col"><span>{row.original.buyerName || "—"}</span><span className="text-xs text-muted-foreground">{countryShort(row.original.countryCode)}</span></span> },
-      { accessorKey: "status", header: "Status", filterFn: "equals", cell: ({ getValue }) => <StatusPill status={getValue() as string} /> },
-      { id: "total", accessorFn: (o) => o.total.amount, header: "Gross", enableSorting: true, meta: { align: "right" }, cell: ({ row }) => <MoneyText value={row.original.total} mono /> },
-      { id: "fee", accessorFn: (o) => o.fees.platform.amount, header: "Our 3%", meta: { align: "right" }, cell: ({ row }) => <MoneyText value={row.original.fees.platform} mono className="text-accent-ink" /> },
-      { id: "when", accessorFn: (o) => o.createdAt, header: "When", enableSorting: true, cell: ({ row }) => timeAgo(row.original.createdAt) },
-    ],
-    []
-  );
+export default function Page() {
   return (
     <>
-      <PageHeader title="Orders" description="Every order across every store. Read-only; creators handle refunds unless there's a dispute." />
-      <DataTable
-        key={q}
-        initialSearch={q}
-        label="Platform orders"
-        columns={columns}
-        data={data}
-        loading={loading && !data}
-        error={error}
-        onRetry={reload}
-        searchPlaceholder="Search order, store or buyer"
-        filters={[{ columnId: "status", label: "Statuses", options: ["paid", "refund_requested", "refunded", "pending", "failed"].map((v) => ({ value: v, label: v.replace("_", " ") })) }]}
-        pageSize={15}
-      />
+      <title>Orders · PowerProof admin</title>
+      <PageHeader title="Orders" description="Orders across all stores." />
+      <ComingSoon title="Not connected yet." body="The founder console reads the same database as the creator app. It opens once its server-side checks (admin role, audit trail) are in place." />
     </>
   );
 }

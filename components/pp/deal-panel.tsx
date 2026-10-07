@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { ChevronDown, Sparkles, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import type { CheckoutDeals } from "@/lib/api";
+import type { CheckoutDeals } from "@/lib/types";
 import { localPrice, money } from "@/lib/money";
 import type { CurrencyCode, OrderItem } from "@/lib/types";
 import { DealCard, GiftPicker, SavingsMeter } from "./deal-parts";

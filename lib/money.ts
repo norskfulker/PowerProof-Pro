@@ -19,18 +19,6 @@ export const CURRENCIES: Record<CurrencyCode, { symbol: string; locale: string; 
   CAD: { symbol: "C$", locale: "en-CA", name: "Canadian dollar" },
 };
 
-/** Mock FX: how many INR one unit of the currency buys. Fixed so screens are stable. */
-export const INR_PER: Record<CurrencyCode, number> = {
-  INR: 1,
-  USD: 83.4,
-  EUR: 90.6,
-  GBP: 105.8,
-  AED: 22.7,
-  SGD: 61.9,
-  AUD: 55.2,
-  CAD: 61.1,
-};
-
 export function money(amount: number, currency: CurrencyCode = "INR"): Money {
   return { amount: Math.round(amount), currency };
 }
@@ -82,21 +70,13 @@ export function sum(items: Money[], currency: CurrencyCode = "INR"): Money {
   );
 }
 
-export function convert(m: Money, to: CurrencyCode): Money {
-  if (m.currency === to) return m;
-  const inr = (m.amount * INR_PER[m.currency]);
-  const out = inr / INR_PER[to];
-  // Round to a "nice" .99 in the target currency for display prices above 1 unit
-  return money(Math.round(out), to);
-}
-
-/** Price as a buyer sees it: converted and rounded to .99 for non-INR. */
-export function localPrice(m: Money, to: CurrencyCode): Money {
-  if (m.currency === to) return m;
-  const raw = convert(m, to).amount;
-  if (raw < 200) return money(raw, to);
-  const rounded = Math.ceil(raw / 100) * 100 - 1;
-  return money(rounded, to);
+/**
+ * Prices are shown in the store's own currency. No exchange-rate source is connected, so nothing
+ * is converted or estimated: the price comes back as it is. (The second argument is kept so
+ * call sites don't change when a real rate source is added.)
+ */
+export function localPrice(m: Money, _to?: CurrencyCode): Money {
+  return m;
 }
 
 export interface FeeBreakdown {
@@ -122,28 +102,6 @@ export function feeBreakdown(
     keep,
     keepPct: sale.amount ? (keep.amount / sale.amount) * 100 : 0,
   };
-}
-
-const TZ_CURRENCY: [RegExp, CurrencyCode][] = [
-  [/^Asia\/(Kolkata|Calcutta)/, "INR"],
-  [/^America\/(Toronto|Vancouver|Edmonton|Winnipeg|Halifax)/, "CAD"],
-  [/^America\//, "USD"],
-  [/^Europe\/London/, "GBP"],
-  [/^Europe\//, "EUR"],
-  [/^Asia\/Dubai/, "AED"],
-  [/^Asia\/Singapore/, "SGD"],
-  [/^Australia\//, "AUD"],
-];
-
-/** Best guess at the viewer's currency. Client only. */
-export function detectCurrency(): CurrencyCode {
-  try {
-    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone ?? "";
-    for (const [re, c] of TZ_CURRENCY) if (re.test(tz)) return c;
-  } catch {
-    /* ignore */
-  }
-  return "USD";
 }
 
 export function formatBytes(bytes: number): string {

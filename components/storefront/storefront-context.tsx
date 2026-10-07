@@ -1,18 +1,15 @@
 "use client";
 
-import { createContext, useCallback, useContext, useState } from "react";
-import { useRouter } from "next/navigation";
+import { createContext, useCallback, useContext } from "react";
 import { toast } from "sonner";
-import { useBuyerCurrency } from "@/hooks/use-buyer-currency";
-import { startCheckout, type StorefrontView } from "@/lib/api";
+import type { StorefrontView } from "@/lib/api";
 import type { CurrencyCode } from "@/lib/types";
 
 interface Ctx {
   slug: string;
   view: StorefrontView;
   currency: CurrencyCode;
-  setCurrency: (c: CurrencyCode) => void;
-  /** Starts checkout for a product or a bundle and navigates there. */
+  /** Buy now. Checkout isn't open yet, so this says so. */
   buy: (what: { productId: string } | { bundleId: string }) => void;
   /** id of the product/bundle whose checkout is opening */
   buying?: string;
@@ -23,30 +20,22 @@ interface Ctx {
 const StorefrontContext = createContext<Ctx | null>(null);
 
 export function StorefrontProvider({ slug, view, reload, preview, children }: { slug: string; view: StorefrontView; reload: () => void; preview: boolean; children: React.ReactNode }) {
-  const router = useRouter();
-  const [currency, setCurrency] = useBuyerCurrency();
-  const [buying, setBuying] = useState<string>();
+  // Prices are shown in the store's own currency: no exchange-rate source is connected
+  const currency = view.store.currency;
+  const buying: string | undefined = undefined;
 
   const buy = useCallback(
-    async (what: { productId: string } | { bundleId: string }) => {
-      if (preview) {
-        toast("Buy now opens checkout", { description: "Disabled in the design preview." });
-        return;
-      }
-      const id = "productId" in what ? what.productId : what.bundleId;
-      setBuying(id);
-      try {
-        const order = await startCheckout(slug, what, currency);
-        router.push(`/checkout/${order.id}`);
-      } catch (e) {
-        toast.error("Checkout didn't open", { description: e instanceof Error ? e.message : "Try again in a moment." });
-        setBuying(undefined);
-      }
+    (_what: { productId: string } | { bundleId: string }) => {
+      void _what;
+      // Payments aren't connected yet: say so instead of opening a pretend checkout
+      toast(preview ? "Buy now opens checkout" : "Checkout opens soon", {
+        description: preview ? "Disabled in the design preview." : "This store can't take payments yet. Please check back shortly.",
+      });
     },
-    [slug, currency, router, preview]
+    [preview]
   );
 
-  return <StorefrontContext.Provider value={{ slug, view, currency, setCurrency, buy, buying, reload, preview }}>{children}</StorefrontContext.Provider>;
+  return <StorefrontContext.Provider value={{ slug, view, currency, buy, buying, reload, preview }}>{children}</StorefrontContext.Provider>;
 }
 
 export function useStorefront(): Ctx {

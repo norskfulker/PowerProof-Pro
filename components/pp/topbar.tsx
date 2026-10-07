@@ -1,11 +1,12 @@
 "use client";
 
 import { readableOn } from "@/lib/color";
-import { ThemeRadioItems, ThemeToggle } from "@/components/theme/theme-toggle";
+import { ThemeToggle } from "@/components/theme/theme-toggle";
+import { PlanUsage } from "@/components/plan/plan-usage";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
-import { Check, ChevronsUpDown, ExternalLink, FlaskConical, SunMoon, ListChecks, Loader2, LogOut, Plus, Settings, Shield } from "lucide-react";
+import { Check, ChevronsUpDown, ExternalLink, SunMoon, ListChecks, Loader2, LogOut, Plus, Settings, Shield, Sparkles } from "lucide-react";
 import { useGettingStarted } from "@/components/getting-started/getting-started-provider";
 import { usePlan } from "@/components/plan/plan-context";
 import { useUnsavedGuard } from "@/components/save/unsaved-guard";
@@ -17,19 +18,15 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
-  DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useApi } from "@/hooks/use-api";
-import { isLive } from "@/lib/supabase/env";
-import { createOwnedStore, getDemoState, getOwnedStores, getStore, loadSampleData, loadStressData, logout, setDemoState, startEmptyStore, switchStore } from "@/lib/api";
+import { useCurrentStore } from "@/hooks/use-current-store";
+import { createOwnedStore, getOwnedStores, logout, switchStore } from "@/lib/api";
 import { initials } from "@/lib/format";
 import { GlobalSearch } from "@/components/search/global-search";
 import { Notifications } from "./notifications";
@@ -70,7 +67,7 @@ function NewStoreDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (
         >
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="ns-name">Store name</Label>
-            <Input id="ns-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Ananya Photo Presets" aria-invalid={!!error || undefined} aria-describedby={error ? "ns-err" : undefined} />
+            <Input id="ns-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Your store name" aria-invalid={!!error || undefined} aria-describedby={error ? "ns-err" : undefined} />
             {error && <p id="ns-err" className="text-sm font-medium text-danger">{error}</p>}
           </div>
           <DialogFooter>
@@ -88,7 +85,7 @@ function StoreSwitcher() {
   const pathname = usePathname();
   const plan = usePlan();
   const unsaved = useUnsavedGuard();
-  const { data: store } = useApi(getStore, [], { live: true });
+  const { data: store } = useCurrentStore();
   const { data: stores } = useApi(getOwnedStores, [], { live: true });
   const [creating, setCreating] = useState(false);
   return (
@@ -147,11 +144,10 @@ function StoreSwitcher() {
 function AccountMenu() {
   const router = useRouter();
   const gs = useGettingStarted();
-  const { data: store } = useApi(getStore, [], { live: true });
-  const [demo, setDemo] = useState<ReturnType<typeof getDemoState>>();
+  const { data: store } = useCurrentStore();
 
   return (
-    <DropdownMenu onOpenChange={(o) => o && setDemo(getDemoState())}>
+    <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" size="icon" aria-label="Account menu" className="rounded-full">
           <Avatar className="size-9">
@@ -164,6 +160,15 @@ function AccountMenu() {
           <span className="block">{store?.ownerName}</span>
           <span className="block truncate text-xs font-normal text-muted-foreground">{store?.ownerEmail}</span>
         </DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <div className="px-2 py-1.5">
+          <PlanUsage className="border-0 p-0" />
+        </div>
+        <DropdownMenuItem asChild>
+          <Link href="/settings/billing">
+            <Sparkles aria-hidden /> Billing and plan
+          </Link>
+        </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem asChild>
           <Link href="/settings/profile">
@@ -178,62 +183,10 @@ function AccountMenu() {
             <Shield aria-hidden /> Founder admin
           </Link>
         </DropdownMenuItem>
-        <DropdownMenuSub>
-          <DropdownMenuSubTrigger>
-            <SunMoon aria-hidden /> Theme
-          </DropdownMenuSubTrigger>
-          <DropdownMenuSubContent className="w-44">
-            <ThemeRadioItems />
-          </DropdownMenuSubContent>
-        </DropdownMenuSub>
-        {/* Demo data only exists on the mock backend */}
-        {!isLive() && (
-          <DropdownMenuSub>
-            <DropdownMenuSubTrigger>
-              <FlaskConical aria-hidden /> Demo data
-            </DropdownMenuSubTrigger>
-            <DropdownMenuSubContent className="w-60">
-              <DropdownMenuLabel className="eyebrow">Currently: {demo?.mode === "fresh" ? "empty store" : demo?.mode === "stress" ? "stress data" : "sample data"}</DropdownMenuLabel>
-              <DropdownMenuItem
-                onSelect={() => {
-                  loadSampleData();
-                  toast.success("Sample data loaded");
-                  router.refresh();
-                }}
-              >
-                Load sample data
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onSelect={() => {
-                  startEmptyStore();
-                  toast.success("Store emptied", { description: "See every empty state." });
-                }}
-              >
-                Start with an empty store
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onSelect={() => {
-                  loadStressData();
-                  toast.success("Stress data loaded", { description: "Long names, 500 products, 5000 reviews." });
-                  router.refresh();
-                }}
-              >
-                Load stress data
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuCheckboxItem
-                checked={demo?.fail ?? false}
-                onCheckedChange={(v) => {
-                  setDemoState({ fail: !!v });
-                  setDemo(getDemoState());
-                  toast(v ? "Errors on. Reload a page to see error states." : "Errors off.");
-                }}
-              >
-                Simulate errors
-              </DropdownMenuCheckboxItem>
-            </DropdownMenuSubContent>
-          </DropdownMenuSub>
-        )}
+        <div className="flex items-center justify-between gap-3 px-2 py-1.5">
+          <span className="flex items-center gap-2 text-sm"><SunMoon className="size-4" aria-hidden /> Colour mode</span>
+          <ThemeToggle iconOnly />
+        </div>
         <DropdownMenuSeparator />
         <DropdownMenuItem
           onSelect={async () => {
@@ -259,7 +212,6 @@ export function Topbar({ admin }: { admin?: boolean }) {
       <div className="flex flex-1 justify-end md:justify-center">
         <GlobalSearch scope={admin ? "admin" : "creator"} />
       </div>
-      <ThemeToggle className="max-sm:hidden" />
       {!admin && <Notifications />}
       <AccountMenu />
     </header>

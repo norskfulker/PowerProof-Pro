@@ -10,8 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { useApi } from "@/hooks/use-api";
 import { ApiError, getPlanLimits, getPlanState, setPlanTier, type PlanState } from "@/lib/api";
 import { cn } from "@/lib/utils";
-import { PLAN_LIMITS, proBenefits, PRO_PRICE_USD, PRO_TRIAL_DAYS, type AllPlanLimits } from "@/lib/plans";
-import { isLive } from "@/lib/supabase/env";
+import { proBenefits, PRO_PRICE_USD, PRO_TRIAL_DAYS, type AllPlanLimits } from "@/lib/plans";
 
 export type LimitKind = "stores" | "products" | "aiCredits" | "customDomain";
 
@@ -129,7 +128,7 @@ export function PlanProvider({ children }: { children: React.ReactNode }) {
 export function usePlan(): PlanCtx {
   const c = useContext(Ctx);
   // Outside the creator app (marketing, tests) the guard just runs the action
-  return c ?? { limits: isLive() ? undefined : PLAN_LIMITS, reload: () => {}, upgrade: () => {}, guard: (_k, a) => a(), handleLimitError: () => false };
+  return c ?? { limits: undefined, reload: () => {}, upgrade: () => {}, guard: (_k, a) => a(), handleLimitError: () => false };
 }
 
 /**

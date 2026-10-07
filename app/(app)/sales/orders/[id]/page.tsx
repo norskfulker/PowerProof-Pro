@@ -1,30 +1,24 @@
 "use client";
 
-import { use, useState } from "react";
+import { use } from "react";
 import Link from "next/link";
-import { FileText, Mail, RotateCcw } from "lucide-react";
-import { toast } from "sonner";
+import { Mail, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Textarea } from "@/components/ui/textarea";
-import { ConfirmDialog } from "@/components/pp/confirm-dialog";
 import { ErrorState } from "@/components/pp/empty-state";
-import { MoneyText } from "@/components/pp/money-text";
 import { PageHeader } from "@/components/pp/page-header";
 import { ProofReceipt } from "@/components/pp/proof-receipt";
 import { StatusPill } from "@/components/pp/status-pill";
 import { OrderTimeline } from "@/components/orders/order-timeline";
 import { useApi } from "@/hooks/use-api";
-import { getOrder, getStore, refundOrder, resendReceipt } from "@/lib/api";
+import { useCurrentStore } from "@/hooks/use-current-store";
+import { getOrder } from "@/lib/api";
 import { countryShort, formatDate, sourceLabel } from "@/lib/format";
 
 export default function OrderDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const order = useApi(() => getOrder(id), [id], { live: true });
-  const store = useApi(getStore, []);
-  const [refunding, setRefunding] = useState(false);
-  const [reason, setReason] = useState("");
+  const store = useCurrentStore();
 
   if (order.error) {
     return (
@@ -54,25 +48,14 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
         title={<span className="flex flex-wrap items-center gap-3"><span className="font-mono text-[1.75rem] tracking-tight">{o.number}</span> <StatusPill status={o.status} /></span>}
         actions={
           <>
-            {o.invoiceNumber && (
-              <Button asChild variant="secondary">
-                <Link href={`/invoice/${o.id}`} target="_blank"><FileText aria-hidden /> Invoice</Link>
-              </Button>
-            )}
             {o.status === "paid" && (
-              <Button
-                variant="secondary"
-                onClick={async () => {
-                  await resendReceipt(o.id);
-                  toast.success("Receipt sent again", { description: o.buyerEmail });
-                }}
-              >
-                <Mail aria-hidden /> Resend receipt
+              <Button variant="secondary" disabled title="Emails open soon">
+                <Mail aria-hidden /> Resend receipt (opens soon)
               </Button>
             )}
             {canRefund && (
-              <Button variant="danger" onClick={() => setRefunding(true)}>
-                <RotateCcw aria-hidden /> Refund
+              <Button variant="danger" disabled title="Refunds open once payments are connected">
+                <RotateCcw aria-hidden /> Refund (opens soon)
               </Button>
             )}
           </>
@@ -101,44 +84,16 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                 <p className="mt-1 text-muted-foreground">Not paid yet</p>
               )}
               <p className="text-sm text-muted-foreground">{o.buyerEmail}</p>
-              <p className="text-sm text-muted-foreground">{countryShort(o.countryCode)} · came from {sourceLabel(o.source)}</p>
+              <p className="text-sm text-muted-foreground">{[o.countryCode ? countryShort(o.countryCode) : "", o.source ? `came from ${sourceLabel(o.source)}` : ""].filter(Boolean).join(" · ")}</p>
             </div>
             <div>
               <p className="eyebrow">Product</p>
               <Link href={`/catalog/products/${o.productId}`} className="mt-1 flex pointer-coarse:min-h-11 items-center font-semibold hover:underline">{o.productTitle}</Link>
-              <p className="text-sm text-muted-foreground">Downloaded {o.downloads} time{o.downloads === 1 ? "" : "s"}</p>
             </div>
           </section>
         </div>
         <ProofReceipt order={o} storeName={store.data?.name ?? ""} showFees />
       </div>
-
-      <ConfirmDialog
-        open={refunding}
-        onOpenChange={setRefunding}
-        title={`Refund ${o.number}?`}
-        description={
-          <>
-            <MoneyText value={o.buyerTotal} /> goes back to {o.buyerName || "the buyer"} in 5 to 7 working days and their download link stops working. Fees aren&apos;t returned by the gateway. This can&apos;t be undone.
-          </>
-        }
-        confirmLabel="Refund order"
-        onConfirm={async () => {
-          try {
-            const out = await refundOrder(o.id, reason);
-            order.setData(out);
-            toast.success("Refund started", { description: `${o.number} · ${o.buyerEmail}` });
-          } catch (e) {
-            toast.error("Couldn't refund", { description: e instanceof Error ? e.message : undefined });
-            throw e;
-          }
-        }}
-      >
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="rf-reason">Reason (only you see this)</Label>
-          <Textarea id="rf-reason" rows={2} value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Bought it twice by mistake" />
-        </div>
-      </ConfirmDialog>
     </>
   );
 }

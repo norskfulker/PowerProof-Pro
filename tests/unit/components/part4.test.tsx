@@ -14,17 +14,18 @@ import { DealPanel } from "@/components/pp/deal-panel";
 import { DealPreview } from "@/components/pp/deal-preview";
 import { draftFromRule, emptyDraft, inputFromDraft, specFromDraft, validateStep, DealRuleWizard, type WizardDraft } from "@/components/pp/deal-rule-wizard";
 import { ResultRow } from "@/components/search/result-row";
-import type { CheckoutDeals, RenderContext } from "@/lib/api";
+import type { RenderContext } from "@/lib/api";
+import type { CheckoutDeals } from "@/lib/types";
 import { fromMajor, money } from "@/lib/money";
 import { dealRuleSchema } from "@/lib/pricing/deal-rule-schema";
 import { BLOCK_TYPES, makeNode, styleSchema, type PageDoc } from "@/lib/pages/schema";
 import { PAGE_TEMPLATES } from "@/lib/pages/templates";
 import { priceInfo, ratingSummary } from "@/lib/pricing";
-import { DB, NOW } from "./fixtures";
+import { DB, NOW } from "@/tests/fixtures";
 
 const live = DB.products.filter((p) => p.status === "published");
 const PRODUCTS = live.map((p) => ({ ...p, info: priceInfo(p, DB.deals, NOW), rating: ratingSummary([]) }));
-const CONTEXT: RenderContext = { store: DB.store, theme: DB.design.theme, products: PRODUCTS, collections: DB.collections, reviews: [{ id: "r", title: "Great", body: "Loved it", author: "Priya S.", rating: 5 }] };
+const CONTEXT: RenderContext = { store: DB.store, theme: DB.design.theme, products: PRODUCTS, collections: DB.collections, reviews: [{ id: "r", title: "Great", body: "Loved it", author: "Asha K.", rating: 5 }] };
 const RULES = DB.dealRules;
 
 describe("deal parts", () => {
@@ -146,8 +147,8 @@ describe("search result row", () => {
   it("shows masked contact with a reveal button and actions", async () => {
     const onReveal = vi.fn();
     const onAction = vi.fn();
-    render(<ResultRow result={{ type: "order", id: "o", title: "PP-1", href: "/x", email: "pr••••@gmail.com", masked: true, actions: ["open", "copy", "refund"] }} revealed={{}} onReveal={onReveal} onAction={onAction} />);
-    expect(screen.getByText("pr••••@gmail.com")).toBeInTheDocument();
+    render(<ResultRow result={{ type: "order", id: "o", title: "PP-1", href: "/x", email: "na••••@gmail.com", masked: true, actions: ["open", "copy", "refund"] }} revealed={{}} onReveal={onReveal} onAction={onAction} />);
+    expect(screen.getByText("na••••@gmail.com")).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Reveal email for PP-1" }));
     expect(onReveal).toHaveBeenCalledWith("email");
     await userEvent.click(screen.getByRole("button", { name: "Refund: PP-1" }));
@@ -155,14 +156,14 @@ describe("search result row", () => {
   });
 
   it("shows the revealed value instead of the mask", () => {
-    render(<ResultRow result={{ type: "order", id: "o", title: "PP-1", href: "/x", email: "pr••••@gmail.com", masked: true, actions: ["open"] }} revealed={{ "order:o:email": "priya@gmail.com" }} onAction={() => {}} />);
-    expect(screen.getByText("priya@gmail.com")).toBeInTheDocument();
+    render(<ResultRow result={{ type: "order", id: "o", title: "PP-1", href: "/x", email: "na••••@gmail.com", masked: true, actions: ["open"] }} revealed={{ "order:o:email": "name@gmail.com" }} onAction={() => {}} />);
+    expect(screen.getByText("name@gmail.com")).toBeInTheDocument();
   });
 });
 
 describe("page renderer", () => {
   it.each(PAGE_TEMPLATES.map((t) => [t.id, t] as const))("renders the %s template", (_, t) => {
-    const doc = t.build({ storeName: DB.store.name, ownerName: DB.store.ownerName, slug: "ananya", products: live.map((p) => ({ id: p.id, title: p.title })), collections: [], brand: "#0F3D33", accent: "#C9A24F", now: NOW });
+    const doc = t.build({ storeName: DB.store.name, ownerName: DB.store.ownerName, slug: "my-store", products: live.map((p) => ({ id: p.id, title: p.title })), collections: [], brand: "#0F3D33", accent: "#C9A24F", now: NOW });
     render(<PageRenderer doc={doc} context={CONTEXT} env={{ mode: "live", currency: "INR" }} />);
     expect(document.querySelectorAll("section").length).toBeGreaterThan(0);
   });

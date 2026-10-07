@@ -40,7 +40,7 @@ export const SEARCH_TIPS = [
   ["#1042", "an order number"],
   ["name@email.com", "a buyer or creator email"],
   ["+91 98765…", "a phone number"],
-  ["@inkwell", "everything in one store"],
+  ["@store-name", "everything in one store"],
 ] as const;
 
 /**
@@ -150,7 +150,7 @@ export function GlobalSearch({ scope }: { scope: SearchScope }) {
       </Button>
 
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="top-[8dvh] max-h-[84dvh] translate-y-0 gap-0 overflow-hidden p-0 sm:max-w-[min(42rem,calc(100%-2rem))]" showCloseButton={false}>
+        <DialogContent bare className="top-[8dvh] max-h-[84dvh] translate-y-0 sm:max-w-[min(42rem,calc(100%-2rem))]" showCloseButton={false}>
           <DialogTitle className="sr-only">Search</DialogTitle>
           <DialogDescription className="sr-only">
             {scope === "admin" ? "Search every store. Contact details are masked until revealed." : "Search your store."} Use arrow keys to move, Tab to jump between groups, Enter to open.

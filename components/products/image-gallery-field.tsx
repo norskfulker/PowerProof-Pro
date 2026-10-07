@@ -66,7 +66,7 @@ export function ImageGalleryField({ images, onChange, title }: { images: Product
       )}
 
       <Dialog open={!!current} onOpenChange={(o) => !o && setEditing(undefined)}>
-        <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-lg">
+        <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle className="font-display text-xl">Edit image</DialogTitle>
             <DialogDescription>Set what stays in frame when it&apos;s cropped, and describe it for screen readers.</DialogDescription>

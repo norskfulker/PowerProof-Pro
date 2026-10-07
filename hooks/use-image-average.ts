@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useMediaUrl } from "./use-media-url";
 
 /**
- * The average colour of an image (sampled at 16×16 in a canvas), so contrast checks use the real
+ * The average colour of an image (read at 16×16 in a canvas), so contrast checks use the real
  * picture. Undefined while loading, or when the image can't be read (cross-origin URLs).
  */
 export function useImageAverage(src: string | undefined): string | undefined {

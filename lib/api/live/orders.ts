@@ -11,9 +11,12 @@ import { activeStoreId } from "./session";
  * (never the buyer's phone: that column isn't granted). Customers are buyers grouped by email.
  */
 
-const ORDER_COLS = "id, ref, store_id, buyer_name, buyer_email, buyer_country, currency, subtotal_minor, discount_minor, tax_minor, total_minor, deals_applied, status, gateway, invoice_no, paid_at, created_at, updated_at, coupon_id";
-
-type Row = { id: string; ref: string; store_id: string; buyer_name: string; buyer_email: string; buyer_country: string | null; currency: string; subtotal_minor: number; discount_minor: number; total_minor: number; deals_applied: unknown; status: "pending" | "paid" | "failed" | "refunded"; invoice_no: string | null; paid_at: string | null; created_at: string; updated_at: string; coupon_id: string | null };
+/**
+ * Creators read orders through creator_orders: a view that runs as the signed-in creator and only
+ * holds columns they may see (never the buyer's phone). `select *` is safe on it; the base
+ * `orders` table refuses it.
+ */
+type Row = { id: string; ref: string; store_id: string; buyer_name: string; buyer_email: string; buyer_country: string | null; currency: string; subtotal_minor: number; discount_minor: number; total_minor: number; deals_applied: unknown; status: "pending" | "paid" | "failed" | "refunded"; invoice_no: string | null; paid_at: string | null; created_at: string };
 
 /** Buyers have no accounts, so a customer is identified by their email. */
 export const customerId = (email: string) => `c_${encodeURIComponent(email.toLowerCase())}`;
@@ -25,17 +28,14 @@ function dealIds(v: unknown): string[] {
 
 async function load(storeId: string): Promise<Order[]> {
   const client = sb();
-  const rows = must(await client.from("orders").select(ORDER_COLS).eq("store_id", storeId).order("created_at", { ascending: false }).limit(1000)) as Row[];
+  const rows = must(await client.from("creator_orders").select("*").eq("store_id", storeId).order("created_at", { ascending: false }).limit(1000)) as Row[];
   if (!rows.length) return [];
   const ids = rows.map((r) => r.id);
-  const couponIds = [...new Set(rows.map((r) => r.coupon_id).filter((x): x is string => !!x))];
-  const [items, ledger, refunds, coupons] = await Promise.all([
+  const [items, ledger, refunds] = await Promise.all([
     client.from("order_items").select("order_id, product_id, title, unit_price_minor, quantity, discount_minor, line_total_minor, is_gift").in("order_id", ids),
     client.from("ledger_entries").select("order_id, account, kind, amount_minor").in("order_id", ids),
     client.from("refunds").select("order_id, reason, status, created_at").in("order_id", ids),
-    couponIds.length ? client.from("coupons").select("id, code").in("id", couponIds) : Promise.resolve({ data: [] as { id: string; code: string }[] }),
   ]);
-  const codes = new Map((coupons.data ?? []).map((c) => [c.id, String(c.code).toUpperCase()]));
 
   return rows.map((r): Order => {
     const cur = currency(r.currency);
@@ -74,16 +74,12 @@ async function load(storeId: string): Promise<Order[]> {
       fees: { gateway: money(gateway, cur), platform: money(platform, cur) },
       net: money(r.status === "paid" ? Math.max(0, creator) : 0, cur),
       status: r.status,
-      source: "direct",
-      downloads: 0,
       invoiceNumber: r.invoice_no ?? undefined,
-      paymentMethod: "upi",
       createdAt: r.created_at,
       paidAt: r.paid_at ?? undefined,
-      refundedAt: r.status === "refunded" ? refund?.created_at ?? r.updated_at : undefined,
+      refundedAt: r.status === "refunded" ? refund?.created_at ?? r.paid_at ?? r.created_at : undefined,
       refundReason: refund?.reason ?? undefined,
       items: orderItems,
-      couponCode: r.coupon_id ? codes.get(r.coupon_id) : undefined,
       discount: Number(r.discount_minor) > 0 ? money(r.discount_minor, cur) : undefined,
       dealRuleIds: dealIds(r.deals_applied),
     };
@@ -105,7 +101,8 @@ export async function getOrders(q: OrderQuery = {}): Promise<Order[]> {
 }
 
 export async function getRecentOrders(limit = 8): Promise<Order[]> {
-  return (await getOrders()).filter((o) => o.status !== "pending").slice(0, limit);
+  // Latest first, pending ones included: each row shows its status
+  return (await getOrders({ limit }));
 }
 
 export async function getOrder(id: string): Promise<Order> {
@@ -114,32 +111,26 @@ export async function getOrder(id: string): Promise<Order> {
   return o;
 }
 
-function customersFrom(orders: Order[]): Customer[] {
-  const by = new Map<string, Customer>();
-  for (const o of [...orders].reverse()) {
-    if (o.status === "pending" || o.status === "failed") continue;
-    const c = by.get(o.customerId) ?? { id: o.customerId, name: o.buyerName, email: o.buyerEmail, country: o.country, countryCode: o.countryCode, currency: o.total.currency, ordersCount: 0, totalSpent: money(0, o.total.currency), firstOrderAt: o.createdAt, lastOrderAt: o.createdAt };
-    c.ordersCount += 1;
-    if (o.status === "paid") c.totalSpent = money(c.totalSpent.amount + o.total.amount, c.totalSpent.currency);
-    c.lastOrderAt = o.createdAt;
-    c.name = o.buyerName;
-    by.set(o.customerId, c);
-  }
-  return [...by.values()];
+type CustomerRow = { buyer_email: string; buyer_name: string | null; buyer_country: string | null; currency: string; orders_count: number; total_spent_minor: number; first_order_at: string; last_order_at: string };
+
+/** Paid buyers grouped by email, from creator_customers (there is no phone number for creators). */
+export async function getCustomers(q: CustomerQuery = {}): Promise<Customer[]> {
+  const rows = must(await sb().from("creator_customers").select("*").eq("store_id", await activeStoreId()).order("last_order_at", { ascending: false })) as CustomerRow[];
+  const s = q.search?.trim().toLowerCase();
+  return rows
+    .map(customerFrom)
+    .filter((c) => (!s || c.name.toLowerCase().includes(s) || c.email.toLowerCase().includes(s)) && (!q.country || q.country === "all" || c.countryCode === q.country));
 }
 
-export async function getCustomers(q: CustomerQuery = {}): Promise<Customer[]> {
-  const s = q.search?.trim().toLowerCase();
-  return customersFrom(await getOrders())
-    .filter((c) => (!s || c.name.toLowerCase().includes(s) || c.email.toLowerCase().includes(s)) && (!q.country || q.country === "all" || c.countryCode === q.country))
-    .sort((a, b) => b.lastOrderAt.localeCompare(a.lastOrderAt));
+function customerFrom(r: CustomerRow): Customer {
+  const cur = currency(r.currency);
+  return { id: customerId(r.buyer_email), name: r.buyer_name ?? r.buyer_email, email: r.buyer_email, country: r.buyer_country ?? "", countryCode: r.buyer_country ?? "", currency: cur, ordersCount: Number(r.orders_count), totalSpent: money(Number(r.total_spent_minor), cur), firstOrderAt: r.first_order_at, lastOrderAt: r.last_order_at };
 }
 
 export async function getCustomer(id: string): Promise<{ customer: Customer; orders: Order[] }> {
-  const orders = await getOrders();
-  const customer = customersFrom(orders).find((c) => c.id === id);
+  const customer = (await getCustomers()).find((c) => c.id === id);
   if (!customer) throw new ApiError("Customer not found.", "not_found");
-  return { customer, orders: orders.filter((o) => o.customerId === id) };
+  return { customer, orders: await getOrders({ customerId: id }) };
 }
 
 export async function refundOrder(): Promise<Order> {

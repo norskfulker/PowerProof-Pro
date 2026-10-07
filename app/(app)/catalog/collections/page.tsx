@@ -9,7 +9,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Textarea } from "@/components/ui/textarea";
 import { ConfirmDialog } from "@/components/pp/confirm-dialog";
 import { EmptyState, ErrorState } from "@/components/pp/empty-state";
 import { PALETTES } from "@/lib/palettes";
@@ -48,7 +47,7 @@ export default function CollectionsPage() {
   });
   const [toDelete, setToDelete] = useState<Collection | null>(null);
 
-  const newDraft = (): Draft => ({ name: "", description: "", productIds: [], cover: { template: "block", title: "", subtitle: "", ...PALETTES[0] } });
+  const newDraft = (): Draft => ({ name: "", productIds: [], cover: { template: "block", title: "", subtitle: "", ...PALETTES[0] } });
 
   async function save() {
     if (!draft) return;
@@ -70,7 +69,7 @@ export default function CollectionsPage() {
       ) : loading && !data ? (
         <div className="flex flex-col gap-3">{[0, 1, 2].map((i) => <Skeleton key={i} className="h-24 rounded-card" />)}</div>
       ) : data?.length === 0 ? (
-        <EmptyState icon={FolderOpen} title="No collections yet." body="Make one for each kind of thing you sell. Buyers find stuff faster." action={<Button onClick={() => open(newDraft())}><Plus aria-hidden /> New collection</Button>} />
+        <EmptyState icon={FolderOpen} title="No collections yet." body="Collections just help organize products. You can sell without one." action={<Button onClick={() => open(newDraft())}><Plus aria-hidden /> New collection</Button>} />
       ) : (
         <ol className="flex flex-col gap-3">
           {data?.map((c, i) => (
@@ -95,13 +94,12 @@ export default function CollectionsPage() {
         <SheetContent className="w-full overflow-y-auto sm:max-w-md">
           <SheetHeader>
             <SheetTitle className="font-display text-2xl">{draft?.id ? "Edit collection" : "New collection"}</SheetTitle>
-            <SheetDescription>Pick products, and a colour or image for the tile.</SheetDescription>
+            <SheetDescription>A name and a colour or image for the tile. Add products now or later.</SheetDescription>
           </SheetHeader>
           {draft && (
             <form id="col" noValidate className="flex flex-col gap-4 px-4" onSubmit={(e) => { e.preventDefault(); save(); }}>
               {formError && <p role="alert" className="text-sm font-medium text-danger">{formError}</p>}
               <div className="flex flex-col gap-1.5"><Label htmlFor="c-name">Name</Label><Input id="c-name" value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} /></div>
-              <div className="flex flex-col gap-1.5"><Label htmlFor="c-desc">Description</Label><Textarea id="c-desc" rows={2} value={draft.description} onChange={(e) => setDraft({ ...draft, description: e.target.value })} /></div>
               <BackgroundPicker
                 label="Tile"
                 aiPurpose="collection_tile"

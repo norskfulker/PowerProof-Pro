@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import type { Database } from "./lib/database.types";
-import { isLive, SUPABASE_ANON_KEY, SUPABASE_URL } from "./lib/supabase/env";
+import { missingEnv, SUPABASE_ANON_KEY, SUPABASE_URL } from "./lib/supabase/env";
 
 /**
  * Runs before every page: refreshes the Supabase session cookie, sends signed-out visitors on
@@ -16,7 +16,9 @@ const AUTH_PAGES = ["/login", "/signup"];
 const under = (path: string, roots: string[]) => roots.some((r) => path === r || path.startsWith(`${r}/`));
 
 export async function proxy(request: NextRequest) {
-  if (!isLive()) return NextResponse.next();
+  // No fallback backend: a misconfigured deploy fails loudly instead of showing made-up data
+  const missing = missingEnv();
+  if (missing.length) return new NextResponse(`PowerProof isn't connected to its database. Set ${missing.join(" and ")}.`, { status: 500 });
 
   let response = NextResponse.next({ request });
   const supabase = createServerClient<Database>(SUPABASE_URL, SUPABASE_ANON_KEY, {

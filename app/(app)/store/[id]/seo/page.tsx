@@ -12,7 +12,8 @@ import { PageHeader } from "@/components/pp/page-header";
 import { SaveBar } from "@/components/save/save-bar";
 import { useDirtyForm } from "@/hooks/use-dirty-form";
 import { useApi } from "@/hooks/use-api";
-import { getStore, getStoreDesign, updateStoreDesign } from "@/lib/api";
+import { useCurrentStore } from "@/hooks/use-current-store";
+import { getStoreDesign, updateStoreDesign } from "@/lib/api";
 import { SITE_URL } from "@/lib/format";
 import type { StoreDesign } from "@/lib/types";
 
@@ -20,7 +21,7 @@ const SOCIALS = [["instagram", "Instagram"], ["youtube", "YouTube"], ["x", "X"],
 
 export default function StoreSeoPage() {
   const saved = useApi(getStoreDesign, []);
-  const store = useApi(getStore, []);
+  const store = useCurrentStore();
   const [draft, setDraft] = useState<StoreDesign>();
   const bar = useDirtyForm({
     value: draft ?? saved.data,

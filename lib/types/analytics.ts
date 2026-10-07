@@ -6,7 +6,6 @@ export type RangeKey = "today" | "7d" | "30d" | "90d";
 export interface SeriesPoint {
   label: string;
   revenue: number; // major units, for charts only
-  visitors: number;
   orders: number;
 }
 
@@ -14,9 +13,11 @@ export interface Summary {
   range: RangeKey;
   revenue: Money;
   sales: number;
-  visitors: number;
-  conversion: number; // percent
-  deltas: { revenue: number; sales: number; visitors: number; conversion: number };
+  /** Null until visits are tracked: screens show "No data yet" */
+  visitors: number | null;
+  conversion: number | null; // percent
+  /** Percent change versus the previous period; null when there is nothing to compare with */
+  deltas: { revenue: number | null; sales: number | null; visitors: number | null; conversion: number | null };
   series: SeriesPoint[];
   topProducts: { productId: string; title: string; sales: number; revenue: Money }[];
   sources: { source: TrafficSource; visitors: number; share: number }[];

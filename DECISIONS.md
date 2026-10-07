@@ -14,43 +14,38 @@ Small calls made while building the frontend, so the founder can check them in o
 | Recharts 3 | Charts read colours from CSS variables (`var(--chart-1)` etc.). |
 | React Email | Templates in `/emails`, rendered in the browser at `/emails/*`. |
 
-## Mock data layer
+## Data layer
 
-- **Pages only import `@/lib/api`.** `lib/mock/*` is imported by `lib/api/*` and nothing else. To connect the backend, replace each function body in `lib/api` with a `fetch`. Signatures and types stay the same.
+- **Pages only import `@/lib/api`.** Every function there reads and writes Supabase (`lib/api/live/*` holds the queries and the row to app-type mapping). There is no other backend, no mock and no switch to turn one on: if the Supabase variables are missing the app says so.
 - **Types live in `lib/types/`** (one file per area, re-exported from `index.ts`).
-- **Data runs in the browser.** Pages fetch through the `useApi` hook, so loading skeletons are real (300 to 600 ms of simulated latency in `lib/api/client.ts`).
-- **The mock database persists to `localStorage`** (`pp:db`). That keeps the walkthrough working across reloads, and across tabs: a buyer paying in one tab shows up on the creator's dashboard in another. Cross-tab updates use the `storage` event plus a cheap revision check every 2.5 s and on focus, because some embedded browsers don't deliver `storage`.
-- **Demo controls** live in the avatar menu under *Demo data*: load sample data, start with an empty store, simulate errors (every API call fails, to review error states).
-- **Sign up creates a new, empty store.** Log in opens whatever store is in the browser (sample data by default).
-- **Seeded store:** "Ananya Makes" (`/s/ananya`), 12 products, 40 orders, 25 customers in 8 countries, 6 payouts. Generated with a fixed seed so it looks the same on every load. Dates are relative to "now".
-- **Admin data** (creators, disputes, payout queue, flags) is separate platform-wide mock data in `lib/mock/admin.ts`. Admin orders show the demo store's real orders.
+- **Pages fetch through the `useApi` hook**, so loading skeletons and error states with retry are real. A change in one tab tells other tabs to re-read through a `storage` event.
+- **Sign up creates a new, empty store.** Nothing is pre-filled.
+- **Nothing is made up.** A list with nothing in it shows an empty state with one next step; a figure with no source (visitors, conversion, sources, funnels, deal usage) shows "No data yet"; a feature that needs a server we don't have shows "Coming soon".
+- **Test data lives in `tests/fixtures` and in the rows the end-to-end tests create and delete.** App code can't import fixtures (ESLint rule, plus `tests/unit/security/no-demo-data.test.ts`).
+- **Admin console** isn't connected yet: every admin screen says so.
 
 ## Money
 
 - Money is always `{ amount: integer minor units, currency }`. `MoneyText` and `formatMoney` are the only formatters. INR uses Indian digit grouping (₹1,52,400.00).
 - **Store currency is INR.** Prices are set in rupees.
-- **Buyers see their own currency**, guessed from their timezone and changeable in the header, saved per browser. Conversion uses a fixed mock rate table (`INR_PER` in `lib/money.ts`) and rounds to .99 above one unit.
-- **Assumption: buyers are charged in their own currency** and the creator settles in INR. Razorpay supports this for international cards. A small note under prices says so.
-- **Fees:** 3% platform plus about 2% gateway, both worked out on the INR price. Subscription is $20/month after a free first month; the calculator converts it at the mock rate (₹83.40).
-- **Settlement: T+2.** Sales are pending for two days, then available. Refund requests stay in pending until they're resolved.
+- **Prices show in the store's own currency.** Showing buyers their own currency needs a real exchange-rate source, which isn't connected, so nothing is converted or estimated (`localPrice` returns the price as it is).
+- **Fees:** 3% platform plus about 2% gateway, both worked out on the INR price. Subscription is $20/month after a free first month; the calculator shows it in dollars rather than converting it at an invented rate.
+- **Settlement:** each sale is held 3 hours (the ledger's `available_at`), then available. Withdrawals call the database's `request_payout`.
 - **Withdrawals:** minimum ₹100.00, no fee, to a verified bank account. USDT shows as "coming soon" and can't be picked.
 
 ## Product and content
 
-- **Three ways to add a product:** paste a link (`/products/new/link`, mock autofill returns a title, price, description and three generated covers for any URL), upload a file (`/products/new/upload`), or create a page (`/products/new/page`: creates a draft product plus a page, then opens the editor).
+- **One way to add a product for now:** upload a file (`/products/new/upload`). Importing from a link and the old product sales pages were mock-only, so they were removed; the visual page editor (Store › Design › Pages) replaces sales pages.
 - **A product needs a file before it can be published.** The schema enforces this in the editor and in onboarding.
 - **Upload limit shown as 2 GB per file.** Confirm against the storage plan.
-- **Product covers are generated art** (`CoverArt`). Six layouts drawn the same way in HTML and on canvas, so the image maker's PNG export matches what the store shows. Uploaded images use object URLs in the mock.
-- **Custom pages:** a *live* page that sells a product replaces that product's default page at the same URL (`/s/[store]/[product]`). Pages not tied to a product aren't public yet.
-- **Paste HTML mode:** pasted `<script>` tags are stripped on save. The page renders in a sandboxed iframe. Any element with `data-pp-buy="PRODUCT_ID"` becomes a buy button that starts checkout. The embed snippet (`embed.js`) is shown but **not built**; it's backend/CDN work.
+- **Product covers are generated art** (`CoverArt`). Six layouts drawn the same way in HTML and on canvas, so the image maker's PNG export matches what the store shows. Uploaded images are public files in Supabase Storage.
 - **Store URLs** are shown as `powerproof.store/<slug>`; in this app they live at `/s/<slug>`.
 
 ## Checkout and payments
 
-- **PowerProof never renders card fields.** "Pay" opens a sheet that stands in for the gateway's own checkout (Razorpay Checkout in production), with *Approve* and *Simulate a declined payment* buttons.
-- Indian buyers can pick UPI, card or netbanking. International buyers pay by card.
-- Buyers don't need an account. Order lookup by email lives at `/lookup`.
-- Downloads in the mock save a small text file that stands in for a signed, expiring link.
+- **Not open yet.** Checkout, the order page, downloads, invoices and order lookup need Razorpay and server routes. Their screens say "opens soon", and **Buy now** on a store says checkout isn't open. There is no pretend gateway.
+- PowerProof will never render card fields: payment happens on the gateway's own checkout.
+- Buyers won't need an account. Order lookup by email will live at `/lookup`.
 
 ## Tax and invoices
 
@@ -77,7 +72,7 @@ Small calls made while building the frontend, so the founder can check them in o
 
 ## Not built (needs backend or a later phase)
 
-Real auth and route guards, file storage and signed URLs, the gateway integration and webhooks, real email sending, `embed.js`, custom domains and logo upload, multi-store, team permissions enforcement, analytics ingestion (visitor numbers are synthetic), GA/Clarity script injection on buyer pages.
+The gateway integration and webhooks, real email sending, `embed.js`, custom domains, team seats, the AI image maker, the founder admin console, analytics ingestion (visitor, conversion and source figures show "No data yet"), GA/Clarity script injection on buyer pages.
 
 ## Questions for the founder
 
@@ -123,17 +118,9 @@ Real auth and route guards, file storage and signed URLs, the gateway integratio
 ## Reviews and questions
 
 - **Verified buyers only.** The review form lives on `/order/[token]` (linked from the success page and the review-request email). One review per product per order. Names show as first name plus initial.
-- Creators can **reply once** (labelled Creator), **pin up to 3**, **hide**, and **report**. They cannot edit stars or text. Imported testimonials are labelled Imported and don't count towards the average.
-- **Helpful votes are limited per device** with `localStorage`. A real backend should also rate-limit per IP.
+- Creators can **reply once** (labelled Creator) and **pin up to 3** (`reviews.pinned`). Only PowerProof can hide a review. They cannot edit stars or text. Helpful votes and imported testimonials were removed: nothing stored them.
 - **Reports** from reviews and questions show up in the founder admin's Flagged content. Removing a flag hides the item; dismissing clears the report.
 - **Questions:** anyone can ask with name and email (only the first name is shown). The creator answers from `/store/questions`; verified buyers can answer from their order page. Answers are one level deep. The "question answered" email is previewed at `/emails/question-answered`.
-
-## Mock data
-
-- Three stores: **Ananya Makes** (`/s/ananya`, kits and presets, the logged-in creator's store), **Inkwell Ebooks** (`/s/inkwell`, ebooks, Midnight + Editorial + centered hero), **Grid & Grain Studio** (`/s/gridgrain`, design templates, Graphite + Clean + full-width hero).
-- Each store: 15 products, 6 collections, 4 coupons (one expired, to show the error), 2 bundles, 1 live 48-hour deal. 60 reviews in total (some with photos and creator replies) and 20 questions (most answered).
-- The two extra stores are public and buyable, but read-only from the creator app (which manages Ananya's store). Their orders stay on their own store.
-- The mock database version is now 7 (deal-path rules, visual pages and the audit log were added), so old browser data is replaced with the new seed on first load.
 
 ## Questions for the founder (store)
 
@@ -146,7 +133,7 @@ Real auth and route guards, file storage and signed URLs, the gateway integratio
 ## Global search (Part 4A)
 
 - **One index, two scopes.** `lib/api/search.ts` builds one list of searchable records. The founder admin searches every store; creators search only their own (same palette, fewer types, no masking).
-- **Patterns:** `#1042` / `PP-1042` / a bare 3 to 6 digit number is an order number; anything with `@` is an email; `+91 98…` or 7+ digits is a phone; `@slug` limits to one store (`@inkwell freelance`); `INV-` is an invoice. Everything else is matched word by word.
+- **Patterns:** `#1042` / `PP-1042` / a bare 3 to 6 digit number is an order number; anything with `@` is an email; `+91 98…` or 7+ digits is a phone; `@slug` limits to one store (`@store-name planner`); `INV-` is an invoice. Everything else is matched word by word.
 - **Masking:** for admins, buyer and creator emails show as `pr••••@gmail.com` and phones as `+91 ••••••3210`. The raw values are used for matching but never leave the API. **Reveal** asks for an optional reason and writes who, when, what and why to the audit log (`/admin/audit`, newest first, last 500 kept).
 - **Quick actions:** open, copy ID, refund, hide review, suspend store. The three that change things always confirm and are logged too.
 - **Keyboard:** arrows move, Enter opens, Tab and Shift+Tab jump between groups, Ctrl+Enter moves focus to the actions bar for the highlighted result, Esc closes. Actions live in a bar under the list rather than inside each row, because buttons inside listbox options aren't accessible.
@@ -198,7 +185,7 @@ Real auth and route guards, file storage and signed URLs, the gateway integratio
 ## Media (6A, 6B)
 
 - **One uploader** (`components/media/media-uploader.tsx`) everywhere, including the page builder (through a thin adapter that keeps its plain `src` strings). Limits are shown before picking: JPG, PNG or WebP up to 5 MB, GIF up to 5 MB, MP4 or WebM up to 10 MB. Errors name the file and say what to do.
-- **Uploads are mocked** in `lib/api/media.ts`: progress in ten steps, then the file is kept in this browser's IndexedDB as `asset:<id>`. WebKit sometimes refuses to keep a Blob in IndexedDB, so the store falls back to raw bytes. A backend upload returns a CDN URL instead; nothing else changes.
+- **Uploads go to Supabase Storage** (`store-media/<store id>/…`) and the library list is read from the bucket. Nothing about the library is kept in the browser.
 - **Every upload goes into the library** (`/media`), which shows where each file is used across all of the creator's stores. Deleting a used file asks first and leaves an empty placeholder where it was.
 - **Products:** up to 8 images and 1 video, reordered with up and down buttons (no drag and drop, so it works the same with a keyboard and on phones). The first image is the cover.
 - **Backgrounds** are colour or image (the hero also takes a looping muted video with a poster). The contrast check samples the picture's average colour and offers the smallest overlay that makes text readable. Phones and reduced-motion users see the poster. Visual pages also have a page-level background behind every section.
@@ -206,13 +193,13 @@ Real auth and route guards, file storage and signed URLs, the gateway integratio
 
 ## AI images (6E)
 
-- Every screen calls `generateImage()` and `transformImage()` in `lib/api/ai.ts`. The mock draws pictures on a canvas after a 3 to 6 second wait. A real provider replaces the bodies of those two functions; no provider is named in the UI or the code.
+- **Coming soon.** The image maker only ever drew pictures in the browser; with no image service connected it was removed and `/tools/ai-images` says so.
 - **Credits:** 1 per generation (4 variations) or per edit. Free gets 10 a month and Pro 200, set in `lib/plans.ts`. Running out opens the Upgrade dialog.
 - **Safety:** a note under the prompt about real brands, logos and people, and **Report image** on every result, which hides it from history.
 
 ## Several stores (6C)
 
-- The mock keeps the active store in the top-level fields and the others in `ownedStores`. Switching swaps them, so every existing API works unchanged. A backend scopes each request by store id instead.
+- Each request is scoped by store id; the chosen store is remembered in the browser as a preference.
 - About, FAQ and policies belong to one store each. New stores get default text marked **Not edited yet** until it's saved once.
 
 ## Plans (6D)
@@ -231,8 +218,7 @@ Real auth and route guards, file storage and signed URLs, the gateway integratio
 
 ## Getting started (6G)
 
-- Ten steps; business details and analytics are optional. States are worked out from real data (a product exists, a payout method exists, the store is live) plus a few flags the data can't show (email verified, link shared, a coach mark seen). The flags are kept per account in local storage, so progress resumes after logging out.
-- The sample store predates the tracker, so it starts fully set up.
+- Ten steps; business details and analytics are optional. States are worked out from real data (a product exists, a payout method exists, the store is live) plus a few flags the data can't show (email verified, link shared, a coach mark seen). The flags are saved to `profiles.onboarding`, so progress resumes after logging out.
 - **Next step** links carry `?coach=<step>`; the coach mark points at the exact control and is never shown again for a finished step or after **Skip tour**.
 
 ## Questions for the founder (Part 6)
@@ -256,12 +242,7 @@ Real auth and route guards, file storage and signed URLs, the gateway integratio
 
 ## Custom domains (7B)
 
-- **Free address for every store:** `<name>.powerproof.store`, editable with an availability check; old names redirect for 90 days.
-- **Wizard:** enter the domain, connect, verify. We detect the DNS host from the name (mocked; a backend reads the nameservers). Only hosts with a real one-click flow say **Automatic setup available** (GoDaddy and Cloudflare in the mock); everyone else sees **Manual setup needed**, the exact records with copy buttons, and a short guide for GoDaddy, Namecheap, Cloudflare, Hostinger, Squarespace Domains (which took over Google Domains) and others.
-- **Statuses:** Not connected, Waiting for DNS, Verifying, Issuing SSL, Connected, Needs attention. Needs attention always says what's wrong and the exact fix. Checks repeat every 30 seconds with a visible countdown (paused while the tab is hidden), plus **Verify now**.
-- **After connecting:** primary address, www redirect direction and redirecting the free address all use the Part 6 save bar. Removing asks first.
-- **Pro only,** set once in `lib/plans.ts` (`customDomain`). Free creators can type a domain and see what it needs; continuing opens the Upgrade dialog.
-- **Simulator:** `/design` › Custom domains forces any status or problem on any store.
+- **Coming soon.** Connecting a domain needs DNS and certificate checks on the server. The screen says so; `lib/api/domains.ts` keeps only the provider guides, DNS targets, problem explanations and hostname checks for when it is built.
 
 ## Navigation (7C)
 
@@ -282,7 +263,7 @@ Real auth and route guards, file storage and signed URLs, the gateway integratio
 
 ## How the app reaches the database
 
-- **Same `/lib/api`, real data.** Every function keeps its signature. With `NEXT_PUBLIC_SUPABASE_URL` and the anon key set, it calls Supabase (`lib/api/live/*`); without them, or with `NEXT_PUBLIC_BACKEND=mock`, it uses the in-browser demo data. Unit tests and the Playwright demo suite run on the mock (`npm run build:mock`); `npm run test:integration` runs against the project.
+- **`/lib/api` is the only door, and it only talks to Supabase** (`lib/api/live/*`). There is no mock backend and no `NEXT_PUBLIC_BACKEND` switch. Unit tests use fixtures in `tests/fixtures`; the end-to-end and integration tests use the two test creators and create and delete their own data.
 - **Clients:** `lib/supabase/browser.ts` (anon key + session cookie), `server.ts` (same, for server code), `admin.ts` (service role). The service-role client imports `server-only`, ESLint blocks it in client code, and `tests/unit/security/service-role.test.ts` fails if the key is read anywhere else, imported by a client file, or found in the browser bundle.
 - **Route guard:** `proxy.ts` (Next 16's name for middleware) refreshes the session and sends signed-out visitors on creator and admin screens to `/login`; `/admin` also needs `app_metadata.role = "admin"`. RLS is still what protects the data.
 - **Plan limits** are read from `plan_limits` (pricing page, Upgrade dialog, comparison table, AI credits). Creates aren't pre-checked: the database refuses, and the Upgrade dialog opens on that error.

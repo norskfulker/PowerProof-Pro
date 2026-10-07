@@ -15,7 +15,7 @@ import type { StoreDesign } from "@/lib/types";
 import { StorefrontProvider, useStorefront } from "./storefront-context";
 
 function Chrome({ children }: { children: React.ReactNode }) {
-  const { view, currency, setCurrency, preview } = useStorefront();
+  const { view, preview } = useStorefront();
   const { store, design } = view;
   const site = useTheme().mode;
   const [buyer, setBuyer] = useState<"light" | "dark" | undefined>(() => getBuyerStoreTheme(store.id));
@@ -25,8 +25,8 @@ function Chrome({ children }: { children: React.ReactNode }) {
   return (
     <StoreThemeScope theme={design.theme} mode={mode} className="flex min-h-dvh flex-col">
       <SkipLink />
-      {announcementOn && <AnnouncementBar announcement={design.announcement} />}
-      <StoreNavbar store={store} collections={view.collections} currency={currency} onCurrency={setCurrency} />
+      {announcementOn && design.announcement.text.trim() && <AnnouncementBar announcement={design.announcement} />}
+      <StoreNavbar store={store} collections={view.collections} />
       <main id="main" className="flex-1">{children}</main>
       <StoreFooter
         store={store}

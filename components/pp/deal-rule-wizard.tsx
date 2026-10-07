@@ -398,7 +398,7 @@ export function DealRuleWizard({
         <div className="flex flex-col gap-5">
           <div className="flex max-w-md flex-col gap-1.5">
             <Label htmlFor="w-name">Name (only you see this)</Label>
-            <Input id="w-name" value={draft.name} onChange={(e) => set({ name: e.target.value })} placeholder="Diwali gift over ₹1,500" aria-invalid={!!errors.name || undefined} aria-describedby={errors.name ? "w-name-err" : undefined} />
+            <Input id="w-name" value={draft.name} onChange={(e) => set({ name: e.target.value })} placeholder="Free gift over a minimum spend" aria-invalid={!!errors.name || undefined} aria-describedby={errors.name ? "w-name-err" : undefined} />
             <FieldError id="w-name-err" message={errors.name} />
           </div>
           <label className="flex min-h-11 max-w-md cursor-pointer items-start justify-between gap-4">

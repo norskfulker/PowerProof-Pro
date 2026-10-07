@@ -13,7 +13,6 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { AuthCard, FormError } from "@/components/auth/auth-card";
 import { GoogleSignIn } from "@/components/auth/google-button";
-import { isLive } from "@/lib/supabase/env";
 import { login, sendLoginLink } from "@/lib/api";
 
 const passwordSchema = z.object({
@@ -66,11 +65,6 @@ function LoginForm() {
             <MailCheck className="size-5 shrink-0 text-primary" aria-hidden />
             Can&apos;t find it? Look in Promotions or Spam.
           </div>
-          {!isLive() && (
-            <Button asChild>
-              <Link href="/emails/login-link">Open the demo email</Link>
-            </Button>
-          )}
           <Button variant="ghost" onClick={() => setLinkSent(undefined)}>Use a different email</Button>
         </div>
       </AuthCard>
@@ -84,7 +78,7 @@ function LoginForm() {
       description="Good to see you again."
       footer={<>New here? <Link href="/signup" className="font-semibold text-foreground underline underline-offset-4">Start free</Link></>}
     >
-      {isLive() && <GoogleSignIn next={next} onError={setError} />}
+      <GoogleSignIn next={next} onError={setError} />
       <Form {...form}>
         <form noValidate onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-4">
           <FormError message={error} />
@@ -136,11 +130,6 @@ function LoginForm() {
           >
             {mode === "password" ? "Email me a login link instead" : "Use my password instead"}
           </Button>
-          {!isLive() && (
-            <p className="rounded-control bg-surface-sunken px-3.5 py-2.5 text-xs text-muted-foreground">
-              Demo: any email with an 8+ character password opens the sample store.
-            </p>
-          )}
         </form>
       </Form>
     </AuthCard>

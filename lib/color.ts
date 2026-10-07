@@ -60,3 +60,22 @@ export function liftTo(fg: string, bg: string, min = 4.5): string {
   }
   return toward;
 }
+
+/**
+ * Turns picker output into #RRGGBB, or null. Accepts #rgb, #rgba, #rrggbb, #rrggbbaa (alpha is
+ * dropped) and rgb()/rgba() with 0-255 channels. Anything else is rejected.
+ */
+export function normalizeHex(input: string): string | null {
+  const v = input.trim();
+  let m = /^#([0-9a-f]{3,4}|[0-9a-f]{6}|[0-9a-f]{8})$/i.exec(v);
+  if (m) {
+    const h = m[1];
+    const six = h.length <= 4 ? h.slice(0, 3).split("").map((x) => x + x).join("") : h.slice(0, 6);
+    return `#${six.toUpperCase()}`;
+  }
+  m = /^rgba?\(\s*(\d{1,3})\s*[, ]\s*(\d{1,3})\s*[, ]\s*(\d{1,3})\s*(?:[,/]\s*(?:\d*\.?\d+%?)\s*)?\)$/i.exec(v);
+  if (!m) return null;
+  const ch = m.slice(1, 4).map(Number);
+  if (ch.some((n) => n > 255)) return null;
+  return `#${ch.map((n) => n.toString(16).padStart(2, "0")).join("").toUpperCase()}`;
+}

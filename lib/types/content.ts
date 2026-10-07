@@ -78,7 +78,8 @@ export interface Plan {
   monthly: Money;
   platformFeePct: number;
   gatewayFeePct: number;
-  trialEndsAt: ISODate;
+  /** Only set while a free month is running */
+  trialEndsAt?: ISODate;
   status: "trial" | "active" | "past_due";
   cardLast4?: string;
 }

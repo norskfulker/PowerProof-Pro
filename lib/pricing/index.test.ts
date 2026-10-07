@@ -103,7 +103,7 @@ describe("ratingSummary", () => {
 
 describe("publicName", () => {
   it("shortens to first name and last initial", () => {
-    expect(publicName("Priya Sharma")).toBe("Priya S.");
+    expect(publicName("Asha Kumar")).toBe("Asha K.");
     expect(publicName("  Ravi  ")).toBe("Ravi");
     expect(publicName("")).toBe("Buyer");
     expect(publicName("Karthik Venkata subramaniam")).toBe("Karthik S.");

@@ -1,4 +1,5 @@
 import { isThemePref, THEME_KEY, type ThemePref } from "../theme";
+import { writeProgress } from "./live/flags";
 
 /**
  * Display preferences. The theme lives in this browser for now; when accounts are backed by the
@@ -15,6 +16,8 @@ export function getThemePref(): ThemePref {
 }
 
 export function setThemePref(pref: ThemePref): void {
+  // Signed-in creators also keep it on their account (profiles.onboarding); visitors have no session, so it stays in this browser
+  if (pref !== "system") writeProgress({ theme: pref });
   try {
     if (pref === "system") window.localStorage.removeItem(THEME_KEY);
     else window.localStorage.setItem(THEME_KEY, pref);

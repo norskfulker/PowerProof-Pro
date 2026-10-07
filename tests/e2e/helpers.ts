@@ -1,10 +1,6 @@
 import { expect, type Page, type TestInfo } from "@playwright/test";
 
 export interface PrepareOptions {
-  stress?: boolean;
-  fail?: boolean;
-  /** Real latency (to see loading skeletons) */
-  slow?: boolean;
   largeText?: boolean;
   /** Freeze the clock for visual snapshots */
   frozen?: boolean;
@@ -13,26 +9,29 @@ export interface PrepareOptions {
 /** Fixed instant for deterministic snapshots: Monday 5 Oct 2026, 11:00 IST */
 export const FROZEN_TIME = new Date("2026-10-05T05:30:00.000Z");
 
+/** Makes every database request fail, to see the error states with their retry buttons. */
+export async function failDatabase(page: Page) {
+  await page.route(/\/rest\/v1\//, (route) => route.abort("failed"));
+}
+
+/** Delays every database request, to see the loading skeletons. */
+export async function slowDatabase(page: Page, ms = 1500) {
+  await page.route(/\/rest\/v1\//, async (route) => {
+    await new Promise((r) => setTimeout(r, ms));
+    await route.continue();
+  });
+}
+
 export async function prepare(page: Page, testInfo: TestInfo, opts: PrepareOptions = {}) {
   const largeText = opts.largeText ?? !!testInfo.project.metadata?.largeText;
   if (opts.frozen) await page.clock.setFixedTime(FROZEN_TIME);
-  await page.addInitScript(
-    ({ stress, fail, slow, largeText }) => {
-      try {
-        localStorage.setItem("pp:demo", JSON.stringify({ fail, latency: slow ? [1500, 1800] : [0, 0] }));
-        localStorage.setItem("pp:buyer-currency", "INR");
-        if (stress) localStorage.setItem("pp:seed", "stress");
-      } catch {
-        /* storage blocked */
-      }
-      if (largeText) {
-        const s = document.createElement("style");
-        s.textContent = "html{font-size:150% !important}";
-        document.addEventListener("DOMContentLoaded", () => document.head.appendChild(s));
-      }
-    },
-    { stress: !!opts.stress, fail: !!opts.fail, slow: !!opts.slow, largeText }
-  );
+  if (largeText) {
+    await page.addInitScript(() => {
+      const s = document.createElement("style");
+      s.textContent = "html{font-size:150% !important}";
+      document.addEventListener("DOMContentLoaded", () => document.head.appendChild(s));
+    });
+  }
   const errors: string[] = [];
   page.on("console", (m) => {
     if (m.type() === "error" || m.type() === "warning") {

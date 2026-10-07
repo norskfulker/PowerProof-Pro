@@ -8,6 +8,17 @@ concurrency:
   group: test-${{ github.ref }}
   cancel-in-progress: true
 
+# The app and the tests talk to the real Supabase project. Set these as repository secrets.
+# The two test creators are throwaway accounts; the e2e setup creates their data and removes it.
+env:
+  NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+  SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+  TEST_CREATOR_A_EMAIL: ${{ secrets.TEST_CREATOR_A_EMAIL }}
+  TEST_CREATOR_A_PASSWORD: ${{ secrets.TEST_CREATOR_A_PASSWORD }}
+  TEST_CREATOR_B_EMAIL: ${{ secrets.TEST_CREATOR_B_EMAIL }}
+  TEST_CREATOR_B_PASSWORD: ${{ secrets.TEST_CREATOR_B_PASSWORD }}
+
 jobs:
   checks:
     name: Typecheck, lint, unit and component tests, build
@@ -38,6 +49,8 @@ jobs:
     timeout-minutes: 60
     strategy:
       fail-fast: false
+      # All engines share the same two test accounts, so they run one after another
+      max-parallel: 1
       matrix:
         engine: [chromium, firefox, webkit]
     steps:
@@ -64,10 +77,39 @@ jobs:
             test-results/results.json
           retention-days: 14
 
+  onboarding:
+    name: Onboarding (creator B is emptied while it runs)
+    # After the e2e jobs: it takes creator B's store away and puts one back
+    needs: [checks, e2e]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - uses: actions/download-artifact@v4
+        with:
+          name: next-build
+          path: .next
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:onboarding
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report-onboarding
+          path: |
+            playwright-report
+            test-results/results.json
+          retention-days: 14
+
   visual:
     name: Visual snapshots
-    needs: checks
-    # Baselines were recorded on Windows; compare on the same platform
+    # After the e2e jobs, which use the same two test accounts
+    needs: [checks, e2e, onboarding]
+    # Baselines are recorded on Windows (see tests/e2e/visual.spec.ts); compare on the same platform
     runs-on: windows-latest
     timeout-minutes: 30
     steps:

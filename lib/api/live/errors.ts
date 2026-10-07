@@ -7,6 +7,8 @@ import { ApiError, LimitError } from "../client";
  */
 export function fail(e: Pick<PostgrestError, "message" | "code"> | null | undefined, context: { conflict?: string; notFound?: string } = {}): never {
   const msg = e?.message ?? "";
+  // The real reason, for whoever opens the console (the screen shows a plain-words message)
+  if (e) console.error(`[supabase] ${e.code ?? "no code"}: ${msg}`);
   if (msg.includes("plan_limit_products")) throw new LimitError("products", "The Free plan includes 1 product. Upgrade to Pro to add more.");
   if (msg.includes("plan_limit_stores")) throw new LimitError("stores", "The Free plan includes 1 store. Upgrade to Pro to open another.");
   if (msg.includes("custom domain needs the Pro plan")) throw new LimitError("customDomain", "Custom domains are part of Pro. Upgrade to connect yours.");

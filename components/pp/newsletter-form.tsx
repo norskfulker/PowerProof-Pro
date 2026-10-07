@@ -46,7 +46,7 @@ export function NewsletterForm({
           >
             <label htmlFor="nl-email" className="sr-only">Email</label>
             <div className="flex flex-col gap-2 sm:flex-row">
-              <Input id="nl-email" type="email" inputMode="email" autoComplete="email" placeholder="you@example.com" value={email} onChange={(e) => { setEmail(e.target.value); setError(undefined); }} aria-invalid={!!error || undefined} aria-describedby="nl-err" className="text-foreground" />
+              <Input id="nl-email" type="email" inputMode="email" autoComplete="email" placeholder="you@email.com" value={email} onChange={(e) => { setEmail(e.target.value); setError(undefined); }} aria-invalid={!!error || undefined} aria-describedby="nl-err" className="text-foreground" />
               <Button type="submit" variant="brass" disabled={state === "pending"}>
                 {state === "pending" && <Loader2 className="animate-spin" aria-hidden />} Subscribe
               </Button>

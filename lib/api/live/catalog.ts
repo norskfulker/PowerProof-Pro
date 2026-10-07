@@ -1,6 +1,6 @@
 import { money as mkMoney } from "../../money";
-import { db } from "../../mock/db";
-import { slugify } from "../../mock/random";
+import { slugify } from "../../slug";
+import { TAX_CODES } from "../../tax-codes";
 import { sb } from "../../supabase/browser";
 import type { DealRuleInput } from "../../pricing/deal-rule-schema";
 import { dealRuleSchema } from "../../pricing/deal-rule-schema";
@@ -11,7 +11,7 @@ import type { ProductQuery } from "../products";
 import type { InboxQuestion, InboxReview, Offers } from "../store-admin";
 import type { NavCounts } from "../nav";
 import { fail, must } from "./errors";
-import { collectionFrom, dealRuleFrom, mediaUrl, productFrom, productType, questionFrom, reviewFrom, toDbStatus, type FileRow, type MediaRow, type ProductStats } from "./map";
+import { collectionFrom, dealRuleFrom, mediaUrl, productFrom, productType, questionFrom, reviewFrom, toDbStatus, type FileRow, type MediaRow, type ProductStats, type QuestionInput, type ReviewInput } from "./map";
 import { activeStoreId, currentUser } from "./session";
 import { removeFromStorage } from "./upload";
 
@@ -65,9 +65,9 @@ export async function getProduct(id: string): Promise<Product> {
   return p;
 }
 
-/** GST rate for a tax code, from the creator's tax code list. */
+/** GST rate (basis points) for a tax code, from the GST reference list. */
 function taxBps(code: string): number {
-  const t = db().taxCodes.find((x) => x.code === code);
+  const t = TAX_CODES.find((x) => x.code === code);
   return t ? Math.round(t.rate * 100) : 0;
 }
 
@@ -220,10 +220,9 @@ export async function getCollections(): Promise<Collection[]> {
 
 export async function saveCollection(c: Omit<Collection, "id" | "slug"> & { id?: string }): Promise<Collection[]> {
   if (c.name.trim().length < 2) throw new ApiError("Name the collection.", "validation");
-  if (c.productIds.length === 0) throw new ApiError("Pick at least one product.", "validation");
   const storeId = await activeStoreId();
   const client = sb();
-  const bg = JSON.parse(JSON.stringify({ background: c.background, cover: c.cover, description: c.description }));
+  const bg = JSON.parse(JSON.stringify({ background: c.background, cover: c.cover }));
   let id = c.id;
   if (id) {
     must(await client.from("collections").update({ name: c.name.trim().slice(0, 80), bg }).eq("id", id).select("id").single(), { notFound: "Collection" });
@@ -238,8 +237,27 @@ export async function saveCollection(c: Omit<Collection, "id" | "slug"> & { id?:
     if (r.error) fail(r.error, { conflict: "You already have a collection with this name." });
     id = r.data.id;
   }
-  must(await client.from("collection_items").insert(c.productIds.map((product_id, i) => ({ collection_id: id!, product_id, sort_order: i }))).select("product_id"));
+  if (c.productIds.length) must(await client.from("collection_items").insert(c.productIds.map((product_id, i) => ({ collection_id: id!, product_id, sort_order: i }))).select("product_id"));
   return getCollections();
+}
+
+/** The collections a product is in. Optional: a product can be in none. */
+export async function getProductCollectionIds(productId: string): Promise<string[]> {
+  const rows = must(await sb().from("collection_items").select("collection_id").eq("product_id", productId));
+  return rows.map((r) => r.collection_id);
+}
+
+/** Puts a product in exactly these collections (adding and removing as needed). */
+export async function setProductCollections(productId: string, collectionIds: string[]): Promise<void> {
+  const client = sb();
+  const have = await getProductCollectionIds(productId);
+  const add = collectionIds.filter((id) => !have.includes(id));
+  const drop = have.filter((id) => !collectionIds.includes(id));
+  if (drop.length) must(await client.from("collection_items").delete().eq("product_id", productId).in("collection_id", drop).select("product_id"));
+  if (add.length) {
+    const counts = await Promise.all(add.map((id) => client.from("collection_items").select("product_id", { count: "exact", head: true }).eq("collection_id", id)));
+    must(await client.from("collection_items").insert(add.map((collection_id, i) => ({ collection_id, product_id: productId, sort_order: counts[i].count ?? 0 }))).select("product_id"));
+  }
 }
 
 export async function deleteCollection(id: string): Promise<Collection[]> {
@@ -388,16 +406,8 @@ export async function deleteDealRule(id: string): Promise<void> {
 
 /* Reviews and questions ---------------------------------------------------------- */
 
-const PIN_KEY = (storeId: string) => `pp:pins:${storeId}`;
-function pins(storeId: string): string[] {
-  try {
-    return JSON.parse(window.localStorage.getItem(PIN_KEY(storeId)) ?? "[]") as string[];
-  } catch {
-    return [];
-  }
-}
-
-const REVIEW_COLS = "id, store_id, product_id, reviewer_name, rating, title, body, photos, status, creator_reply, replied_at, created_at, updated_at";
+const REVIEW_COLS = "id, store_id, product_id, reviewer_name, rating, title, body, photos, status, creator_reply, replied_at, created_at, pinned";
+const MAX_PINNED = 3;
 
 async function titles(storeId: string) {
   const rows = must(await sb().from("products").select("id, title, slug").eq("store_id", storeId));
@@ -406,46 +416,35 @@ async function titles(storeId: string) {
 
 export async function getReviewsInbox(): Promise<InboxReview[]> {
   const storeId = await activeStoreId();
-  const [rows, names] = await Promise.all([sb().from("reviews").select(REVIEW_COLS).eq("store_id", storeId).order("created_at", { ascending: false }), titles(storeId)]);
-  const pinned = new Set(pins(storeId));
-  return must(rows).map((r) => ({ ...reviewFrom(r, pinned.has(r.id)), productTitle: names.get(r.product_id)?.title ?? "Removed product" }));
+  // creator_reviews carries the product title; the base `reviews` table refuses `select *`
+  const rows = must(await sb().from("creator_reviews").select("*").eq("store_id", storeId).order("created_at", { ascending: false }));
+  return rows.map((r) => ({ ...reviewFrom(r as ReviewInput, !!r.pinned), productTitle: r.product_title ?? "Removed product" }));
 }
 
 export async function replyToReview(id: string, body: string): Promise<Review> {
   if (body.trim().length < 2) throw new ApiError("Write a reply first.", "validation");
   // creator_reply is the only column a creator may change on a review
   const row = must(await sb().from("reviews").update({ creator_reply: body.trim().slice(0, 1000) }).eq("id", id).select(REVIEW_COLS).single(), { notFound: "Review" });
-  return reviewFrom(row, pins(row.store_id).includes(id));
+  return reviewFrom(row, row.pinned);
 }
 
 export async function setReviewFlag(id: string, flag: "pinned" | "hidden", value: boolean): Promise<Review> {
   if (flag === "hidden") throw new ApiError("Only PowerProof can hide a review. If it breaks the rules, write to support and we'll look at it.", "validation");
   const storeId = await activeStoreId();
-  // Pins have no column yet: they're kept in this browser
-  const list = pins(storeId).filter((x) => x !== id);
-  if (value && list.length >= 3) throw new ApiError("You can pin up to 3 reviews. Unpin one first.", "conflict");
-  try {
-    window.localStorage.setItem(PIN_KEY(storeId), JSON.stringify(value ? [...list, id] : list));
-  } catch {
-    /* private mode */
+  if (value) {
+    const { count } = await sb().from("reviews").select("id", { count: "exact", head: true }).eq("store_id", storeId).eq("pinned", true).neq("id", id);
+    if ((count ?? 0) >= MAX_PINNED) throw new ApiError("You can pin up to 3 reviews. Unpin one first.", "conflict");
   }
-  return reviewFrom(must(await sb().from("reviews").select(REVIEW_COLS).eq("id", id).single(), { notFound: "Review" }), value);
-}
-
-export async function addImportedReview(input: unknown): Promise<Review> {
-  void input;
-  throw new ApiError("Imported testimonials are coming soon. Reviews come from verified buyers for now.", "validation");
+  const row = must(await sb().from("reviews").update({ pinned: value }).eq("id", id).select(REVIEW_COLS).single(), { notFound: "Review" });
+  return reviewFrom(row, row.pinned);
 }
 
 const QUESTION_COLS = "id, store_id, product_id, asker_name, body, answer, answered_at, status, created_at";
 
 export async function getQuestionsInbox(): Promise<InboxQuestion[]> {
   const storeId = await activeStoreId();
-  const [rows, names, me] = await Promise.all([sb().from("questions").select(QUESTION_COLS).eq("store_id", storeId).order("created_at", { ascending: false }), titles(storeId), currentUser()]);
-  return must(rows).map((q) => {
-    const p = names.get(q.product_id);
-    return { ...questionFrom(q, me.name.split(" ")[0]), productTitle: p?.title ?? "Removed product", productSlug: p?.slug ?? "" };
-  });
+  const [rows, names, me] = await Promise.all([sb().from("creator_questions").select("*").eq("store_id", storeId).order("created_at", { ascending: false }), titles(storeId), currentUser()]);
+  return must(rows).map((q) => ({ ...questionFrom(q as QuestionInput, me.name.split(" ")[0]), productTitle: q.product_title ?? "Removed product", productSlug: names.get(q.product_id ?? "")?.slug ?? "" }));
 }
 
 export async function answerQuestion(id: string, body: string): Promise<Question> {
@@ -468,8 +467,8 @@ export async function getNavCounts(): Promise<NavCounts> {
   const storeId = await activeStoreId();
   const [products, reviews, questions, collections] = await Promise.all([
     sb().from("products").select("id, title, status").eq("store_id", storeId),
-    sb().from("reviews").select("id", { count: "exact", head: true }).eq("store_id", storeId).is("creator_reply", null).eq("status", "published"),
-    sb().from("questions").select("id", { count: "exact", head: true }).eq("store_id", storeId).is("answer", null),
+    sb().from("creator_reviews").select("id", { count: "exact", head: true }).eq("store_id", storeId).is("creator_reply", null).eq("status", "published"),
+    sb().from("creator_questions").select("id", { count: "exact", head: true }).eq("store_id", storeId).is("answer", null),
     getCollections(),
   ]);
   const ps = products.data ?? [];

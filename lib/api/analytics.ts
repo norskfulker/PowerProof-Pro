@@ -1,142 +1,90 @@
 import { money } from "../money";
-import { db } from "../mock/db";
-import { DAY } from "../mock/random";
-import type { Order, RangeKey, SeriesPoint, Summary, TrafficSource } from "../types";
-import { call } from "./client";
-import { isLive } from "../supabase/env";
-import * as live from "./live/orders";
+import { sb } from "../supabase/browser";
+import type { CurrencyCode, RangeKey, SeriesPoint, Summary } from "../types";
+import { must } from "./live/errors";
+import { currency } from "./live/map";
+import { activeStoreId } from "./live/session";
 
+/** One IST day of sales: a row of creator_sales_daily. */
+export interface DailyRow {
+  day: string; // YYYY-MM-DD, an India (IST) day
+  orders_count: number;
+  gross_minor: number;
+}
+export interface ProductSalesRow {
+  product_id: string;
+  title: string;
+  units: number;
+  revenue_minor: number;
+}
+
+const DAY = 24 * 60 * 60 * 1000;
+const IST = 5.5 * 60 * 60 * 1000;
 const RANGE_DAYS: Record<RangeKey, number> = { today: 1, "7d": 7, "30d": 30, "90d": 90 };
 
-const counted = (o: Order) => o.status === "paid" || o.status === "refund_requested";
-
-/** Deterministic, believable visitor count for a time bucket. */
-function visitorsFor(seed: number, orders: number, fresh: boolean): number {
-  if (fresh) return orders * 18 + (seed % 7);
-  const base = 40 + ((seed * 9301 + 49297) % 233280) / 233280 * 70;
-  return Math.round(base + orders * 52);
-}
-
-function startOfToday(now: number) {
-  const d = new Date(now);
-  d.setHours(0, 0, 0, 0);
-  return d.getTime();
-}
-
-export function buildSummary(range: RangeKey, now = Date.now()): Summary {
-  const d = db();
-  return summarize(d.orders, range, now, { fresh: d.mode === "fresh", visitors: true });
-}
+/** The India date for an instant, as YYYY-MM-DD. */
+export const istDay = (t: number) => new Date(t + IST).toISOString().slice(0, 10);
+const dayMs = (d: string) => Date.parse(`${d}T00:00:00Z`);
+const pct = (a: number, b: number) => (b ? ((a - b) / b) * 100 : null);
 
 /**
- * The dashboard numbers from a list of orders. `visitors: false` (the live backend, which doesn't
- * track visits yet) reports no visitor, conversion or source figures rather than estimating them.
+ * The dashboard numbers, worked out from the store's daily sales (creator_sales_daily) and
+ * product sales (creator_product_sales). Visits aren't tracked, so visitors, conversion, traffic
+ * sources and the funnel are `null` / empty: screens say "No data yet" instead of an estimate.
  */
-export function summarize(orders: Order[], range: RangeKey, now: number, opts: { fresh: boolean; visitors: boolean }): Summary {
-  const { fresh } = opts;
-  const d = { orders };
+export function summarize(daily: DailyRow[], products: ProductSalesRow[], range: RangeKey, now: number, cur: CurrencyCode = "INR"): Summary {
   const days = RANGE_DAYS[range];
-  const start = range === "today" ? startOfToday(now) : now - days * DAY;
-  const prevStart = start - (now - start);
-  const inRange = d.orders.filter((o) => counted(o) && Date.parse(o.createdAt) >= start);
-  const prev = d.orders.filter((o) => counted(o) && Date.parse(o.createdAt) >= prevStart && Date.parse(o.createdAt) < start);
+  const today = dayMs(istDay(now));
+  const start = today - (days - 1) * DAY;
+  const prevStart = start - days * DAY;
+  const inRange = daily.filter((r) => dayMs(r.day) >= start && dayMs(r.day) <= today);
+  const prev = daily.filter((r) => dayMs(r.day) >= prevStart && dayMs(r.day) < start);
 
-  /* Series buckets */
+  // One point per day up to 30 days, weekly beyond that
+  const step = days > 30 ? 7 : 1;
   const series: SeriesPoint[] = [];
-  const bucketCount = range === "today" ? 12 : range === "7d" ? 7 : range === "30d" ? 15 : 13;
-  const span = (now - start) / bucketCount;
-  for (let i = 0; i < bucketCount; i++) {
-    const a = start + i * span;
-    const b = a + span;
-    const os = inRange.filter((o) => {
-      const t = Date.parse(o.createdAt);
-      return t >= a && t < b;
-    });
+  for (let a = start; a <= today; a += step * DAY) {
+    const rows = inRange.filter((r) => dayMs(r.day) >= a && dayMs(r.day) < a + step * DAY);
     const dt = new Date(a);
-    const label =
-      range === "today"
-        ? dt.toLocaleTimeString("en-IN", { hour: "numeric" })
-        : range === "7d"
-          ? dt.toLocaleDateString("en-IN", { weekday: "short" })
-          : dt.toLocaleDateString("en-IN", { day: "numeric", month: "short" });
     series.push({
-      label,
-      revenue: os.reduce((t, o) => t + o.total.amount, 0) / 100,
-      orders: os.length,
-      visitors: opts.visitors ? visitorsFor(Math.floor(a / 3600000), os.length, fresh) * (range === "today" ? 1 : range === "90d" ? 7 : range === "30d" ? 2 : 1) : 0,
+      label: range === "today" ? "Today" : step === 1 && days <= 7 ? dt.toLocaleDateString("en-IN", { weekday: "short", timeZone: "UTC" }) : dt.toLocaleDateString("en-IN", { day: "numeric", month: "short", timeZone: "UTC" }),
+      revenue: rows.reduce((t, r) => t + Number(r.gross_minor), 0) / 100,
+      orders: rows.reduce((t, r) => t + Number(r.orders_count), 0),
     });
   }
 
-  const visitors = series.reduce((t, s) => t + s.visitors, 0);
-  const revenue = inRange.reduce((t, o) => t + o.total.amount, 0);
-  const prevRevenue = prev.reduce((t, o) => t + o.total.amount, 0);
-  const conversion = visitors ? (inRange.length / visitors) * 100 : 0;
-  const pct = (a: number, b: number, fallback: number) => (b ? ((a - b) / b) * 100 : a ? fallback : 0);
-
-  /* Top products */
-  const byProduct = new Map<string, { title: string; sales: number; revenue: number }>();
-  for (const o of inRange) {
-    const cur = byProduct.get(o.productId) ?? { title: o.productTitle, sales: 0, revenue: 0 };
-    cur.sales += 1;
-    cur.revenue += o.total.amount;
-    byProduct.set(o.productId, cur);
-  }
-  const topProducts = [...byProduct.entries()]
-    .sort((a, b) => b[1].revenue - a[1].revenue)
-    .slice(0, 5)
-    .map(([productId, v]) => ({ productId, title: v.title, sales: v.sales, revenue: money(v.revenue) }));
-
-  /* Sources */
-  const srcCount = new Map<TrafficSource, number>();
-  for (const o of inRange) srcCount.set(o.source, (srcCount.get(o.source) ?? 0) + 1);
-  const totalSrc = [...srcCount.values()].reduce((t, n) => t + n, 0) || 1;
-  const sources = [...srcCount.entries()]
-    .sort((a, b) => b[1] - a[1])
-    .map(([source, n]) => ({ source, visitors: Math.round((n / totalSrc) * visitors), share: (n / totalSrc) * 100 }));
-
-  if (!opts.visitors) {
-    return {
-      range,
-      revenue: money(revenue),
-      sales: inRange.length,
-      visitors: 0,
-      conversion: 0,
-      deltas: { revenue: pct(revenue, prevRevenue, 100), sales: pct(inRange.length, prev.length, 100), visitors: 0, conversion: 0 },
-      series,
-      topProducts,
-      sources: [],
-      funnel: [{ label: "Paid", value: inRange.length }],
-    };
-  }
-
-  const productViews = Math.round(visitors * 0.48);
-  const checkouts = Math.max(inRange.length, Math.round(visitors * 0.07));
+  const revenue = inRange.reduce((t, r) => t + Number(r.gross_minor), 0);
+  const sales = inRange.reduce((t, r) => t + Number(r.orders_count), 0);
+  const prevRevenue = prev.reduce((t, r) => t + Number(r.gross_minor), 0);
+  const prevSales = prev.reduce((t, r) => t + Number(r.orders_count), 0);
 
   return {
     range,
-    revenue: money(revenue),
-    sales: inRange.length,
-    visitors,
-    conversion,
-    deltas: {
-      revenue: pct(revenue, prevRevenue, 100),
-      sales: pct(inRange.length, prev.length, 100),
-      visitors: fresh ? 0 : 9.4,
-      conversion: fresh ? 0 : 0.3,
-    },
+    revenue: money(revenue, cur),
+    sales,
+    visitors: null,
+    conversion: null,
+    deltas: { revenue: pct(revenue, prevRevenue), sales: pct(sales, prevSales), visitors: null, conversion: null },
     series,
-    topProducts,
-    sources,
-    funnel: [
-      { label: "Visited store", value: visitors },
-      { label: "Viewed a product", value: productViews },
-      { label: "Started checkout", value: checkouts },
-      { label: "Paid", value: inRange.length },
-    ],
+    topProducts: [...products]
+      .sort((a, b) => Number(b.revenue_minor) - Number(a.revenue_minor))
+      .slice(0, 5)
+      .map((p) => ({ productId: p.product_id, title: p.title, sales: Number(p.units), revenue: money(Number(p.revenue_minor), cur) })),
+    sources: [],
+    funnel: [],
   };
 }
 
-export function getSummary(range: RangeKey): Promise<Summary> {
-  if (isLive()) return live.getOrders().then((orders) => summarize(orders, range, Date.now(), { fresh: false, visitors: false }));
-  return call(() => buildSummary(range));
+export async function getSummary(range: RangeKey): Promise<Summary> {
+  const storeId = await activeStoreId();
+  const client = sb();
+  const store = must(await client.from("stores").select("currency_base").eq("id", storeId).single());
+  const cur = currency(store.currency_base);
+  const now = Date.now();
+  const from = istDay(now - (RANGE_DAYS[range] * 2 + 1) * DAY);
+  const [daily, products] = await Promise.all([
+    client.from("creator_sales_daily").select("day, orders_count, gross_minor").eq("store_id", storeId).eq("currency", cur).gte("day", from).order("day"),
+    client.from("creator_product_sales").select("product_id, title, units, revenue_minor").eq("store_id", storeId).eq("currency", cur),
+  ]);
+  return summarize(must(daily) as DailyRow[], must(products) as ProductSalesRow[], range, now, cur);
 }

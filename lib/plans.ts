@@ -15,15 +15,6 @@ export interface PlanLimits {
   customDomain: boolean;
 }
 
-/**
- * Demo values for the mock backend. With Supabase, limits come from the plan_limits table
- * (the same numbers the database enforces): see getPlanLimits() and fetchPlanLimits().
- */
-export const PLAN_LIMITS: Record<PlanTier, PlanLimits> = {
-  free: { stores: 1, products: 1, aiCredits: 10, customDomain: false },
-  pro: { stores: null, products: null, aiCredits: 200, customDomain: true },
-};
-
 /** What each AI action costs, in credits */
 export const AI_COSTS = {
   generate: 1,
@@ -61,13 +52,4 @@ export function planComparison(l: AllPlanLimits): { feature: string; free: strin
 /** Plain-words list for the Upgrade dialog */
 export function proBenefits(l: AllPlanLimits): string[] {
   return ["Unlimited stores and products", "Connect your own domain, with free SSL", `${l.pro.aiCredits} AI image credits a month`, "Same 3% fee per sale, nothing hidden", "Cancel any time from Settings"];
-}
-
-export function limitFor(tier: PlanTier, kind: "stores" | "products"): number | null {
-  return PLAN_LIMITS[tier][kind];
-}
-
-export function withinLimit(tier: PlanTier, kind: "stores" | "products", current: number): boolean {
-  const max = limitFor(tier, kind);
-  return max === null || current < max;
 }
