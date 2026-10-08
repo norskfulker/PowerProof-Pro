@@ -65,6 +65,21 @@ export async function addBankAccount(input: BankInput): Promise<PayoutMethod> {
   if (!/^\d{9,18}$/.test(digits)) throw new ApiError("Account numbers are 9 to 18 digits.", "validation");
   const ifsc = input.ifsc.trim().toUpperCase();
   if (!/^[A-Z]{4}0[A-Z0-9]{6}$/.test(ifsc)) throw new ApiError("IFSC codes look like HDFC0001234.", "validation");
+  // With RazorpayX connected the server registers the account for automatic payouts (the full number goes to Razorpay, not to us)
+  const holder = input.holderName.trim().slice(0, 100);
+  const reg = await fetch("/api/payouts/methods", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ holderName: holder, accountNumber: digits, ifsc }) })
+    .then((r) => r.json() as Promise<{ ok: boolean; code?: string; message?: string; id?: string }>)
+    .catch(() => ({ ok: false, code: "not_configured" as string | undefined, message: undefined as string | undefined, id: undefined as string | undefined }));
+  if (reg.ok && reg.id) {
+    const saved = await sb().from("payout_methods").select(METHOD_COLS).eq("id", reg.id).single();
+    if (saved.error) fail(saved.error);
+    return payoutMethodFrom(saved.data);
+  }
+  if (reg.message) {
+    // The route repeats the database's own words for our rules; turn them into the usual messages
+    if (/payout_method_limit|payout_holder_mismatch/.test(reg.message)) fail({ code: "P0001", message: reg.message });
+    throw new ApiError(reg.message, "validation");
+  }
   const me = await currentUser();
   // The first method is the primary one; later ones are added next to it (up to 5 of each kind)
   const { count } = await sb().from("payout_methods").select("id", { count: "exact", head: true }).eq("owner_id", me.id);

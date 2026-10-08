@@ -12,6 +12,7 @@ import type { InboxQuestion, InboxReview, Offers } from "../store-admin";
 import type { NavCounts } from "../nav";
 import { fail, must } from "./errors";
 import { collectionFrom, dealRuleFrom, mediaUrl, productFrom, productType, questionFrom, reviewFrom, toDbStatus, type FileRow, type MediaRow, type ProductStats, type QuestionInput, type ReviewInput } from "./map";
+import { openDisputeOrderIds } from "./orders";
 import { activeStoreId, currentUser } from "./session";
 import { removeFromStorage } from "./upload";
 
@@ -516,6 +517,7 @@ export async function getNavCounts(): Promise<NavCounts> {
     sb().from("creator_questions").select("id", { count: "exact", head: true }).eq("store_id", storeId).is("answer", null),
   ]);
   const ps = products.data ?? [];
+  const disputed = await openDisputeOrderIds(storeId).catch(() => new Set<string>());
   return {
     storeId,
     counts: {
@@ -525,7 +527,7 @@ export async function getNavCounts(): Promise<NavCounts> {
       products_archived: ps.filter((p) => p.status === "archived").length,
       reviews_pending: reviews.count ?? 0,
       questions_open: questions.count ?? 0,
-      orders_disputed: 0,
+      orders_disputed: disputed.size,
     },
   };
 }

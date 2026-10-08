@@ -26,4 +26,5 @@ export * from "./leads";
 export * from "./marketplace";
 export * from "./public-orders";
 export * from "./checkout";
+export * from "./admin";
 export { subscribe as onDataChange } from "./live/local";

@@ -40,10 +40,10 @@ export class GatewayError extends Error {
   }
 }
 
-async function call<T>(cfg: RazorpayConfig, path: string, body: unknown): Promise<T> {
+async function call<T>(cfg: RazorpayConfig, path: string, body: unknown, extraHeaders: Record<string, string> = {}): Promise<T> {
   const res = await fetch(`https://api.razorpay.com/v1${path}`, {
     method: "POST",
-    headers: { "content-type": "application/json", authorization: `Basic ${Buffer.from(`${cfg.keyId}:${cfg.keySecret}`).toString("base64")}` },
+    headers: { "content-type": "application/json", authorization: `Basic ${Buffer.from(`${cfg.keyId}:${cfg.keySecret}`).toString("base64")}`, ...extraHeaders },
     body: JSON.stringify(body),
     cache: "no-store",
     signal: AbortSignal.timeout(15000),
@@ -78,4 +78,32 @@ export async function verifyKeys(cfg: RazorpayConfig): Promise<{ ok: true } | { 
   } catch {
     return { ok: false, reason: "unreachable" };
   }
+}
+
+/* RazorpayX: payouts to sellers ------------------------------------------------------------------ */
+
+/** RazorpayX uses the same API keys; payouts also need the number of the RazorpayX account the money is sent from */
+export interface PayoutConfig extends RazorpayConfig {
+  accountNumber: string;
+}
+export function payoutConfig(env: Record<string, string | undefined> = process.env): PayoutConfig | null {
+  const base = razorpayConfig(env);
+  const accountNumber = env.RAZORPAYX_ACCOUNT_NUMBER?.trim();
+  return base && accountNumber ? { ...base, accountNumber } : null;
+}
+
+/** A person to pay, then the account to pay them at. Only the bank details go to Razorpay; we keep the last four digits. */
+export async function createFundAccount(cfg: RazorpayConfig, o: { name: string; email: string; reference: string; ifsc: string; accountNumber: string }) {
+  const contact = await call<{ id: string }>(cfg, "/contacts", { name: o.name.slice(0, 50), email: o.email, type: "vendor", reference_id: o.reference.slice(0, 40) });
+  return call<{ id: string }>(cfg, "/fund_accounts", { contact_id: contact.id, account_type: "bank_account", bank_account: { name: o.name.slice(0, 100), ifsc: o.ifsc, account_number: o.accountNumber } });
+}
+
+/** Sends rupees from the RazorpayX account. The payout's own id is the idempotency key, so a double click can't pay twice. */
+export async function createPayout(cfg: PayoutConfig, o: { fundAccountId: string; amount: number; mode: "IMPS" | "NEFT" | "UPI"; reference: string }) {
+  return call<{ id: string; status: string }>(
+    cfg,
+    "/payouts",
+    { account_number: cfg.accountNumber, fund_account_id: o.fundAccountId, amount: o.amount, currency: "INR", mode: o.mode, purpose: "payout", queue_if_low_balance: true, reference_id: o.reference.slice(0, 40), narration: "PowerProof payout" },
+    { "X-Payout-Idempotency": o.reference }
+  );
 }

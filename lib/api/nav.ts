@@ -1,4 +1,5 @@
 import type { BadgeKey } from "../nav/config";
+import { getAdminCounts } from "./admin";
 import * as live from "./live/catalog";
 import { activeStoreId } from "./live/session";
 
@@ -9,8 +10,7 @@ export interface NavCounts {
 
 /** Live numbers for the menu. Store-scoped counts follow the active store. */
 export function getNavCounts(area: "creator" | "admin"): Promise<NavCounts> {
-  // The admin console isn't connected to the database yet, so it has no counts to show
-  if (area === "admin") return Promise.resolve({ storeId: "", counts: {} });
+  if (area === "admin") return getAdminCounts().then((c) => ({ storeId: "", counts: c }));
   return live.getNavCounts();
 }
 

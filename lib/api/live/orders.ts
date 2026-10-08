@@ -86,12 +86,20 @@ async function load(storeId: string): Promise<Order[]> {
   });
 }
 
+/** Orders in this store that a buyer's bank has disputed and that still need an answer (the table is filled by the payment webhook) */
+export async function openDisputeOrderIds(storeId: string): Promise<Set<string>> {
+  const client = sb() as unknown as { from: (t: string) => { select: (c: string) => { in: (c: string, v: string[]) => { eq: (c: string, v: string) => PromiseLike<{ data: { order_id: string }[] | null }> } } } };
+  const r = await client.from("disputes").select("order_id, orders!inner(store_id)").in("status", ["open", "under_review"]).eq("orders.store_id", storeId);
+  return new Set((r.data ?? []).map((d) => d.order_id));
+}
+
 export async function getOrders(q: OrderQuery = {}): Promise<Order[]> {
-  // Disputes come from the payment gateway and arrive with the payments stage
-  if (q.disputed) return [];
   const s = q.search?.trim().toLowerCase();
-  const list = (await load(await activeStoreId())).filter(
+  const storeId = await activeStoreId();
+  const disputed = q.disputed ? await openDisputeOrderIds(storeId) : undefined;
+  const list = (await load(storeId)).filter(
     (o) =>
+      (!disputed || disputed.has(o.id)) &&
       (!s || o.number.toLowerCase().includes(s) || o.buyerEmail.toLowerCase().includes(s) || o.buyerName.toLowerCase().includes(s) || o.productTitle.toLowerCase().includes(s)) &&
       (!q.status || q.status === "all" || o.status === q.status) &&
       (!q.productId || o.items.some((i) => i.productId === q.productId)) &&

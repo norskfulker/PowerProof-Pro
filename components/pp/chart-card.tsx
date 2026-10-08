@@ -124,7 +124,7 @@ export function RevenueBars({ data, height = 240, currency }: { data: { label: s
   );
 }
 
-export function VisitorsArea({ data, height = 240 }: { data: { label: string; visitors: number }[]; height?: number }) {
+export function VisitorsArea({ data, height = 240, name = "visitors" }: { data: { label: string; visitors: number }[]; height?: number; name?: string }) {
   const still = useReducedMotion();
   return (
     <ResponsiveContainer width="100%" height={height}>
@@ -133,7 +133,7 @@ export function VisitorsArea({ data, height = 240 }: { data: { label: string; vi
         <XAxis dataKey="label" tickLine={false} axisLine={false} tick={axis} interval="preserveStartEnd" />
         <YAxis tickLine={false} axisLine={false} tick={axis} width={48} domain={EMPTY_SAFE} allowDecimals={false} />
         <Tooltip cursor={{ stroke: "var(--border-strong)" }} content={<TooltipBox kind="count" />} />
-        <Area isAnimationActive={!still} type="monotone" dataKey="visitors" name="visitors" stroke="var(--chart-2)" strokeWidth={2} fill="var(--accent-soft)" />
+        <Area isAnimationActive={!still} type="monotone" dataKey="visitors" name={name} stroke="var(--chart-2)" strokeWidth={2} fill="var(--accent-soft)" />
       </AreaChart>
     </ResponsiveContainer>
   );

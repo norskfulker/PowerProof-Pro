@@ -7,12 +7,10 @@ import { PageHeader } from "@/components/pp/page-header";
 import { Button } from "@/components/ui/button";
 import { formatDate } from "@/lib/format";
 
-// The variable's name is built here so no browser file contains it as one string (a security test checks that)
-const SERVICE_KEY = ["SUPABASE", "SERVICE", "ROLE", "KEY"].join("_");
-
 interface Status {
   ok: true;
   serviceKey: boolean;
+  serviceKeyName: string;
   keys: "missing" | "not_tested" | "accepted" | "rejected" | "unreachable";
   mode: "test" | "live" | null;
   webhookSecret: boolean;
@@ -21,6 +19,9 @@ interface Status {
   siteUrl: string;
   siteUrlIsReal: boolean;
   mail: boolean;
+  payoutAccount: boolean;
+  fxUpdatedAt: string | null;
+  fxCurrencies: number;
 }
 
 type Tone = "ok" | "bad" | "idle";
@@ -44,6 +45,7 @@ function Row({ tone, title, children }: { tone: Tone; title: string; children: R
 export default function GatewayPage() {
   const [s, setS] = useState<Status | { ok: false; message: string }>();
   const [testing, setTesting] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   const load = useCallback(async (test: boolean) => {
     const res = await fetch(`/api/payments/status${test ? "?test=1" : ""}`, { cache: "no-store" }).catch(() => undefined);
@@ -71,7 +73,7 @@ export default function GatewayPage() {
       <section className="rounded-card border bg-surface px-5 py-2 md:px-6">
         <ul className="divide-y">
           <Row tone={s.serviceKey ? "ok" : "bad"} title="Server access to the database">
-            {s.serviceKey ? `${SERVICE_KEY} is set. Orders and payments can be saved.` : `Set ${SERVICE_KEY} (Supabase › Project settings › API). Without it no order can be created.`}
+            {s.serviceKey ? `${s.serviceKeyName} is set. Orders and payments can be saved.` : `Set ${s.serviceKeyName} (Supabase › Project settings › API). Without it no order can be created.`}
           </Row>
           <Row tone={s.keys === "missing" || s.keys === "rejected" ? "bad" : s.keys === "accepted" ? "ok" : "idle"} title="Razorpay keys">
             {s.keys === "missing" && "Set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET (Razorpay › Account & Settings › API keys)."}
@@ -89,10 +91,35 @@ export default function GatewayPage() {
               <code className="rounded-control bg-muted px-2 py-1 font-mono text-xs break-all">{s.webhookUrl}</code>
               <Button size="sm" variant="ghost" onClick={async () => { try { await navigator.clipboard.writeText(s.webhookUrl); toast.success("Webhook address copied"); } catch { toast.error("Couldn't copy. Select it instead."); } }}><Copy aria-hidden /> Copy</Button>
             </div>
-            <p className="mt-1">In Razorpay › Webhooks add this address with events <span className="font-mono">payment.captured</span>, <span className="font-mono">order.paid</span> and <span className="font-mono">payment.failed</span>, and the same secret.</p>
+            <p className="mt-1">In Razorpay › Webhooks add this address with events <span className="font-mono">payment.captured</span>, <span className="font-mono">order.paid</span> and <span className="font-mono">payment.failed</span>, plus the <span className="font-mono">payment.dispute.*</span> events so chargebacks show up under Orders › Disputed, and the same secret.</p>
           </Row>
           <Row tone={s.siteUrlIsReal ? "ok" : "bad"} title="Site address">
             {s.siteUrlIsReal ? <>Receipts and links use <span className="font-mono">{s.siteUrl}</span>.</> : <>NEXT_PUBLIC_SITE_URL is <span className="font-mono">{s.siteUrl}</span>. Set it to your real address so receipt links work and Razorpay can reach the webhook.</>}
+          </Row>
+          <Row tone={s.payoutAccount ? "ok" : "idle"} title="Seller payouts (RazorpayX)">
+            {s.payoutAccount
+              ? "RazorpayX is connected. In the Payout queue, \"Send with Razorpay\" pays Indian bank accounts in rupees, converting from the seller's currency. Add payout.processed, payout.reversed and payout.rejected to the webhook so payouts close by themselves."
+              : "Set RAZORPAYX_ACCOUNT_NUMBER (RazorpayX › your account number) next to the Razorpay keys. Until then payouts are sent by hand."}
+          </Row>
+          <Row tone={s.fxCurrencies >= 8 ? "ok" : "bad"} title="Exchange rates">
+            {s.fxCurrencies >= 8 ? `Rates for ${s.fxCurrencies} currencies, last updated ${s.fxUpdatedAt ? formatDate(s.fxUpdatedAt, { time: true }) : "never"}.` : "No exchange rates yet. Without them prices can't be shown in other currencies and payouts can't be converted."}
+            <div className="mt-2">
+              <Button
+                size="sm"
+                variant="secondary"
+                disabled={refreshing}
+                onClick={async () => {
+                  setRefreshing(true);
+                  const res = await fetch("/api/fx/refresh", { method: "POST" }).then((r) => r.json()).catch(() => ({ ok: false, message: "We couldn't reach the server." }));
+                  if (res.ok) toast.success("Exchange rates updated");
+                  else toast.error(res.message ?? "Rates couldn't be updated.");
+                  await load(false);
+                  setRefreshing(false);
+                }}
+              >
+                {refreshing && <Loader2 className="animate-spin" aria-hidden />} Update rates now
+              </Button>
+            </div>
           </Row>
           <Row tone={s.mail ? "ok" : "idle"} title="Receipt emails (optional)">
             {s.mail ? "Resend is connected. Buyers get a receipt with their download link." : "Set RESEND_API_KEY and MAIL_FROM to email receipts. Buyers still get their files on the page after paying, and can look them up later."}

@@ -49,11 +49,16 @@ export interface ProductView {
 
 export const getStoreProduct = (slug: string, productSlug: string): Promise<ProductView> => live.getStoreProduct(slug, productSlug);
 
-/* Public interactions that need the server (spam checks, emails) open later ---------------- */
+/* Reports: straight to the database; report_content only accepts things a visitor could see, and PowerProof staff review them */
 
-const SOON = "This opens soon.";
-export const reportReview = (_reviewId: string): Promise<void> => Promise.reject(new ApiError(SOON, "validation"));
-export const reportQuestion = (_questionId: string): Promise<void> => Promise.reject(new ApiError(SOON, "validation"));
+async function report(type: "review" | "question" | "product" | "store", id: string, reason: string): Promise<void> {
+  const r = await sb().rpc("report_content" as never, { p_type: type, p_target: id, p_reason: reason, p_email: null } as never);
+  if (r.error) throw new ApiError(r.error.message.includes("report_target_not_found") ? "That's no longer on the page." : "That didn't send. Please try again.", "validation");
+}
+export const reportReview = (reviewId: string): Promise<void> => report("review", reviewId, "Reported by a visitor");
+export const reportQuestion = (questionId: string): Promise<void> => report("question", questionId, "Reported by a visitor");
+export const reportProduct = (productId: string, reason: string): Promise<void> => report("product", productId, reason);
+export const reportStore = (storeId: string, reason: string): Promise<void> => report("store", storeId, reason);
 const QUESTION: Record<string, string> = {
   question_product_not_found: "That product isn't for sale right now.",
   question_invalid: "Add your name, a valid email and a question of at least a few words.",

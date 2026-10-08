@@ -49,7 +49,7 @@ app/
   (buyer)/          /s/[store] (home, products, c/[collection], [product], about, faq, contact, policies/*, p/[slug]);
                     /checkout, /success, /order, /invoice, /lookup say "opens soon" until payments are connected
   (editor)/         full-screen visual page editor
-  admin/            founder console (not connected yet: every screen says so)
+  admin/            founder console (overview, creators, stores, orders, payouts, disputes, moderation, audit, search)
 components/         ui/ (shadcn), pp/ (product components), and one folder per area
 hooks/              useApi, useDirtyForm, useMediaUrl, useNow, useScrollFocus
 lib/
@@ -98,7 +98,8 @@ Everything below is built; each piece switches on when its keys are set, and say
 
 | To get | Set | Also do |
 | --- | --- | --- |
-| Orders, payments, refunds, downloads | `SUPABASE_SERVICE_ROLE_KEY`, `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET` | In Razorpay add the webhook `https://<site>/api/webhooks/razorpay` (events `payment.captured`, `order.paid`, `payment.failed`). Test with Razorpay's test keys first. |
+| Orders, payments, refunds, downloads | `SUPABASE_SERVICE_ROLE_KEY`, `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET` | In Razorpay add the webhook `https://<site>/api/webhooks/razorpay` (events `payment.captured`, `order.paid`, `payment.failed`, and the `payment.dispute.*` events). Test with Razorpay's test keys first. |
+| Seller payouts (automatic, rupees to Indian accounts) | `RAZORPAYX_ACCOUNT_NUMBER` (plus the Razorpay keys) | Fund the RazorpayX account; add `payout.processed`, `payout.reversed`, `payout.rejected` to the webhook. Sellers must add their bank account again after this is on, so it is registered with Razorpay. |
 | Receipt emails (and resending them) | `RESEND_API_KEY`, `MAIL_FROM` | Verify the sending domain in Resend. |
 | Custom domains | `VERCEL_API_TOKEN`, `VERCEL_PROJECT_ID` (`VERCEL_TEAM_ID` for a team) | Creators on Pro add their domain on Store › Domain and set the DNS records shown. |
 | Dashboard visits, sources, funnel | nothing | Counted by the storefront itself, cookieless. |

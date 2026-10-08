@@ -1,9 +1,10 @@
 import "server-only";
 import { NextResponse } from "next/server";
 import { mailConfigured } from "@/lib/server/email";
-import { keyMode, razorpayConfig, verifyKeys } from "@/lib/server/razorpay";
+import { readRates } from "@/lib/server/fx";
+import { keyMode, payoutConfig, razorpayConfig, verifyKeys } from "@/lib/server/razorpay";
 import { siteUrl } from "@/lib/server/shop";
-import { sbAdmin, serviceKeyConfigured } from "@/lib/supabase/admin";
+import { sbAdmin, serviceKeyConfigured, serviceKeyName } from "@/lib/supabase/admin";
 import { sbServer } from "@/lib/supabase/server";
 
 /**
@@ -26,7 +27,12 @@ export async function GET(request: Request) {
     keys = r.ok ? "accepted" : r.reason;
   }
   let lastWebhookAt: string | null = null;
+  let fxUpdatedAt: string | null = null;
+  let fxCurrencies = 0;
   if (serviceKeyConfigured()) {
+    const fx = await readRates();
+    fxUpdatedAt = fx.updatedAt;
+    fxCurrencies = Object.keys(fx.rates).length;
     const { data } = await sbAdmin().from("webhook_events").select("created_at").eq("gateway", "razorpay").order("created_at", { ascending: false }).limit(1).maybeSingle();
     lastWebhookAt = data?.created_at ?? null;
   }
@@ -34,6 +40,7 @@ export async function GET(request: Request) {
     {
       ok: true,
       serviceKey: !!serviceKeyConfigured(),
+      serviceKeyName: serviceKeyName(),
       keys,
       mode: cfg ? keyMode(cfg.keyId) : null,
       webhookSecret: !!cfg?.webhookSecret,
@@ -42,6 +49,9 @@ export async function GET(request: Request) {
       siteUrl: url,
       siteUrlIsReal: !/localhost|127\.0\.0\.1/.test(url),
       mail: mailConfigured(),
+      payoutAccount: !!payoutConfig(),
+      fxUpdatedAt,
+      fxCurrencies,
     },
     { headers: { "cache-control": "no-store" } }
   );

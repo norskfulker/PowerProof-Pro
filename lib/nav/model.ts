@@ -35,8 +35,10 @@ const BADGE_LABEL: Record<BadgeKey, string> = {
   questions_open: "unanswered",
   disputes_open: "open disputes",
   orders_disputed: "open disputes",
+  reports_open: "open reports",
+  payouts_open: "waiting to be sent",
 };
-const ALERT: BadgeKey[] = ["reviews_pending", "questions_open", "disputes_open", "orders_disputed"];
+const ALERT: BadgeKey[] = ["reviews_pending", "questions_open", "disputes_open", "orders_disputed", "reports_open", "payouts_open"];
 
 const fill = (s: string, storeId: string) => s.replaceAll("{store}", storeId);
 

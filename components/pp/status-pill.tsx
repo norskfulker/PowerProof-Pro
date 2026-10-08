@@ -20,6 +20,10 @@ const MAP: Record<string, [string, Tone]> = {
   queued: ["Queued", "info"],
   on_hold: ["On hold", "warning"],
   sent: ["Sent", "success"],
+  requested: ["Requested", "warning"],
+  closed: ["Closed", "neutral"],
+  actioned: ["Taken down", "danger"],
+  cancelled: ["Cancelled", "neutral"],
   // admin
   open: ["Open", "warning"],
   under_review: ["Under review", "info"],

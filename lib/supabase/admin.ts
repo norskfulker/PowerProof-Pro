@@ -10,6 +10,8 @@ import { SUPABASE_URL } from "./env";
  */
 /** Whether the key is set (for the status page); the key itself never leaves this file. */
 export const serviceKeyConfigured = () => !!process.env.SUPABASE_SERVICE_ROLE_KEY;
+/** The setting's name, for the status page to tell staff what to set (the server sends it; no browser file holds it). */
+export const serviceKeyName = () => "SUPABASE_SERVICE_ROLE_KEY";
 
 export function sbAdmin() {
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;

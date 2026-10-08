@@ -13,6 +13,7 @@ export function fail(e: Pick<PostgrestError, "message" | "code"> | null | undefi
   if (msg.includes("plan_limit_pages")) throw new LimitError("pages", "You've used all the pages your plan includes. Upgrade to Pro to build more.");
   if (msg.includes("store_currency_locked")) throw new ApiError("Country and currency are fixed once you have products.", "validation");
   if (msg.includes("store_slug_locked")) throw new ApiError("A store's link comes from its name and can't be changed.", "validation");
+  if (msg.includes("store_suspended")) throw new ApiError("This store is suspended. Contact PowerProof support to have it reviewed.", "validation");
   if (msg.includes("payout_method_limit")) throw new ApiError("You can save up to 5 of each kind of payout method. Remove one to add another.", "validation");
   if (msg.includes("payout_holder_mismatch")) throw new ApiError("The account must be in your company's name or in the name of its director (you). Check the name matches your bank records.", "validation");
   if (msg.includes("plan_limit_stores")) throw new LimitError("stores", "The Free plan includes 1 store. Upgrade to Pro to open another.");

@@ -37,3 +37,13 @@ export function parseCsv(text: string): string[][] {
 
 const cell = (v: string) => (/[",\n\r]/.test(v) ? `"${v.replaceAll('"', '""')}"` : v);
 export const toCsv = (rows: string[][]): string => rows.map((r) => r.map(cell).join(",")).join("\r\n") + "\r\n";
+
+/** Saves rows as a spreadsheet file from the browser (used by the admin lists) */
+export function downloadCsv(name: string, rows: string[][]) {
+  const blob = new Blob(["\ufeff", toCsv(rows)], { type: "text/csv;charset=utf-8" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `${name}-${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}

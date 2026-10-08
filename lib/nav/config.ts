@@ -8,7 +8,7 @@ import {
  * empty-state links all read this tree. Never write nav items by hand in components.
  */
 
-export type BadgeKey = "products_all" | "products_live" | "products_draft" | "products_archived" | "reviews_pending" | "questions_open" | "disputes_open" | "orders_disputed";
+export type BadgeKey = "products_all" | "products_live" | "products_draft" | "products_archived" | "reviews_pending" | "questions_open" | "disputes_open" | "orders_disputed" | "reports_open" | "payouts_open";
 
 export interface NavNode {
   id: string;
@@ -125,6 +125,7 @@ export const ADMIN_NAV: NavNode[] = [
   { id: "a-overview", label: "Overview", href: "/admin", icon: LayoutDashboard },
   { id: "a-creators", label: "Creators", href: "/admin/creators", icon: Users },
   { id: "a-stores", label: "Stores", href: "/admin/stores", icon: Store },
+  { id: "a-products", label: "Products", href: "/admin/products", icon: Package },
   {
     id: "a-orders", label: "Orders", icon: Receipt, children: [
       { id: "a-orders-all", label: "All", href: "/admin/orders" },
@@ -134,19 +135,22 @@ export const ADMIN_NAV: NavNode[] = [
   {
     id: "a-money", label: "Money", icon: Banknote, children: [
       { id: "a-gateway", label: "Payment gateway", href: "/admin/money/gateway" },
-      { id: "a-payouts", label: "Payouts", href: "/admin/money/payouts" },
+      { id: "a-payouts", label: "Payouts", href: "/admin/money/payouts", badge: "payouts_open" },
       { id: "a-refunds", label: "Refunds", href: "/admin/money/refunds" },
     ],
   },
   {
     id: "a-moderation", label: "Moderation", icon: Shield, children: [
-      { id: "a-flags", label: "Flags", href: "/admin/moderation/flags", icon: Flag },
+      { id: "a-flags", label: "Flags", href: "/admin/moderation/flags", icon: Flag, badge: "reports_open" },
       { id: "a-reviews", label: "Reviews", href: "/admin/moderation/reviews", icon: MessagesSquare },
+      { id: "a-deals", label: "Marketplace deals", href: "/admin/moderation/deals", icon: Tag },
     ],
   },
   {
     id: "a-system", label: "System", icon: ScrollText, children: [
       { id: "a-audit", label: "Audit", href: "/admin/system/audit" },
+      { id: "a-webhooks", label: "Webhooks", href: "/admin/system/webhooks" },
+      { id: "a-team", label: "Team", href: "/admin/system/team" },
       { id: "a-search", label: "Search", href: "/admin/system/search", icon: Search },
     ],
   },
