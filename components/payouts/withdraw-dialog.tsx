@@ -32,7 +32,7 @@ export function WithdrawDialog({
 }) {
   const available = balance.available.amount;
   const [amount, setAmount] = useState<Money | undefined>(balance.available);
-  const [methodId, setMethodId] = useState(methods.find((m) => m.primary && !m.comingSoon)?.id ?? methods.find((m) => !m.comingSoon)?.id);
+  const [methodId, setMethodId] = useState(methods.find((m) => m.primary)?.id ?? methods[0]?.id);
   const [error, setError] = useState<string>();
   const [pending, setPending] = useState(false);
   const [sent, setSent] = useState<Payout>();
@@ -46,7 +46,7 @@ export function WithdrawDialog({
   async function submit() {
     if (!amount || amount.amount < MIN_WITHDRAWAL) return setError("The smallest withdrawal is ₹100.00.");
     if (amount.amount > available) return setError("That's more than your available balance.");
-    if (!methodId) return setError("Add a bank account first.");
+    if (!methodId) return setError("Add a payout method first.");
     setError(undefined);
     setPending(true);
     try {
@@ -107,7 +107,11 @@ export function WithdrawDialog({
                   <PayoutMethodCard key={m.id} method={m} selected={methodId === m.id} onSelect={() => setMethodId(m.id)} />
                 ))}
               </fieldset>
-              <p className="text-sm text-muted-foreground">No fee for withdrawals. You&apos;ll get an email when it lands.</p>
+              {methods.find((m) => m.id === methodId)?.kind === "crypto" ? (
+                <p className="text-sm text-muted-foreground">Sent as {methods.find((m) => m.id === methodId)?.asset} on {methods.find((m) => m.id === methodId)?.network}. The amount you receive in crypto depends on the rate when it is sent. Crypto transfers can&apos;t be undone, so check the address.</p>
+              ) : (
+                <p className="text-sm text-muted-foreground">No fee for withdrawals. You&apos;ll get an email when it lands.</p>
+              )}
             </div>
             <DialogFooter>
               <Button variant="secondary" onClick={() => onOpenChange(false)} disabled={pending}>Cancel</Button>

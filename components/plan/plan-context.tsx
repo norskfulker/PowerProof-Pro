@@ -12,7 +12,7 @@ import { ApiError, getPlanLimits, getPlanState, setPlanTier, type PlanState } fr
 import { cn } from "@/lib/utils";
 import { proBenefits, PRO_PRICE_USD, PRO_TRIAL_DAYS, type AllPlanLimits } from "@/lib/plans";
 
-export type LimitKind = "stores" | "products" | "aiCredits" | "customDomain";
+export type LimitKind = "stores" | "products" | "pages" | "aiCredits" | "customDomain";
 
 interface PlanCtx {
   state?: PlanState;
@@ -25,7 +25,7 @@ interface PlanCtx {
    * Runs `action` if the plan allows one more store or product; otherwise opens the Upgrade dialog.
    * Never blocks silently.
    */
-  guard: (kind: "stores" | "products", action: () => void) => void;
+  guard: (kind: "stores" | "products" | "pages", action: () => void) => void;
   /** Turns a "limit" error from the API into the Upgrade dialog. Returns true if it handled it. */
   handleLimitError: (e: unknown) => boolean;
 }
@@ -37,6 +37,8 @@ function reason(kind: LimitKind, l: AllPlanLimits | undefined): string {
   switch (kind) {
     case "products":
       return `The Free plan includes ${n(l?.free.products, "product", "products")}. Pro lets you add as many as you like.`;
+    case "pages":
+      return `The Free plan includes ${n(l?.free.pages, "page", "pages")}. Pro lets you build as many launch, sale and link-in-bio pages as you like.`;
     case "stores":
       return `The Free plan includes ${n(l?.free.stores, "store", "stores")}. Pro lets you open more, each with its own look, products and policies.`;
     case "customDomain":
@@ -56,7 +58,7 @@ export function PlanProvider({ children }: { children: React.ReactNode }) {
   const upgrade = useCallback((kind?: LimitKind) => setOpen(kind ?? "general"), []);
 
   const guard = useCallback(
-    (kind: "stores" | "products", action: () => void) => {
+    (kind: "stores" | "products" | "pages", action: () => void) => {
       if (!data) return action();
       const max = data.limits[kind];
       if (max === null || data.usage[kind] < max) action();

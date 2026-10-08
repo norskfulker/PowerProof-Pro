@@ -86,4 +86,4 @@ export interface Customer {
   lastOrderAt: ISODate;
 }
 
-export type TrafficSource = "instagram" | "direct" | "google" | "youtube" | "twitter" | "newsletter";
+export type TrafficSource = "instagram" | "direct" | "google" | "youtube" | "twitter" | "newsletter" | "facebook" | "linkedin" | "whatsapp" | "other";

@@ -8,19 +8,19 @@ import path from "node:path";
  * tables fails with "permission denied". Code uses the creator_* views (where `select *` is safe)
  * or names columns that are granted. This keeps both true.
  *
- * The lists mirror the column grants in the database (supabase migrations 008, 009 and 012).
+ * The lists mirror the column grants in the database (supabase migrations 008, 009, 012 and 016).
  */
 const AUTHENTICATED: Record<string, string[]> = {
   orders: "available_at buyer_country buyer_email buyer_name consent_at created_at currency deals_applied discount_minor gateway gateway_order_id gateway_payment_id id invoice_no invoice_path paid_at ref status store_id subtotal_minor tax_minor total_minor updated_at".split(" "),
   reviews: "body created_at creator_reply id photos pinned product_id rating replied_at reviewer_name status store_id title".split(" "),
   questions: "answer answered_at asker_name body created_at id product_id status store_id".split(" "),
   profiles: "avatar_url country created_at email full_name id onboarding plan updated_at".split(" "),
-  stores: "brand_color business_type company_address created_at currency_base gstin id invoice_footer invoice_prefix legal_name logo_url name owner_id pan refund_days slug status support_email tagline theme theme_mode updated_at".split(" "),
+  stores: "brand_color business_type company_address country created_at currency_base gstin id invoice_footer invoice_prefix legal_name logo_url name owner_id pan refund_days slug status support_email tagline theme theme_mode updated_at".split(" "),
 };
 const ANON: Record<string, string[]> = {
   reviews: AUTHENTICATED.reviews,
   questions: AUTHENTICATED.questions,
-  stores: "brand_color company_address created_at currency_base id legal_name logo_url name refund_days slug status support_email tagline theme theme_mode".split(" "),
+  stores: "brand_color company_address country created_at currency_base id legal_name logo_url name refund_days slug status support_email tagline theme theme_mode".split(" "),
 };
 /** Files that run for visitors with no sign-in */
 const VISITOR_FILES = ["lib/api/live/storefront.ts"];
@@ -35,7 +35,9 @@ function walk(dir: string, out: string[] = []): string[] {
   }
   return out;
 }
-const files = ["app", "components", "hooks", "lib"].flatMap((d) => walk(path.join(ROOT, d))).map((p) => ({ file: path.relative(ROOT, p).split(path.sep).join("/"), text: fs.readFileSync(p, "utf8") }));
+/** Server code that holds the service-role key reads whatever it needs: the grants below are for browsers and visitors */
+const serviceRole = (f: string) => f.startsWith("lib/server/") || /(^|\/)route\.ts$/.test(f);
+const files = ["app", "components", "hooks", "lib"].flatMap((d) => walk(path.join(ROOT, d))).filter((p) => !serviceRole(path.relative(ROOT, p).split(path.sep).join("/"))).map((p) => ({ file: path.relative(ROOT, p).split(path.sep).join("/"), text: fs.readFileSync(p, "utf8") }));
 
 interface Read {
   file: string;

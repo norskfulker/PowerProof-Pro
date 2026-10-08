@@ -39,19 +39,22 @@ for (const l of LISTS) {
   });
 }
 
-test("figures without a source say 'No data yet', never a number, on the one dashboard @flow", async ({ page }, testInfo) => {
+test("with no visits yet, the visit charts stay empty and nothing is estimated @flow", async ({ page }, testInfo) => {
   await prepare(page, testInfo);
   await page.goto("/dashboard");
   await settle(page);
-  // Visitors, conversion, the visitors chart, sources and the funnel have no source yet: each says so
-  await expect(page.getByText("No data yet")).toHaveCount(5);
+  // Analytics is a section of the dashboard: open it
+  const analytics = page.getByRole("button", { name: "Analytics" });
+  if ((await analytics.getAttribute("aria-expanded")) !== "true") await analytics.click();
+  // With no visits recorded, Visitors and Conversion read 0 and the three charts that depend on visits stay as empty charts
+  await expect(page.getByText("No visits recorded yet")).toHaveCount(3);
+  for (const name of ["Revenue", "Top products", "Where buyers come from", "Visitors", "Funnel"]) await expect(page.getByRole("region", { name, exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Funnel", exact: true })).toBeVisible();
-  await expect(page.locator("main")).not.toContainText(/\d+\.\d+%/);
 });
 
 test("everything not built yet says 'coming soon', with no pretend data @flow", async ({ page }, testInfo) => {
   await prepare(page, testInfo);
-  for (const path of ["/settings/team", "/tools/integrations", "/tools/ai-images", "/store/current/domain", "/lookup", "/checkout/none"]) {
+  for (const path of ["/settings/team", "/tools/ai-images"]) {
     await page.goto(path);
     await settle(page);
     await expect(page.getByText(/coming soon|opens soon/i).first(), path).toBeVisible();

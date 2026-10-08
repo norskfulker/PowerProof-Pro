@@ -9,7 +9,8 @@ import { NewsletterForm } from "@/components/pp/newsletter-form";
 import { CoverArt, ImagePlaceholder } from "@/components/pp/product-cover";
 import { ScrollRegion } from "@/components/pp/scroll-region";
 import { StoreProductCard } from "@/components/pp/store-product-card";
-import type { RenderContext } from "@/lib/api";
+import type { LeadInput, RenderContext } from "@/lib/api";
+import { BookingBlock, LeadFormBlock } from "./lead-blocks";
 import { contrast } from "@/lib/color";
 import { paragraphs, parseInline } from "@/lib/pages/rich-text";
 import { HIGHLIGHT_ICONS, type Background, type BlockProps, type BlockStyle, type PageDoc, type PageNode } from "@/lib/pages/schema";
@@ -28,6 +29,9 @@ export interface RenderEnv {
   onBuy?: (productId: string) => void;
   buying?: string;
   onSubscribe?: (email: string) => Promise<void>;
+  /** Lead forms and bookings (live pages) */
+  onLead?: (input: LeadInput) => Promise<void>;
+  loadBooked?: (from: Date, to: Date) => Promise<{ at: Date; minutes: number }[]>;
   /** Editor only */
   selectedId?: string;
   onSelect?: (id: string) => void;
@@ -228,7 +232,6 @@ function HeroBlock({ node }: { node: PageNode<"hero"> }) {
       <BackgroundLayer bg={node.style.background} overlay={node.style.overlay} overlayColor={node.style.overlayColor} />
       <div className={cn("mx-auto grid w-full items-center gap-8", WIDTH[node.layout.width], split && p.image ? "grid-cols-1 @3xl/page:grid-cols-2" : "grid-cols-1")}>
         <div className={cn("flex min-w-0 flex-col gap-4", centered && "items-center text-center")}>
-          {p.eyebrow && <p className="font-mono text-xs tracking-[0.08em] uppercase opacity-80">{p.eyebrow}</p>}
           <h1 className="font-display text-[clamp(2rem,7cqw,3.75rem)] leading-[1.02] font-extrabold tracking-[-0.03em] [overflow-wrap:anywhere]">{p.headline}</h1>
           {p.subtext && <p className="max-w-xl text-lg opacity-90 [overflow-wrap:anywhere]">{p.subtext}</p>}
           {p.ctaLabel && <LinkButton href={p.ctaHref} label={p.ctaLabel} variant={tone === "light" ? "brass" : "primary"} />}
@@ -515,6 +518,18 @@ function Block({ node }: { node: PageNode }) {
         </Frame>
       );
     }
+    case "lead_form":
+      return (
+        <Frame node={node} className="w-full text-left">
+          <LeadFormBlock id={node.id} props={node.props as BlockProps<"lead_form">} env={{ editing: env.mode === "edit", onLead: env.onLead }} />
+        </Frame>
+      );
+    case "booking":
+      return (
+        <Frame node={node} className="w-full text-left">
+          <BookingBlock id={node.id} props={node.props as BlockProps<"booking">} env={{ editing: env.mode === "edit", onLead: env.onLead, loadBooked: env.loadBooked }} />
+        </Frame>
+      );
     case "newsletter": {
       const p = node.props as BlockProps<"newsletter">;
       return (

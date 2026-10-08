@@ -1,3 +1,4 @@
+import { countryByCode } from "../../countries";
 import { cleanStoreName, slugify, storeNameError } from "../../slug";
 import { normalizeHex } from "../../color";
 import { writeProgress } from "./flags";
@@ -18,7 +19,7 @@ import { activeStoreId, currentUser, setActiveStore, syncSession } from "./sessi
 /** The creator's stores, their settings, design and pages, and the plan, from Supabase. */
 
 /** Columns a creator reads for their own store (they may read all of them). */
-const STORE_COLS = "id, owner_id, name, slug, tagline, logo_url, status, theme, theme_mode, currency_base, brand_color, support_email, refund_days, legal_name, company_address, gstin, invoice_prefix, invoice_footer, pan, business_type, created_at, updated_at";
+const STORE_COLS = "id, owner_id, name, slug, country, tagline, logo_url, status, theme, theme_mode, currency_base, brand_color, support_email, refund_days, legal_name, company_address, gstin, invoice_prefix, invoice_footer, pan, business_type, created_at, updated_at";
 
 async function owner() {
   const u = await currentUser();
@@ -58,18 +59,19 @@ export async function suggestSlug(name: string): Promise<string> {
 }
 
 /** Creates the creator's store: the first onboarding step. Retries once if the link was taken a moment ago. */
-export async function createStore(input: { name: string; brandColor: string; slug: string }): Promise<{ slug: string }> {
+export async function createStore(input: { name: string; brandColor: string; slug: string; country: string }): Promise<{ slug: string }> {
   const nameError = storeNameError(input.name);
   if (nameError) throw new ApiError(nameError, "validation");
   const color = normalizeHex(input.brandColor);
   if (!color) throw new ApiError("Pick a colour as #RRGGBB.", "validation");
   const user = await currentUser();
+  const country = countryByCode(input.country);
   const name = cleanStoreName(input.name);
   let slug = input.slug;
   for (let attempt = 0; ; attempt++) {
     const r = await sb()
       .from("stores")
-      .insert({ owner_id: user.id, name, slug, brand_color: color, tagline: `Digital downloads by ${user.name || name}.`, support_email: user.email || null })
+      .insert({ owner_id: user.id, name, slug, country: country.code, currency_base: country.currency, brand_color: color, tagline: `Digital downloads by ${user.name || name}.`, support_email: user.email || null })
       .select("id")
       .single();
     if (!r.error) break;
@@ -88,11 +90,7 @@ export async function updateStore(patch: Partial<Store>): Promise<Store> {
   const id = await activeStoreId();
   const row: TablesUpdate<"stores"> = {};
   if (patch.name !== undefined) row.name = patch.name.trim();
-  if (patch.slug !== undefined) {
-    const s = slugify(patch.slug);
-    if (s.length < 3) throw new ApiError("Store links need at least 3 letters or numbers.", "validation");
-    row.slug = s;
-  }
+  // The link comes from the store name when it is created and is never changed here (the database enforces it too)
   if (patch.tagline !== undefined) row.tagline = patch.tagline;
   if (patch.brandColor !== undefined) {
     const c = normalizeHex(patch.brandColor);
@@ -308,12 +306,14 @@ export async function getPlanState(): Promise<PlanState> {
   const row = limits?.find((l) => l.plan === tier);
   const lim: PlanLimits = limitsFromRows(limits)[tier];
   const ids = (stores ?? []).map((s) => s.id);
-  const { count } = ids.length ? await sb().from("products").select("id", { count: "exact", head: true }).in("store_id", ids) : { count: 0 };
+  const [{ count }, { count: pageCount }] = ids.length
+    ? await Promise.all([sb().from("products").select("id", { count: "exact", head: true }).in("store_id", ids), sb().from("custom_pages").select("id", { count: "exact", head: true }).in("store_id", ids)])
+    : [{ count: 0 }, { count: 0 }];
   const plan: Plan = { tier, name: tier === "pro" ? "Pro" : "Free", monthly: moneyOf(tier === "pro" ? PRO_PRICE_USD * 100 : 0, "USD"), platformFeePct: (row?.platform_fee_bps ?? 300) / 100, gatewayFeePct: 2, status: "active" };
-  return { plan, tier, limits: lim, usage: { stores: ids.length, products: count ?? 0 } };
+  return { plan, tier, limits: lim, usage: { stores: ids.length, products: count ?? 0, pages: pageCount ?? 0 } };
 }
 
-export async function canCreate(kind: "stores" | "products"): Promise<boolean> {
+export async function canCreate(kind: "stores" | "products" | "pages"): Promise<boolean> {
   const s = await getPlanState();
   const max = s.limits[kind];
   return max === null || s.usage[kind] < max;

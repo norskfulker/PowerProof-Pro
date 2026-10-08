@@ -1,17 +1,19 @@
 "use client";
 
-import { use } from "react";
+import { use, useCallback } from "react";
 import Link from "next/link";
 import { PageRenderer } from "@/components/page-builder/renderer";
 import { useStorefront } from "@/components/storefront/storefront-context";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useApi } from "@/hooks/use-api";
-import { getPublicVisualPage, subscribeNewsletter } from "@/lib/api";
+import { getBookedSlots, getPublicVisualPage, submitLead, subscribeNewsletter } from "@/lib/api";
 
 /** A published visual page, rendered by the same renderer the editor uses. */
 export default function StoreVisualPage({ params }: { params: Promise<{ store: string; slug: string }> }) {
   const { store, slug } = use(params);
   const { currency, buy, buying } = useStorefront();
+  // Stable, so a calendar doesn't reload its times on every render
+  const loadBooked = useCallback((from: Date, to: Date) => getBookedSlots(store, slug, from, to), [store, slug]);
   const { data, error } = useApi(() => getPublicVisualPage(store, slug), [store, slug], { live: true });
 
   if (error) {
@@ -38,10 +40,12 @@ export default function StoreVisualPage({ params }: { params: Promise<{ store: s
     <>
       <title>{data.seo.title || data.title}</title>
       <meta name="description" content={data.seo.description} />
+      {/* Focus mode (squeeze pages): the store's menu and footer step aside so there is one thing to do */}
+      {data.doc.focus && <style>{`[data-store-chrome]{display:none!important}`}</style>}
       <PageRenderer
         doc={data.doc}
         context={data.context}
-        env={{ mode: "live", currency, onBuy: (productId) => buy({ productId }), buying, onSubscribe: (email) => subscribeNewsletter(store, email) }}
+        env={{ mode: "live", currency, onBuy: (productId) => buy({ productId }), buying, onSubscribe: (email) => subscribeNewsletter(store, email), onLead: (input) => submitLead(store, slug, input), loadBooked }}
       />
     </>
   );

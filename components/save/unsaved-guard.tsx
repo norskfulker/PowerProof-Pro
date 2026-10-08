@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
@@ -9,6 +9,10 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
  * Remembers which forms on the page have unsaved changes. While any do:
  * - clicking an in-app link asks before leaving,
  * - refreshing or closing the tab shows the browser's own warning.
+ *
+ * It only ever asks after the person has actually typed, picked or clicked something on this
+ * page. A form that merely tidies its own values when it loads (filling a default, formatting a
+ * colour) is not "unsaved changes", so just opening a page and moving on never prompts.
  */
 interface Guard {
   set: (id: string, dirty: boolean) => void;
@@ -20,8 +24,16 @@ const Ctx = createContext<Guard | null>(null);
 
 export function UnsavedChangesProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
+  const pathname = usePathname();
   const dirty = useRef(new Set<string>());
+  // Has the person done anything on this page yet?
+  const acted = useRef(false);
   const [pending, setPending] = useState<(() => void) | null>(null);
+  const unsaved = () => dirty.current.size > 0 && acted.current;
+
+  useEffect(() => {
+    acted.current = false;
+  }, [pathname]);
 
   const set = useCallback((id: string, d: boolean) => {
     if (d) dirty.current.add(id);
@@ -29,16 +41,20 @@ export function UnsavedChangesProvider({ children }: { children: React.ReactNode
   }, []);
 
   const confirmLeave = useCallback((go: () => void) => {
-    if (dirty.current.size === 0) return go();
+    if (!unsaved()) return go();
     setPending(() => go);
   }, []);
 
   useEffect(() => {
     const onUnload = (e: BeforeUnloadEvent) => {
-      if (dirty.current.size) e.preventDefault();
+      if (unsaved()) e.preventDefault();
+    };
+    // Typing, picking and clicking controls count as "the person did something"; following a link doesn't
+    const onAct = (e: Event) => {
+      if (!(e.target as HTMLElement | null)?.closest?.("a[href]")) acted.current = true;
     };
     const onClick = (e: MouseEvent) => {
-      if (!dirty.current.size || e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+      if (!unsaved() || e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
       const a = (e.target as HTMLElement).closest("a[href]") as HTMLAnchorElement | null;
       if (!a || a.target === "_blank" || a.hasAttribute("download")) return;
       const url = new URL(a.href, location.href);
@@ -47,9 +63,12 @@ export function UnsavedChangesProvider({ children }: { children: React.ReactNode
       e.stopPropagation();
       setPending(() => () => router.push(url.pathname + url.search + url.hash));
     };
+    const acts = ["input", "change", "keydown", "paste", "pointerdown"] as const;
+    for (const a of acts) document.addEventListener(a, onAct, true);
     window.addEventListener("beforeunload", onUnload);
     document.addEventListener("click", onClick, true);
     return () => {
+      for (const a of acts) document.removeEventListener(a, onAct, true);
       window.removeEventListener("beforeunload", onUnload);
       document.removeEventListener("click", onClick, true);
     };

@@ -120,8 +120,7 @@ function build(flags: ProgressFlags, f: Facts): Checklist {
   };
   const productsFull = f.productsFull;
 
-  // Analytics integrations are coming soon, so that optional step isn't offered yet
-  const defs = DEF.filter((d) => d.id !== "analytics");
+  const defs = DEF;
   const steps: ChecklistStep[] = defs.map((def, i) => {
     const [st, detail] = state(def.id);
     return { ...def, n: i + 1, state: st, detail, href: `${href[def.id]}${href[def.id].includes("?") ? "&" : "?"}coach=${def.id}`, needsUpgrade: def.id === "first_product" && st !== "done" && productsFull ? true : undefined };

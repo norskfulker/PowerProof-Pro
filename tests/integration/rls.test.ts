@@ -140,11 +140,11 @@ describe.skipIf(!haveCreators)("two creators", () => {
     expect(r.error?.code).toBe("42501");
   });
 
-  it("Free plan: one product, then the database says no", async () => {
+  it("Free plan: ten products, then the database says no", async () => {
     const { data: profile } = await a.from("profiles").select("plan").eq("id", aId).single();
     if (profile?.plan !== "free") return;
     const { count } = await a.from("products").select("id", { count: "exact", head: true }).in("store_id", [storeA]);
-    for (let i = count ?? 0; i < 1; i++) {
+    for (let i = count ?? 0; i < 10; i++) {
       const r = await a.from("products").insert({ store_id: storeA, title: "QA product", slug: `qa-${i}-${Date.now().toString(36)}` }).select("id").single();
       expect(r.error).toBeNull();
       created.products.push(r.data!.id);

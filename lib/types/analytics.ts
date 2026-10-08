@@ -7,6 +7,8 @@ export interface SeriesPoint {
   label: string;
   revenue: number; // major units, for charts only
   orders: number;
+  /** Distinct visitors that day (or week); absent when nothing was recorded */
+  visitors?: number;
 }
 
 export interface Summary {

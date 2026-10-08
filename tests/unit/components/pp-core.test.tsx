@@ -89,13 +89,12 @@ describe("StatCard", () => {
 });
 
 describe("PageHeader", () => {
-  it("renders title, eyebrow, back link and actions", () => {
-    render(<PageHeader title="Orders" eyebrow="Sales" description="All of them" back={{ href: "/x", label: "Back" }} actions={<button>Export</button>} />);
+  it("renders title, back link and actions (and no kicker above the heading)", () => {
+    render(<PageHeader title="Orders" description="All of them" back={{ href: "/x", label: "Back" }} actions={<button>Export</button>} />);
     expect(screen.getByRole("heading", { name: "Orders" })).toBeInTheDocument();
-    // On a page that's in the menu (the test path is /dashboard), breadcrumbs replace the back link
-    const crumbs = screen.getByRole("navigation", { name: "Breadcrumb" });
-    expect(crumbs).toHaveTextContent("Home");
-    expect(crumbs).toHaveTextContent("Orders");
+    // No breadcrumbs: just the one way back
+    expect(screen.queryByRole("navigation", { name: "Breadcrumb" })).toBeNull();
+    expect(screen.getByRole("link", { name: "Back" })).toHaveAttribute("href", "/x");
     expect(screen.getByRole("button", { name: "Export" })).toBeInTheDocument();
   });
 });

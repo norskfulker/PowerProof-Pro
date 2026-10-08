@@ -7,8 +7,8 @@ import { TEST_PLAN_LIMITS } from "@/tests/fixtures";
 
 describe("plan limits come from the database rows", () => {
   const rows = [
-    { plan: "free" as const, max_stores: 1, max_products: 1, ai_credits_monthly: 10, custom_domain: false, platform_fee_bps: 300 },
-    { plan: "pro" as const, max_stores: null, max_products: null, ai_credits_monthly: 200, custom_domain: true, platform_fee_bps: 300 },
+    { plan: "free" as const, max_stores: 1, max_products: 10, max_pages: 3, ai_credits_monthly: 10, custom_domain: false, platform_fee_bps: 300 },
+    { plan: "pro" as const, max_stores: null, max_products: null, max_pages: null, ai_credits_monthly: 200, custom_domain: true, platform_fee_bps: 300 },
   ];
   it("maps the rows one to one", () => {
     expect(limitsFromRows(rows)).toEqual(TEST_PLAN_LIMITS);
@@ -66,6 +66,27 @@ describe("dashboard numbers", () => {
     expect(s.sources).toEqual([]);
     expect(s.funnel).toEqual([]);
     expect(s.series.every((p) => !("visitors" in p))).toBe(true);
+  });
+
+  it("uses the store's own visit counts once they exist: visitors, conversion, sources and the funnel", () => {
+    const now = { visitors: 40, viewers: 20, started: 6, paid: 4, days: [{ day: "2026-10-06", visitors: 25 }, { day: "2026-10-05", visitors: 15 }], sources: [{ source: "google", visitors: 30 }, { source: "weird.example", visitors: 10 }] };
+    const before = { visitors: 20, viewers: 8, started: 2, paid: 1, days: [], sources: [] };
+    const s = summarize([row("2026-10-06", 4, 200000)], [], "30d", NOW, "INR", { now, before });
+    expect(s.visitors).toBe(40);
+    expect(s.conversion).toBe(10);
+    expect(s.deltas.visitors).toBe(100);
+    expect(s.deltas.conversion).toBe(100);
+    expect(s.sources).toEqual([{ source: "google", visitors: 30, share: 75 }, { source: "other", visitors: 10, share: 25 }]);
+    expect(s.funnel).toEqual([{ label: "Visitors", value: 40 }, { label: "Viewed a product", value: 20 }, { label: "Started checkout", value: 6 }, { label: "Paid", value: 4 }]);
+    expect(s.series.reduce((t, p) => t + (p.visitors ?? 0), 0)).toBe(40);
+  });
+
+  it("with visit tracking on but no visits yet, shows zeros rather than guesses", () => {
+    const zero = { visitors: 0, viewers: 0, started: 0, paid: 0, days: [], sources: [] };
+    const s = summarize([], [], "7d", NOW, "INR", { now: zero, before: zero });
+    expect(s.visitors).toBe(0);
+    expect(s.conversion).toBe(0);
+    expect(s.deltas.visitors).toBeNull();
   });
 
   it("has no change figure without a previous period to compare with", () => {

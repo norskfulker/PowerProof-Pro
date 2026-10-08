@@ -10,6 +10,7 @@ import { HighlightsStrip } from "@/components/pp/highlights-strip";
 import { NewsletterForm } from "@/components/pp/newsletter-form";
 import { subscribeNewsletter } from "@/lib/api";
 import type { ProductImage, SectionId } from "@/lib/types";
+import { HtmlSection } from "./html-section";
 import { OffersSection, ProductGrid, ReviewsWall, SectionHead } from "./store-sections";
 import { useStorefront } from "./storefront-context";
 
@@ -21,7 +22,7 @@ function heroHref(slug: string, target: string): string {
 
 /** The store home page: sections in the creator's order, skipping any that are off or empty. */
 export function StoreHome() {
-  const { view, slug } = useStorefront();
+  const { view, slug, preview } = useStorefront();
   const { design, products, store } = view;
   const wrap = "mx-auto max-w-[1200px] px-4 md:px-6";
   const heroImages = (design.hero.imageProductIds.length
@@ -65,12 +66,12 @@ export function StoreHome() {
       ),
     offers: () => <OffersSection />,
     reviews: () => <ReviewsWall />,
+    html: () => (design.html ? <HtmlSection html={design.html} /> : null),
     about: () => (
       <section aria-labelledby="about-h" className={wrap}>
         <div className="grid grid-cols-1 items-center gap-6 rounded-card border bg-surface p-6 md:grid-cols-[auto_1fr] md:p-10">
           <Avatar className="size-24 md:size-32"><AvatarFallback className="bg-accent-soft font-display text-3xl text-accent-ink">{design.about.initials}</AvatarFallback></Avatar>
           <div>
-            <p className="eyebrow">About the creator · {design.about.location}</p>
             <h2 id="about-h" className="mt-2 text-3xl">{design.about.name}</h2>
             <p className="mt-3 max-w-2xl text-lg leading-relaxed text-foreground/85">{design.about.story}</p>
             <Button asChild variant="secondary" className="mt-5"><Link href={`/s/${slug}/about`}>More about {design.about.name.split(" ")[0]}</Link></Button>
@@ -92,7 +93,8 @@ export function StoreHome() {
     ),
   };
 
-  if (products.length === 0) {
+  // In the editor's preview the sections stay on screen even with no products, so they can be clicked to edit
+  if (products.length === 0 && !preview) {
     return (
       <div className={`${wrap} py-24 text-center`}>
         <h1 className="text-4xl">{store.name}</h1>
@@ -105,7 +107,7 @@ export function StoreHome() {
     <div className="flex flex-col gap-14 pb-4 md:gap-20">
       {design.sections.filter((s) => s.enabled).map((s) => {
         const node = render[s.id]();
-        return node ? <div key={s.id} id={`section-${s.id}`}>{node}</div> : null;
+        return node ? <div key={s.id} id={`section-${s.id}`} data-pp-section={s.id}>{node}</div> : null;
       })}
     </div>
   );

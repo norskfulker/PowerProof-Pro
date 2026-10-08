@@ -29,10 +29,23 @@ const pct = (a: number, b: number) => (b ? ((a - b) / b) * 100 : null);
 
 /**
  * The dashboard numbers, worked out from the store's daily sales (creator_sales_daily) and
- * product sales (creator_product_sales). Visits aren't tracked, so visitors, conversion, traffic
- * sources and the funnel are `null` / empty: screens say "No data yet" instead of an estimate.
+ * product sales (creator_product_sales), plus the store's own visit counts (analytics_visits:
+ * cookieless, from the storefront). If the visit numbers can't be read, visitors and conversion stay
+ * `null` and screens say "No data yet" instead of an estimate.
  */
-export function summarize(daily: DailyRow[], products: ProductSalesRow[], range: RangeKey, now: number, cur: CurrencyCode = "INR"): Summary {
+/** What analytics_visits answers for one period */
+export interface Visits {
+  visitors: number;
+  viewers: number;
+  started: number;
+  paid: number;
+  days: { day: string; visitors: number }[];
+  sources: { source: string; visitors: number }[];
+}
+
+const SOURCE_NAMES = ["instagram", "direct", "google", "youtube", "twitter", "newsletter", "facebook", "linkedin", "whatsapp", "other"];
+
+export function summarize(daily: DailyRow[], products: ProductSalesRow[], range: RangeKey, now: number, cur: CurrencyCode = "INR", visits?: { now: Visits; before: Visits }): Summary {
   const days = RANGE_DAYS[range];
   const today = dayMs(istDay(now));
   const start = today - (days - 1) * DAY;
@@ -46,7 +59,9 @@ export function summarize(daily: DailyRow[], products: ProductSalesRow[], range:
   for (let a = start; a <= today; a += step * DAY) {
     const rows = inRange.filter((r) => dayMs(r.day) >= a && dayMs(r.day) < a + step * DAY);
     const dt = new Date(a);
+    const seen = (visits?.now.days ?? []).filter((d) => dayMs(d.day) >= a && dayMs(d.day) < a + step * DAY).reduce((t, d) => t + d.visitors, 0);
     series.push({
+      ...(visits ? { visitors: seen } : {}),
       label: range === "today" ? "Today" : step === 1 && days <= 7 ? dt.toLocaleDateString("en-IN", { weekday: "short", timeZone: "UTC" }) : dt.toLocaleDateString("en-IN", { day: "numeric", month: "short", timeZone: "UTC" }),
       revenue: rows.reduce((t, r) => t + Number(r.gross_minor), 0) / 100,
       orders: rows.reduce((t, r) => t + Number(r.orders_count), 0),
@@ -62,16 +77,21 @@ export function summarize(daily: DailyRow[], products: ProductSalesRow[], range:
     range,
     revenue: money(revenue, cur),
     sales,
-    visitors: null,
-    conversion: null,
-    deltas: { revenue: pct(revenue, prevRevenue), sales: pct(sales, prevSales), visitors: null, conversion: null },
+    visitors: visits ? visits.now.visitors : null,
+    conversion: visits && visits.now.visitors > 0 ? (visits.now.paid / visits.now.visitors) * 100 : visits ? 0 : null,
+    deltas: {
+      revenue: pct(revenue, prevRevenue),
+      sales: pct(sales, prevSales),
+      visitors: visits ? pct(visits.now.visitors, visits.before.visitors) : null,
+      conversion: visits && visits.now.visitors > 0 && visits.before.visitors > 0 ? pct((visits.now.paid / visits.now.visitors) * 100, (visits.before.paid / visits.before.visitors) * 100) : null,
+    },
     series,
     topProducts: [...products]
       .sort((a, b) => Number(b.revenue_minor) - Number(a.revenue_minor))
       .slice(0, 5)
       .map((p) => ({ productId: p.product_id, title: p.title, sales: Number(p.units), revenue: money(Number(p.revenue_minor), cur) })),
-    sources: [],
-    funnel: [],
+    sources: (visits?.now.sources ?? []).map((s) => ({ source: (SOURCE_NAMES.includes(s.source) ? s.source : "other") as Summary["sources"][number]["source"], visitors: s.visitors, share: visits!.now.visitors ? (s.visitors / visits!.now.visitors) * 100 : 0 })),
+    funnel: visits ? [{ label: "Visitors", value: visits.now.visitors }, { label: "Viewed a product", value: visits.now.viewers }, { label: "Started checkout", value: visits.now.started }, { label: "Paid", value: visits.now.paid }] : [],
   };
 }
 
@@ -82,9 +102,17 @@ export async function getSummary(range: RangeKey): Promise<Summary> {
   const cur = currency(store.currency_base);
   const now = Date.now();
   const from = istDay(now - (RANGE_DAYS[range] * 2 + 1) * DAY);
-  const [daily, products] = await Promise.all([
+  const periodStart = (n: number) => new Date(dayMs(istDay(now)) - IST + (1 - n) * DAY).toISOString();
+  const days = RANGE_DAYS[range];
+  const visit = async (a: string, b: string): Promise<Visits | undefined> => {
+    const r = await client.rpc("analytics_visits", { p_store: storeId, p_from: a, p_to: b });
+    return r.error ? undefined : (r.data as unknown as Visits);
+  };
+  const [daily, products, vNow, vBefore] = await Promise.all([
     client.from("creator_sales_daily").select("day, orders_count, gross_minor").eq("store_id", storeId).eq("currency", cur).gte("day", from).order("day"),
     client.from("creator_product_sales").select("product_id, title, units, revenue_minor").eq("store_id", storeId).eq("currency", cur),
+    visit(periodStart(days), new Date(now + DAY).toISOString()),
+    visit(periodStart(days * 2), periodStart(days)),
   ]);
-  return summarize(must(daily) as DailyRow[], must(products) as ProductSalesRow[], range, now, cur);
+  return summarize(must(daily) as DailyRow[], must(products) as ProductSalesRow[], range, now, cur, vNow && vBefore ? { now: vNow, before: vBefore } : undefined);
 }

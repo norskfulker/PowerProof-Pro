@@ -5,7 +5,7 @@ import { sb } from "../../supabase/browser";
 import type { DealRuleInput } from "../../pricing/deal-rule-schema";
 import { dealRuleSchema } from "../../pricing/deal-rule-schema";
 import type { TablesUpdate } from "../../database.types";
-import type { Bundle, Collection, Coupon, DealRule, Product, ProductInput, Question, Review } from "../../types";
+import type { Bundle, Collection, Coupon, DealRule, Product, ProductInput, Question, Review, TaxCode } from "../../types";
 import { ApiError } from "../client";
 import type { ProductQuery } from "../products";
 import type { InboxQuestion, InboxReview, Offers } from "../store-admin";
@@ -17,7 +17,7 @@ import { removeFromStorage } from "./upload";
 
 /** Products, collections, coupons, deal paths, reviews and questions for the active store. */
 
-const PRODUCT_COLS = "id, store_id, title, slug, description, status, currency, price_minor, min_price_minor, compare_at_price_minor, cover_bg, sku, hsn_sac, tax_rate_bps, product_type, source_url, created_at, updated_at";
+const PRODUCT_COLS = "id, store_id, title, slug, description, status, currency, price_minor, min_price_minor, compare_at_price_minor, cover_bg, sku, hsn_sac, tax_rate_bps, product_type, fulfilment, source_url, created_at, updated_at";
 
 /* Products ------------------------------------------------------------------ */
 
@@ -65,6 +65,46 @@ export async function getProduct(id: string): Promise<Product> {
   return p;
 }
 
+/* Tax codes: the creator's own HSN/SAC codes (tax_codes table) ------------------------ */
+
+type TaxRow = { id: string; code: string; kind: string; description: string; rate_bps: number };
+const taxCodeFrom = (r: TaxRow): TaxCode => ({ id: r.id, code: r.code, kind: r.kind === "HSN" ? "HSN" : "SAC", description: r.description || "Your own code", rate: r.rate_bps / 100 });
+
+export async function getCustomTaxCodes(): Promise<TaxCode[]> {
+  const rows = must(await sb().from("tax_codes").select("id, code, kind, description, rate_bps").eq("store_id", await activeStoreId()).order("code"));
+  return rows.map(taxCodeFrom);
+}
+
+export async function saveTaxCode(input: { code: string; kind: "HSN" | "SAC"; description?: string; rate: number }): Promise<TaxCode[]> {
+  if (!/^\d{4,8}$/.test(input.code)) throw new ApiError("Tax codes are 4 to 8 digits.", "validation");
+  if (!(input.rate >= 0 && input.rate <= 40)) throw new ApiError("GST is between 0% and 40%.", "validation");
+  const r = await sb()
+    .from("tax_codes")
+    .insert({ store_id: await activeStoreId(), code: input.code, kind: input.kind, description: (input.description ?? "").trim().slice(0, 120), rate_bps: Math.round(input.rate * 100) })
+    .select("id")
+    .single();
+  if (r.error) fail(r.error, { conflict: `You already saved ${input.code} at ${input.rate}%.` });
+  return getCustomTaxCodes();
+}
+
+export async function deleteTaxCode(id: string): Promise<TaxCode[]> {
+  const r = await sb().from("tax_codes").delete().eq("id", id);
+  if (r.error) fail(r.error);
+  return getCustomTaxCodes();
+}
+
+/** A code typed on a product is remembered, so it can be picked again. Reference codes aren't stored. */
+async function rememberTaxCode(storeId: string, code: string | undefined, rate: number | undefined) {
+  if (!code || rate === undefined || !/^\d{4,8}$/.test(code)) return;
+  const bps = Math.round(Math.min(40, Math.max(0, rate)) * 100);
+  if (TAX_CODES.some((t) => t.code === code && Math.round(t.rate * 100) === bps)) return;
+  // Already saved is fine: the unique (store, code, rate) turns this into "nothing to do"
+  await sb().from("tax_codes").upsert({ store_id: storeId, code, kind: code.startsWith("99") ? "SAC" : "HSN", rate_bps: bps }, { onConflict: "store_id,code,rate_bps", ignoreDuplicates: true });
+}
+
+/** A SKU or a name clash: the database says which in the error text. */
+const productConflict = (e: { message?: string } | null) => (/sku/i.test(e?.message ?? "") ? "That SKU is already used by another product. Pick a different one." : "A product with this name already exists. Change the title a little.");
+
 /** GST rate (basis points) for a tax code, from the GST reference list. */
 function taxBps(code: string): number {
   const t = TAX_CODES.find((x) => x.code === code);
@@ -76,6 +116,7 @@ function productRow(input: Partial<ProductInput> & { priceFloor?: Product["price
   if (input.title !== undefined) row.title = input.title.trim().slice(0, 160);
   if (input.description !== undefined) row.description = input.description;
   if (input.kind !== undefined) row.product_type = productType(input.kind);
+  if (input.fulfilment !== undefined) row.fulfilment = input.fulfilment;
   if (input.status !== undefined) row.status = toDbStatus(input.status);
   if (input.price !== undefined) {
     row.price_minor = Math.max(0, Math.round(input.price.amount));
@@ -90,7 +131,8 @@ function productRow(input: Partial<ProductInput> & { priceFloor?: Product["price
   if (input.sku !== undefined) row.sku = input.sku.trim() || null;
   if (input.taxCode !== undefined) {
     row.hsn_sac = input.taxCode || null;
-    row.tax_rate_bps = taxBps(input.taxCode);
+    // A custom code brings its own rate; the reference codes use theirs
+    row.tax_rate_bps = input.taxRate !== undefined ? Math.round(Math.min(40, Math.max(0, input.taxRate)) * 100) : taxBps(input.taxCode);
   }
   if ("sourceUrl" in input) row.source_url = input.sourceUrl && /^https:\/\//.test(input.sourceUrl) ? input.sourceUrl.slice(0, 2048) : null;
   if ("tileBackground" in input) row.cover_bg = input.tileBackground ? JSON.parse(JSON.stringify(input.tileBackground)) : null;
@@ -149,8 +191,9 @@ export async function createProduct(input: ProductInput): Promise<Product> {
     .insert({ ...productRow(input), store_id: storeId, slug, title: input.title.trim() })
     .select("id")
     .single();
-  if (r.error) fail(r.error, { conflict: "A product with this name already exists. Change the title a little." });
+  if (r.error) fail(r.error, { conflict: productConflict(r.error) });
   await saveAttachments(r.data.id, input);
+  await rememberTaxCode(storeId, input.taxCode, input.taxRate);
   return getProduct(r.data.id);
 }
 
@@ -162,9 +205,10 @@ export async function updateProduct(id: string, patch: Partial<ProductInput>): P
   }
   if (Object.keys(row).length) {
     const r = await sb().from("products").update(row).eq("id", id).select("id").single();
-    if (r.error) fail(r.error, { notFound: "Product" });
+    if (r.error) fail(r.error, { notFound: "Product", conflict: productConflict(r.error) });
   }
   await saveAttachments(id, patch);
+  if (patch.taxCode) await rememberTaxCode(await activeStoreId(), patch.taxCode, patch.taxRate);
   return getProduct(id);
 }
 
@@ -195,6 +239,7 @@ export async function duplicateProduct(id: string): Promise<Product> {
     title: `${src.title} (copy)`.slice(0, 160),
     description: src.description,
     kind: src.kind,
+    fulfilment: src.fulfilment,
     price: src.price,
     compareAt: src.compareAt,
     images: src.images,
@@ -465,14 +510,12 @@ export async function setQuestionHidden(id: string, hidden: boolean): Promise<Qu
 
 export async function getNavCounts(): Promise<NavCounts> {
   const storeId = await activeStoreId();
-  const [products, reviews, questions, collections] = await Promise.all([
+  const [products, reviews, questions] = await Promise.all([
     sb().from("products").select("id, title, status").eq("store_id", storeId),
     sb().from("creator_reviews").select("id", { count: "exact", head: true }).eq("store_id", storeId).is("creator_reply", null).eq("status", "published"),
     sb().from("creator_questions").select("id", { count: "exact", head: true }).eq("store_id", storeId).is("answer", null),
-    getCollections(),
   ]);
   const ps = products.data ?? [];
-  const title = new Map(ps.map((p) => [p.id, p.title]));
   return {
     storeId,
     counts: {
@@ -484,6 +527,5 @@ export async function getNavCounts(): Promise<NavCounts> {
       questions_open: questions.count ?? 0,
       orders_disputed: 0,
     },
-    collections: collections.map((c) => ({ id: c.id, name: c.name, products: c.productIds.filter((id) => title.has(id)).map((id) => ({ id, title: title.get(id)! })) })),
   };
 }

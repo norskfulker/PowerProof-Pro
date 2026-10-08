@@ -133,10 +133,3 @@ export async function getCustomer(id: string): Promise<{ customer: Customer; ord
   return { customer, orders: await getOrders({ customerId: id }) };
 }
 
-export async function refundOrder(): Promise<Order> {
-  throw new ApiError("Refunds from the dashboard open once payments are connected.", "validation");
-}
-
-export async function resendReceipt(): Promise<void> {
-  throw new ApiError("Resending receipts opens once emails are connected.", "validation");
-}

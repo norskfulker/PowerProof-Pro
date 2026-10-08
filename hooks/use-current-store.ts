@@ -2,7 +2,7 @@
 
 import { useApi, type ApiState } from "@/hooks/use-api";
 import { getStore, onDataChange } from "@/lib/api";
-import type { Store } from "@/lib/types";
+import type { CurrencyCode, Store } from "@/lib/types";
 
 /** One request shared by every component on the screen; any data change starts a fresh one. */
 let inflight: Promise<Store> | undefined;
@@ -23,4 +23,9 @@ function currentStore(): Promise<Store> {
  */
 export function useCurrentStore(): ApiState<Store> {
   return useApi(currentStore, [], { live: true });
+}
+
+/** The store's currency (what prices are set in), INR until the store has loaded. */
+export function useStoreCurrency(): CurrencyCode {
+  return useCurrentStore().data?.currency ?? "INR";
 }

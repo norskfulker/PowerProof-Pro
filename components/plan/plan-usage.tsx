@@ -37,6 +37,7 @@ export function PlanUsage({ tone = "light", className }: { tone?: "light" | "car
       </p>
       <Meter label="Stores" used={state.usage.stores} max={state.limits.stores} />
       <Meter label="Products" used={state.usage.products} max={state.limits.products} />
+      <Meter label="Pages" used={state.usage.pages} max={state.limits.pages} />
       {free && (
         <Button size="sm" variant="brass" onClick={() => upgrade()}>
           <Sparkles aria-hidden /> Upgrade to Pro

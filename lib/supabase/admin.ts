@@ -8,6 +8,9 @@ import { SUPABASE_URL } from "./env";
  * already checked who is asking. `server-only` makes any client import fail the build, and
  * tests/unit/security/service-role.test.ts checks the bundle never contains the key.
  */
+/** Whether the key is set (for the status page); the key itself never leaves this file. */
+export const serviceKeyConfigured = () => !!process.env.SUPABASE_SERVICE_ROLE_KEY;
+
 export function sbAdmin() {
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!key) throw new Error("SUPABASE_SERVICE_ROLE_KEY is not set");

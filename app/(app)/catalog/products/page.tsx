@@ -1,12 +1,13 @@
 "use client";
 
 import { Suspense } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import { readiness } from "@/components/products/readiness";
 import { GuardedLink } from "@/components/plan/plan-context";
 import type { ColumnDef } from "@tanstack/react-table";
-import { Copy, ExternalLink, MoreHorizontal, Package, Pencil, Plus, Trash2 } from "lucide-react";
+import { Copy, ExternalLink, EyeOff, FileSpreadsheet, Rocket, MoreHorizontal, Package, Pencil, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -24,10 +25,27 @@ import { PageHeader } from "@/components/pp/page-header";
 import { kindLabel } from "@/components/pp/product-card";
 import { ProductImageView } from "@/components/pp/product-cover";
 import { StatusPill } from "@/components/pp/status-pill";
+import { StatusTabs } from "@/components/pp/status-tabs";
 import { useApi } from "@/hooks/use-api";
 import { useCurrentStore } from "@/hooks/use-current-store";
-import { deleteProduct, duplicateProduct, getProducts } from "@/lib/api";
+import { deleteProduct, duplicateProduct, getProducts, publishProduct, unpublishProduct } from "@/lib/api";
 import type { Product } from "@/lib/types";
+
+/** Drafts say so in words, and what's left to do: a coloured pill alone is easy to miss. */
+function StatusCell({ p }: { p: Product }) {
+  const todo = p.status === "draft" ? readiness(p, true).filter((i) => !i.done) : [];
+  return (
+    <span className="flex flex-col items-start gap-1">
+      <StatusPill status={p.status} />
+      {p.status === "draft" && (
+        <span className="max-w-48 text-xs text-muted-foreground">
+          Not visible to buyers.{todo.length > 0 && <> Needs {todo.map((t) => t.label.toLowerCase()).join(", ")}.</>}
+        </span>
+      )}
+      {p.status === "archived" && <span className="text-xs text-muted-foreground">Hidden from buyers.</span>}
+    </span>
+  );
+}
 
 export default function ProductsPage() {
   return (
@@ -37,11 +55,15 @@ export default function ProductsPage() {
   );
 }
 
-// ?status=live|draft|archived comes from the menu (Catalog › Products › Live)
-const STATUS_PARAM: Record<string, string> = { live: "published", draft: "draft", archived: "archived" };
+// ?status=live|draft|archived is the selected tab (kept in the address so it can be shared and reloaded)
+const STATUS_PARAM: Record<string, Product["status"]> = { live: "published", draft: "draft", archived: "archived" };
+type Tab = "all" | "live" | "draft" | "archived";
 
 function ProductsPageInner() {
-  const status = STATUS_PARAM[useSearchParams().get("status") ?? ""];
+  const params = useSearchParams();
+  const router = useRouter();
+  const tab: Tab = (["live", "draft", "archived"] as const).find((s) => s === params.get("status")) ?? "all";
+  const status = STATUS_PARAM[tab];
   const { data, loading, error, reload } = useApi(() => getProducts(), [], { live: true });
   const store = useCurrentStore();
   const [toDelete, setToDelete] = useState<Product | null>(null);
@@ -63,7 +85,7 @@ function ProductsPageInner() {
         ),
       },
       { accessorKey: "kind", header: "Type", cell: ({ getValue }) => kindLabel(getValue() as Product["kind"]), filterFn: "equals" },
-      { accessorKey: "status", header: "Status", cell: ({ getValue }) => <StatusPill status={getValue() as string} />, filterFn: "equals" },
+      { accessorKey: "status", header: "Status", cell: ({ row }) => <StatusCell p={row.original} />, filterFn: "equals" },
       { id: "price", accessorFn: (p) => p.price.amount, header: "Price", enableSorting: true, meta: { align: "right" }, cell: ({ row }) => <MoneyText value={row.original.price} mono /> },
       { accessorKey: "salesCount", header: "Sales", enableSorting: true, meta: { align: "right" }, cell: ({ getValue }) => <span className="font-mono text-[0.8125rem]">{getValue() as number}</span> },
       { id: "revenue", accessorFn: (p) => p.revenue.amount, header: "Revenue", enableSorting: true, meta: { align: "right" }, cell: ({ row }) => <MoneyText value={row.original.revenue} mono /> },
@@ -86,6 +108,29 @@ function ProductsPageInner() {
                   <Link href={`/s/${store.data.slug}/${row.original.slug}`} target="_blank"><ExternalLink aria-hidden /> View on store</Link>
                 </DropdownMenuItem>
               )}
+              {row.original.status !== "published" ? (
+                <DropdownMenuItem
+                  onSelect={async () => {
+                    try {
+                      await publishProduct(row.original.id);
+                      toast.success("It's live", { description: row.original.title });
+                    } catch (e) {
+                      toast.error("It can't go live yet", { description: e instanceof Error ? e.message : undefined, action: { label: "Fix it", onClick: () => router.push(`/catalog/products/${row.original.id}`) } });
+                    }
+                  }}
+                >
+                  <Rocket aria-hidden /> Make it live
+                </DropdownMenuItem>
+              ) : (
+                <DropdownMenuItem
+                  onSelect={async () => {
+                    await unpublishProduct(row.original.id);
+                    toast.success("Moved to drafts", { description: "Buyers can't see it now." });
+                  }}
+                >
+                  <EyeOff aria-hidden /> Move to drafts
+                </DropdownMenuItem>
+              )}
               <DropdownMenuItem
                 onSelect={async () => {
                   const p = await duplicateProduct(row.original.id);
@@ -103,7 +148,7 @@ function ProductsPageInner() {
         ),
       },
     ],
-    [store.data]
+    [store.data, router]
   );
 
   return (
@@ -112,25 +157,37 @@ function ProductsPageInner() {
         title="Products"
         description="Everything you sell. Drafts stay hidden until you publish."
         actions={
-          <Button asChild>
-            <GuardedLink kind="products" href="/catalog/products/new">
-              <Plus aria-hidden /> Add product
-            </GuardedLink>
-          </Button>
+          <>
+            <Button asChild variant="secondary"><Link href="/catalog/products/import"><FileSpreadsheet aria-hidden /> Import</Link></Button>
+            <Button asChild>
+              <GuardedLink kind="products" href="/catalog/products/new">
+                <Plus aria-hidden /> Add product
+              </GuardedLink>
+            </Button>
+          </>
         }
       />
+      <StatusTabs
+        label="Product status"
+        value={tab}
+        onChange={(v) => router.replace(v === "all" ? "/catalog/products" : `/catalog/products?status=${v}`, { scroll: false })}
+        tabs={[
+          { value: "all", label: "All", count: data?.length },
+          { value: "live", label: "Live", count: data?.filter((p) => p.status === "published").length },
+          { value: "draft", label: "Draft", count: data?.filter((p) => p.status === "draft").length },
+          { value: "archived", label: "Archived", count: data?.filter((p) => p.status === "archived").length },
+        ]}
+      />
       <DataTable
-        key={status ?? "all"}
-        initialFilters={status ? [{ id: "status", value: status }] : []}
+        key={tab}
         label="Products"
         columns={columns}
-        data={data}
+        data={status ? data?.filter((p) => p.status === status) : data}
         loading={loading && !data}
         error={error}
         onRetry={reload}
         searchPlaceholder="Search by name or SKU"
         filters={[
-          { columnId: "status", label: "Statuses", options: [{ value: "published", label: "Live" }, { value: "draft", label: "Draft" }, { value: "archived", label: "Archived" }] },
           { columnId: "kind", label: "Types", options: ["ebook", "template", "preset", "notion", "course", "audio", "other"].map((k) => ({ value: k, label: kindLabel(k as Product["kind"]) })) },
         ]}
         rowHref={(p) => `/catalog/products/${p.id}`}

@@ -81,6 +81,59 @@ export const PAGE_TEMPLATES: PageTemplateDef[] = [
       ),
   },
   {
+    id: "lead",
+    name: "Lead generation",
+    description: "Offer something free for a name and email. Everyone who signs up lands in Sales › Leads.",
+    build: (ctx) =>
+      doc(
+        n("hero", { headline: "Get the free starter guide", subtext: `A short, practical guide from ${ctx.storeName}. Tell us where to send it.`, layout: "centered" }, { style: { background: { kind: "solid", color: "#F5F6F4" }, tone: "dark", align: "center", overlay: 0 }, layout: { paddingY: "lg", width: "wide", minHeight: "auto", gap: "md" } }),
+        n("section", { label: "Sign up" }, { layout: { paddingY: "lg", width: "narrow", minHeight: "auto", gap: "md" }, children: [n("lead_form", { heading: "Where should we send it?", body: "No spam. One email, then occasional updates.", buttonLabel: "Send me the guide", successMessage: "Thanks! Check your inbox in a minute." })] }),
+        n("section", { label: "Why" }, { children: [n("highlights", { items: [{ title: "Short", body: "Read it in ten minutes." }, { title: "Practical", body: "Things you can use today." }, { title: "Free", body: "Always." }] })] })
+      ),
+  },
+  {
+    id: "squeeze",
+    name: "Squeeze page",
+    description: "One promise, one form, nothing else. The store menu and footer are hidden.",
+    build: () => ({
+      ...doc(
+        n("section", { label: "Squeeze" }, {
+          style: { background: { kind: "none" }, tone: "auto", align: "center", overlay: 0 },
+          layout: { paddingY: "xl", width: "narrow", minHeight: "screen", gap: "md" },
+          children: [
+            n("heading", { text: "Learn the one thing that doubles your results", level: 1, size: "xl" }),
+            n("text", { text: "Free 5-day email course. Join today and start tomorrow.", size: "lg" }),
+            n("highlights", { items: [{ title: "5 short lessons", body: "Five minutes each." }, { title: "Real examples", body: "No theory dumps." }, { title: "Unsubscribe any time", body: "One click." }] }),
+            n("lead_form", { heading: "Save my seat", body: "", fields: [{ id: "name", label: "First name", type: "text", required: true }, { id: "email", label: "Email", type: "email", required: true }], buttonLabel: "Yes, send me lesson 1", successMessage: "You're in! Lesson 1 is on its way." }),
+          ],
+        })
+      ),
+      focus: true,
+    }),
+  },
+  {
+    id: "booking",
+    name: "Book a call",
+    description: "An instant calendar: visitors pick a free time and leave their details.",
+    build: (ctx) =>
+      doc(
+        n("section", { label: "Intro" }, { style: { background: { kind: "none" }, tone: "auto", align: "center", overlay: 0 }, layout: { paddingY: "lg", width: "narrow", minHeight: "auto", gap: "sm" }, children: [n("heading", { text: `Talk to ${ctx.ownerName}`, level: 1, size: "lg" }), n("text", { text: "A short call to see how I can help. Pick a time that works for you." })] }),
+        n("section", { label: "Calendar" }, { layout: { paddingY: "md", width: "narrow", minHeight: "auto", gap: "md" }, children: [n("booking", { heading: "Pick a day and time", durationMin: 30 })] }),
+        n("section", { label: "Questions" }, { layout: { paddingY: "md", width: "narrow", minHeight: "auto", gap: "md" }, children: [n("faq", { items: [{ q: "What happens on the call?", a: "We talk through what you need and whether I can help. No pressure." }, { q: "Can I change the time?", a: "Yes. Reply to the confirmation email and we'll move it." }] })] })
+      ),
+  },
+  {
+    id: "clickthrough",
+    name: "Click-through page",
+    description: "Warm people up with a short pitch, then send them on to the product with one button.",
+    build: (ctx) =>
+      doc(
+        n("hero", { eyebrow: "", headline: "Here's why people choose this", subtext: "Three reasons, then you can decide.", ctaLabel: "Continue to the offer", ctaHref: `/s/${ctx.slug}/products`, image: cover(ctx), imageAlt: "", layout: "split" }, { style: { background: { kind: "solid", color: "#F5F6F4" }, tone: "dark", align: "left", overlay: 0 }, layout: { paddingY: "lg", width: "wide", minHeight: "md", gap: "md" } }),
+        n("section", { label: "Reasons" }, { children: [n("highlights", { items: [{ title: "Saves time", body: "Everything in one place." }, { title: "Easy to start", body: "Open it and go." }, { title: "Backed by a refund", body: "If it isn't right, tell us." }] })] }),
+        n("section", { label: "Go" }, { style: { background: { kind: "none" }, tone: "auto", align: "center", overlay: 0 }, layout: { paddingY: "lg", width: "narrow", minHeight: "auto", gap: "md" }, children: [n("button", { label: "Continue to the offer", href: `/s/${ctx.slug}/products`, variant: "brass", size: "lg" })] })
+      ),
+  },
+  {
     id: "blank",
     name: "Blank page",
     description: "Start from nothing and add your own blocks.",

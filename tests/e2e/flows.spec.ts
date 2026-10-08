@@ -10,7 +10,6 @@ import { signInAs } from "./support/supabase";
 const m = readManifest();
 const A = m.A;
 const isPhone = (page: Page) => (page.viewportSize()?.width ?? 1280) < 1024;
-const saveBar = (page: Page) => page.getByRole("region", { name: "Unsaved changes" });
 
 async function db() {
   return (await signInAs("A")).client;
@@ -21,7 +20,7 @@ test.describe("products @flow", () => {
     test.skip(!m.hasService, "A second product needs creator A on Pro, which the setup does with SUPABASE_SERVICE_ROLE_KEY");
     const { errors } = await prepare(page, testInfo);
     const title = `e2e Upload ${m.tag} ${testInfo.project.name}`.slice(0, 80);
-    await page.goto("/catalog/products/new/upload");
+    await page.goto("/catalog/products/new/upload?type=digital");
     await settle(page);
     await page.getByLabel("Title").fill(title);
     await page.getByLabel("Price", { exact: true }).fill("299");
@@ -39,9 +38,9 @@ test.describe("products @flow", () => {
     await page.goto(`/catalog/products/${row!.id}`);
     await settle(page);
     await page.getByLabel("Title").fill(`${title} v2`);
-    await expect(saveBar(page)).toBeVisible();
-    await saveBar(page).getByRole("button", { name: "Save changes" }).click();
-    await expect(saveBar(page)).toBeHidden({ timeout: 10_000 });
+    // Saves by itself a moment after the last edit: no Save button
+    await expect(page.getByRole("status").filter({ hasText: "All changes saved" })).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByRole("button", { name: "Save changes" })).toHaveCount(0);
     expect((await (await db()).from("products").select("title").eq("id", row!.id).single()).data?.title).toBe(`${title} v2`);
 
     await (await db()).from("products").delete().eq("id", row!.id);
@@ -128,8 +127,8 @@ test.describe("visual editor @flow", () => {
   });
 });
 
-test.describe("save bars @flow", () => {
-  // Hidden on load, shows on edit, hides on revert
+test.describe("autosave @flow", () => {
+  // Nothing on load; an edit saves itself, with no Save, Discard or "leave without saving?"
   const SCREENS: { path: string; field: (p: Page) => ReturnType<Page["getByLabel"]> }[] = [
     { path: `/store/${A.storeId}/settings`, field: (p) => p.getByLabel("Store name") },
     { path: "/settings/company", field: (p) => p.getByLabel(/Legal name/) },
@@ -137,18 +136,24 @@ test.describe("save bars @flow", () => {
     { path: `/store/${A.storeId}/seo`, field: (p) => p.getByLabel("Page title") },
     { path: `/store/${A.storeId}/pages/about`, field: (p) => p.getByLabel("Your story") },
   ];
+  const saved = (page: Page) => page.getByRole("status").filter({ hasText: "All changes saved" });
   for (const s of SCREENS) {
-    test(`save bar on ${s.path}`, async ({ page }, testInfo) => {
+    test(`autosave on ${s.path}`, async ({ page }, testInfo) => {
       const { errors } = await prepare(page, testInfo);
       await page.goto(s.path);
       await settle(page);
-      await expect(saveBar(page)).toBeHidden();
+      await expect(saved(page)).toHaveCount(0);
       const field = s.field(page);
       const original = await field.inputValue();
       await field.fill(`${original} x`);
-      await expect(saveBar(page)).toBeVisible();
+      await expect(saved(page)).toBeVisible({ timeout: 10_000 });
+      await expect(page.getByRole("button", { name: "Save changes" })).toHaveCount(0);
+      await expect(page.getByRole("button", { name: "Discard" })).toHaveCount(0);
+      // Put it back, and leave: no prompt
       await field.fill(original);
-      await expect(saveBar(page)).toBeHidden();
+      await expect(saved(page)).toBeVisible({ timeout: 10_000 });
+      await page.getByRole("link", { name: "Dashboard" }).first().click();
+      await expect(page.getByText("Leave without saving?")).toHaveCount(0);
       await expectNoConsoleErrors(errors);
     });
   }

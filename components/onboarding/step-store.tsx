@@ -3,7 +3,10 @@
 import { useEffect, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { Check, Loader2, X } from "lucide-react";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { COUNTRIES, currencyFor, DEFAULT_COUNTRY } from "@/lib/countries";
+import { CURRENCIES } from "@/lib/money";
 import { Input } from "@/components/ui/input";
 import { FormError } from "@/components/auth/auth-card";
 import { BrandColorPicker } from "@/components/pp/brand-color-picker";
@@ -16,6 +19,7 @@ import { StepFrame } from "./step-frame";
 
 interface Values {
   name: string;
+  country: string;
   brandColor: string;
 }
 
@@ -24,7 +28,7 @@ type LinkState = { for: string; slug?: string; available?: boolean; failed?: boo
 export function StepStore({ onDone }: { onDone: () => void }) {
   const [error, setError] = useState<string>();
   const [link, setLink] = useState<LinkState | null>(null);
-  const form = useForm<Values>({ defaultValues: { name: "", brandColor: PALETTES[0].bg }, mode: "onTouched" });
+  const form = useForm<Values>({ defaultValues: { name: "", country: DEFAULT_COUNTRY, brandColor: PALETTES[0].bg }, mode: "onTouched" });
   const name = useWatch({ control: form.control, name: "name" });
   const clean = cleanStoreName(name ?? "");
   const valid = storeNameError(clean) === null;
@@ -55,7 +59,7 @@ export function StepStore({ onDone }: { onDone: () => void }) {
   const ready = Boolean(current?.slug && current.available);
 
   return (
-    <StepFrame formId="step-store" title="Create your store" description="Start with a name and a colour. You can change both later." submitLabel="Create store" pending={form.formState.isSubmitting} disabled={!ready}>
+    <StepFrame formId="step-store" title="Create your store" description="A name and your country is all it takes. Your first product comes next." submitLabel="Create store" pending={form.formState.isSubmitting} disabled={!ready}>
       <Form {...form}>
         <form
           id="step-store"
@@ -69,7 +73,7 @@ export function StepStore({ onDone }: { onDone: () => void }) {
             if (!color) return setError("Pick a colour as #RRGGBB.");
             if (!ready || !current?.slug) return;
             try {
-              await createStore({ name: cleanStoreName(v.name), brandColor: color, slug: current.slug });
+              await createStore({ name: cleanStoreName(v.name), brandColor: color, slug: current.slug, country: v.country });
               onDone();
             } catch (e) {
               setError(e instanceof Error ? e.message : "Something went wrong.");
@@ -108,7 +112,30 @@ export function StepStore({ onDone }: { onDone: () => void }) {
               )}
             </p>
           </div>
-          <FormField control={form.control} name="brandColor" render={({ field }) => <BrandColorPicker value={field.value} onChange={field.onChange} />} />
+          <FormField
+            control={form.control}
+            name="country"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Where are you based?</FormLabel>
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <FormControl><SelectTrigger className="w-full"><SelectValue /></SelectTrigger></FormControl>
+                  <SelectContent>
+                    {COUNTRIES.map((c) => <SelectItem key={c.code} value={c.code}>{c.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+                <FormDescription>
+                  You&apos;ll set your prices in <strong>{CURRENCIES[currencyFor(field.value)].name}s ({currencyFor(field.value)})</strong>. This is fixed once you add products.
+                </FormDescription>
+              </FormItem>
+            )}
+          />
+          <details className="rounded-control border px-3 py-2 text-sm">
+            <summary className="min-h-9 cursor-pointer font-medium pointer-coarse:min-h-11">Pick a colour (optional)</summary>
+            <div className="pt-3">
+              <FormField control={form.control} name="brandColor" render={({ field }) => <BrandColorPicker value={field.value} onChange={field.onChange} />} />
+            </div>
+          </details>
         </form>
       </Form>
     </StepFrame>

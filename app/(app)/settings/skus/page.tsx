@@ -53,7 +53,9 @@ export default function SkusPage() {
     []
   );
 
+  // Edited in a panel with its own Save: half-typed codes shouldn't save themselves
   const bar = useDirtyForm({
+    autosave: false,
     value: draft,
     saved: original,
     validate: () => {

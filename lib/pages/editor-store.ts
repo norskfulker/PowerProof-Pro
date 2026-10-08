@@ -60,6 +60,8 @@ export interface EditorState {
   updateVisibility: (id: string, patch: Partial<PageNode["visibility"]>) => void;
   /** The page-level background */
   updatePageStyle: (patch: Partial<BlockStyle>, coalesceKey?: string) => void;
+  /** Focus mode: hide the store menu and footer on this page */
+  setFocus: (focus: boolean) => void;
 }
 
 const HISTORY = 100;
@@ -231,6 +233,7 @@ export function createEditorStore(initial: PageDoc) {
       updateStyle: (id, patch, coalesceKey) => commit(docWith(mapNode(blocks(), id, (n) => ({ ...n, style: { ...n.style, ...patch } }))), coalesceKey ? `${id}:style:${coalesceKey}` : undefined),
       updateLayout: (id, patch) => commit(docWith(mapNode(blocks(), id, (n) => ({ ...n, layout: { ...n.layout, ...patch } })))),
       updateVisibility: (id, patch) => commit(docWith(mapNode(blocks(), id, (n) => ({ ...n, visibility: { ...n.visibility, ...patch } })))),
+      setFocus: (focus) => commit({ ...get().doc, focus: focus || undefined }),
       updatePageStyle: (patch, coalesceKey) => commit({ ...get().doc, style: { ...(get().doc.style ?? styleSchema.parse({})), ...patch } }, coalesceKey ? `page:style:${coalesceKey}` : undefined),
     };
   });
@@ -249,6 +252,7 @@ export const BLOCK_GROUPS: { label: string; types: BlockType[] }[] = [
   { label: "Media", types: ["image", "gallery", "video"] },
   { label: "Store", types: ["product_card", "product_grid", "highlights", "testimonials"] },
   { label: "Engage", types: ["faq", "countdown", "newsletter"] },
+  { label: "Leads", types: ["lead_form", "booking"] },
 ];
 
 export const BLOCK_LABELS: Record<BlockType, string> = {
@@ -272,6 +276,8 @@ export const BLOCK_LABELS: Record<BlockType, string> = {
   faq: "FAQ",
   countdown: "Countdown",
   newsletter: "Newsletter",
+  lead_form: "Lead form",
+  booking: "Booking calendar",
 };
 
 export { CONTENT_TYPES };

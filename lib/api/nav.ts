@@ -5,13 +5,12 @@ import { activeStoreId } from "./live/session";
 export interface NavCounts {
   storeId: string;
   counts: Partial<Record<BadgeKey, number>>;
-  collections: { id: string; name: string; products: { id: string; title: string }[] }[];
 }
 
-/** Live numbers and collections for the menu. Store-scoped counts follow the active store. */
+/** Live numbers for the menu. Store-scoped counts follow the active store. */
 export function getNavCounts(area: "creator" | "admin"): Promise<NavCounts> {
   // The admin console isn't connected to the database yet, so it has no counts to show
-  if (area === "admin") return Promise.resolve({ storeId: "", counts: {}, collections: [] });
+  if (area === "admin") return Promise.resolve({ storeId: "", counts: {} });
   return live.getNavCounts();
 }
 

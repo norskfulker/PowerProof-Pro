@@ -70,7 +70,15 @@ tests/
 - **In the database:** stores (including PAN and business type), products (SKU, HSN/SAC code, tax rate), collections, coupons, deal paths and bundles, reviews (including `pinned`), questions, store pages, custom (visual) pages, payout methods, payouts, plan limits, getting-started progress (`profiles.onboarding`).
 - **In Supabase Storage:** the media library and product files. The library list is read from the bucket.
 - **In the browser:** only who is signed in (a cache of the Supabase session), a change signal between tabs, and display preferences (theme, collapsed menu groups, recent searches). Nothing about the business is kept there; a test checks it.
-- **Not tracked yet, so shown as "No data yet":** visitors, conversion, traffic sources, funnels, deal path usage and revenue lift. Buyer currency conversion is off until an exchange-rate source is connected: prices show in the store's currency.
+- **Not tracked yet, so shown as "No data yet":** visitors, conversion, traffic sources, funnels, deal path usage and revenue lift. Buyer currency conversion needs rows in the `fx_rates` table (no rate source is connected, so it starts empty and the picker stays hidden): prices show in the store's currency until then.
+
+## Database changes
+
+SQL for what the app needs lives in `supabase/migrations/`. `014_plan_limits_fulfilment_payout_methods.sql` makes Free 10 products and 3 pages, adds digital/physical to products, crypto wallets to payout methods and the limit of 5 per kind (with the bank account name rule); `015_store_slug_locked.sql` stops a store's link being changed; `017_store_media_fonts.sql` lets stores upload font files; `018_leads_bookings_marketplace.sql` adds leads and bookings; `025_buyer_rpcs.sql` (with fixes in `026` and `027`) lets buyers and visitors act through database functions: opening an order, looking one up, reviewing, asking a question, the contact form; `019_marketplace_deals.sql` adds marketplace deals, their trust badges, revenue and filters, and `020_marketplace_signed_in_only.sql` makes them readable by signed-in users only, `021_marketplace_country.sql` adds the seller's country and a country filter; `016_store_country_currency_fx.sql` adds the store's country, ties every product to its store's currency, locks both once there are products, and adds the `fx_rates` table. `013_sku_hsn_tax_codes.sql` adds format checks on a product's SKU and HSN/SAC code, one SKU per product per store (ignoring case), and the `tax_codes` table for a creator's own codes with their GST rates (only the store's owner can read or change them).
+
+## GST lookup
+
+Settings › Company checks a GSTIN as you type it and fills the state and PAN from the number. To also fetch the registered name and address, connect a GST data provider in `.env.local` (`GST_LOOKUP_URL` with `{gstin}` in it, `GST_LOOKUP_KEY`, optionally `GST_LOOKUP_KEY_HEADER`). The key stays on the server (`app/api/gst/route.ts`); without it the form says live lookup isn't connected.
 
 ## Design system
 
@@ -79,3 +87,24 @@ Tokens are CSS variables in `app/globals.css`: porcelain, ink, emerald (actions)
 ## More
 
 `DECISIONS.md` lists the assumptions behind this build and the questions still open for the founder.
+
+## Importing products
+
+`/catalog/products/import` takes a CSV. The page lists the columns and gives a template to download (`title`, `description`, `type`, `kind`, `price`, `original_price`, `sku`, `hsn_sac`, `gst_rate`, `collection`). Prices are in the store's currency; everything arrives as a draft, and the page then lists a checklist per product (images or video, file, type or collection) with the type and collection set right there; physical products need an HSN code, a GST rate and a collection (made if it doesn't exist). Up to 500 rows per file; the plan's product limit still applies.
+
+## Taking it live
+
+Everything below is built; each piece switches on when its keys are set, and says so on screen when they aren't.
+
+| To get | Set | Also do |
+| --- | --- | --- |
+| Orders, payments, refunds, downloads | `SUPABASE_SERVICE_ROLE_KEY`, `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET` | In Razorpay add the webhook `https://<site>/api/webhooks/razorpay` (events `payment.captured`, `order.paid`, `payment.failed`). Test with Razorpay's test keys first. |
+| Receipt emails (and resending them) | `RESEND_API_KEY`, `MAIL_FROM` | Verify the sending domain in Resend. |
+| Custom domains | `VERCEL_API_TOKEN`, `VERCEL_PROJECT_ID` (`VERCEL_TEAM_ID` for a team) | Creators on Pro add their domain on Store › Domain and set the DNS records shown. |
+| Dashboard visits, sources, funnel | nothing | Counted by the storefront itself, cookieless. |
+| Google Analytics, Clarity | nothing | Creators paste their IDs on Store › Analytics tags. |
+| Live GST lookup | `GST_LOOKUP_URL`, `GST_LOOKUP_KEY` | See above. |
+
+After setting them, open **Admin › Money › Payment gateway**: it shows what's in place, tests the Razorpay keys, and gives the exact webhook address to paste into Razorpay.
+
+`NEXT_PUBLIC_SITE_URL` must be the real site address: receipt links and custom-domain routing use it.

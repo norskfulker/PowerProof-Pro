@@ -12,7 +12,7 @@ export const updateStore = (patch: Partial<Store>): Promise<Store> => liveChange
 /** Debounced in the UI. */
 export const checkSlug = (slug: string): Promise<{ available: boolean }> => live.checkSlug(slug);
 export const suggestSlug = (name: string): Promise<string> => live.suggestSlug(name);
-export const createStore = (input: { name: string; brandColor: string; slug: string }): Promise<{ slug: string }> => live.createStore(input);
+export const createStore = (input: { name: string; brandColor: string; slug: string; country: string }): Promise<{ slug: string }> => live.createStore(input);
 export const getCompany = (): Promise<Company> => live.getCompany();
 export const updateCompany = (patch: Partial<Company>): Promise<Company> => liveChange(live.updateCompany(patch));
 export const getInvoiceSettings = (): Promise<InvoiceSettings> => live.getInvoiceSettings();
@@ -20,8 +20,25 @@ export const updateInvoiceSettings = (patch: Partial<InvoiceSettings>): Promise<
 
 /* Tax codes and SKUs -------------------------------------------------- */
 
-/** The GST reference list creators pick from. Each product saves its own code and rate. */
-export const getTaxCodes = (): Promise<TaxCode[]> => Promise.resolve(TAX_CODES);
+/**
+ * The GST reference list plus the creator's own codes (saved in tax_codes, with their rates).
+ * Each product keeps its own code and rate, so invoices never change after the fact.
+ */
+export async function getTaxCodes(): Promise<TaxCode[]> {
+  return [...TAX_CODES, ...(await catalog.getCustomTaxCodes())];
+}
+
+export const getCustomTaxCodes = (): Promise<TaxCode[]> => catalog.getCustomTaxCodes();
+/** Add one of your own codes. Returns the whole list: reference codes first, then yours. */
+export async function saveTaxCode(input: { code: string; kind: "HSN" | "SAC"; description?: string; rate: number }): Promise<TaxCode[]> {
+  await liveChange(catalog.saveTaxCode(input));
+  return getTaxCodes();
+}
+
+export async function deleteTaxCode(id: string): Promise<TaxCode[]> {
+  await liveChange(catalog.deleteTaxCode(id));
+  return getTaxCodes();
+}
 
 /** A SKU is a product's own sku, HSN/SAC code and tax rate: there is no separate list to keep. */
 export async function getSkus(): Promise<Sku[]> {
@@ -36,7 +53,9 @@ export async function saveSku(sku: Omit<Sku, "id"> & { id?: string }): Promise<S
   if (!code) throw new ApiError("Enter a SKU code.", "validation");
   const taken = (await getSkus()).some((s) => s.code.toLowerCase() === code.toLowerCase() && s.id !== productId);
   if (taken) throw new ApiError(`SKU ${code} already exists.`, "conflict");
-  await liveChange(catalog.updateProduct(productId, { sku: code, taxCode: sku.taxCode }));
+  // Keep the rate that goes with the chosen code (a custom code has its own)
+  const rate = (await getTaxCodes()).find((c) => c.code === sku.taxCode)?.rate;
+  await liveChange(catalog.updateProduct(productId, { sku: code, taxCode: sku.taxCode, ...(rate !== undefined ? { taxRate: rate } : {}) }));
   return getSkus();
 }
 

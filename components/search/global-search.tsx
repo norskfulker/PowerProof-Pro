@@ -101,7 +101,7 @@ export function GlobalSearch({ scope }: { scope: SearchScope }) {
   const current = flat.find((r) => itemValue(r) === active);
   // Pages come from the one nav config, with their place in the menu as context (Part 7C)
   const nav = useNav(scope === "admin" ? "admin" : "creator");
-  const pages = useMemo(() => navSearch(nav.tree, query, 5), [nav.tree, query]);
+  const pages = useMemo(() => navSearch([...nav.tree, ...nav.storeTabs], query, 5), [nav.tree, nav.storeTabs, query]);
   const hasQuery = query.trim().length > 0;
 
   function onOpenChange(o: boolean) {

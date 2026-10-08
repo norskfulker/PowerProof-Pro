@@ -4,7 +4,7 @@ import { z } from "zod";
  * Validation for deal rules saved from the wizard. Messages are written for the creator.
  * The engine (deals.ts) tolerates bad data; this keeps it out in the first place.
  */
-const money = z.object({ amount: z.number().int().min(100, "Set at least ₹1."), currency: z.literal("INR") });
+const money = z.object({ amount: z.number().int().min(100, "Set an amount of at least 1.00."), currency: z.enum(["INR", "USD", "EUR", "GBP", "AED", "SGD", "AUD", "CAD"]) });
 const percent = z.number({ invalid_type_error: "Enter a percent." }).int("Use a whole number.").min(1, "At least 1%.").max(90, "At most 90%. Use a free gift for 100%.");
 const ids = (min: number, msg: string) => z.array(z.string()).min(min, msg);
 

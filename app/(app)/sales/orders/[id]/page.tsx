@@ -1,6 +1,8 @@
 "use client";
 
-import { use } from "react";
+import { use, useState } from "react";
+import { toast } from "sonner";
+import { ConfirmDialog } from "@/components/pp/confirm-dialog";
 import Link from "next/link";
 import { Mail, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -12,13 +14,15 @@ import { StatusPill } from "@/components/pp/status-pill";
 import { OrderTimeline } from "@/components/orders/order-timeline";
 import { useApi } from "@/hooks/use-api";
 import { useCurrentStore } from "@/hooks/use-current-store";
-import { getOrder } from "@/lib/api";
+import { getOrder, refundOrder, resendReceipt } from "@/lib/api";
 import { countryShort, formatDate, sourceLabel } from "@/lib/format";
 
 export default function OrderDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const order = useApi(() => getOrder(id), [id], { live: true });
   const store = useCurrentStore();
+  const [busy, setBusy] = useState<"mail" | undefined>();
+  const [confirm, setConfirm] = useState(false);
 
   if (order.error) {
     return (
@@ -44,22 +48,53 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
     <>
       <PageHeader
         back={{ href: "/sales/orders", label: "Orders" }}
-        eyebrow={formatDate(o.createdAt, { time: true })}
+        description={formatDate(o.createdAt, { time: true })}
         title={<span className="flex flex-wrap items-center gap-3"><span className="font-mono text-[1.75rem] tracking-tight">{o.number}</span> <StatusPill status={o.status} /></span>}
         actions={
           <>
             {o.status === "paid" && (
-              <Button variant="secondary" disabled title="Emails open soon">
-                <Mail aria-hidden /> Resend receipt (opens soon)
+              <Button
+                variant="secondary"
+                disabled={busy !== undefined}
+                onClick={async () => {
+                  setBusy("mail");
+                  try {
+                    await resendReceipt(id);
+                    toast.success("Receipt sent", { description: `A fresh link went to ${o.buyerEmail}.` });
+                  } catch (e) {
+                    toast.error("Couldn't send it", { description: e instanceof Error ? e.message : undefined });
+                  }
+                  setBusy(undefined);
+                }}
+              >
+                <Mail aria-hidden /> Resend receipt
               </Button>
             )}
             {canRefund && (
-              <Button variant="danger" disabled title="Refunds open once payments are connected">
-                <RotateCcw aria-hidden /> Refund (opens soon)
+              <Button variant="danger" disabled={busy !== undefined} onClick={() => setConfirm(true)}>
+                <RotateCcw aria-hidden /> Refund
               </Button>
             )}
           </>
         }
+      />
+
+      <ConfirmDialog
+        open={confirm}
+        onOpenChange={setConfirm}
+        title={`Refund ${o.number}?`}
+        description={`The full amount goes back to ${o.buyerName}'s original payment method, their downloads stop, and your balance is reduced. This can't be undone.`}
+        confirmLabel="Refund the full amount"
+        onConfirm={async () => {
+          try {
+            await refundOrder(id, o.refundReason ?? "Refunded by the seller");
+            toast.success("Refunded", { description: "The money is on its way back to the buyer." });
+            order.reload();
+          } catch (e) {
+            toast.error("The refund didn't go through", { description: e instanceof Error ? e.message : undefined });
+            throw e;
+          }
+        }}
       />
 
       {o.status === "refund_requested" && (

@@ -4,7 +4,7 @@ export type PayoutStatus = "processing" | "paid" | "failed";
 
 export interface PayoutMethod {
   id: string;
-  kind: "bank" | "usdt";
+  kind: "bank" | "upi" | "crypto";
   label: string;
   /** Masked, e.g. ····4821 */
   last4: string;
@@ -13,7 +13,10 @@ export interface PayoutMethod {
   bankName?: string;
   verified: boolean;
   primary: boolean;
-  comingSoon?: boolean;
+  /** Crypto wallets: what is sent, on which network, and to which address */
+  asset?: string;
+  network?: string;
+  address?: string;
 }
 
 export interface Payout {

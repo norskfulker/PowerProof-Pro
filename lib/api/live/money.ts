@@ -1,7 +1,8 @@
 import { sb } from "../../supabase/browser";
 import type { Balance, Money, Payout, PayoutMethod } from "../../types";
 import { ApiError } from "../client";
-import type { BankInput } from "../payouts";
+import type { BankInput, CryptoInput } from "../payouts";
+import { isWalletAddress } from "../../india";
 import { fail, must } from "./errors";
 import { currency, money, payoutFrom, payoutMethodFrom } from "./map";
 import { activeStoreId, currentUser } from "./session";
@@ -11,7 +12,7 @@ import { activeStoreId, currentUser } from "./session";
  * (creator_balances): sales are held 3 hours, then available.
  */
 
-const METHOD_COLS = "id, owner_id, kind, holder_name, bank_name, ifsc, account_last4, upi_masked, is_default, verified_at, created_at, updated_at";
+const METHOD_COLS = "id, owner_id, kind, holder_name, bank_name, ifsc, account_last4, upi_masked, asset, network, wallet_address, is_default, verified_at, created_at, updated_at";
 
 async function storeCurrency(storeId: string) {
   const { data } = await sb().from("stores").select("currency_base").eq("id", storeId).single();
@@ -65,10 +66,11 @@ export async function addBankAccount(input: BankInput): Promise<PayoutMethod> {
   const ifsc = input.ifsc.trim().toUpperCase();
   if (!/^[A-Z]{4}0[A-Z0-9]{6}$/.test(ifsc)) throw new ApiError("IFSC codes look like HDFC0001234.", "validation");
   const me = await currentUser();
-  await sb().from("payout_methods").update({ is_default: false }).eq("owner_id", me.id);
+  // The first method is the primary one; later ones are added next to it (up to 5 of each kind)
+  const { count } = await sb().from("payout_methods").select("id", { count: "exact", head: true }).eq("owner_id", me.id);
   const r = await sb()
     .from("payout_methods")
-    .insert({ kind: "bank", holder_name: input.holderName.trim().slice(0, 100), bank_name: BANKS[ifsc.slice(0, 4)] ?? "Bank account", ifsc, account_last4: digits.slice(-4), is_default: true } as never)
+    .insert({ kind: "bank", holder_name: input.holderName.trim().slice(0, 100), bank_name: BANKS[ifsc.slice(0, 4)] ?? "Bank account", ifsc, account_last4: digits.slice(-4), is_default: !count } as never)
     .select(METHOD_COLS)
     .single();
   if (r.error) fail(r.error);
@@ -84,4 +86,34 @@ export async function requestPayout(amount: Money, methodId: string): Promise<Pa
     fail(error);
   }
   return getPayout(data as string);
+}
+
+/** Saves a wallet to be paid in crypto. The address is checked for the network before it is saved. */
+export async function addCryptoWallet(input: CryptoInput): Promise<PayoutMethod> {
+  if (!isWalletAddress(input.network, input.address)) throw new ApiError("That address doesn't look right for this network. Copy it again from your wallet.", "validation");
+  const me = await currentUser();
+  const { count } = await sb().from("payout_methods").select("id", { count: "exact", head: true }).eq("owner_id", me.id);
+  const r = await sb()
+    .from("payout_methods")
+    .insert({ kind: "crypto", holder_name: (me.name || "Wallet owner").slice(0, 100), asset: input.asset, network: input.network, wallet_address: input.address.trim(), is_default: !count } as never)
+    .select(METHOD_COLS)
+    .single();
+  if (r.error) fail(r.error);
+  return payoutMethodFrom(r.data);
+}
+
+/** Makes one method the primary one. */
+export async function setPrimaryMethod(id: string): Promise<void> {
+  const me = await currentUser();
+  must(await sb().from("payout_methods").update({ is_default: false }).eq("owner_id", me.id).neq("id", id).select("id"));
+  must(await sb().from("payout_methods").update({ is_default: true }).eq("id", id).select("id").single(), { notFound: "Payout method" });
+}
+
+export async function removePayoutMethod(id: string): Promise<void> {
+  const r = await sb().from("payout_methods").delete().eq("id", id);
+  if (r.error) {
+    // Payouts that were sent to it keep pointing at it
+    if (r.error.code === "23503") throw new ApiError("This one has payouts in your history, so it can't be removed.", "conflict");
+    fail(r.error);
+  }
 }

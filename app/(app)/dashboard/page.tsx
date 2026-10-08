@@ -6,18 +6,113 @@ import { GuardedLink } from "@/components/plan/plan-context";
 import { ExternalLink, Plus, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Segmented } from "@/components/pp/segmented";
-import { ChartCard, RevenueBars } from "@/components/pp/chart-card";
+import { ChartCard, RevenueBars, ShareBars, VisitorsArea } from "@/components/pp/chart-card";
 import { MoneyText } from "@/components/pp/money-text";
 import { PageHeader } from "@/components/pp/page-header";
 import { GettingStartedCard } from "@/components/getting-started/getting-started-card";
+import { useGettingStarted } from "@/components/getting-started/getting-started-provider";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Glance } from "@/components/dashboard/glance";
 import { LiveFeed } from "@/components/dashboard/live-feed";
 import { QuickActions } from "@/components/dashboard/quick-actions";
 import { useApi } from "@/hooks/use-api";
 import { useCurrentStore } from "@/hooks/use-current-store";
 import { getBalance, getPlan, getProducts, getSummary } from "@/lib/api";
-import { formatDate } from "@/lib/format";
-import type { RangeKey } from "@/lib/types";
+import { formatDate, sourceLabel } from "@/lib/format";
+import type { RangeKey, Store } from "@/lib/types";
+
+const SOURCES = ["Direct", "Search", "Social", "Email", "Other"];
+const FUNNEL = ["Visits", "Viewed a product", "Started checkout", "Paid"];
+
+type Summary = ReturnType<typeof useApi<Awaited<ReturnType<typeof getSummary>>>>;
+type BalanceState = ReturnType<typeof useApi<Awaited<ReturnType<typeof getBalance>>>>;
+
+/**
+ * The dashboard in three sections you open and close: Getting started (until setup is done),
+ * Operations (what needs doing today) and Analytics (how it's going).
+ */
+function DashboardSections({ isNew, hasLive, range, setRange, summary, balance, store }: { isNew: boolean; hasLive: boolean; range: RangeKey; setRange: (r: RangeKey) => void; summary: Summary; balance: BalanceState; store: Store | undefined }) {
+  const { checklist } = useGettingStarted();
+  // Not rendered until the checklist is known, so the sections open the right way from the start
+  if (!checklist) return <Skeleton className="h-64 rounded-card" />;
+  const settingUp = !checklist.dismissed && !checklist.complete;
+  return (
+    <Accordion type="multiple" defaultValue={settingUp ? ["getting-started", "operations"] : ["operations", "analytics"]} className="rounded-card border bg-surface px-5">
+      <AccordionItem value="getting-started" id="getting-started">
+        <AccordionTrigger className="min-h-14 font-display text-xl">
+          Getting started
+          <span className="ml-3 font-sans text-sm font-normal text-muted-foreground">{checklist.dismissed ? "Hidden" : checklist.complete ? "All done" : `${checklist.percent}%`}</span>
+        </AccordionTrigger>
+        <AccordionContent>
+          {checklist.dismissed ? <p className="text-sm text-muted-foreground">You&apos;ve hidden the checklist. Everything required was done.</p> : <GettingStartedCard bare />}
+        </AccordionContent>
+      </AccordionItem>
+
+      <AccordionItem value="operations" id="operations">
+        <AccordionTrigger className="min-h-14 font-display text-xl">Operations</AccordionTrigger>
+        <AccordionContent>
+          <QuickActions store={store} />
+        </AccordionContent>
+      </AccordionItem>
+
+      <AccordionItem value="analytics" id="analytics" className="border-b-0">
+        <AccordionTrigger className="min-h-14 font-display text-xl">Analytics</AccordionTrigger>
+        <AccordionContent>
+          <div className="flex flex-col gap-6">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <p className="text-sm text-muted-foreground">{isNew ? "Nothing sold yet. Your numbers appear here." : "Sales, products and visitors for the period you pick."}</p>
+              <Segmented label="Date range" value={range} onChange={setRange} options={[{ value: "today", label: "Today" }, { value: "7d", label: "7 days" }, { value: "30d", label: "30 days" }, { value: "90d", label: "90 days" }]} />
+            </div>
+            <Glance summary={summary.data} balance={balance.data} loading={summary.loading && !summary.data} error={summary.error} onRetry={summary.reload} />
+            <div className={hasLive ? "grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]" : undefined}>
+              <ChartCard
+                title="Revenue"
+                description={{ today: "Today", "7d": "Last 7 days", "30d": "Last 30 days", "90d": "Last 90 days" }[range]}
+                loading={summary.loading && !summary.data}
+                error={summary.error}
+                onRetry={summary.reload}
+              >
+                {summary.data && <RevenueBars data={summary.data.series} currency={summary.data.revenue.currency} />}
+              </ChartCard>
+              {/* Orders as they land: appears once there is a live product to sell */}
+              {hasLive && <LiveFeed />}
+            </div>
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+              <ChartCard
+                title="Top products"
+                loading={summary.loading && !summary.data}
+                height={180}
+                empty={summary.data?.topProducts.length === 0}
+                emptyText="No sales yet"
+                emptyChart={<ShareBars rows={[1, 2, 3, 4].map((n) => ({ label: `#${n}`, value: 0, share: 0 }))} />}
+              >
+                <ol className="flex flex-col gap-3">
+                  {summary.data?.topProducts.slice(0, 4).map((p, i) => (
+                    <li key={p.productId} className="flex items-center gap-3 text-sm">
+                      <span className="font-mono text-xs text-muted-foreground">{i + 1}</span>
+                      <Link href={`/catalog/products/${p.productId}`} className="flex min-w-0 flex-1 items-center truncate font-medium hover:underline pointer-coarse:min-h-11">{p.title}</Link>
+                      <MoneyText value={p.revenue} mono />
+                    </li>
+                  ))}
+                </ol>
+              </ChartCard>
+              <ChartCard title="Where buyers come from" height={180} loading={summary.loading && !summary.data} empty={!summary.data?.sources.length} emptyText="No visits recorded yet" emptyChart={<ShareBars rows={SOURCES.map((label) => ({ label, value: 0, share: 0 }))} />}>
+                <ShareBars rows={(summary.data?.sources ?? []).map((s) => ({ label: sourceLabel(s.source), value: s.visitors, share: s.share }))} />
+              </ChartCard>
+              <ChartCard title="Visitors" height={180} loading={summary.loading && !summary.data} empty={!summary.data?.visitors} emptyText="No visits recorded yet" emptyChart={<VisitorsArea height={180} data={(summary.data?.series ?? []).map((p) => ({ label: p.label, visitors: 0 }))} />}>
+                <VisitorsArea height={180} data={(summary.data?.series ?? []).map((p) => ({ label: p.label, visitors: p.visitors ?? 0 }))} />
+              </ChartCard>
+              <ChartCard title="Funnel" description="Visit to payment" height={180} loading={summary.loading && !summary.data} empty={!summary.data?.funnel[0]?.value} emptyText="No visits recorded yet" emptyChart={<ShareBars rows={FUNNEL.map((label) => ({ label, value: 0, share: 0 }))} />}>
+                <ShareBars rows={(summary.data?.funnel ?? []).map((f) => ({ label: f.label, value: f.value, share: summary.data!.funnel[0].value ? (f.value / summary.data!.funnel[0].value) * 100 : 0 }))} />
+              </ChartCard>
+            </div>
+          </div>
+        </AccordionContent>
+      </AccordionItem>
+    </Accordion>
+  );
+}
 
 function greeting() {
   const h = new Date().getHours();
@@ -38,7 +133,6 @@ export default function DashboardPage() {
   return (
     <>
       <PageHeader
-        eyebrow={formatDate(new Date().toISOString())}
         title={firstName ? `${greeting()}, ${firstName}` : greeting()}
         description={isNew ? "Your store is live. Here's what's left before the first sale." : "Here's how today is going."}
         actions={
@@ -71,69 +165,15 @@ export default function DashboardPage() {
         </div>
       )}
 
-      <div className="flex flex-col gap-6">
-        <GettingStartedCard />
-
-        {(
-          <section aria-labelledby="glance-h" className="flex flex-col gap-4">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <h2 id="glance-h" className="text-xl">Sales and analytics</h2>
-              <Segmented label="Date range" value={range} onChange={setRange} options={[{ value: "today", label: "Today" }, { value: "7d", label: "7 days" }, { value: "30d", label: "30 days" }, { value: "90d", label: "90 days" }]} />
-            </div>
-            <Glance summary={summary.data} balance={balance.data} loading={summary.loading && !summary.data} error={summary.error} onRetry={summary.reload} />
-          </section>
-        )}
-
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
-          <div className="flex flex-col gap-6">
-            <QuickActions store={store.data} />
-            {(
-              <ChartCard
-                title="Revenue"
-                description={{ today: "Today", "7d": "Last 7 days", "30d": "Last 30 days", "90d": "Last 90 days" }[range]}
-                loading={summary.loading && !summary.data}
-                error={summary.error}
-                onRetry={summary.reload}
-                empty={summary.data?.revenue.amount === 0}
-                emptyText="No sales in this range yet. They'll stack up here."
-              >
-                {summary.data && <RevenueBars data={summary.data.series} />}
-              </ChartCard>
-            )}
-            {(
-              <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                <ChartCard title="Top products" loading={summary.loading && !summary.data} height={180} empty={summary.data?.topProducts.length === 0}>
-                  <ol className="flex flex-col gap-3">
-                    {summary.data?.topProducts.slice(0, 4).map((p, i) => (
-                      <li key={p.productId} className="flex items-center gap-3 text-sm">
-                        <span className="font-mono text-xs text-muted-foreground">{i + 1}</span>
-                        <Link href={`/catalog/products/${p.productId}`} className="flex pointer-coarse:min-h-11 min-w-0 flex-1 items-center truncate font-medium hover:underline">
-                          {p.title}
-                        </Link>
-                        <MoneyText value={p.revenue} mono />
-                      </li>
-                    ))}
-                  </ol>
-                </ChartCard>
-                <ChartCard title="Where buyers come from" loading={summary.loading && !summary.data} height={180} empty emptyText="No data yet. Visitor tracking isn't connected.">
-                  {null}
-                </ChartCard>
-              </div>
-            )}
-            {(
-              <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                <ChartCard title="Visitors" description="Visits aren't tracked yet" loading={summary.loading && !summary.data} height={180} empty emptyText="No data yet. Visitor tracking isn't connected.">
-                  {null}
-                </ChartCard>
-                <ChartCard title="Funnel" description="Visit to payment" loading={summary.loading && !summary.data} height={180} empty emptyText="No data yet. Visitor tracking isn't connected.">
-                  {null}
-                </ChartCard>
-              </div>
-            )}
-          </div>
-          <LiveFeed />
-        </div>
-      </div>
+      <DashboardSections
+        isNew={isNew}
+        hasLive={products.data?.some((p) => p.status === "published") ?? false}
+        range={range}
+        setRange={setRange}
+        summary={summary}
+        balance={balance}
+        store={store.data}
+      />
     </>
   );
 }

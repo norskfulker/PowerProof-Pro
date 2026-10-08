@@ -28,6 +28,14 @@ const eslintConfig = defineConfig([
       ],
     },
   },
+  // ...which is exactly where the service-role client belongs (fixtures stay banned)
+  {
+    files: ["app/**/route.ts", "lib/server/**"],
+    ignores: ["**/*.test.ts"],
+    rules: {
+      "no-restricted-imports": ["error", { patterns: [{ group: ["**/tests/**", "@/tests/**", "**/fixtures", "**/fixtures/**"], message: "App code can't import from tests/ or fixtures. Fixtures are for tests only." }] }],
+    },
+  },
   {
     rules: { "@typescript-eslint/no-unused-vars": ["warn", { argsIgnorePattern: "^_", varsIgnorePattern: "^_" }] },
   },

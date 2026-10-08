@@ -23,17 +23,49 @@ describe("templates", () => {
     const d = t.build(ctx);
     const r = pageDocSchema.safeParse(d);
     expect(r.success, r.success ? "" : JSON.stringify(r.error.issues.slice(0, 3))).toBe(true);
-    expect(d.blocks.length).toBeGreaterThan(t.id === "blank" ? 0 : 1);
+    // A squeeze page is deliberately one section
+    expect(d.blocks.length).toBeGreaterThan(t.id === "blank" || t.id === "squeeze" ? 0 : 1);
   });
 
-  it("has four templates (launch, sale, bio, blank) with unique ids", () => {
-    expect(new Set(PAGE_TEMPLATES.map((t) => t.id)).size).toBe(4);
+  it("has the sales, link and lead-gathering templates, with unique ids", () => {
+    expect(PAGE_TEMPLATES.map((t) => t.id).sort()).toEqual(["bio", "blank", "booking", "clickthrough", "launch", "lead", "sale", "squeeze"]);
+    expect(new Set(PAGE_TEMPLATES.map((t) => t.id)).size).toBe(PAGE_TEMPLATES.length);
+  });
+
+  it("a squeeze page hides the store's menu and footer, and every lead page can be filled in", () => {
+    const squeeze = PAGE_TEMPLATES.find((t) => t.id === "squeeze")!.build(ctx);
+    expect(squeeze.focus).toBe(true);
+    const types = (d: PageDoc) => JSON.stringify(d).match(/"type":"(lead_form|booking)"/g) ?? [];
+    expect(types(squeeze).length).toBe(1);
+    expect(types(PAGE_TEMPLATES.find((t) => t.id === "lead")!.build(ctx))).toEqual(['"type":"lead_form"']);
+    expect(types(PAGE_TEMPLATES.find((t) => t.id === "booking")!.build(ctx))).toEqual(['"type":"booking"']);
   });
 
   it("works for a store with no products or collections", () => {
     for (const t of PAGE_TEMPLATES) {
       expect(pageDocSchema.safeParse(t.build({ ...ctx, products: [], collections: [] })).success).toBe(true);
     }
+  });
+});
+
+describe("lead blocks", () => {
+  it("a lead form needs an email field and between one and six fields", () => {
+    expect(() => makeNode("lead_form", { fields: [{ id: "n", label: "Name", type: "text", required: true }] })).toThrow(/email field/);
+    expect(() => makeNode("lead_form", { fields: [] })).toThrow();
+    const seven = Array.from({ length: 7 }, (_, i) => ({ id: `f${i}`, label: `Q${i}`, type: "email" as const, required: false }));
+    expect(() => makeNode("lead_form", { fields: seven })).toThrow();
+  });
+
+  it("a redirect can only be our own page or https", () => {
+    expect(() => makeNode("lead_form", { redirectHref: "javascript:alert(1)" })).toThrow();
+    expect(makeNode("lead_form", { redirectHref: "/s/shop/products" }).props.redirectHref).toBe("/s/shop/products");
+  });
+
+  it("a calendar needs a day to book and an end after its start", () => {
+    expect(() => makeNode("booking", { days: [] })).toThrow();
+    expect(() => makeNode("booking", { startHour: 12, endHour: 12 })).toThrow();
+    expect(() => makeNode("booking", { timezone: "Mars/Olympus" as never })).toThrow();
+    expect(makeNode("booking").props).toMatchObject({ durationMin: 30, days: [1, 2, 3, 4, 5], timezone: "Asia/Kolkata" });
   });
 });
 

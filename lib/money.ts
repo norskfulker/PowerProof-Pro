@@ -1,3 +1,4 @@
+import { activeRates, convert } from "./fx";
 import type { CurrencyCode, Money } from "./types";
 
 /** Pricing constants shown across the product. Founder can change these in one place. */
@@ -71,12 +72,11 @@ export function sum(items: Money[], currency: CurrencyCode = "INR"): Money {
 }
 
 /**
- * Prices are shown in the store's own currency. No exchange-rate source is connected, so nothing
- * is converted or estimated: the price comes back as it is. (The second argument is kept so
- * call sites don't change when a real rate source is added.)
+ * A price as the buyer chose to see it. With rates for both currencies it is converted (display
+ * only: checkout charges the store's own currency); without them the price comes back as it is.
  */
-export function localPrice(m: Money, _to?: CurrencyCode): Money {
-  return m;
+export function localPrice(m: Money, to?: CurrencyCode): Money {
+  return to ? convert(m, to, activeRates()) : m;
 }
 
 export interface FeeBreakdown {
@@ -107,5 +107,19 @@ export function feeBreakdown(
 export function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  if (bytes < 1024 ** 3) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  return `${(bytes / 1024 ** 3).toFixed(1)} GB`;
+}
+
+/** Percent off, from the price and the crossed-out original (0 when there's no discount). */
+export function discountPercent(price: Money, compareAt?: Money): number {
+  if (!compareAt || compareAt.amount <= price.amount || compareAt.amount <= 0) return 0;
+  return Math.round((1 - price.amount / compareAt.amount) * 100);
+}
+
+/** The original price that makes `price` look `percent` off, rounded to a whole currency unit. */
+export function compareAtFromPercent(price: Money, percent: number): Money {
+  const p = Math.min(90, Math.max(1, Math.round(percent)));
+  const original = price.amount / (1 - p / 100);
+  return money(Math.max(price.amount + 100, Math.round(original / 100) * 100), price.currency);
 }

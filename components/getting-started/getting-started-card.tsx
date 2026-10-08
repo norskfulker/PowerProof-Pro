@@ -10,14 +10,14 @@ import { useGettingStarted, StepList } from "./getting-started-provider";
 import { ProgressRing } from "./parts";
 
 /** Top of the dashboard until setup is done: progress, the next step, and the rest on demand. */
-export function GettingStartedCard() {
+export function GettingStartedCard({ bare = false }: { /** Inside another box (the dashboard's Getting started section): no border or margin of its own */ bare?: boolean }) {
   const { checklist, reload } = useGettingStarted();
   const [all, setAll] = useState(false);
   if (!checklist || checklist.dismissed) return null;
   const next = checklist.next;
   const finished = checklist.steps.filter((s) => s.state === "done" || s.state === "skipped").length;
   return (
-    <section aria-labelledby="gs-title" className="mb-6 rounded-card border border-primary/30 bg-surface p-4 md:p-5">
+    <section aria-labelledby="gs-title" className={bare ? undefined : "mb-6 rounded-card border border-primary/30 bg-surface p-4 md:p-5"}>
       <div className="flex flex-wrap items-start gap-4">
         <ProgressRing percent={checklist.percent} size={56} stroke={5} />
         <div className="min-w-0 flex-[1_1_14rem]">

@@ -1,4 +1,4 @@
-import type { Product, ProductInput } from "@/lib/types";
+import type { CurrencyCode, Product, ProductInput } from "@/lib/types";
 import type { ProductValues } from "./product-schema";
 
 export function toValues(p: Pick<Product, keyof ProductInput> & { sourceUrl?: string; compareAt?: Product["compareAt"] }, collectionIds: string[] = []): ProductValues {
@@ -6,12 +6,14 @@ export function toValues(p: Pick<Product, keyof ProductInput> & { sourceUrl?: st
     title: p.title,
     description: p.description,
     kind: p.kind,
-    price: { amount: p.price.amount, currency: "INR" },
-    compareAt: p.compareAt ? { amount: p.compareAt.amount, currency: "INR" } : undefined,
+    fulfilment: p.fulfilment,
+    price: { amount: p.price.amount, currency: p.price.currency },
+    compareAt: p.compareAt ? { amount: p.compareAt.amount, currency: p.compareAt.currency } : undefined,
     images: p.images,
     files: p.files,
     sku: p.sku,
     taxCode: p.taxCode,
+    taxRate: p.taxRate,
     status: p.status,
     sourceUrl: p.sourceUrl,
     video: p.video,
@@ -32,15 +34,20 @@ export function toInput(v: ProductValues): ProductInput {
   };
 }
 
-export const BLANK_PRODUCT: ProductValues = {
+/** A new product of the kind picked first. A physical product starts with no tax code: goods use HSN codes, which are yours to enter. */
+export const blankProduct = (fulfilment: "digital" | "physical" = "digital", currency: CurrencyCode = "INR"): ProductValues => ({
   title: "",
   description: "",
   kind: "other",
-  price: { amount: 49900, currency: "INR" },
+  fulfilment,
+  price: { amount: 49900, currency },
   images: [],
   files: [],
   sku: "",
-  taxCode: "998433",
+  taxCode: fulfilment === "physical" ? "" : "998433",
+  taxRate: fulfilment === "physical" ? undefined : 18,
   status: "draft",
   collectionIds: [],
-};
+});
+
+export const BLANK_PRODUCT: ProductValues = blankProduct("digital");

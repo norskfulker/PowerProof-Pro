@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import type { Database } from "./lib/database.types";
+import { isAppHost, resolveHost, rewriteTarget } from "./lib/domain-routing";
 import { missingEnv, SUPABASE_ANON_KEY, SUPABASE_URL } from "./lib/supabase/env";
 
 /**
@@ -10,7 +11,7 @@ import { missingEnv, SUPABASE_ANON_KEY, SUPABASE_URL } from "./lib/supabase/env"
  * every query; this only decides which screens to show.
  */
 
-const CREATOR = ["/dashboard", "/getting-started", "/catalog", "/store", "/sales", "/tools", "/settings", "/onboarding"];
+const CREATOR = ["/dashboard", "/getting-started", "/catalog", "/store", "/sales", "/marketplace", "/tools", "/settings", "/onboarding"];
 const AUTH_PAGES = ["/login", "/signup"];
 
 const under = (path: string, roots: string[]) => roots.some((r) => path === r || path.startsWith(`${r}/`));
@@ -19,6 +20,18 @@ export async function proxy(request: NextRequest) {
   // No fallback backend: a misconfigured deploy fails loudly instead of showing made-up data
   const missing = missingEnv();
   if (missing.length) return new NextResponse(`PowerProof isn't connected to its database. Set ${missing.join(" and ")}.`, { status: 500 });
+
+  // A store on its own domain: serve its pages from /s/<store> (buyers never see that address)
+  const host = request.headers.get("host") ?? "";
+  if (!isAppHost(host, process.env.NEXT_PUBLIC_SITE_URL)) {
+    const slug = await resolveHost(host, SUPABASE_URL, SUPABASE_ANON_KEY);
+    const target = slug ? rewriteTarget(request.nextUrl.pathname, slug) : null;
+    if (target) {
+      const url = request.nextUrl.clone();
+      url.pathname = target;
+      return NextResponse.rewrite(url);
+    }
+  }
 
   let response = NextResponse.next({ request });
   const supabase = createServerClient<Database>(SUPABASE_URL, SUPABASE_ANON_KEY, {

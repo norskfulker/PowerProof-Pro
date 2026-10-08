@@ -39,6 +39,8 @@ export interface TaxCode {
   /** GST rate in percent */
   rate: number;
   isDefault?: boolean;
+  /** Set for the creator's own codes (saved in tax_codes); the reference list has none */
+  id?: string;
 }
 
 export type IntegrationId = "google-analytics" | "microsoft-clarity";
@@ -72,7 +74,7 @@ export interface BillingInvoice {
 }
 
 export interface Plan {
-  /** Free: 1 store, 1 product. Pro: no limits. See lib/plans.ts */
+  /** Free: 1 store, 10 products, 3 pages. Pro: no limits. See lib/plans.ts */
   tier: "free" | "pro";
   name: string;
   monthly: Money;

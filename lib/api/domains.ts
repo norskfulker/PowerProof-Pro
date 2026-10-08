@@ -2,12 +2,12 @@ import type { DnsProviderId, DomainIssue } from "../types";
 
 /**
  * Custom domain helpers: provider guides, DNS targets, problem explanations and hostname checks.
- * Connecting a domain needs DNS and certificate checks on the server, so the screen says
- * "coming soon" until that exists; nothing here pretends a domain is connected.
+ * Connecting a domain is done on the server (lib/server/domains.ts, through the hosting provider);
+ * these helpers are the plain-language parts the screen shows. Nothing here pretends a domain is connected.
  */
 
 export const SUBDOMAIN_ROOT = "powerproof.store";
-export const DNS_TARGET = { a: "76.76.21.21", cname: "stores.powerproof.store" };
+export const DNS_TARGET = { a: "76.76.21.21", cname: "cname.vercel-dns.com" };
 
 export interface DnsProvider {
   id: DnsProviderId;

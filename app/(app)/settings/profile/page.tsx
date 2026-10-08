@@ -62,7 +62,8 @@ function PasswordForm() {
       // Passwords are never kept as the "saved" value: clear the fields after changing it
       setTimeout(() => form.reset({ current: "", next: "", confirm: "" }), 0);
     },
-    "Password changed. Other devices have been logged out."
+    "Password changed. Other devices have been logged out.",
+    { autosave: false }
   );
   return (
     <Form {...form}>

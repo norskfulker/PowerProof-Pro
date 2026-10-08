@@ -14,6 +14,7 @@ import {
 } from "recharts";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatMoney } from "@/lib/money";
+import type { CurrencyCode } from "@/lib/types";
 import { formatNumber } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { ErrorState } from "./empty-state";
@@ -27,6 +28,7 @@ export function ChartCard({
   onRetry,
   empty,
   emptyText = "No data for this range yet.",
+  emptyChart,
   className,
   children,
   height = 240,
@@ -39,6 +41,8 @@ export function ChartCard({
   onRetry?: () => void;
   empty?: boolean;
   emptyText?: string;
+  /** What to draw when there is no data: the same chart, empty, so the page keeps its shape */
+  emptyChart?: React.ReactNode;
   className?: string;
   children?: React.ReactNode;
   height?: number;
@@ -57,6 +61,11 @@ export function ChartCard({
           <ErrorState message={error} onRetry={onRetry} className="flex-1 py-6" />
         ) : loading ? (
           <Skeleton className="w-full flex-1" style={{ minHeight: height }} />
+        ) : empty && emptyChart ? (
+          <div className="relative flex flex-1 flex-col">
+            {emptyChart}
+            <p className="pointer-events-none absolute inset-x-0 top-2 text-center text-xs text-muted-foreground">{emptyText}</p>
+          </div>
         ) : empty ? (
           <div className="grid flex-1 place-items-center rounded-media bg-surface-sunken p-6 text-center text-sm text-muted-foreground">
             {emptyText}
@@ -69,6 +78,8 @@ export function ChartCard({
   );
 }
 
+/** A chart with nothing in it still gets a scale */
+const EMPTY_SAFE: [number, (max: number) => number] = [0, (max) => (max > 0 ? max : 4)];
 const axis = { fontSize: 11, fontFamily: "var(--font-mono)", fill: "var(--muted-foreground)" };
 
 function TooltipBox({
@@ -76,11 +87,13 @@ function TooltipBox({
   payload,
   label,
   kind,
+  currency = "INR",
 }: {
   active?: boolean;
   payload?: { value: number; name: string }[];
   label?: string;
   kind: "money" | "count";
+  currency?: CurrencyCode;
 }) {
   if (!active || !payload?.length) return null;
   return (
@@ -88,7 +101,7 @@ function TooltipBox({
       <p className="eyebrow">{label}</p>
       {payload.map((p) => (
         <p key={p.name} className="font-semibold tabular">
-          {kind === "money" ? formatMoney({ amount: Math.round(p.value * 100), currency: "INR" }) : formatNumber(p.value)}{" "}
+          {kind === "money" ? formatMoney({ amount: Math.round(p.value * 100), currency }) : formatNumber(p.value)}{" "}
           <span className="font-normal text-muted-foreground">{p.name}</span>
         </p>
       ))}
@@ -96,15 +109,15 @@ function TooltipBox({
   );
 }
 
-export function RevenueBars({ data, height = 240 }: { data: { label: string; revenue: number }[]; height?: number }) {
+export function RevenueBars({ data, height = 240, currency }: { data: { label: string; revenue: number }[]; height?: number; currency?: CurrencyCode }) {
   const still = useReducedMotion();
   return (
     <ResponsiveContainer width="100%" height={height}>
       <BarChart data={data} margin={{ top: 4, right: 4, bottom: 0, left: -8 }}>
         <CartesianGrid vertical={false} stroke="var(--border)" />
         <XAxis dataKey="label" tickLine={false} axisLine={false} tick={axis} interval="preserveStartEnd" />
-        <YAxis tickLine={false} axisLine={false} tick={axis} width={48} tickFormatter={(v: number) => (v >= 1000 ? `${Math.round(v / 1000)}k` : `${v}`)} />
-        <Tooltip cursor={{ fill: "var(--muted)" }} content={<TooltipBox kind="money" />} />
+        <YAxis tickLine={false} axisLine={false} tick={axis} width={48} domain={EMPTY_SAFE} tickFormatter={(v: number) => (v >= 1000 ? `${Math.round(v / 1000)}k` : `${v}`)} />
+        <Tooltip cursor={{ fill: "var(--muted)" }} content={<TooltipBox kind="money" currency={currency} />} />
         <Bar isAnimationActive={!still} dataKey="revenue" name="revenue" fill="var(--chart-1)" radius={[6, 6, 0, 0]} maxBarSize={36} />
       </BarChart>
     </ResponsiveContainer>
@@ -118,7 +131,7 @@ export function VisitorsArea({ data, height = 240 }: { data: { label: string; vi
       <AreaChart data={data} margin={{ top: 4, right: 4, bottom: 0, left: -8 }}>
         <CartesianGrid vertical={false} stroke="var(--border)" />
         <XAxis dataKey="label" tickLine={false} axisLine={false} tick={axis} interval="preserveStartEnd" />
-        <YAxis tickLine={false} axisLine={false} tick={axis} width={48} />
+        <YAxis tickLine={false} axisLine={false} tick={axis} width={48} domain={EMPTY_SAFE} allowDecimals={false} />
         <Tooltip cursor={{ stroke: "var(--border-strong)" }} content={<TooltipBox kind="count" />} />
         <Area isAnimationActive={!still} type="monotone" dataKey="visitors" name="visitors" stroke="var(--chart-2)" strokeWidth={2} fill="var(--accent-soft)" />
       </AreaChart>
@@ -147,7 +160,7 @@ export function ShareBars({
           <div className="h-2 overflow-hidden rounded-full bg-muted" aria-hidden>
             <div
               className={cn("h-full rounded-full", i === 0 ? "bg-primary" : "bg-chart-3")}
-              style={{ width: `${Math.max(2, r.share)}%` }}
+              style={{ width: r.value > 0 ? `${Math.max(2, r.share)}%` : 0 }}
             />
           </div>
         </li>

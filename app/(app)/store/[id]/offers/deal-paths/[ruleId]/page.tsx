@@ -21,7 +21,7 @@ export default function DealPathPage({ params }: { params: Promise<{ id: string;
       <PageHeader
         title={rule?.name ?? "Deal path"}
         back={{ href: "/store/current/offers/deal-paths", label: "Deal paths" }}
-        eyebrow={rule ? <StatusPill status={dealRuleStatus(rule)} /> : undefined}
+        actions={rule ? <StatusPill status={dealRuleStatus(rule)} /> : undefined}
         description={rule ? <RuleSummaryChip rule={rule} titleOf={(pid) => data?.[1].find((p) => p.id === pid)?.title ?? "a product"} /> : undefined}
       />
       {error ? (

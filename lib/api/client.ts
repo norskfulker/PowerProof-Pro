@@ -11,7 +11,7 @@ export class ApiError extends Error {
 /** Thrown when a Free creator hits a limit; the UI opens the Upgrade dialog on `code: "limit"`. */
 export class LimitError extends ApiError {
   constructor(
-    public kind: "stores" | "products" | "aiCredits" | "customDomain",
+    public kind: "stores" | "products" | "pages" | "aiCredits" | "customDomain",
     message: string
   ) {
     super(message, "limit");

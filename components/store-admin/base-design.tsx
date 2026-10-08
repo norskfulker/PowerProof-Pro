@@ -4,6 +4,7 @@ import { Check } from "lucide-react";
 import { MediaUploader } from "@/components/media/media-uploader";
 import { BrandColorPicker } from "@/components/pp/brand-color-picker";
 import { ColorModeToggle, LIGHT_DARK_AUTO } from "@/components/theme/color-mode-toggle";
+import { CustomFontField } from "./custom-font";
 import { FONT_PAIRS } from "@/lib/store-themes";
 import type { Store, StoreDesign, StoreTheme } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -50,6 +51,7 @@ export function BaseDesign({ value, onChange }: { value: BaseValues; onChange: (
             </button>
           ))}
         </div>
+        <CustomFontField value={theme.customFont} onChange={(customFont) => setTheme({ customFont })} />
       </fieldset>
 
       <fieldset>

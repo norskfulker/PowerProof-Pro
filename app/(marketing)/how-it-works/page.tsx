@@ -35,7 +35,6 @@ export default function HowItWorksPage() {
   return (
     <>
       <section className="gutter mx-auto max-w-[1200px] pt-12 md:pt-16">
-        <p className="eyebrow">How it works</p>
         <h1 className="mt-3 max-w-3xl text-[2.5rem] sm:text-5xl">From nothing to a working store in under three minutes.</h1>
         <p className="mt-4 max-w-xl text-lg text-muted-foreground">Four steps for you. Everything after that is our job.</p>
       </section>
@@ -59,7 +58,6 @@ export default function HowItWorksPage() {
 
       <section className="gutter mx-auto mt-24 max-w-[1200px]" aria-labelledby="buyer">
         <div>
-          <p className="eyebrow">The buyer&apos;s side</p>
           <h2 id="buyer" className="mt-3 text-3xl md:text-4xl">They pay, they download, they get a proof.</h2>
           <ul className="mt-6 flex flex-col gap-4 text-muted-foreground">
             <li><strong className="text-foreground">No account.</strong> Email and payment, nothing else.</li>
@@ -70,7 +68,6 @@ export default function HowItWorksPage() {
       </section>
 
       <section className="gutter mx-auto mt-24 max-w-[1200px]" aria-labelledby="money-flow">
-        <p className="eyebrow">Where the money goes</p>
         <h2 id="money-flow" className="mt-3 max-w-2xl text-3xl md:text-4xl">Held for 3 hours, then yours to withdraw any time.</h2>
         <div className="mt-8 grid grid-cols-1 gap-4 md:grid-cols-3">
           {[

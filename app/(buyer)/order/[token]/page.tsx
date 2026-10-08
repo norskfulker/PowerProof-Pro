@@ -1,23 +1,9 @@
-import type { Metadata } from "next";
-import Link from "next/link";
-import { BuyerShell } from "@/components/buyer/buyer-shell";
-import { ComingSoon } from "@/components/pp/coming-soon";
-import { Button } from "@/components/ui/button";
+"use client";
 
-export const metadata: Metadata = { title: "Your order" };
+import { use } from "react";
+import { OrderPage } from "@/components/buyer/order-view";
 
-export default function Page() {
-  return (
-    <BuyerShell narrow>
-      <ComingSoon
-        title="Order pages open soon"
-        body="Order pages, downloads and receipts appear here once payments are connected."
-        action={
-          <Button asChild variant="secondary">
-            <Link href="/">Back to PowerProof</Link>
-          </Button>
-        }
-      />
-    </BuyerShell>
-  );
+/** The link in the receipt email: the token is the only key. */
+export default function Page({ params }: { params: Promise<{ token: string }> }) {
+  return <OrderPage token={use(params).token} />;
 }

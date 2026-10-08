@@ -27,7 +27,8 @@ export function defaultPages(store: Pick<Store, "name" | "refundDays" | "support
 export function defaultDesign(store: Pick<Store, "name" | "tagline" | "ownerName">): StoreDesign {
   const first = store.ownerName.trim().split(" ")[0];
   return {
-    sections: DEFAULT_SECTIONS.map((id) => ({ id, enabled: true })),
+    // Custom HTML starts off: there is nothing to show until a file is uploaded
+    sections: DEFAULT_SECTIONS.map((id) => ({ id, enabled: id !== "html" })),
     theme: { palette: "emerald", fonts: "modern", heroStyle: "left", mode: "auto" },
     hero: { headline: store.name, subtext: store.tagline, ctaLabel: "Shop now", ctaTarget: "products", imageProductIds: [] },
     announcement: { text: "" },

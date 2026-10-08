@@ -1,9 +1,9 @@
 import type { LucideIcon } from "lucide-react";
-import { ADMIN_NAV, CREATOR_NAV, type BadgeKey, type NavNode } from "./config";
+import { ADMIN_NAV, CREATOR_NAV, STORE_NAV, type BadgeKey, type NavNode } from "./config";
 
 export type { NavNode };
 
-/** A node after the store id, live counts, collections and plan locks are filled in. */
+/** A node after the store id, live counts and plan locks are filled in. */
 export interface ResolvedNode {
   id: string;
   label: string;
@@ -15,14 +15,13 @@ export interface ResolvedNode {
   badgeTone?: "alert";
   locked?: "customDomain";
   match?: string[];
-  /** Labels of the ancestors, for breadcrumbs and search results */
+  /** Labels of the ancestors, for search results */
   path: string[];
 }
 
 export interface NavData {
   storeId: string;
   counts: Partial<Record<BadgeKey, number>>;
-  collections: { id: string; name: string; products: { id: string; title: string }[] }[];
   /** Pro features the plan doesn't include */
   locked: Set<"customDomain">;
 }
@@ -38,23 +37,13 @@ const BADGE_LABEL: Record<BadgeKey, string> = {
   orders_disputed: "open disputes",
 };
 const ALERT: BadgeKey[] = ["reviews_pending", "questions_open", "disputes_open", "orders_disputed"];
-const SHOW_PRODUCTS = 5;
 
 const fill = (s: string, storeId: string) => s.replaceAll("{store}", storeId);
 
 export function resolveNav(tree: NavNode[], data: NavData, path: string[] = []): ResolvedNode[] {
   return tree.map((n) => {
     const here = [...path, n.label];
-    let children = n.children ? resolveNav(n.children, data, here) : undefined;
-    if (n.dynamic === "collections") {
-      const dyn: ResolvedNode[] = data.collections.map((c) => {
-        const cPath = [...here, c.name];
-        const items: ResolvedNode[] = c.products.slice(0, SHOW_PRODUCTS).map((p) => ({ id: `col-${c.id}-p-${p.id}`, label: p.title, href: `/catalog/products/${p.id}`, path: [...cPath, p.title] }));
-        if (c.products.length > SHOW_PRODUCTS || c.products.length === 0) items.push({ id: `col-${c.id}-all`, label: c.products.length ? `View all ${c.products.length}` : "Open collection", href: `/catalog/collections/${c.id}`, path: [...cPath, "View all"] });
-        return { id: `col-${c.id}`, label: c.name, href: `/catalog/collections/${c.id}`, count: c.products.length, badgeLabel: "products", children: items, path: cPath };
-      });
-      children = [...(children ?? []), ...dyn];
-    }
+    const children = n.children ? resolveNav(n.children, data, here) : undefined;
     const count = n.badge ? data.counts[n.badge] : undefined;
     return {
       id: n.id,
@@ -88,7 +77,7 @@ function score(n: ResolvedNode, pathname: string, query: URLSearchParams): numbe
   return 0;
 }
 
-/** Ancestors and the active node, for breadcrumbs and auto-expanding the sidebar. */
+/** Ancestors and the active node, for auto-expanding the sidebar and picking the active tab. */
 export function activeTrail(tree: ResolvedNode[], pathname: string, search = ""): ResolvedNode[] {
   const query = new URLSearchParams(search);
   let best: { s: number; trail: ResolvedNode[] } = { s: 0, trail: [] };
@@ -139,7 +128,7 @@ export function navHref(id: string, storeId = "current"): string {
       if (hit) return hit;
     }
   };
-  const href = walk(CREATOR_NAV) ?? walk(ADMIN_NAV);
+  const href = walk(CREATOR_NAV) ?? walk(STORE_NAV) ?? walk(ADMIN_NAV);
   if (!href) throw new Error(`No menu item "${id}"`);
   return href;
 }

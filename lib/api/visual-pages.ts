@@ -74,6 +74,7 @@ interface Layout {
   template: string;
   sections: PageDoc["blocks"];
   style?: PageDoc["style"];
+  focus?: boolean;
   published?: PageDoc;
   publishedAt?: string;
   seo: StorePageDoc["seo"];
@@ -93,15 +94,15 @@ interface Row {
 const COLS = "id, title, slug, layout, updated_at";
 
 /** Template names as stored: the old names map onto the four kinds */
-const KIND: Record<string, string> = { launch: "launch", sale: "sale", bio: "bio", link_in_bio: "bio", blank: "blank" };
+const KIND: Record<string, string> = { launch: "launch", sale: "sale", bio: "bio", link_in_bio: "bio", blank: "blank", lead: "lead", squeeze: "squeeze", booking: "booking", clickthrough: "clickthrough" };
 
 function docFrom(r: Row): StorePageDoc {
   const l = r.layout as unknown as Layout;
-  const draft: PageDoc = l.draft ?? { version: 1, blocks: l.sections ?? [], ...(l.style ? { style: l.style } : {}) };
+  const draft: PageDoc = l.draft ?? { version: 1, blocks: l.sections ?? [], ...(l.style ? { style: l.style } : {}), ...(l.focus ? { focus: true } : {}) };
   return { id: r.id, title: r.title, slug: r.slug, template: KIND[l.template] ?? "blank", draft, published: l.published, publishedAt: l.publishedAt, updatedAt: r.updated_at, seo: l.seo, versions: l.versions ?? [] };
 }
 
-const layoutOf = (p: StorePageDoc): Json => JSON.parse(JSON.stringify({ template: p.template, sections: p.draft.blocks, ...(p.draft.style ? { style: p.draft.style } : {}), published: p.published, publishedAt: p.publishedAt, seo: p.seo, versions: p.versions } satisfies Layout));
+const layoutOf = (p: StorePageDoc): Json => JSON.parse(JSON.stringify({ template: p.template, sections: p.draft.blocks, ...(p.draft.style ? { style: p.draft.style } : {}), ...(p.draft.focus ? { focus: true } : {}), published: p.published, publishedAt: p.publishedAt, seo: p.seo, versions: p.versions } satisfies Layout));
 
 async function mine(id: string): Promise<StorePageDoc> {
   return docFrom(must(await sb().from("custom_pages").select(COLS).eq("id", id).single(), { notFound: "Page" }) as Row);

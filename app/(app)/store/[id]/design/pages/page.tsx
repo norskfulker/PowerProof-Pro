@@ -33,6 +33,14 @@ const STARTERS = [
   { template: "bio", title: "Link in bio", body: "A tidy, phone-first list of your best links." },
 ];
 
+/** Pages that gather people rather than sell: each is ready to publish in a minute. Sign-ups land in Sales › Leads. */
+const FUNNELS = [
+  { template: "lead", title: "Lead generation", body: "Offer something free for a name and email." },
+  { template: "squeeze", title: "Squeeze page", body: "One promise, one form, no menu or footer." },
+  { template: "booking", title: "Book a call", body: "An instant calendar: visitors pick a free time." },
+  { template: "clickthrough", title: "Click-through page", body: "A short pitch, then one button to the offer." },
+];
+
 export default function StorePagesPage() {
   const router = useRouter();
   const { data, loading, error, reload } = useApi(getVisualPages, [], { live: true });
@@ -69,7 +77,7 @@ export default function StorePagesPage() {
   }
 
   const withTemplate = new Set((data ?? []).map((p) => p.template));
-  const starters = STARTERS.filter((s) => !withTemplate.has(s.template));
+  const starters = [...STARTERS, ...FUNNELS].filter((s) => !withTemplate.has(s.template));
   const base = storeUrl(store.data?.slug ?? "store");
 
   return (

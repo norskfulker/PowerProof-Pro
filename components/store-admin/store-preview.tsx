@@ -4,19 +4,23 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { ExternalLink, Monitor, Moon, Smartphone, Sun } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import type { StoreDesign } from "@/lib/types";
+import type { SectionId, StoreDesign } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 /**
  * Live preview: the real store in an iframe. Draft designs are posted in, so what you see
  * is exactly what buyers get. Desktop renders at 1280px and is scaled to fit.
  */
-export function StorePreview({ slug, design }: { slug: string; design: StoreDesign }) {
+export function StorePreview({ slug, design, onSelect }: { slug: string; design: StoreDesign; onSelect?: (section: SectionId) => void }) {
   const frame = useRef<HTMLIFrameElement>(null);
   const box = useRef<HTMLDivElement>(null);
   const [device, setDevice] = useState<"desktop" | "mobile">("desktop");
   const [width, setWidth] = useState(800);
   const [ready, setReady] = useState(false);
+  const onSelectRef = useRef(onSelect);
+  useEffect(() => {
+    onSelectRef.current = onSelect;
+  });
   // "Preview as": the store's own default unless the creator wants to check the other theme
   const [as, setAs] = useState<"default" | "light" | "dark">("default");
 
@@ -30,7 +34,10 @@ export function StorePreview({ slug, design }: { slug: string; design: StoreDesi
 
   useEffect(() => {
     const onMsg = (e: MessageEvent) => {
-      if (e.origin === window.location.origin && e.data?.type === "pp-preview-ready") setReady(true);
+      if (e.origin !== window.location.origin || e.source !== frame.current?.contentWindow) return;
+      if (e.data?.type === "pp-preview-ready") setReady(true);
+      // A click on a section inside the preview
+      if (e.data?.type === "pp-select" && typeof e.data.section === "string") onSelectRef.current?.(e.data.section as SectionId);
     };
     window.addEventListener("message", onMsg);
     return () => window.removeEventListener("message", onMsg);

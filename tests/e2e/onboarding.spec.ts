@@ -21,7 +21,7 @@ async function removeStores() {
 
 async function storesOfB() {
   const { client, userId } = await signInAs("B");
-  const r = await client.from("stores").select("id, name, slug, status, brand_color").eq("owner_id", userId);
+  const r = await client.from("stores").select("id, name, slug, status, brand_color, country, currency_base").eq("owner_id", userId);
   if (r.error) throw new Error(r.error.message);
   return { client, userId, rows: r.data };
 }
@@ -77,7 +77,7 @@ test("invalid store names show an error and can't be submitted @onboarding", asy
   expect((await storesOfB()).rows).toHaveLength(0);
 });
 
-test("a valid name shows the link before confirming, saves a #RRGGBB colour and lands on the dashboard @onboarding", async ({ page }) => {
+test("a valid name shows the link before confirming, saves a #RRGGBB colour and the country, and lands on the first product @onboarding", async ({ page }) => {
   await page.goto("/onboarding");
   await fillName(page, `  ${NAME.replace(" ", "    ")}  `);
   // The link is made by the database and shown before anything is saved
@@ -85,14 +85,19 @@ test("a valid name shows the link before confirming, saves a #RRGGBB colour and 
   await expect(link).toBeVisible();
   await expect(page.getByLabel("Available")).toBeVisible();
   const shown = (await link.textContent())!.split("/").pop()!;
+  await page.getByText("Pick a colour (optional)").click();
   await page.getByLabel("Pick any colour").fill("#aa22cc");
+  // The country decides the currency
+  await page.getByLabel("Where are you based?").click();
+  await page.getByRole("option", { name: "United States" }).click();
+  await expect(page.getByText(/US dollars \(USD\)/)).toBeVisible();
   await page.getByRole("button", { name: "Create store" }).click();
-  await expect(page).toHaveURL(/\/dashboard$/);
+  await expect(page).toHaveURL(/\/catalog\/products\/new$/);
   await expect(page.getByRole("tree", { name: "Main" })).toBeVisible();
 
   const { rows } = await storesOfB();
   expect(rows).toHaveLength(1);
-  expect(rows[0]).toMatchObject({ name: NAME, slug: shown, brand_color: "#AA22CC", status: "draft" });
+  expect(rows[0]).toMatchObject({ name: NAME, slug: shown, brand_color: "#AA22CC", status: "draft", country: "US", currency_base: "USD" });
   // Onboarding is closed to a creator who has a store
   await page.goto("/onboarding");
   await expect(page).toHaveURL(/\/dashboard$/);
@@ -120,7 +125,7 @@ test("a Hindi store name still gets a working link @onboarding", async ({ page, 
   await fillName(page, "आदित्य की दुकान");
   await expect(page.getByLabel("Available")).toBeVisible();
   await page.getByRole("button", { name: "Create store" }).click();
-  await expect(page).toHaveURL(/\/dashboard$/);
+  await expect(page).toHaveURL(/\/catalog\/products\/new$/);
 
   const { client, rows } = await storesOfB();
   expect(rows).toHaveLength(1);

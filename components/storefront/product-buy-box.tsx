@@ -33,8 +33,8 @@ export function ProductBuyBox({
   return (
     <div className="flex flex-col gap-5">
       <div>
-        <p className="eyebrow">{kindLabel(product.kind)} · by {creatorName}</p>
         <h1 className="mt-2 text-[2rem] leading-tight md:text-[2.5rem]">{product.title}</h1>
+        <p className="mt-1.5 text-sm text-muted-foreground">{kindLabel(product.kind)} · by {creatorName}</p>
         {rating.count > 0 ? (
           <a href="#reviews" className="mt-2 inline-flex min-h-11 items-center gap-2 text-sm hover:underline">
             <Stars value={rating.average} /> <span className="font-semibold">{rating.average.toFixed(1)}</span>

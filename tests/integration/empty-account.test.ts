@@ -12,7 +12,7 @@ const ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "";
 const B = { email: process.env.TEST_CREATOR_B_EMAIL, password: process.env.TEST_CREATOR_B_PASSWORD };
 const have = Boolean(URL && ANON && B.email && B.password);
 
-const LISTS = ["products", "product_media", "collections", "coupons", "deal_rules", "orders", "order_items", "reviews", "questions", "payouts", "payout_methods", "ledger_entries", "custom_pages", "domains", "ai_generations"] as const;
+const LISTS = ["products", "product_media", "collections", "coupons", "deal_rules", "orders", "order_items", "reviews", "questions", "payouts", "payout_methods", "ledger_entries", "custom_pages", "domains", "ai_generations", "tax_codes", "creator_orders", "creator_customers", "creator_reviews", "creator_questions"] as const;
 
 describe.skipIf(!have)("a creator with no data", () => {
   it("sees an empty list in every table, and nothing from anyone else", async () => {
@@ -20,7 +20,7 @@ describe.skipIf(!have)("a creator with no data", () => {
     const { error } = await client.auth.signInWithPassword({ email: B.email!, password: B.password! });
     expect(error).toBeNull();
     for (const table of LISTS) {
-      const { count, error: e } = await client.from(table).select("*", { count: "exact", head: true });
+      const { count, error: e } = await client.from(table as "products").select("id", { count: "exact", head: true });
       expect(e, `${table}: ${e?.message}`).toBeNull();
       expect(count, `${table} should be empty for a new account`).toBe(0);
     }

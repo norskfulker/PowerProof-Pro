@@ -2,6 +2,11 @@
 
 Small calls made while building the frontend, so the founder can check them in one place. Everything here is easy to change.
 
+## How we work on this codebase
+
+- **Look before you create.** Before adding a file, component, table or column, find the folder, component or table that already does the job and change that. Create something new only when nothing existing fits, and say why. This applies to code (`components/`, `lib/api/`, `lib/nav/config.ts`, one shared component per idea such as `ColorModeToggle`, `StatusTabs`, `BrandColorPicker`) and to the database (check `supabase/migrations/` and the live schema first; extend an existing table or constraint before adding a new one).
+- **Database changes go in a numbered file in `supabase/migrations/`** and are applied to the project; the file is the record.
+
 ## Stack
 
 | Choice | Why |
@@ -27,15 +32,26 @@ Small calls made while building the frontend, so the founder can check them in o
 ## Money
 
 - Money is always `{ amount: integer minor units, currency }`. `MoneyText` and `formatMoney` are the only formatters. INR uses Indian digit grouping (₹1,52,400.00).
-- **Store currency is INR.** Prices are set in rupees.
-- **Prices show in the store's own currency.** Showing buyers their own currency needs a real exchange-rate source, which isn't connected, so nothing is converted or estimated (`localPrice` returns the price as it is).
+- **The creator's country decides the store's currency** (`stores.country`, `lib/countries.ts`; INR, USD, EUR, GBP, AED, SGD, AUD, CAD). Prices are set in that currency. Both are chosen once at sign-up and locked once there are products (`store_currency_locked`); the database also forces every product into its store's currency.
+- **Prices show in the store's own currency, and buyers can view them in another when rates exist.** Rates live in `fx_rates` (units per US dollar, readable by everyone, writable only by PowerProof staff). With no rates the "Show prices in" picker doesn't appear and nothing is guessed. Conversion is display only: checkout charges the store's currency. No rate source is connected, so the table starts empty.
 - **Fees:** 3% platform plus about 2% gateway, both worked out on the INR price. Subscription is $20/month after a free first month; the calculator shows it in dollars rather than converting it at an invented rate.
 - **Settlement:** each sale is held 3 hours (the ledger's `available_at`), then available. Withdrawals call the database's `request_payout`.
-- **Withdrawals:** minimum ₹100.00, no fee, to a verified bank account. USDT shows as "coming soon" and can't be picked.
+- **Withdrawals:** minimum ₹100.00, no fee. Payout methods: up to 5 bank accounts (in the company's or the director's name; the database checks the name), up to 5 UPI IDs and up to 5 crypto wallets (USDT, USDC, BTC or ETH on the network you pick). What a crypto payout is worth depends on the rate when it is sent, so no rate is shown.
 
 ## Product and content
 
-- **One way to add a product for now:** upload a file (`/products/new/upload`). Importing from a link and the old product sales pages were mock-only, so they were removed; the visual page editor (Store › Design › Pages) replaces sales pages.
+- **A product is digital or physical, picked first (`/catalog/products/new`).** The steps are the same; a physical product has no file step and must be in a collection. Many at once: `/catalog/products/import` takes a CSV in the format we give (`lib/products-csv.ts`); everything arrives as drafts and each row is checked with the product form's own rules.
+- **Edit screens autosave** (`useDirtyForm`, 1.2 s after the last edit; the bar becomes a small "Saving… / All changes saved" status; a pending save is sent when you leave). Screens where someone creates something and presses a button keep Save/Create: the first product, bank accounts, passwords, collections, offers and SKUs.
+- **A section's on/off is one setting** (`design.sections[].enabled`): the switch in the section list and the one inside the section's own panel are the same thing.
+- **Custom fonts** are uploaded to the store's media folder (checked by extension and first bytes, 2 MB) and loaded with @font-face wherever the store's theme applies; `theme.customFont` chooses headings, text or both.
+- **Lead pages:** `lead_form` and `booking` blocks plus the Lead generation, Squeeze, Book a call and Click-through templates. Visitors write only through `submit_lead` (store and page must be live; double clicks and floods are ignored; a time can be booked once). The creator reads them in Sales › Leads. A page's focus mode hides the store menu and footer. Newsletter signups and the store's contact form are leads of their own kinds.
+- **The marketplace** (`/marketplace`) lives inside the creator app and needs sign-in (the page, and the database function too: anonymous callers can't run it). It lists **deals** that creators list from their own live products (Catalog › Marketplace deals): one-time or subscription, original price and deal price, one deal per product. Saving a deal sets the product to those prices so checkout charges what the card shows. Buyers read through one function, `marketplace_deals`, with filters (digital/physical, payment, category, price, badge) and sorts. **Verified** is set by PowerProof staff (`verified_at`, which creators can't write). **Trusted seller** is worked out from orders: at least 5 paid, refunds at most 5%, reviews at least 4 stars. Each deal carries its seller's country (flag, and a country filter), and prices can be viewed in the viewer's own currency when `fx_rates` has rows (display only). Revenue (total and 30 days) comes from paid orders and is shown only when the creator leaves "Show what this product earns" on. Units sold, and revenue when shared, are visible to signed-in creators only. There is no admin screen yet: staff verify with `update marketplace_deals set verified_at = now() where id = …`.
+- **Making a product live is an explicit button** in four places: "Make it live" in the draft notice on the product form, "Create and make it live" (or "Save as draft") at the end of the first-product steps, "Make it live" / "Move to drafts" in the products list menu, and per product (and "Make every ready product live") in the checklist after an import. Going live needs a file (digital) or a collection (physical); `publishProduct` says which is missing. Pictures and a type are advice only.
+- **Drafts always say so in words** ("Draft: not visible to buyers", with what's still needed: `components/products/readiness.ts`) in the product list, the product form and after an import. Save and Discard sit at the top of the product form.
+- **A creator's first product is three steps** (the basics, images and files, price and publish), shown by the same `ProductForm` with `wizard`; after that it is the full form. Onboarding is a name and a country, then straight to that first product.
+- **Sidebar groups only open and close.** They have no page of their own; items nested under them are drawn as a tree.
+- **Live orders sit inside Analytics** on the dashboard and appear once a product is live. Charts with no data stay as empty charts.
+- **One way to add a digital product for now:** upload a file (`/products/new/upload?type=digital`). Importing from a link and the old product sales pages were mock-only, so they were removed; the visual page editor (Store › Design › Pages) replaces sales pages.
 - **A product needs a file before it can be published.** The schema enforces this in the editor and in onboarding.
 - **Upload limit shown as 2 GB per file.** Confirm against the storage plan.
 - **Product covers are generated art** (`CoverArt`). Six layouts drawn the same way in HTML and on canvas, so the image maker's PNG export matches what the store shows. Uploaded images are public files in Supabase Storage.
@@ -204,7 +220,7 @@ The gateway integration and webhooks, real email sending, `embed.js`, custom dom
 
 ## Plans (6D)
 
-- **Free:** 1 store, 1 product, 10 AI credits a month, $0. **Pro:** no store or product limit, 200 AI credits, $20 a month with the first month free. **Both pay the same 3% per sale.**
+- **Free:** 1 store, 10 products, 3 pages, 10 AI credits a month, $0. **Pro:** no store, product or page limit, 200 AI credits, $20 a month with the first month free. **Both pay the same 3% per sale.**
 - Limits are checked in the API (`LimitError`, code `limit`) and before navigating (`GuardedLink`, `plan.guard`). Either way the creator sees the Upgrade dialog, never a disabled button with no explanation.
 - **Over the limit after a downgrade:** nothing is deleted or hidden; only creating more is blocked.
 
@@ -295,3 +311,15 @@ Run the security advisors after every database change. These findings are expect
 
 Anything else is new and needs a look before release.
 
+
+## Selling, email, domains and analytics
+
+- **Checkout is server-priced.** The browser sends which products and which code; `lib/server/checkout.ts` prices the order from the database with the same deal engine the storefront uses, then `create_order` writes it. An order is only marked paid by Razorpay's signed proof (`/api/checkout/verify`) or its webhook (`/api/webhooks/razorpay`, de-duplicated through `webhook_events`); both call `apply_payment`, which is safe to repeat and writes the ledger. Free orders skip the gateway.
+- **Buyers and visitors talk to the database directly.** The browser calls database functions that check everything themselves (`validate_coupon`, `get_order`, `lookup_order`, `submit_review`, `ask_question`, `submit_lead`, `track_event`, `booked_slots`) instead of custom web routes. The discount code is checked live as the buyer types: the deal paths are read from the database, `validate_coupon` says what the code takes off, and the panel shows the total (`lib/api/checkout.ts`). That number is for display; the price actually charged is set again on the server when the payment is created.
+- **Buyers have no accounts.** A paid order gives a secret link (`/order/<token>`, 30 days, hashed in `download_tokens`). Lost it? `/lookup` takes the email on the order plus its number and issues a fresh one, with the same answer for every miss. Downloads are counted and each hands out a 60-second private link.
+- **Refunds** go back to the original payment method, reverse the ledger (the platform returns its fee; the creator gives back the rest, since the card fee isn't refunded) and stop downloads. Full refunds only.
+- **Invoices** are worked out from what was charged (`lib/invoice-view.ts`): a seller with a GSTIN charges IGST to India, nil to exports; no GSTIN, no tax. Still to be confirmed with a CA.
+- **Reviews** come from the order page: the link proves the purchase, one per product per order. Questions are open to anyone, rate limited.
+- **Only work that needs a secret key is a server route:** creating and confirming a Razorpay payment and its webhook, private download links, refunds, receipt emails, and attaching a domain. Email is Resend over HTTPS (`lib/server/email.ts`); nothing claims an email went out when it didn't. Lead, booking and contact notices to the store are not emailed yet (they show under Sales › Leads).
+- **Custom domains** use the existing `domains` table and `resolve_domain()`; the server attaches the domain through Vercel's API, shows the DNS records, re-checks every 30 seconds, and the proxy serves an active domain's store from `/s/<store>`.
+- **Analytics:** the storefront counts visits itself (`track_event`, cookieless, Do Not Track respected) for the dashboard; Google Analytics and Clarity load only after the visitor agrees.

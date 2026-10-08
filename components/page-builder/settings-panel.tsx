@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { RenderContext } from "@/lib/api";
 import { BLOCK_LABELS } from "@/lib/pages/editor-store";
-import { HIGHLIGHT_ICONS, findNode, PROPS, styleSchema, type BlockProps, type PageNode } from "@/lib/pages/schema";
+import { BOOKING_ZONES, HIGHLIGHT_ICONS, findNode, PROPS, styleSchema, type BlockProps, type PageNode } from "@/lib/pages/schema";
 import { ChoiceField, MediaUploader, SelectField, SwitchField, TableEditor, TextField, BackgroundPicker, RangeField } from "./controls";
 import { useEditor } from "./editor-context";
 
@@ -94,7 +94,6 @@ function ContentForm({ node, set, context }: { node: PageNode; set: Patch; conte
       const p = node.props as BlockProps<"hero">;
       return (
         <div className="flex flex-col gap-4">
-          <TextField label="Small line above" value={p.eyebrow} max={60} onChange={(v) => set({ eyebrow: v }, "eyebrow")} />
           <TextField label="Headline" value={p.headline} max={120} onChange={(v) => set({ headline: v }, "headline")} error={propError(node, "headline")} />
           <TextField label="Supporting text" value={p.subtext} max={300} multiline onChange={(v) => set({ subtext: v }, "subtext")} />
           <TextField label="Button label" value={p.ctaLabel} max={40} onChange={(v) => set({ ctaLabel: v }, "cta")} hint="Leave empty for no button." />
@@ -294,7 +293,63 @@ function ContentForm({ node, set, context }: { node: PageNode; set: Patch; conte
         <div className="flex flex-col gap-4">
           <TextField label="Heading" value={p.heading} max={100} onChange={(heading) => set({ heading }, "heading")} />
           <TextField label="Line below" value={p.body} max={240} onChange={(body) => set({ body }, "body")} />
-          <p className="text-xs text-muted-foreground">Sign-ups appear in your subscribers list.</p>
+          <p className="text-xs text-muted-foreground">Sign-ups appear in Sales › Leads.</p>
+        </div>
+      );
+    }
+    case "lead_form": {
+      const p = node.props as BlockProps<"lead_form">;
+      return (
+        <div className="flex flex-col gap-4">
+          <TextField label="Heading" value={p.heading} max={100} onChange={(heading) => set({ heading }, "heading")} />
+          <TextField label="Line below" value={p.body} max={240} onChange={(body) => set({ body }, "body")} />
+          <ListEditor
+            label="Field"
+            max={6}
+            items={p.fields}
+            make={() => ({ id: `f${Math.random().toString(36).slice(2, 8)}`, label: "New question", type: "text" as const, required: false })}
+            onChange={(fields) => set({ fields })}
+            render={(f, setF) => (
+              <>
+                <TextField label="Label" value={f.label} max={60} onChange={(label) => setF({ ...f, label })} />
+                <SelectField label="Kind" value={f.type} onChange={(type) => setF({ ...f, type })} options={[{ value: "text", label: "Short text (name)" }, { value: "email", label: "Email" }, { value: "phone", label: "Phone" }, { value: "textarea", label: "Long answer" }]} />
+                <SwitchField label="Required" checked={f.required} onChange={(required) => setF({ ...f, required })} />
+              </>
+            )}
+          />
+          {propError(node, "fields") && <p role="alert" className="text-sm font-medium text-danger">{propError(node, "fields")}</p>}
+          <TextField label="Button label" value={p.buttonLabel} max={40} onChange={(buttonLabel) => set({ buttonLabel }, "buttonLabel")} />
+          <TextField label="Message after sending" value={p.successMessage} max={240} multiline onChange={(successMessage) => set({ successMessage }, "successMessage")} />
+          <TextField label="Send them to (optional)" value={p.redirectHref} max={500} placeholder="/s/your-store/products" hint="A page on your store or an https link. Blank keeps them here with the message." error={propError(node, "redirectHref")} onChange={(redirectHref) => set({ redirectHref }, "redirectHref")} />
+          <p className="text-xs text-muted-foreground">Everyone who sends it appears in Sales › Leads.</p>
+        </div>
+      );
+    }
+    case "booking": {
+      const p = node.props as BlockProps<"booking">;
+      const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+      return (
+        <div className="flex flex-col gap-4">
+          <TextField label="Heading" value={p.heading} max={100} onChange={(heading) => set({ heading }, "heading")} />
+          <TextField label="Line below" value={p.body} max={240} onChange={(body) => set({ body }, "body")} />
+          <ChoiceField label="Length of a call" value={String(p.durationMin) as "15" | "30" | "45" | "60"} onChange={(v) => set({ durationMin: Number(v) })} options={[{ value: "15", label: "15 min" }, { value: "30", label: "30 min" }, { value: "45", label: "45 min" }, { value: "60", label: "1 hour" }]} />
+          <fieldset className="flex flex-col gap-2">
+            <legend className="mb-1 text-sm font-medium">Days you take bookings</legend>
+            <div className="flex flex-wrap gap-2">
+              {DAYS.map((d, i) => (
+                <Button key={d} type="button" size="sm" variant={p.days.includes(i) ? "primary" : "secondary"} aria-pressed={p.days.includes(i)} onClick={() => set({ days: p.days.includes(i) ? p.days.filter((x) => x !== i) : [...p.days, i].sort() })}>{d}</Button>
+              ))}
+            </div>
+            {propError(node, "days") && <p role="alert" className="text-sm font-medium text-danger">{propError(node, "days")}</p>}
+          </fieldset>
+          <RangeField label="Starts at" value={p.startHour} min={0} max={23} step={1} suffix=":00" onChange={(startHour) => set({ startHour }, "startHour")} />
+          <RangeField label="Last call ends at" value={p.endHour} min={1} max={24} step={1} suffix=":00" onChange={(endHour) => set({ endHour }, "endHour")} />
+          {propError(node, "endHour") && <p role="alert" className="text-sm font-medium text-danger">{propError(node, "endHour")}</p>}
+          <RangeField label="How many days ahead" value={p.daysAhead} min={1} max={60} step={1} onChange={(daysAhead) => set({ daysAhead }, "daysAhead")} />
+          <SelectField label="Time zone" value={p.timezone} onChange={(timezone) => set({ timezone })} options={BOOKING_ZONES.map((z) => ({ value: z.id, label: z.label }))} />
+          <TextField label="Button label" value={p.buttonLabel} max={40} onChange={(buttonLabel) => set({ buttonLabel }, "buttonLabel")} />
+          <TextField label="Message after booking" value={p.successMessage} max={240} multiline onChange={(successMessage) => set({ successMessage }, "successMessage")} />
+          <p className="text-xs text-muted-foreground">A time can be booked once. Bookings appear in Sales › Leads.</p>
         </div>
       );
     }
@@ -331,6 +386,8 @@ export function SettingsPanel({ context }: { context: RenderContext }) {
   const updateVisibility = useEditor((s) => s.updateVisibility);
   const updatePageStyle = useEditor((s) => s.updatePageStyle);
   const pageStyle = useEditor((s) => s.doc.style);
+  const focus = useEditor((s) => !!s.doc.focus);
+  const setFocus = useEditor((s) => s.setFocus);
 
   if (!selectedId || !node) {
     return (
@@ -339,6 +396,10 @@ export function SettingsPanel({ context }: { context: RenderContext }) {
           <MousePointer2 className="size-5" aria-hidden />
           Select a block on the page or in Layers to change it.
         </div>
+        <section aria-labelledby="page-focus-h" className="flex flex-col gap-3 border-t pt-4">
+          <h3 id="page-focus-h" className="font-sans text-sm font-semibold tracking-normal">Focus mode</h3>
+          <SwitchField label="Hide the store menu and footer" checked={focus} onChange={setFocus} hint="For squeeze pages and ads: visitors see only this page, with one thing to do." />
+        </section>
         <section aria-labelledby="page-bg-h" className="flex flex-col gap-3 border-t pt-4">
           <h3 id="page-bg-h" className="font-sans text-sm font-semibold tracking-normal">Page background</h3>
           <p className="-mt-1 text-xs text-muted-foreground">Behind every section. Sections with their own background sit on top.</p>

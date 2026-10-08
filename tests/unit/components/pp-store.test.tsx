@@ -276,3 +276,266 @@ describe("Theming", () => {
     expect(onChange).toHaveBeenCalled();
   });
 });
+
+describe("lead blocks", () => {
+  it("a lead form checks the required fields, then sends name, email and answers", async () => {
+    const { LeadFormBlock } = await import("@/components/page-builder/lead-blocks");
+    const { makeNode } = await import("@/lib/pages/schema");
+    const { fireEvent } = await import("@testing-library/react");
+    const node = makeNode("lead_form", {
+      fields: [{ id: "name", label: "Your name", type: "text", required: true }, { id: "email", label: "Email", type: "email", required: true }, { id: "why", label: "What do you need?", type: "textarea", required: false }],
+      buttonLabel: "Send it",
+      successMessage: "Got it, thanks!",
+    });
+    const onLead = vi.fn(async () => {});
+    render(<LeadFormBlock id="lf" props={node.props} env={{ editing: false, onLead }} />);
+    fireEvent.click(screen.getByRole("button", { name: "Send it" }));
+    expect(await screen.findByText("Your name is needed.")).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("Your name"), { target: { value: "Ada" } });
+    fireEvent.change(screen.getByLabelText("Email"), { target: { value: "nope" } });
+    fireEvent.click(screen.getByRole("button", { name: "Send it" }));
+    expect(await screen.findByText(/email looks off/)).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("Email"), { target: { value: "ada@example.com" } });
+    fireEvent.change(screen.getByLabelText(/What do you need/), { target: { value: "A planner" } });
+    fireEvent.click(screen.getByRole("button", { name: "Send it" }));
+    await waitFor(() => expect(onLead).toHaveBeenCalledWith({ kind: "lead", name: "Ada", email: "ada@example.com", phone: undefined, data: { "What do you need?": "A planner" } }));
+    expect(await screen.findByText("Got it, thanks!")).toBeInTheDocument();
+  });
+
+  it("in the editor nothing is sent", async () => {
+    const { LeadFormBlock } = await import("@/components/page-builder/lead-blocks");
+    const { makeNode } = await import("@/lib/pages/schema");
+    const { fireEvent } = await import("@testing-library/react");
+    const onLead = vi.fn(async () => {});
+    render(<LeadFormBlock id="lf" props={makeNode("lead_form").props} env={{ editing: true, onLead }} />);
+    fireEvent.change(screen.getByLabelText("Email"), { target: { value: "ada@example.com" } });
+    fireEvent.change(screen.getByLabelText("Your name"), { target: { value: "Ada" } });
+    fireEvent.click(screen.getByRole("button", { name: "Send it to me" }));
+    expect(onLead).not.toHaveBeenCalled();
+  });
+
+  it("a booking calendar books the chosen day and time, and says when a time was just taken", async () => {
+    const { BookingBlock } = await import("@/components/page-builder/lead-blocks");
+    const { makeNode } = await import("@/lib/pages/schema");
+    const { fireEvent, within } = await import("@testing-library/react");
+    const props = makeNode("booking", { days: [0, 1, 2, 3, 4, 5, 6], startHour: 9, endHour: 17, timezone: "UTC", buttonLabel: "Book it" }).props;
+    const onLead = vi.fn().mockRejectedValueOnce(new Error("That time was just taken. Please pick another.")).mockResolvedValue(undefined);
+    const loadBooked = vi.fn(async () => []);
+    render(<BookingBlock id="bk" props={props} env={{ editing: false, onLead, loadBooked }} />);
+    // The last day is never today, so it has all its times
+    const days = within(screen.getByRole("group", { name: "Pick a day" })).getAllByRole("button");
+    fireEvent.click(days[days.length - 1]);
+    const times = within(screen.getByRole("group", { name: "Pick a time" })).getAllByRole("button");
+    expect(times).toHaveLength(16); // 9am to 5pm, half-hourly
+    fireEvent.click(times[0]);
+    fireEvent.change(screen.getByLabelText("Your name"), { target: { value: "Bob" } });
+    fireEvent.change(screen.getByLabelText("Email"), { target: { value: "bob@example.com" } });
+    fireEvent.click(screen.getByRole("button", { name: /Book it/ }));
+    expect(await screen.findByText(/just taken/)).toBeInTheDocument();
+    const again = within(screen.getByRole("group", { name: "Pick a time" })).getAllByRole("button");
+    fireEvent.click(again[1]);
+    fireEvent.change(screen.getByLabelText("Your name"), { target: { value: "Bob" } });
+    fireEvent.change(screen.getByLabelText("Email"), { target: { value: "bob@example.com" } });
+    fireEvent.click(screen.getByRole("button", { name: /Book it/ }));
+    await waitFor(() => expect(onLead).toHaveBeenCalledTimes(2));
+    const sent = onLead.mock.calls[1][0];
+    expect(sent).toMatchObject({ kind: "booking", name: "Bob", email: "bob@example.com", minutes: 30 });
+    expect(new Date(sent.slotAt).getUTCMinutes()).toBe(30);
+    expect(await screen.findByText(/You're booked/)).toBeInTheDocument();
+  });
+});
+
+describe("marketplace deals", () => {
+  const deal = {
+    id: "d1", title: "Planner club", pitch: "A weekly planner, every month.", billing: "subscription" as const, interval: "month" as const,
+    original: { amount: 99900, currency: "INR" as const }, price: { amount: 49900, currency: "INR" as const }, percentOff: 50,
+    productSlug: "planner", storeName: "Fixture Store", storeSlug: "fixture", country: "IN", fulfilment: "digital" as const, kind: "template",
+    verified: true, trusted: true, sold: 6, revenue: { amount: 299400, currency: "INR" as const }, reviews: 0, createdAt: "2026-10-01T00:00:00Z",
+  };
+
+  it("a card shows both prices, the billing, the badges, units sold and revenue", async () => {
+    const { DealCard } = await import("@/components/marketplace/deal-card");
+    render(<DealCard d={deal} />);
+    expect(screen.getByText("50% off")).toBeInTheDocument();
+    expect(screen.getByText("Subscription")).toBeInTheDocument();
+    expect(screen.getByText("/month")).toBeInTheDocument();
+    expect(screen.getByText("₹499.00")).toBeInTheDocument();
+    expect(screen.getByText("₹999.00")).toBeInTheDocument();
+    expect(screen.getByText("Verified")).toBeInTheDocument();
+    expect(screen.getByText("Trusted seller")).toBeInTheDocument();
+    expect(screen.getByText("6")).toBeInTheDocument();
+    expect(screen.getByRole("link")).toHaveAttribute("href", "/s/fixture/planner");
+  });
+
+  it("a card says Private when the seller keeps revenue to themselves, and has no badges when it has none", async () => {
+    const { DealCard } = await import("@/components/marketplace/deal-card");
+    render(<DealCard d={{ ...deal, revenue: undefined, verified: false, trusted: false, billing: "one_time", interval: undefined }} />);
+    expect(screen.getByText("Private")).toBeInTheDocument();
+    expect(screen.queryByText("Verified")).toBeNull();
+    expect(screen.queryByText("/month")).toBeNull();
+    expect(screen.getByText("One-time")).toBeInTheDocument();
+  });
+
+  it("the form's rules: our price under the original, a subscription's interval, an end in the future", async () => {
+    const { dealSchema } = await import("@/components/marketplace/deal-form");
+    const ok = { productId: "p", title: "Planner club", pitch: "A weekly planner, every month.", billing: "one_time" as const, original: { amount: 99900, currency: "INR" as const }, price: { amount: 49900, currency: "INR" as const }, showRevenue: true, status: "live" as const };
+    expect(dealSchema.safeParse(ok).success).toBe(true);
+    const msg = (v: object) => JSON.stringify(dealSchema.safeParse({ ...ok, ...v }));
+    expect(msg({ price: { amount: 99900, currency: "INR" } })).toMatch(/original price should be higher/);
+    expect(msg({ billing: "subscription" })).toMatch(/how often/);
+    expect(dealSchema.safeParse({ ...ok, billing: "subscription", interval: "year" }).success).toBe(true);
+    expect(msg({ endsAt: "2020-01-01T00:00:00Z" })).toMatch(/future/);
+    expect(msg({ productId: "" })).toMatch(/Pick the product/);
+    expect(msg({ pitch: "short" })).toMatch(/at least a sentence/);
+  });
+});
+
+describe("marketplace card for sellers worldwide", () => {
+  const base = {
+    id: "d1", title: "Planner club", pitch: "A weekly planner, every month.", billing: "one_time" as const,
+    original: { amount: 8400, currency: "INR" as const }, price: { amount: 4200, currency: "INR" as const }, percentOff: 50,
+    productSlug: "planner", storeName: "Fixture Store", storeSlug: "fixture", country: "IN", fulfilment: "digital" as const, kind: "template",
+    verified: false, trusted: false, sold: 3, reviews: 0, createdAt: "2026-10-01T00:00:00Z",
+  };
+
+  it("shows the seller's country and a New rating when there are no reviews", async () => {
+    const { DealCard } = await import("@/components/marketplace/deal-card");
+    render(<DealCard d={base} />);
+    expect(screen.getByText("India")).toBeInTheDocument();
+    expect(screen.getByText("New")).toBeInTheDocument();
+    expect(screen.getByText("Fixture Store")).toBeInTheDocument();
+  });
+
+  it("shows prices in the viewer's currency when there are rates, marked as approximate", async () => {
+    const { DealCard } = await import("@/components/marketplace/deal-card");
+    render(<DealCard d={base} show={{ currency: "USD", rates: { INR: 84, USD: 1 } }} />);
+    expect(screen.getByText("$0.50")).toBeInTheDocument();
+    expect(screen.getByText("$1.00")).toBeInTheDocument();
+    expect(screen.getByLabelText("about")).toBeInTheDocument();
+  });
+
+  it("leaves prices alone without rates, and the big best-seller card has a rank", async () => {
+    const { DealCard, SpotlightCard } = await import("@/components/marketplace/deal-card");
+    const { unmount } = render(<DealCard d={base} show={{ currency: "USD", rates: {} }} />);
+    expect(screen.getByText("₹42.00")).toBeInTheDocument();
+    expect(screen.queryByLabelText("about")).toBeNull();
+    unmount();
+    render(<SpotlightCard d={base} rank={1} />);
+    expect(screen.getByText("#1 best seller")).toBeInTheDocument();
+  });
+});
+
+let quoteImpl: (code: string) => unknown = () => undefined;
+let orderImpl: (token: string) => Promise<unknown> = () => Promise.reject(new Error("no order"));
+vi.mock("@/lib/api", async (orig) => ({ ...(await orig<typeof import("@/lib/api")>()), getQuote: (_i: unknown, code: string) => Promise.resolve(quoteImpl(code)), getPublicOrder: (t: string) => orderImpl(t) }));
+
+describe("buying", () => {
+  const product = { id: "11111111-1111-4111-8111-111111111111", title: "Weekly planner", info: { price: { amount: 49900, currency: "INR" as const } } } as never;
+
+  const quote = (codeOk: boolean | null) => ({ currency: "INR", subtotal: 49900, dealSaving: 0, codeOff: codeOk ? 10000 : 0, total: codeOk ? 39900 : 49900, ...(codeOk === null ? {} : { coupon: codeOk ? { ok: true, message: "Code applied." } : { ok: false, message: "That code doesn't work for this order. Check the spelling, the dates, or what it applies to." } }) });
+  /** Only the calls that create a payment are recorded; the code check goes straight to the database (mocked above) */
+  const mockFetch = (handler: (url: string, body: Record<string, unknown>) => unknown) => {
+    const calls: { url: string; body: Record<string, unknown> }[] = [];
+    vi.stubGlobal("fetch", vi.fn(async (url: string, init?: { body?: string }) => {
+      const body = init?.body ? JSON.parse(init.body) : {};
+      calls.push({ url, body });
+      return { json: async () => handler(url, body) };
+    }));
+    return calls;
+  };
+  const sheet = (CheckoutSheet: typeof import("@/components/buyer/checkout-sheet").CheckoutSheet) => <CheckoutSheet open onOpenChange={() => {}} storeId="s1" storeSlug="fix" products={[product]} />;
+
+  it("checks the buyer's details before anything is sent", async () => {
+    const { CheckoutSheet } = await import("@/components/buyer/checkout-sheet");
+    const { fireEvent } = await import("@testing-library/react");
+    quoteImpl = () => quote(null);
+    const calls = mockFetch(() => ({}));
+    render(sheet(CheckoutSheet));
+    fireEvent.click(screen.getByRole("button", { name: /Pay securely/ }));
+    expect(await screen.findByText(/full name/)).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("Full name"), { target: { value: "Ada Lovelace" } });
+    fireEvent.change(screen.getByLabelText("Email"), { target: { value: "nope" } });
+    fireEvent.click(screen.getByRole("button", { name: /Pay securely/ }));
+    expect(await screen.findByText(/email looks off/)).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("Email"), { target: { value: "ada@example.com" } });
+    fireEvent.change(screen.getByLabelText("Phone"), { target: { value: "12345" } });
+    fireEvent.click(screen.getByRole("button", { name: /Pay securely/ }));
+    expect(await screen.findByText(/10 digits/)).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("Phone"), { target: { value: "9876543210" } });
+    fireEvent.click(screen.getByRole("button", { name: /Pay securely/ }));
+    expect(await screen.findByText(/accept the terms/)).toBeInTheDocument();
+    expect(calls).toHaveLength(0);
+    vi.unstubAllGlobals();
+  });
+
+  it("checks the discount code live against the database, shows the new total, and won't start a payment with a bad code", async () => {
+    const { CheckoutSheet } = await import("@/components/buyer/checkout-sheet");
+    const { fireEvent, waitFor } = await import("@testing-library/react");
+    quoteImpl = (code) => quote(code === "save100");
+    const calls = mockFetch(() => ({}));
+    render(sheet(CheckoutSheet));
+    fireEvent.change(screen.getByLabelText(/Discount code/), { target: { value: "save100" } });
+    expect(await screen.findByText(/Code applied\./)).toBeInTheDocument();
+    expect(screen.getByText("Total to pay")).toBeInTheDocument();
+    expect(screen.getByText("₹399.00")).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText(/Discount code/), { target: { value: "oops" } });
+    expect(await screen.findByText(/That code doesn't work for this order/)).toBeInTheDocument();
+    expect(screen.getAllByText("₹499.00").length).toBeGreaterThan(1);
+    fireEvent.change(screen.getByLabelText("Full name"), { target: { value: "Ada Lovelace" } });
+    fireEvent.change(screen.getByLabelText("Email"), { target: { value: "ada@example.com" } });
+    fireEvent.change(screen.getByLabelText("Phone"), { target: { value: "9876543210" } });
+    fireEvent.click(screen.getByRole("checkbox"));
+    fireEvent.click(screen.getByRole("button", { name: /Pay securely/ }));
+    expect(await screen.findByText(/Fix or clear the code/)).toBeInTheDocument();
+    await waitFor(() => expect(calls).toHaveLength(0));
+    vi.unstubAllGlobals();
+  });
+
+  it("asks the server to create the payment with only which products and who is buying, never a price", async () => {
+    const { CheckoutSheet } = await import("@/components/buyer/checkout-sheet");
+    const { fireEvent, waitFor } = await import("@testing-library/react");
+    quoteImpl = () => quote(true);
+    const calls = mockFetch(() => ({ ok: false, message: "Payments aren't connected for this store yet. Please check back shortly." }));
+    render(sheet(CheckoutSheet));
+    fireEvent.change(screen.getByLabelText("Full name"), { target: { value: "Ada Lovelace" } });
+    fireEvent.change(screen.getByLabelText("Email"), { target: { value: "ada@example.com" } });
+    fireEvent.change(screen.getByLabelText("Phone"), { target: { value: "9876543210" } });
+    fireEvent.change(screen.getByLabelText(/Discount code/), { target: { value: "save100" } });
+    expect(await screen.findByText(/Code applied\./)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("checkbox"));
+    fireEvent.click(screen.getByRole("button", { name: /Pay securely/ }));
+    await waitFor(() => expect(calls).toHaveLength(1));
+    expect(calls[0].url).toBe("/api/checkout");
+    expect(calls[0].body).toMatchObject({ storeSlug: "fix", productIds: ["11111111-1111-4111-8111-111111111111"], coupon: "save100", buyer: { name: "Ada Lovelace", email: "ada@example.com", phone: "+919876543210", country: "IN", consent: true } });
+    expect(JSON.stringify(calls[0].body)).not.toMatch(/amount|price|total/i);
+    expect(await screen.findByText(/Payments aren't connected/)).toBeInTheDocument();
+    vi.unstubAllGlobals();
+  });
+
+  it("the order page lists the files to download, the receipt, and a review form", async () => {
+    const { OrderPage } = await import("@/components/buyer/order-view");
+    const order = {
+      id: "o1", storeId: "s1", ref: "PP/DP/ABC1234567", status: "paid", storeName: "Fixture Store", storeSlug: "fix", buyerName: "Ada Lovelace", buyerEmail: "ada@example.com", buyerCountry: "IN", currency: "INR",
+      subtotal: 49900, discount: 0, tax: 7612, total: 49900, reviewed: [], store: {},
+      lines: [{ productId: "p1", title: "Weekly planner", unit: 49900, discount: 0, total: 49900, gift: false }],
+      files: [{ id: "f1", name: "planner.pdf", size: 2_400_000, product: "Weekly planner" }],
+    };
+    orderImpl = () => Promise.resolve(order);
+    render(<OrderPage token={"a".repeat(48)} justPaid />);
+    expect(await screen.findByText("Thank you, Ada!")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Download/ })).toHaveAttribute("href", `/api/download?t=${"a".repeat(48)}&f=f1`);
+    expect(screen.getByText("planner.pdf")).toBeInTheDocument();
+    expect(screen.getByText("GST included")).toBeInTheDocument();
+    expect(screen.getByRole("radiogroup", { name: "Rating for Weekly planner" })).toBeInTheDocument();
+    vi.unstubAllGlobals();
+  });
+
+  it("a wrong or expired link says so and points to the lookup", async () => {
+    const { OrderPage } = await import("@/components/buyer/order-view");
+    orderImpl = () => Promise.reject(new Error("That link has expired or isn't valid."));
+    render(<OrderPage token={"b".repeat(48)} />);
+    expect(await screen.findByText("That link has expired or isn't valid.")).toBeInTheDocument();
+    expect(screen.getAllByRole("link", { name: "Find my order" }).every((a) => a.getAttribute("href") === "/lookup")).toBe(true);
+    vi.unstubAllGlobals();
+  });
+});

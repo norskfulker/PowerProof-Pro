@@ -1,5 +1,7 @@
 "use client";
 
+import { countryByCode } from "@/lib/countries";
+import { CURRENCIES } from "@/lib/money";
 import { readableOn } from "@/lib/color";
 import { Button } from "@/components/ui/button";
 import { Globe } from "lucide-react";
@@ -7,8 +9,9 @@ import Link from "next/link";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { BrandColorPicker } from "@/components/pp/brand-color-picker";
@@ -20,12 +23,15 @@ import { useFormSaveBar } from "@/hooks/use-dirty-form";
 import { useCurrentStore } from "@/hooks/use-current-store";
 import { updateStore } from "@/lib/api";
 import { SITE_URL } from "@/lib/format";
+import { storeNameError } from "@/lib/slug";
 import type { Store } from "@/lib/types";
 import { initialsOf } from "@/lib/slug";
 
 const schema = z.object({
-  name: z.string().trim().min(2, "Your store needs a name."),
-  slug: z.string().min(3, "At least 3 characters.").regex(/^[a-z0-9-]+$/, "Lowercase letters, numbers and dashes."),
+  name: z.string().superRefine((v, ctx) => {
+    const problem = storeNameError(v);
+    if (problem) ctx.addIssue({ code: "custom", message: problem });
+  }),
   tagline: z.string().max(120, "Keep it under 120 characters."),
   brandColor: z.string(),
   supportEmail: z.string().email("Buyers need a working email for help."),
@@ -47,7 +53,7 @@ function StoreForm({ store, onSaved }: { store: Store; onSaved: (s: Store) => vo
         const s = await updateStore(v);
         onSaved(s);
       } catch (e) {
-        form.setError("slug", { message: e instanceof Error ? e.message : "Couldn't save." });
+        form.setError("name", { message: e instanceof Error ? e.message : "Couldn't save." });
         throw e;
       }
     },
@@ -81,9 +87,16 @@ function StoreForm({ store, onSaved }: { store: Store; onSaved: (s: Store) => vo
             <FormField control={form.control} name="name" render={({ field }) => (
               <FormItem data-coach="store-name"><FormLabel>Store name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
             )} />
-            <FormField control={form.control} name="slug" render={({ field }) => (
-              <FormItem><FormLabel>Store link</FormLabel><FormControl><Input className="font-mono" {...field} /></FormControl><FormDescription>{SITE_URL}/{field.value}. Old links redirect for 90 days.</FormDescription><FormMessage /></FormItem>
-            )} />
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="store-link">Store link</Label>
+              <Input id="store-link" className="font-mono" value={`${SITE_URL}/${store.slug}`} readOnly aria-describedby="store-link-note" />
+              <p id="store-link-note" className="text-sm text-muted-foreground">Made from your store name when you created it, so it can&apos;t be changed. Renaming the store doesn&apos;t move your link.</p>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="store-country">Country and currency</Label>
+              <Input id="store-country" value={`${countryByCode(store.country).name} · ${store.currency}`} readOnly aria-describedby="store-country-note" />
+              <p id="store-country-note" className="text-sm text-muted-foreground">Your prices are set in {CURRENCIES[store.currency].name}s. This is chosen once, when you create the store, and is fixed after you add products.</p>
+            </div>
             <FormField control={form.control} name="tagline" render={({ field }) => (
               <FormItem className="sm:col-span-2"><FormLabel>Tagline</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
             )} />

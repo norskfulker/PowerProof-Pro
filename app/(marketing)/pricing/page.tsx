@@ -45,9 +45,8 @@ export default async function PricingPage() {
   return (
     <>
       <section className="gutter mx-auto max-w-[1200px] pt-12 md:pt-16">
-        <p className="eyebrow">Pricing</p>
         <h1 className="mt-3 max-w-3xl text-[2.5rem] sm:text-5xl">Start free. You&apos;ll know what you keep before you sell.</h1>
-        <p className="mt-4 max-w-2xl text-lg text-muted-foreground">Free covers one store and one product. Pro removes the limits for ${PRO_PRICE_USD} a month. Both pay the same 3% per sale.</p>
+        <p className="mt-4 max-w-2xl text-lg text-muted-foreground">Free covers one store, up to 10 products and 3 pages. Pro removes the limits for ${PRO_PRICE_USD} a month. Both pay the same 3% per sale.</p>
       </section>
 
       <section className="gutter mx-auto mt-10 grid grid-cols-1 max-w-[1200px] gap-6 lg:grid-cols-[380px_minmax(0,1fr)]" aria-label="Plan">

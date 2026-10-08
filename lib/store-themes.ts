@@ -1,4 +1,5 @@
 import { liftTo, mixHex, readableOn } from "./color";
+import { FONT_FAMILY, fontFaceCss } from "./fonts";
 import type { FontPairId, HeroStyle, PaletteId, SectionId, StoreTheme } from "./types";
 
 /**
@@ -49,12 +50,13 @@ export const SECTION_META: Record<SectionId, { name: string; description: string
   new: { name: "New arrivals", description: "Latest products first." },
   offers: { name: "Offers", description: "Coupons, bundles and the live deal." },
   reviews: { name: "Reviews wall", description: "Top verified reviews and your average." },
+  html: { name: "Custom HTML", description: "A section made from an HTML file you upload." },
   about: { name: "About you", description: "Photo, story and social links." },
   faq: { name: "FAQ", description: "Questions you edit in Store › Pages." },
   newsletter: { name: "Newsletter", description: "Collect emails from visitors." },
 };
 
-export const DEFAULT_SECTIONS: SectionId[] = ["announcement", "hero", "highlights", "collections", "bestsellers", "new", "offers", "reviews", "about", "faq", "newsletter"];
+export const DEFAULT_SECTIONS: SectionId[] = ["announcement", "hero", "highlights", "collections", "bestsellers", "new", "offers", "reviews", "html", "about", "faq", "newsletter"];
 
 /** Which theme a store shows: the buyer's own choice, else the creator's default, else the site's. */
 export function resolveStoreMode(theme: StoreTheme, siteMode: "light" | "dark", buyer?: "light" | "dark"): "light" | "dark" {
@@ -90,10 +92,19 @@ function brandVars(theme: StoreTheme, mode: "light" | "dark"): Record<string, st
   };
 }
 
+/** The font pairing, with the store's own uploaded font in place of its headings and/or body when it has one. */
+function fontsOf(theme: StoreTheme) {
+  const pair = FONT_PAIRS.find((x) => x.id === theme.fonts) ?? FONT_PAIRS[0];
+  const c = theme.customFont;
+  if (!c || !fontFaceCss(c)) return pair;
+  const own = `"${FONT_FAMILY}"`;
+  return { ...pair, display: c.use === "body" ? pair.display : own, body: c.use === "headings" ? pair.body : own };
+}
+
 function paletteVars(theme: StoreTheme, mode: "light" | "dark"): Record<string, string> {
   const p = PALETTES.find((x) => x.id === theme.palette) ?? PALETTES[0];
   if (mode === "dark") return darkVars(theme, p);
-  const f = FONT_PAIRS.find((x) => x.id === theme.fonts) ?? FONT_PAIRS[0];
+  const f = fontsOf(theme);
   const accent = theme.accent || p.accent;
   // Utilities resolve to var(--font-bricolage)/var(--font-hanken); remap those (never to themselves).
   const fontRemap: Record<string, string> = {};
@@ -122,7 +133,7 @@ function paletteVars(theme: StoreTheme, mode: "light" | "dark"): Record<string, 
 }
 
 function darkVars(theme: StoreTheme, p: Palette): Record<string, string> {
-  const f = FONT_PAIRS.find((x) => x.id === theme.fonts) ?? FONT_PAIRS[0];
+  const f = fontsOf(theme);
   const d = p.dark;
   const accent = theme.accent || p.accent;
   const hex = /^#[0-9a-f]{6}$/i.test(accent);

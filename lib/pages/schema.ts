@@ -80,6 +80,22 @@ export const HIGHLIGHT_ICONS = ["check", "download", "shield", "refund", "star",
 
 const text = (max: number) => z.string().max(max, `Keep it under ${max} characters.`);
 
+export const LEAD_FIELD_TYPES = ["text", "email", "phone", "textarea"] as const;
+
+/** Time zones a calendar can run in (the visitor sees times in the calendar's zone) */
+export const BOOKING_ZONES = [
+  { id: "Asia/Kolkata", label: "India (IST)" },
+  { id: "Asia/Dubai", label: "Dubai (GST)" },
+  { id: "Asia/Singapore", label: "Singapore (SGT)" },
+  { id: "Australia/Sydney", label: "Sydney (AEST)" },
+  { id: "Europe/London", label: "London (GMT/BST)" },
+  { id: "Europe/Berlin", label: "Central Europe (CET)" },
+  { id: "America/New_York", label: "New York (ET)" },
+  { id: "America/Chicago", label: "Chicago (CT)" },
+  { id: "America/Los_Angeles", label: "Los Angeles (PT)" },
+  { id: "UTC", label: "UTC" },
+] as const;
+
 export const PROPS = {
   section: z.object({ label: text(60).default("") }),
   columns: z.object({ stackOnMobile: z.boolean().default(true), ratio: z.enum(["equal", "2:1", "1:2"]).default("equal") }),
@@ -123,6 +139,42 @@ export const PROPS = {
   faq: z.object({ items: z.array(z.object({ q: text(200), a: text(1000) })).max(20).default([]) }),
   countdown: z.object({ endsAt: z.string().default(""), label: text(80).default("Offer ends in") }),
   newsletter: z.object({ heading: text(100).default("Get new releases first"), body: text(240).default("") }),
+  /** Collects name, email and answers. Submissions land in Sales › Leads. */
+  lead_form: z
+    .object({
+      heading: text(100).default("Get the free guide"),
+      body: text(240).default(""),
+      fields: z
+        .array(z.object({ id: z.string().min(1).max(24), label: text(60).min(1, "Name the field."), type: z.enum(LEAD_FIELD_TYPES), required: z.boolean().default(true) }))
+        .min(1, "Add at least one field.")
+        .max(6, "Up to 6 fields keeps it short.")
+        .default([
+          { id: "name", label: "Your name", type: "text", required: true },
+          { id: "email", label: "Email", type: "email", required: true },
+        ]),
+      buttonLabel: text(40).min(1, "Add a button label.").default("Send it to me"),
+      successMessage: text(240).default("Thanks! Check your inbox soon."),
+      /** Where to send people after they submit; blank keeps them on the page with the message */
+      redirectHref: safeHref.default(""),
+    })
+    .refine((v) => v.fields.some((f) => f.type === "email"), { path: ["fields"], message: "Add an email field so you can reach people." }),
+  /** An instant calendar: visitors pick a day and a free time. Bookings land in Sales › Leads. */
+  booking: z
+    .object({
+      heading: text(100).default("Book a time"),
+      body: text(240).default("Pick a day, then a time that suits you."),
+      durationMin: z.union([z.literal(15), z.literal(30), z.literal(45), z.literal(60)]).default(30),
+      /** 0 = Sunday … 6 = Saturday */
+      days: z.array(z.number().int().min(0).max(6)).max(7).default([1, 2, 3, 4, 5]),
+      startHour: z.number().int().min(0).max(23).default(10),
+      endHour: z.number().int().min(1).max(24).default(17),
+      daysAhead: z.number().int().min(1).max(60).default(14),
+      timezone: z.enum(BOOKING_ZONES.map((z) => z.id) as [string, ...string[]]).default("Asia/Kolkata"),
+      buttonLabel: text(40).min(1).default("Book this time"),
+      successMessage: text(240).default("You're booked. We'll email you to confirm."),
+    })
+    .refine((v) => v.endHour > v.startHour, { path: ["endHour"], message: "The day should end after it starts." })
+    .refine((v) => v.days.length > 0, { path: ["days"], message: "Pick at least one day." }),
 } as const;
 
 export type BlockType = keyof typeof PROPS;
@@ -130,7 +182,7 @@ export const BLOCK_TYPES = Object.keys(PROPS) as BlockType[];
 export type BlockProps<T extends BlockType> = z.infer<(typeof PROPS)[T]>;
 
 /** Which children each type may hold. Content blocks hold nothing. */
-export const CONTENT_TYPES: BlockType[] = ["heading", "text", "button", "image", "gallery", "video", "table", "divider", "spacer", "product_card", "product_grid", "highlights", "testimonials", "faq", "countdown", "newsletter"];
+export const CONTENT_TYPES: BlockType[] = ["heading", "text", "button", "image", "gallery", "video", "table", "divider", "spacer", "product_card", "product_grid", "highlights", "testimonials", "faq", "countdown", "newsletter", "lead_form", "booking"];
 export const CHILDREN = {
   ...(Object.fromEntries(CONTENT_TYPES.map((t) => [t, []])) as unknown as Record<BlockType, BlockType[]>),
   root: ["section", "hero"],
@@ -178,6 +230,8 @@ export const pageDocSchema = z
     blocks: z.array(nodeSchema).max(40, "Up to 40 sections on a page."),
     /** Behind every section (Part 6B). Sections with their own background sit on top. */
     style: styleSchema.optional(),
+    /** Focus mode (squeeze pages): the store's menu and footer are hidden so there is one thing to do */
+    focus: z.boolean().optional(),
   })
   .superRefine((d, ctx) => {
     d.blocks.forEach((b, i) => {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -11,7 +11,7 @@ import { FormError } from "@/components/auth/auth-card";
 import { SaveBar } from "@/components/save/save-bar";
 import { useFormSaveBar } from "@/hooks/use-dirty-form";
 import { addBankAccount } from "@/lib/api";
-import { IFSC_RE } from "@/lib/india";
+import { holderNameMatches, IFSC_RE } from "@/lib/india";
 import type { PayoutMethod } from "@/lib/types";
 
 export const bankSchema = z
@@ -34,29 +34,42 @@ export const bankSchema = z
 export function BankForm({
   formId,
   defaultName = "",
+  allowedNames,
   onSaved,
   onPendingChange,
   saveBar,
 }: {
   formId: string;
   defaultName?: string;
+  /** The company's legal name and the director's name: the account must be in one of them */
+  allowedNames?: (string | undefined)[];
   onSaved: (m: PayoutMethod) => void;
   onPendingChange?: (pending: boolean) => void;
   saveBar?: boolean;
 }) {
   const [error, setError] = useState<string>();
+  const namesKey = (allowedNames ?? []).filter((n): n is string => !!n?.trim()).join("|");
+  const names = namesKey ? namesKey.split("|") : [];
+  const schema = useMemo(
+    () => bankSchema.superRefine((v, ctx) => {
+      const allowed = namesKey ? namesKey.split("|") : [];
+      if (allowed.length && !holderNameMatches(v.holderName, allowed)) ctx.addIssue({ code: "custom", path: ["holderName"], message: `The account must be in your company's name or the director's name (${allowed.join(" or ")}).` });
+    }),
+    [namesKey]
+  );
   const form = useForm<z.infer<typeof bankSchema>>({
-    resolver: zodResolver(bankSchema),
+    resolver: zodResolver(schema),
     defaultValues: { holderName: defaultName, accountNumber: "", confirm: "", ifsc: "" },
     mode: "onTouched",
   });
   const bar = useFormSaveBar(
     form,
     async (raw) => {
-      const v = bankSchema.parse(raw);
+      const v = schema.parse(raw);
       onSaved(await addBankAccount({ holderName: v.holderName, accountNumber: v.accountNumber, ifsc: v.ifsc }));
     },
-    "Bank account verified"
+    "Bank account verified",
+    { autosave: false }
   );
 
   return (
@@ -87,6 +100,7 @@ export function BankForm({
               <FormControl>
                 <Input autoComplete="name" {...field} />
               </FormControl>
+              {names.length > 0 && <FormDescription>In the name of your company or its director: {names.join(" or ")}.</FormDescription>}
               <FormMessage />
             </FormItem>
           )}

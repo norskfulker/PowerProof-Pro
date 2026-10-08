@@ -1,10 +1,11 @@
 import { bundleTotals, priceInfo, ratingSummary } from "../../pricing";
+import type { Rates } from "../../fx";
 import { sb } from "../../supabase/browser";
 import type { Bundle, Question, Review, Store, StoreDesign } from "../../types";
 import { ApiError } from "../client";
 import type { ProductView, StorefrontView, StoreProduct } from "../storefront";
 import { must } from "./errors";
-import { collectionFrom, dealRuleFrom, designFrom, pagesFrom, productFrom, questionFrom, reviewFrom, storeFrom, type MediaRow, type ProductRow } from "./map";
+import { collectionFrom, currency, dealRuleFrom, designFrom, pagesFrom, productFrom, questionFrom, reviewFrom, storeFrom, type MediaRow, type ProductRow } from "./map";
 
 /**
  * The public storefront, read the way a buyer would: with the anon key, so the database's row
@@ -12,8 +13,8 @@ import { collectionFrom, dealRuleFrom, designFrom, pagesFrom, productFrom, quest
  */
 
 /** Columns an anonymous visitor may read (owner, GSTIN and PAN are never among them). */
-const STORE_COLS = "id, name, slug, tagline, logo_url, status, theme, theme_mode, currency_base, brand_color, support_email, refund_days, created_at";
-const PRODUCT_COLS = "id, store_id, title, slug, description, status, currency, price_minor, min_price_minor, compare_at_price_minor, cover_bg, sku, hsn_sac, tax_rate_bps, product_type, source_url, created_at, updated_at";
+const STORE_COLS = "id, name, slug, country, tagline, logo_url, status, theme, theme_mode, currency_base, brand_color, support_email, refund_days, created_at";
+const PRODUCT_COLS = "id, store_id, title, slug, description, status, currency, price_minor, min_price_minor, compare_at_price_minor, cover_bg, sku, hsn_sac, tax_rate_bps, product_type, fulfilment, source_url, created_at, updated_at";
 const REVIEW_COLS = "id, store_id, product_id, reviewer_name, rating, title, body, photos, status, creator_reply, replied_at, created_at, pinned";
 const QUESTION_COLS = "id, store_id, product_id, asker_name, body, answer, answered_at, status, created_at";
 
@@ -27,7 +28,7 @@ export async function load(slug: string): Promise<Loaded> {
   const client = sb();
   const storeRow = must(await client.from("stores").select(STORE_COLS).eq("slug", slug).maybeSingle(), { notFound: "Store" });
   const id = storeRow.id;
-  const [productRows, collRows, rules, pageRows, customPages, reviewRows, questionRows] = await Promise.all([
+  const [productRows, collRows, rules, pageRows, customPages, reviewRows, questionRows, fx] = await Promise.all([
     client.from("products").select(PRODUCT_COLS).eq("store_id", id).eq("status", "live").order("created_at", { ascending: false }),
     client.from("collections").select("*").eq("store_id", id).order("sort_order"),
     client.from("deal_rules").select("*").eq("store_id", id),
@@ -35,6 +36,7 @@ export async function load(slug: string): Promise<Loaded> {
     client.from("custom_pages").select("title, slug, status").eq("store_id", id).eq("status", "published").order("sort_order"),
     client.from("reviews").select(REVIEW_COLS).eq("store_id", id).order("created_at", { ascending: false }),
     client.from("questions").select(QUESTION_COLS).eq("store_id", id).order("created_at", { ascending: false }),
+    client.from("fx_rates").select("currency, per_usd"),
   ]);
   const prows = must(productRows) as ProductRow[];
   const pids = prows.map((p) => p.id);
@@ -65,8 +67,12 @@ export async function load(slug: string): Promise<Loaded> {
     .flatMap((r): Bundle[] => (r.kind === "bundle_discount" ? [{ id: r.id, name: r.name, productIds: r.productIds, pricing: { kind: "percent", percent: r.percent }, active: r.active }] : []))
     .filter((b) => b.productIds.every((pid) => byId.has(pid)));
 
+  const rates: Rates = {};
+  for (const r of fx.data ?? []) rates[currency(r.currency)] = Number(r.per_usd);
+
   const view: StorefrontView = {
     store,
+    rates,
     design,
     pages: pagesInfo.pages,
     extraPages: must(customPages).map((p) => ({ title: p.title, slug: p.slug })),

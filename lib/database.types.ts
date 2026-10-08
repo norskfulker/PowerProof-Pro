@@ -655,6 +655,9 @@ export type Database = {
       }
       payout_methods: {
         Row: {
+          asset: string | null
+          network: string | null
+          wallet_address: string | null
           account_last4: string | null
           bank_name: string | null
           created_at: string
@@ -670,6 +673,9 @@ export type Database = {
           verified_at: string | null
         }
         Insert: {
+          asset?: string | null
+          network?: string | null
+          wallet_address?: string | null
           account_last4?: string | null
           bank_name?: string | null
           created_at?: string
@@ -685,6 +691,9 @@ export type Database = {
           verified_at?: string | null
         }
         Update: {
+          asset?: string | null
+          network?: string | null
+          wallet_address?: string | null
           account_last4?: string | null
           bank_name?: string | null
           created_at?: string
@@ -779,8 +788,78 @@ export type Database = {
           },
         ]
       }
+      fx_rates: {
+        Row: { currency: string; per_usd: number; updated_at: string }
+        Insert: { currency: string; per_usd: number; updated_at?: string }
+        Update: { currency?: string; per_usd?: number; updated_at?: string }
+        Relationships: []
+      }
+      leads: {
+        Row: {
+          created_at: string
+          data: Json
+          email: string | null
+          id: string
+          kind: string
+          name: string | null
+          page_id: string | null
+          phone: string | null
+          slot_at: string | null
+          slot_minutes: number | null
+          store_id: string
+        }
+        Insert: never
+        Update: never
+        Relationships: []
+      }
+      marketplace_deals: {
+        Row: {
+          billing: string
+          billing_interval: string | null
+          created_at: string
+          ends_at: string | null
+          id: string
+          original_price_minor: number
+          pitch: string
+          price_minor: number
+          product_id: string
+          show_revenue: boolean
+          status: string
+          store_id: string
+          title: string
+          updated_at: string
+          verified_at: string | null
+        }
+        Insert: {
+          billing?: string
+          billing_interval?: string | null
+          ends_at?: string | null
+          original_price_minor: number
+          pitch: string
+          price_minor: number
+          product_id: string
+          show_revenue?: boolean
+          status?: string
+          store_id: string
+          title: string
+        }
+        Update: {
+          billing?: string
+          billing_interval?: string | null
+          ends_at?: string | null
+          original_price_minor?: number
+          pitch?: string
+          price_minor?: number
+          show_revenue?: boolean
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       plan_limits: {
         Row: {
+          max_pages: number | null
           ai_credits_monthly: number
           custom_domain: boolean
           max_products: number | null
@@ -789,6 +868,7 @@ export type Database = {
           platform_fee_bps: number
         }
         Insert: {
+          max_pages?: number | null
           ai_credits_monthly: number
           custom_domain?: boolean
           max_products?: number | null
@@ -797,6 +877,7 @@ export type Database = {
           platform_fee_bps?: number
         }
         Update: {
+          max_pages?: number | null
           ai_credits_monthly?: number
           custom_domain?: boolean
           max_products?: number | null
@@ -893,6 +974,7 @@ export type Database = {
       }
       products: {
         Row: {
+          fulfilment: string
           compare_at_price_minor: number | null
           cover_bg: Json | null
           created_at: string
@@ -913,6 +995,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          fulfilment?: string
           compare_at_price_minor?: number | null
           cover_bg?: Json | null
           created_at?: string
@@ -933,6 +1016,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          fulfilment?: string
           compare_at_price_minor?: number | null
           cover_bg?: Json | null
           created_at?: string
@@ -1169,6 +1253,47 @@ export type Database = {
           },
         ]
       }
+      tax_codes: {
+        Row: {
+          code: string
+          created_at: string
+          description: string
+          id: string
+          kind: string
+          rate_bps: number
+          store_id: string
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          description?: string
+          id?: string
+          kind: string
+          rate_bps: number
+          store_id: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          description?: string
+          id?: string
+          kind?: string
+          rate_bps?: number
+          store_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tax_codes_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       store_pages: {
         Row: {
           content: Json
@@ -1207,6 +1332,7 @@ export type Database = {
           business_type: string | null
           company_address: string | null
           created_at: string
+          country: string
           currency_base: string
           gstin: string | null
           id: string
@@ -1231,6 +1357,7 @@ export type Database = {
           business_type?: string | null
           company_address?: string | null
           created_at?: string
+          country?: string
           currency_base?: string
           gstin?: string | null
           id?: string
@@ -1255,6 +1382,7 @@ export type Database = {
           business_type?: string | null
           company_address?: string | null
           created_at?: string
+          country?: string
           currency_base?: string
           gstin?: string | null
           id?: string
@@ -1480,6 +1608,97 @@ export type Database = {
           out_token: string
         }[]
       }
+      booked_slots: {
+        Args: { p_from: string; p_page_slug: string; p_store_slug: string; p_to: string }
+        Returns: { slot_at: string; slot_minutes: number }[]
+      }
+      admin_verify_deal: { Args: { p_deal: string; p_on: boolean }; Returns: undefined }
+      marketplace_deals: {
+        Args: {
+          p_badge?: string
+          p_billing?: string
+          p_country?: string
+          p_fulfilment?: string
+          p_kind?: string
+          p_limit?: number
+          p_max_minor?: number
+          p_min_minor?: number
+          p_offset?: number
+          p_search?: string
+          p_sort?: string
+        }
+        Returns: {
+          billing: string
+          billing_interval: string | null
+          cover_bg: string | null
+          cover_url: string | null
+          created_at: string
+          currency: string
+          deal_id: string
+          ends_at: string | null
+          fulfilment: string
+          kind: string
+          original_minor: number
+          pitch: string
+          price_minor: number
+          product_slug: string
+          rating: number | null
+          revenue_30d_minor: number | null
+          revenue_minor: number | null
+          reviews: number
+          store_country: string | null
+          store_name: string
+          store_slug: string
+          title: string
+          trusted: boolean
+          units: number
+          verified: boolean
+        }[]
+      }
+      submit_lead: {
+        Args: {
+          p_data: Json
+          p_email: string
+          p_kind: string
+          p_minutes?: number
+          p_name: string
+          p_page_slug: string
+          p_phone: string
+          p_slot?: string
+          p_store_slug: string
+        }
+        Returns: undefined
+      }
+      create_order: {
+        Args: {
+          p_country: string
+          p_coupon: string
+          p_currency: string
+          p_deals: Json
+          p_discount: number
+          p_email: string
+          p_gateway_order_id: string
+          p_items: Json
+          p_name: string
+          p_phone: string
+          p_ref: string
+          p_store: string
+          p_subtotal: number
+          p_tax: number
+          p_total: number
+        }
+        Returns: string
+      }
+      issue_download_token: { Args: { p_order: string }; Returns: string }
+      order_for_token: { Args: { p_token: string }; Returns: string }
+      claim_download: { Args: { p_file: string; p_token: string }; Returns: { file_name: string; mime_type: string | null; storage_path: string }[] }
+      apply_refund: { Args: { p_gateway_refund_id: string; p_order: string; p_reason: string }; Returns: undefined }
+      track_event: { Args: { p_kind: string; p_path: string; p_product: string; p_session: string; p_source: string; p_store_slug: string }; Returns: undefined }
+      analytics_visits: { Args: { p_from: string; p_store: string; p_to: string }; Returns: Json }
+      get_order: { Args: { p_token: string }; Returns: Json }
+      lookup_order: { Args: { p_email: string; p_ref: string }; Returns: string }
+      submit_review: { Args: { p_body: string; p_product: string; p_rating: number; p_title: string; p_token: string }; Returns: undefined }
+      ask_question: { Args: { p_body: string; p_email: string; p_name: string; p_product: string; p_store_slug: string }; Returns: Json }
       gen_order_ref: { Args: never; Returns: string }
       is_admin: { Args: never; Returns: boolean }
       is_product_owner: { Args: { p_product: string }; Returns: boolean }

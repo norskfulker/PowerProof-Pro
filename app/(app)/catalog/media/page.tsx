@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ArrowRight, Film, ImageIcon, Search, Sparkles, Trash2, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { MediaUploader } from "@/components/media/media-uploader";
+import { StorageMeter } from "@/components/media/storage-meter";
 import { MediaImg } from "@/components/media/tile-background";
 import { ConfirmDialog } from "@/components/pp/confirm-dialog";
 import { EmptyState, ErrorState } from "@/components/pp/empty-state";
@@ -140,7 +141,7 @@ export default function MediaPage() {
       <title>Media · PowerProof</title>
       <PageHeader
         title="Media"
-        description="Every image, GIF and video you've uploaded or made with AI, across all your stores."
+        description="Every image, GIF and video you've uploaded or made with AI for this store."
         actions={
           <>
             <Button asChild variant="secondary"><Link href="/tools/ai-images"><Sparkles aria-hidden /> Create with AI</Link></Button>
@@ -148,6 +149,7 @@ export default function MediaPage() {
           </>
         }
       />
+      <StorageMeter />
       <div className="mb-5 flex flex-col gap-3 md:flex-row md:items-center">
         <div className="relative md:w-80">
           <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden />

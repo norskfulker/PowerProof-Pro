@@ -191,7 +191,8 @@ export function NavTree({
 
   const admin = tone === "admin";
   const render = (nodes: ResolvedNode[], depth: number): React.ReactNode =>
-    nodes.map((n) => {
+    nodes.map((n, i) => {
+      const last = i === nodes.length - 1;
       const kids = n.children?.length ? n.children : undefined;
       const expanded = kids ? isOpen(n.id) : undefined;
       const active = n.id === activeId;
@@ -213,7 +214,7 @@ export function NavTree({
               : "text-foreground/80 hover:bg-muted hover:text-foreground",
         collapsed && depth === 0 ? "justify-center px-0" : ""
       );
-      const indent = collapsed && depth === 0 ? undefined : { paddingLeft: `${0.75 + depth * 0.875}rem` };
+      const indent = collapsed && depth === 0 ? undefined : { paddingLeft: depth === 0 ? "0.75rem" : "0.5rem" };
       const content = (
         <>
           {active && <span className="absolute top-1.5 bottom-1.5 -left-3 w-1 rounded-r-full bg-accent" aria-hidden />}
@@ -245,18 +246,18 @@ export function NavTree({
         style: indent,
         title: collapsed && depth === 0 ? n.label : undefined,
       };
+      const line = admin ? "bg-sidebar-admin-foreground/25" : "bg-border-strong";
       return (
-        <li key={n.id} role="none">
+        <li key={n.id} role="none" className={cn(depth > 0 && "relative ml-3 pl-3")}>
+          {/* The tree: a line down the side of a group's items, with a short branch to each */}
+          {depth > 0 && (
+            <>
+              <span aria-hidden className={cn("absolute top-0 left-0 w-px", line, last ? "h-[1.125rem]" : "h-full")} />
+              <span aria-hidden className={cn("absolute top-[1.125rem] left-0 h-px w-3", line)} />
+            </>
+          )}
           {n.href && !n.locked ? (
-            <Link
-              {...common}
-              href={n.href}
-              onClick={(e) => {
-                if (kids && !expanded) toggle(n.id, true);
-                onNavigate?.();
-                if (e.defaultPrevented) return;
-              }}
-            >
+            <Link {...common} href={n.href} onClick={() => onNavigate?.()}>
               {content}
             </Link>
           ) : (

@@ -15,6 +15,7 @@ export type SectionId =
   | "new"
   | "offers"
   | "reviews"
+  | "html"
   | "about"
   | "faq"
   | "newsletter";
@@ -28,6 +29,16 @@ export type PaletteId = "emerald" | "midnight" | "plum" | "terracotta" | "ocean"
 export type FontPairId = "modern" | "editorial" | "clean";
 export type HeroStyle = "left" | "centered" | "full";
 
+/** The store's own font file, uploaded to its media folder */
+export interface CustomFont {
+  /** Shown in the editor */
+  name: string;
+  src: string;
+  format: "woff2" | "woff" | "truetype" | "opentype";
+  /** Where it is used; everything else keeps the chosen font pairing */
+  use: "both" | "headings" | "body";
+}
+
 export interface StoreTheme {
   palette: PaletteId;
   /** Hex. Overrides the palette's accent. */
@@ -38,6 +49,8 @@ export interface StoreTheme {
   mode?: "light" | "dark" | "auto";
   /** The brand colour (stores.brand_color), mirrored here so the storefront can paint with it. The column wins. */
   brand?: string;
+  /** The store's own uploaded font. Overrides the chosen pairing where it applies. */
+  customFont?: CustomFont;
   /** Buttons and corners, in three steps */
   corners?: "sharp" | "soft" | "round";
 }
@@ -76,6 +89,15 @@ export interface AboutContent {
   photo?: MediaRef;
 }
 
+/** A section built from an HTML file the creator uploaded. Shown in a sandboxed frame. */
+export interface HtmlSectionContent {
+  /** The file name, for the editor */
+  name: string;
+  source: string;
+  /** Pixels, when the page can't tell its own height */
+  height?: number;
+}
+
 export interface StoreDesign {
   sections: SectionSetting[];
   theme: StoreTheme;
@@ -85,10 +107,21 @@ export interface StoreDesign {
   socials: SocialLinks;
   seo: { title: string; description: string };
   newsletter: { heading: string; body: string };
+  /** The uploaded HTML for the "Custom HTML" section */
+  html?: HtmlSectionContent;
   /** Optional add-on offered at checkout */
   orderBump?: { productId: string; price: Money; label: string };
   showPoweredBy: boolean;
   customDomain?: string;
+  /** Analytics tags added to every page of this store (after the visitor agrees) */
+  analytics?: AnalyticsTags;
+}
+
+export interface AnalyticsTags {
+  /** Google Analytics 4 measurement ID, like G-ABC123XYZ */
+  ga4Id?: string;
+  /** Microsoft Clarity project ID */
+  clarityId?: string;
 }
 
 export interface FaqItem {

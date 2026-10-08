@@ -1,23 +1,18 @@
-import type { Metadata } from "next";
-import Link from "next/link";
-import { BuyerShell } from "@/components/buyer/buyer-shell";
-import { ComingSoon } from "@/components/pp/coming-soon";
-import { Button } from "@/components/ui/button";
+"use client";
 
-export const metadata: Metadata = { title: "Order" };
+import { Suspense } from "react";
+import { useSearchParams } from "next/navigation";
+import { OrderPage } from "@/components/buyer/order-view";
 
+/** Where a buyer lands right after paying: the link token travels in the address. */
 export default function Page() {
   return (
-    <BuyerShell narrow>
-      <ComingSoon
-        title="Order pages open soon"
-        body="Your order page and downloads appear here once payments are connected."
-        action={
-          <Button asChild variant="secondary">
-            <Link href="/">Back to PowerProof</Link>
-          </Button>
-        }
-      />
-    </BuyerShell>
+    <Suspense>
+      <Inner />
+    </Suspense>
   );
+}
+
+function Inner() {
+  return <OrderPage token={useSearchParams().get("t")} justPaid />;
 }

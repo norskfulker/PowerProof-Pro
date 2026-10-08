@@ -42,6 +42,8 @@ export interface Product {
   title: string;
   description: string;
   kind: ProductKind;
+  /** What buyers get: a download, or something shipped to them. Chosen first, and fixed once saved. */
+  fulfilment: "digital" | "physical";
   price: Money;
   compareAt?: Money;
   /** Lowest price deal paths may discount this product to. None = no floor. */
@@ -55,6 +57,8 @@ export interface Product {
   files: ProductFile[];
   sku: string;
   taxCode: string;
+  /** GST rate in percent for the tax code (a custom code carries its own) */
+  taxRate?: number;
   status: ProductStatus;
   sourceUrl?: string;
   pageId?: string;
@@ -67,8 +71,8 @@ export interface Product {
 
 export type ProductInput = Pick<
   Product,
-  "title" | "description" | "kind" | "price" | "images" | "files" | "sku" | "taxCode" | "status" | "video" | "tileBackground"
-> & { sourceUrl?: string; compareAt?: Money };
+  "title" | "description" | "kind" | "fulfilment" | "price" | "images" | "files" | "sku" | "taxCode" | "status" | "video" | "tileBackground"
+> & { sourceUrl?: string; compareAt?: Money; taxRate?: number };
 
 export interface LinkAutofill {
   url: string;

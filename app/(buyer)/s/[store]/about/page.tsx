@@ -19,7 +19,6 @@ export default function StoreAboutPage() {
       ) : (
         <Avatar className="size-28"><AvatarFallback className="bg-accent-soft font-display text-4xl text-accent-ink">{about.initials}</AvatarFallback></Avatar>
       )}
-      <p className="eyebrow mt-6">{about.location}</p>
       <h1 className="mt-2 text-[2.5rem] leading-tight md:text-5xl">Hi, I&apos;m {about.name.split(" ")[0]}.</h1>
       <p className="mt-5 text-lg leading-relaxed whitespace-pre-line text-foreground/85">{about.story}</p>
       <dl className="mt-8 grid grid-cols-2 gap-3">

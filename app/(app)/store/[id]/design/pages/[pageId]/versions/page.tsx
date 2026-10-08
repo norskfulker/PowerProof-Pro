@@ -22,7 +22,6 @@ export default function VersionsPage({ params }: { params: Promise<{ id: string;
       <title>{`Versions · ${data?.page.title ?? "Page"} · PowerProof`}</title>
       <PageHeader
         title="Versions"
-        eyebrow={data?.page.title}
         back={{ href: "/store/current/design/pages", label: "Store pages" }}
         description="A version is saved every time you publish. Restoring one puts it in your draft so you can check it before publishing again."
         actions={

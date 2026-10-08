@@ -64,6 +64,10 @@ const SOURCES: Record<string, string> = {
   youtube: "YouTube",
   twitter: "X (Twitter)",
   newsletter: "Newsletter",
+  facebook: "Facebook",
+  linkedin: "LinkedIn",
+  whatsapp: "WhatsApp",
+  other: "Other sites",
 };
 
 export function sourceLabel(s: string): string {

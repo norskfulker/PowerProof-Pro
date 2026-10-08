@@ -3,7 +3,7 @@
 import { navHref } from "@/lib/nav/model";
 import { Suspense, useMemo } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import type { ColumnDef } from "@tanstack/react-table";
 import { Download, Receipt } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -12,19 +12,13 @@ import { EmptyState } from "@/components/pp/empty-state";
 import { MoneyText } from "@/components/pp/money-text";
 import { PageHeader } from "@/components/pp/page-header";
 import { StatusPill } from "@/components/pp/status-pill";
+import { StatusTabs } from "@/components/pp/status-tabs";
 import { useApi } from "@/hooks/use-api";
 import { getOrders } from "@/lib/api";
 import { formatMoney } from "@/lib/money";
 import { countryShort, formatDate, timeAgo } from "@/lib/format";
 import type { Order } from "@/lib/types";
 
-const STATUSES = [
-  { value: "paid", label: "Paid" },
-  { value: "refund_requested", label: "Refund asked" },
-  { value: "refunded", label: "Refunded" },
-  { value: "pending", label: "Pending" },
-  { value: "failed", label: "Failed" },
-];
 
 function exportCsv(rows: Order[]) {
   const head = ["Order", "Date", "Buyer", "Email", "Country", "Product", "Status", "Paid", "Settled INR", "Fees INR", "Net INR", "Invoice"];
@@ -43,10 +37,11 @@ function exportCsv(rows: Order[]) {
 function OrdersTable() {
   const params = useSearchParams();
   const productId = params.get("product") ?? undefined;
-  const raw = params.get("status");
+  const router = useRouter();
+  const tab = (["paid", "refunded", "disputed"] as const).find((s) => s === params.get("status")) ?? "all";
   // "disputed" isn't an order status: it narrows the list to orders with an open dispute
-  const disputed = raw === "disputed";
-  const status = disputed ? null : raw;
+  const disputed = tab === "disputed";
+  const status = tab === "paid" || tab === "refunded" ? tab : null;
   const { data, loading, error, reload } = useApi(() => getOrders({ productId, disputed }), [productId, disputed], { live: true });
 
   const columns = useMemo<ColumnDef<Order, unknown>[]>(
@@ -87,17 +82,27 @@ function OrdersTable() {
   );
 
   return (
+    <>
+    <StatusTabs
+      label="Order status"
+      value={tab}
+      onChange={(v) => router.replace(v === "all" ? "/sales/orders" : `/sales/orders?status=${v}`, { scroll: false })}
+      tabs={[
+        { value: "all", label: "All" },
+        { value: "paid", label: "Paid" },
+        { value: "refunded", label: "Refunded" },
+        { value: "disputed", label: "Disputed" },
+      ]}
+    />
     <DataTable
-      key={raw ?? "all"}
+      key={tab}
       label="Orders"
       columns={columns}
-      data={data}
+      data={status ? data?.filter((o) => o.status === status) : data}
       loading={loading && !data}
       error={error}
       onRetry={reload}
       searchPlaceholder="Search order, buyer or product"
-      filters={[{ columnId: "status", label: "Statuses", options: STATUSES }]}
-      initialFilters={status ? [{ id: "status", value: status }] : []}
       rowHref={(o) => `/sales/orders/${o.id}`}
       toolbar={
         <Button variant="secondary" onClick={() => data && exportCsv(data)} disabled={!data?.length}>
@@ -122,6 +127,7 @@ function OrdersTable() {
       )}
       empty={<EmptyState nextStep icon={Receipt} title="Nothing sold yet." body="Your first sale will show up here. Share your store link to get things going." action={<Button asChild><Link href={navHref("dashboard")}>Get your store link</Link></Button>} />}
     />
+    </>
   );
 }
 

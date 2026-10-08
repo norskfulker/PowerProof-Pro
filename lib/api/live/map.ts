@@ -1,6 +1,7 @@
 import type { Database, Json } from "../../database.types";
 import { defaultDesign as defaultDesignFor, defaultPages } from "../../defaults/store";
 import { initialsOf } from "../../slug";
+import { DEFAULT_SECTIONS } from "../../store-themes";
 import type {
   AboutContent,
   Collection,
@@ -100,6 +101,8 @@ export function productFrom(row: ProductRow, media: MediaRow[] = [], files: File
       .map((f) => ({ id: f.id, name: f.file_name, size: Number(f.size_bytes), mime: f.mime_type ?? "application/octet-stream", path: f.storage_path })),
     sku: row.sku ?? "",
     taxCode: row.hsn_sac ?? "",
+    taxRate: row.tax_rate_bps === null || row.tax_rate_bps === undefined ? undefined : Number(row.tax_rate_bps) / 100,
+    fulfilment: row.fulfilment === "physical" ? "physical" : "digital",
     status: fromDbStatus(row.status),
     sourceUrl: row.source_url ?? undefined,
     createdAt: row.created_at,
@@ -123,6 +126,7 @@ export function storeFrom(row: StoreRow, owner: { name: string; email: string },
     ownerEmail: owner.email,
     brandColor: row.brand_color ?? DEFAULT_BRAND,
     logoText: initials(row.name),
+    country: row.country ?? "IN",
     currency: currency(row.currency_base),
     supportEmail: row.support_email ?? owner.email,
     refundPolicy,
@@ -144,6 +148,8 @@ export function designFrom(store: Store, theme: Json, mode: string, about?: Abou
   const base = defaultDesign(store);
   // The brand colour lives in stores.brand_color: it always wins over any copy in the JSON
   const design: StoreDesign = { ...base, ...saved, theme: { ...base.theme, ...saved.theme, mode: (mode as StoreDesign["theme"]["mode"]) ?? "auto", brand: store.brandColor } };
+  // Designs saved before a section existed get it added (off), so it can be switched on
+  design.sections = [...design.sections, ...DEFAULT_SECTIONS.filter((id) => !design.sections.some((s) => s.id === id)).map((id) => ({ id, enabled: false }))];
   if (about) design.about = about;
   return design;
 }
@@ -270,18 +276,13 @@ export function questionFrom(row: QuestionRow, creatorName: string): Question {
 /* Payouts ------------------------------------------------------------------ */
 
 export function payoutMethodFrom(row: Omit<T["payout_methods"]["Row"], "gateway_fund_account_id"> & { gateway_fund_account_id?: string | null }): PayoutMethod {
+  const base = { id: row.id, holderName: row.holder_name, verified: Boolean(row.verified_at), primary: row.is_default };
+  if (row.kind === "crypto") {
+    const addr = row.wallet_address ?? "";
+    return { ...base, kind: "crypto", label: `${row.asset ?? "Crypto"} on ${row.network ?? "?"}`, last4: addr.slice(-4), asset: row.asset ?? undefined, network: row.network ?? undefined, address: addr };
+  }
   const upi = row.kind === "upi";
-  return {
-    id: row.id,
-    kind: "bank",
-    label: upi ? "UPI" : row.bank_name ?? "Bank account",
-    last4: upi ? row.upi_masked ?? "" : row.account_last4 ?? "",
-    holderName: row.holder_name,
-    ifsc: row.ifsc ?? undefined,
-    bankName: row.bank_name ?? undefined,
-    verified: Boolean(row.verified_at),
-    primary: row.is_default,
-  };
+  return { ...base, kind: upi ? "upi" : "bank", label: upi ? "UPI" : row.bank_name ?? "Bank account", last4: upi ? row.upi_masked ?? "" : row.account_last4 ?? "", ifsc: row.ifsc ?? undefined, bankName: row.bank_name ?? undefined };
 }
 
 export function payoutFrom(row: T["payouts"]["Row"], methods: PayoutMethod[]): Payout {

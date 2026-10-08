@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { ArrowDown, ArrowUp, FolderOpen, Loader2, Pencil, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
@@ -26,7 +27,8 @@ type Draft = Omit<Collection, "id" | "slug"> & { id?: string };
 
 export default function CollectionsPage() {
   const { data, loading, error, reload, setData } = useApi(getCollections, []);
-  const products = useApi(() => getProducts({ status: "published" }), []);
+  // Every product that isn't archived, so a collection can be built before its products are live
+  const products = useApi(() => getProducts().then((l) => l.filter((p) => p.status !== "archived")), []);
   const [draft, setDraft] = useState<Draft | null>(null);
   const [original, setOriginal] = useState<Draft | null>(null);
   const [formError, setFormError] = useState<string>();
@@ -44,6 +46,7 @@ export default function CollectionsPage() {
     },
     onDiscard: () => setDraft(original),
     savedMessage: original?.id ? "Collection updated" : "Collection added",
+    autosave: false,
   });
   const [toDelete, setToDelete] = useState<Collection | null>(null);
 
@@ -113,16 +116,25 @@ export default function CollectionsPage() {
               />
               <fieldset>
                 <legend className="mb-2 text-sm font-medium">Products ({draft.productIds.length})</legend>
+                {products.error ? (
+                  <p role="alert" className="text-sm text-danger">We couldn&apos;t load your products. <button type="button" className="underline underline-offset-4" onClick={products.reload}>Try again</button></p>
+                ) : !products.data ? (
+                  <p className="min-h-11 text-sm text-muted-foreground">Loading products…</p>
+                ) : products.data.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No products yet. <Link href="/catalog/products/new" className="font-medium text-primary underline underline-offset-4">Add one</Link>, then put it here.</p>
+                ) : (
                 <ul className="max-h-72 overflow-y-auto rounded-control border p-1">
-                  {products.data?.map((p) => (
+                  {products.data.map((p) => (
                     <li key={p.id}>
                       <label className="flex min-h-11 items-center gap-3 rounded-[6px] px-2 text-sm hover:bg-muted">
                         <Checkbox checked={draft.productIds.includes(p.id)} onCheckedChange={(v) => setDraft({ ...draft, productIds: v ? [...draft.productIds, p.id] : draft.productIds.filter((x) => x !== p.id) })} />
-                        <span className="truncate">{p.title}</span>
+                        <span className="min-w-0 flex-1 truncate">{p.title}</span>
+                        {p.status !== "published" && <span className="shrink-0 text-xs text-muted-foreground">Draft: shows once it&apos;s live</span>}
                       </label>
                     </li>
                   ))}
                 </ul>
+                )}
               </fieldset>
             </form>
           )}

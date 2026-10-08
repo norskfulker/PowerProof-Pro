@@ -21,13 +21,34 @@ const FOLDERS = [
 /** "9b2…-summer-sale.png" → "summer-sale" */
 const displayName = (file: string) => file.replace(/^[0-9a-f-]{36}-/i, "").replace(/\.[^.]+$/, "") || "Untitled";
 
+const PAGE = 100;
+
+/** Every object in a folder: Storage hands them out a page at a time. */
+async function listAll(folder: string) {
+  const bucket = sb().storage.from("store-media");
+  const out: Awaited<ReturnType<typeof bucket.list>>["data"] = [];
+  for (let offset = 0; ; offset += PAGE) {
+    const { data, error } = await bucket.list(folder, { limit: PAGE, offset, sortBy: { column: "created_at", order: "desc" } });
+    if (error) throw new ApiError("We couldn't load your media. Refresh to try again.");
+    out.push(...(data ?? []));
+    if ((data?.length ?? 0) < PAGE) return out;
+  }
+}
+
+/** Bytes this store's library holds (uploads and AI images). */
+export async function getStorageUsage(): Promise<{ used: number; files: number }> {
+  const storeId = await activeStoreId();
+  const lists = await Promise.all(FOLDERS.map(({ folder }) => listAll(`${storeId}/${folder}`)));
+  const objects = lists.flat().filter((o) => o?.id && o.name !== ".emptyFolderPlaceholder");
+  return { used: objects.reduce((t, o) => t + Number((o.metadata as { size?: number } | null)?.size ?? 0), 0), files: objects.length };
+}
+
 export async function listMedia(): Promise<MediaItem[]> {
   const storeId = await activeStoreId();
   const bucket = sb().storage.from("store-media");
   const lists = await Promise.all(
     FOLDERS.map(async ({ folder, source }) => {
-      const { data, error } = await bucket.list(`${storeId}/${folder}`, { limit: 1000, sortBy: { column: "created_at", order: "desc" } });
-      if (error) throw new ApiError("We couldn't load your media. Refresh to try again.");
+      const data = await listAll(`${storeId}/${folder}`);
       return (data ?? [])
         .filter((o) => o.id && o.name !== ".emptyFolderPlaceholder")
         .map((o): MediaItem | null => {

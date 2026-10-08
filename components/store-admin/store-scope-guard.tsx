@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { ErrorState } from "@/components/pp/empty-state";
 import { StoreBadge } from "@/components/store-admin/store-badge";
+import { StoreTabs } from "@/components/store-admin/store-tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getActiveStoreId, getOwnedStores, switchStore } from "@/lib/api";
 
@@ -52,6 +53,8 @@ export function StoreScopeGuard({ storeId, children, badge = true }: { storeId: 
   return (
     <>
       {badge && <StoreBadge />}
+      {/* Store settings and Domain belong to Settings; everything else in the Store area has tabs */}
+      {!pathname.endsWith("/settings") && !pathname.endsWith("/domain") && <StoreTabs />}
       {children}
     </>
   );

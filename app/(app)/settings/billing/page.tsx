@@ -53,7 +53,7 @@ export default function BillingPage() {
         { id: "usage", label: "Usage and limits", content: (
       <SettingsSection
         title="Usage and limits"
-        description={planCtx.state?.tier === "free" ? "Free includes one store and one product. You'll be asked before anything stops." : "Pro has no limits on stores or products."}
+        description={planCtx.state?.tier === "free" ? "Free includes one store, up to 10 products and 3 pages. You'll be asked before anything stops." : "Pro has no limits on stores or products."}
       >
         <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
           <PlanUsage tone="card" className="lg:w-72" />

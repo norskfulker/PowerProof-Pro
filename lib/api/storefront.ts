@@ -1,3 +1,7 @@
+import { sb } from "../supabase/browser";
+import { questionFrom } from "./live/map";
+import { submitLead } from "./leads";
+import type { Rates } from "../fx";
 import type { Bundle, Collection, Money, PriceInfo, Product, Question, RatingSummary, Review, Store, StoreDesign, StorePages } from "../types";
 import { ApiError } from "./client";
 import * as live from "./live/storefront";
@@ -26,6 +30,8 @@ export interface StorefrontView {
   topReviews: (Review & { productTitle: string; productSlug: string })[];
   /** Published visual pages, for the footer */
   extraPages: { title: string; slug: string }[];
+  /** Units per US dollar, for showing prices in another currency. Empty until rates are loaded into the database. */
+  rates?: Rates;
 }
 
 export const getStorefront = (slug: string): Promise<StorefrontView> => live.getStorefront(slug);
@@ -48,6 +54,22 @@ export const getStoreProduct = (slug: string, productSlug: string): Promise<Prod
 const SOON = "This opens soon.";
 export const reportReview = (_reviewId: string): Promise<void> => Promise.reject(new ApiError(SOON, "validation"));
 export const reportQuestion = (_questionId: string): Promise<void> => Promise.reject(new ApiError(SOON, "validation"));
-export const askQuestion = (_slug: string, _productId: string, _input: { name: string; email: string; body: string }): Promise<Question> => Promise.reject(new ApiError("Questions open soon. For now, write to the store's support email.", "validation"));
-export const subscribeNewsletter = (_slug: string, _email: string): Promise<void> => Promise.reject(new ApiError("The newsletter opens soon.", "validation"));
-export const sendContactMessage = (_slug: string, _input: { name: string; email: string; message: string }): Promise<void> => Promise.reject(new ApiError("The contact form opens soon. Write to the store's support email for now.", "validation"));
+const QUESTION: Record<string, string> = {
+  question_product_not_found: "That product isn't for sale right now.",
+  question_invalid: "Add your name, a valid email and a question of at least a few words.",
+  question_rate_limited: "You've asked a lot today. Please try again tomorrow.",
+};
+/** Straight to the database: ask_question checks the product is live and limits how many a day. */
+export async function askQuestion(slug: string, productId: string, input: { name: string; email: string; body: string }): Promise<Question> {
+  const r = await sb().rpc("ask_question", { p_store_slug: slug, p_product: productId, p_name: input.name, p_email: input.email, p_body: input.body });
+  if (r.error || !r.data) {
+    const key = Object.keys(QUESTION).find((k) => r.error?.message.includes(k));
+    throw new ApiError(key ? QUESTION[key] : "That didn't send. Please try again.", "validation");
+  }
+  return questionFrom(r.data as unknown as Parameters<typeof questionFrom>[0], "");
+}
+/** A newsletter signup is saved as a lead of its own kind, one per address per store. */
+export const subscribeNewsletter = (slug: string, email: string): Promise<void> => submitLead(slug, null, { kind: "newsletter", email });
+/** The contact form is saved as a lead of its own kind, so it shows up under Sales › Leads. */
+export const sendContactMessage = (slug: string, input: { name: string; email: string; message: string }): Promise<void> =>
+  submitLead(slug, null, { kind: "contact", name: input.name, email: input.email, data: { Message: input.message } });

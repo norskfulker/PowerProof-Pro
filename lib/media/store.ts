@@ -6,7 +6,8 @@
 export const MB = 1024 * 1024;
 
 export const MEDIA_LIMITS = {
-  image: { max: 5 * MB, types: ["image/jpeg", "image/png", "image/webp"], label: "JPG, PNG or WebP up to 5 MB" },
+  // Photos are compressed on upload, so the limit is on the original; the stored copy is much smaller
+  image: { max: 40 * MB, types: ["image/jpeg", "image/png", "image/webp"], label: "JPG, PNG or WebP (shrunk for you)" },
   gif: { max: 5 * MB, types: ["image/gif"], label: "GIF up to 5 MB" },
   video: { max: 10 * MB, types: ["video/mp4", "video/webm"], label: "MP4 or WebM up to 10 MB" },
 } as const;

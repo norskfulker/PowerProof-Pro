@@ -29,9 +29,8 @@ test("company details, PAN and business type are saved on the store @flow", asyn
   await page.getByRole("combobox", { name: "State" }).click();
   await page.getByRole("option", { name: "Maharashtra" }).click();
   await page.getByLabel("PIN code").fill("400001");
-  await expect(saveBar(page)).toBeVisible();
-  await saveBar(page).getByRole("button", { name: "Save changes" }).click();
-  await expect(saveBar(page)).toBeHidden({ timeout: 10_000 });
+  // The company form saves itself a moment after the last edit
+  await expect(page.getByRole("status").filter({ hasText: "All changes saved" })).toBeVisible({ timeout: 10_000 });
 
   const row = (await (await db()).from("stores").select("legal_name, pan, business_type, company_address").eq("id", A.storeId).single()).data;
   expect(row).toMatchObject({ legal_name: "E2E Test Studio", pan: "ABCDE1234F", business_type: "sole_proprietor" });

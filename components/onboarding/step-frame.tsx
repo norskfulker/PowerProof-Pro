@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 export function StepFrame({
   title,
   description,
-  timeLeft,
   children,
   onBack,
   onSkip,
@@ -16,7 +15,6 @@ export function StepFrame({
 }: {
   title: string;
   description?: React.ReactNode;
-  timeLeft?: string;
   children: React.ReactNode;
   onBack?: () => void;
   onSkip?: () => void;
@@ -30,7 +28,6 @@ export function StepFrame({
   return (
     <section aria-labelledby={`${formId}-title`} className="rounded-dialog border bg-surface">
       <div className="p-6 sm:p-8">
-        {timeLeft && <p className="eyebrow mb-3">{timeLeft}</p>}
         <h1 id={`${formId}-title`} className="text-[1.75rem]">
           {title}
         </h1>

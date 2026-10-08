@@ -27,6 +27,7 @@ function product(n: number, over: Partial<Product> = {}): Product {
     title,
     description: `${title}. A made-up product for tests.`,
     kind: "ebook",
+    fulfilment: "digital",
     price: fromMajor(500 + n * 100),
     images: [
       { id: `img_fx_${n}_1`, alt: `${title} cover`, cover: { template: "split", title, subtitle: "Fixture", ...pal } },
@@ -52,6 +53,7 @@ const store: Store = {
   name: "Fixture Store",
   slug: "fixture-store",
   tagline: "A made-up store for tests.",
+  country: "IN",
   ownerName: "Test Owner",
   ownerEmail: "owner@test.invalid",
   brandColor: "#0F3D33",
@@ -178,6 +180,6 @@ export const INR = (n: number) => fromMajor(n);
 
 /** Plan limits as the plan_limits table would return them. */
 export const TEST_PLAN_LIMITS = {
-  free: { stores: 1, products: 1, aiCredits: 10, customDomain: false },
-  pro: { stores: null, products: null, aiCredits: 200, customDomain: true },
+  free: { stores: 1, products: 10, pages: 3, aiCredits: 10, customDomain: false },
+  pro: { stores: null, products: null, pages: null, aiCredits: 200, customDomain: true },
 };

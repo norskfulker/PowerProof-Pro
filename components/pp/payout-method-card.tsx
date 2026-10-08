@@ -16,8 +16,8 @@ export function PayoutMethodCard({
   className?: string;
   action?: React.ReactNode;
 }) {
-  const Icon = method.kind === "bank" ? Landmark : Coins;
-  const disabled = method.comingSoon;
+  const Icon = method.kind === "crypto" ? Coins : Landmark;
+  const disabled = false;
   const body = (
     <>
       <span className={cn("grid size-11 shrink-0 place-items-center rounded-control", disabled ? "bg-muted text-muted-foreground" : "bg-primary-soft text-primary")}>
@@ -26,18 +26,16 @@ export function PayoutMethodCard({
       <span className="flex min-w-0 flex-1 flex-col">
         <span className="flex flex-wrap items-center gap-2 font-semibold">
           {method.label}
-          {method.comingSoon ? (
-            <StatusPill status="coming_soon" />
-          ) : method.primary ? (
+          {method.primary ? (
             <StatusPill status="primary" label="Primary" tone="neutral" />
           ) : null}
         </span>
         <span className="truncate text-sm text-muted-foreground">
-          {method.comingSoon
-            ? "Get paid in USDT on TRON. We'll tell you when it's live."
+          {method.kind === "crypto" && method.address
+            ? `${method.address.slice(0, 6)}…${method.address.slice(-6)}`
             : `${method.holderName} · ····${method.last4}${method.ifsc ? ` · ${method.ifsc}` : ""}`}
         </span>
-        {!method.comingSoon && method.verified && (
+        {method.kind !== "crypto" && method.verified && (
           <span className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-success">
             <ShieldCheck className="size-3.5" aria-hidden /> Verified with a ₹1 test deposit
           </span>

@@ -2,6 +2,8 @@
 
 import { useId, useRef, useState } from "react";
 import { AlertTriangle, Film, ImagePlus, Library, Loader2, RefreshCw, Trash2, Upload, X } from "lucide-react";
+import { toast } from "sonner";
+import { formatBytes } from "@/lib/money";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -75,6 +77,7 @@ export function MediaUploader({
     try {
       const item = await uploadMedia(file, { kinds, onProgress: setProgress, signal: abort.current.signal, alt: value?.alt });
       onChange({ src: item.src, alt: value?.alt || "", kind: item.kind, focal: { x: 50, y: 50 } });
+      if (item.saved && item.saved > 50 * 1024) toast.success(`Shrunk to ${formatBytes(item.size)}`, { description: `Saved ${formatBytes(item.saved)} of your storage.` });
     } catch (e) {
       if (!(e instanceof DOMException && e.name === "AbortError")) setError(e instanceof Error ? e.message : "The upload didn't finish. Try again.");
     } finally {

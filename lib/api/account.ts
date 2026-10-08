@@ -14,7 +14,7 @@ export interface PlanState {
   plan: Plan;
   tier: PlanTier;
   limits: PlanLimits;
-  usage: { stores: number; products: number };
+  usage: { stores: number; products: number; pages: number };
 }
 
 export { LimitError } from "./client";

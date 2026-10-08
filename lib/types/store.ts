@@ -9,6 +9,8 @@ export interface Store {
   ownerEmail: string;
   brandColor: string;
   logoText: string;
+  /** Where the creator is based (ISO code). It decides the currency, and both are fixed once there are products. */
+  country: string;
   currency: CurrencyCode;
   supportEmail: string;
   refundPolicy: string;

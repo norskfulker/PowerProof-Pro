@@ -11,6 +11,8 @@ import {
   Image as ImageIcon,
   LayoutGrid,
   LayoutTemplate,
+  CalendarClock,
+  ClipboardList,
   Mail,
   Minus,
   MousePointerClick,
@@ -49,6 +51,8 @@ export const BLOCK_ICONS: Record<BlockType, LucideIcon> = {
   faq: HelpCircle,
   countdown: Timer,
   newsletter: Mail,
+  lead_form: ClipboardList,
+  booking: CalendarClock,
 };
 
 const HINTS: Partial<Record<BlockType, string>> = {
@@ -58,6 +62,8 @@ const HINTS: Partial<Record<BlockType, string>> = {
   product_grid: "Products or a collection",
   highlights: "Icon and a short line",
   newsletter: "Collect emails",
+  lead_form: "Name, email and answers",
+  booking: "Visitors pick a free time",
 };
 
 /** Searchable list of blocks. Adds after the selection (or into it, if it's a container). */

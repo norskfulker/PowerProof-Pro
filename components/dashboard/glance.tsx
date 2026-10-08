@@ -34,8 +34,8 @@ export function Glance({
     <div className="grid grid-cols-2 gap-3 md:gap-4 lg:grid-cols-3 xl:grid-cols-5">
       <StatCard label="Sales" loading={!show} value={s && formatNumber(s.sales)} delta={s?.deltas.sales} hint={hint} />
       <StatCard label="Revenue" loading={!show} value={s && <MoneyText value={s.revenue} />} delta={s?.deltas.revenue} hint={hint} />
-      <StatCard label="Visitors" loading={!show} value={s && <NoData />} hint="Visits aren't tracked yet" />
-      <StatCard label="Conversion" loading={!show} value={s && <NoData />} hint="Needs visitor tracking" />
+      <StatCard label="Visitors" loading={!show} value={s && (s.visitors == null ? <NoData /> : formatNumber(s.visitors))} delta={s?.deltas.visitors} hint={s?.visitors == null ? "Visits couldn't be read" : hint} />
+      <StatCard label="Conversion" loading={!show} value={s && (s.conversion == null ? <NoData /> : `${s.conversion.toFixed(1)}%`)} delta={s?.deltas.conversion} hint={s?.conversion == null ? "Needs visitor tracking" : "visitors who paid"} />
       <StatCard
         label="Available to withdraw"
         className="col-span-2 lg:col-span-1"

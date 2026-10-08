@@ -54,7 +54,7 @@ const TITLES: Record<OfferSection, [string, string]> = {
 export function OffersManager({ section, storeId, tabs = true }: { section: OfferSection; storeId: string; tabs?: boolean }) {
   const router = useRouter();
   const { data, loading, error, reload, setData } = useApi(getOffers, []);
-  const products = useApi(() => getProducts({ status: "published" }), []);
+  const products = useApi(() => getProducts().then((l) => l.filter((p) => p.status !== "archived")), []);
   const [editing, setEditing] = useState<Editing | null>(null);
   const [original, setOriginal] = useState<Editing | null>(null);
   const unsaved = useUnsavedGuard();
@@ -77,6 +77,7 @@ export function OffersManager({ section, storeId, tabs = true }: { section: Offe
     },
     onDiscard: () => setEditing(original),
     savedMessage: "Offer saved. It's live on your store straight away.",
+    autosave: false,
   });
   const isNew = !editing?.d.id;
 

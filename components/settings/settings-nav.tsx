@@ -5,7 +5,8 @@ import { usePathname } from "next/navigation";
 import { CREATOR_NAV } from "@/lib/nav/config";
 
 // The Settings section of the one nav config (Part 7C)
-const SETTINGS = CREATOR_NAV.find((n) => n.id === "settings")!.children!.map((n) => ({ href: n.href!, label: n.label }));
+// Store settings and Domain live on store pages; "current" is turned into the real store id there
+const SETTINGS = CREATOR_NAV.find((n) => n.id === "settings")!.children!.map((n) => ({ href: n.href!.replace("{store}", "current"), label: n.label }));
 import { cn } from "@/lib/utils";
 
 export function SettingsNav() {
