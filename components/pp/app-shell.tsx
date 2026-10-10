@@ -5,8 +5,10 @@ import { usePathname } from "next/navigation";
 import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { SidebarProgress } from "@/components/getting-started/getting-started-card";
 import { NavTree } from "@/components/nav/nav-tree";
+import { AccessGuard } from "@/components/team/access-guard";
 import { useNav } from "@/components/nav/use-nav";
 import { Button } from "@/components/ui/button";
+import { useCurrentStore } from "@/hooks/use-current-store";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import { CreatorProviders } from "./creator-providers";
@@ -30,6 +32,12 @@ function setRail(v: boolean) {
     /* storage blocked */
   }
   railListeners.forEach((l) => l());
+}
+
+/** The setup checklist is the owner's: team members don't get it */
+function OwnerProgress() {
+  const role = useCurrentStore().data?.access?.role;
+  return !role || role === "owner" ? <SidebarProgress /> : null;
 }
 
 export function SkipLink() {
@@ -67,7 +75,7 @@ export function AppShell({ children, variant = "creator" }: { children: React.Re
   const savedRail = useSyncExternalStore((cb) => (railListeners.add(cb), () => railListeners.delete(cb)), readRail, () => false);
   // In the store editor the menu starts as icons, to leave room for the page; it still opens on click
   const [editorRail, setEditorRail] = useState(true);
-  const footer = admin ? undefined : <SidebarProgress />;
+  const footer = admin ? undefined : <OwnerProgress />;
   // The store editor uses the full width beside the sidebar; it scrolls as one page like everything else
   const bleed = /\/design\/pages\/[^/]+\/edit$/.test(usePathname() ?? "");
   const rail = bleed ? editorRail : savedRail;
@@ -88,7 +96,7 @@ export function AppShell({ children, variant = "creator" }: { children: React.Re
               bleed ? "flex flex-col px-3 pt-3 md:px-4" : "gutter mx-auto max-w-[1280px] pt-6 pb-28 md:pt-8 md:pb-16"
             )}
           >
-            {children}
+            {admin ? children : <AccessGuard>{children}</AccessGuard>}
           </main>
         </div>
         {/* The editor has its own tool bar at the bottom on phones */}

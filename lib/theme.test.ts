@@ -7,7 +7,8 @@ import { isThemePref, NO_FLASH_SCRIPT, resolveTheme } from "./theme";
 
 /** Reads one token block out of app/globals.css. */
 function tokens(selectorStart: string): Record<string, string> {
-  const css = readFileSync(path.join(__dirname, "..", "app", "globals.css"), "utf8");
+  // Line endings may be Windows-style depending on the checkout
+  const css = readFileSync(path.join(__dirname, "..", "app", "globals.css"), "utf8").replace(/\r\n/g, "\n");
   const at = css.indexOf(selectorStart);
   if (at < 0) throw new Error(`No block for ${selectorStart}`);
   const body = css.slice(css.indexOf("{", at) + 1, css.indexOf("\n}", at));

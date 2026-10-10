@@ -8,7 +8,7 @@ import { activeStoreId, currentUser } from "./session";
 export async function liveFacts() {
   const [me, storeId, plan] = await Promise.all([currentUser(), activeStoreId(), getPlanState()]);
   const client = sb();
-  const { data: stores } = await client.from("stores").select("id, name, status, legal_name, company_address, theme").eq("owner_id", me.id);
+  const { data: stores } = await client.from("stores").select("id, name, status, legal_name, invoice_name, company_address, theme").eq("owner_id", me.id);
   const ids = (stores ?? []).map((s) => s.id);
   const active = stores?.find((s) => s.id === storeId);
   const [products, collections, methods, paid] = await Promise.all([
@@ -30,6 +30,8 @@ export async function liveFacts() {
     analytics: hasTags((active?.theme as { analytics?: AnalyticsTags } | null)?.analytics),
     // legal name, address line 1, city, PIN code (the address is stored as lines)
     businessFields: [active?.legal_name ?? "", address[0] ?? "", address[2] ?? "", address[4] ?? ""].filter((v) => v.trim()).length,
+    // The invoice name is what selling needs; the rest only matters with GST
+    invoiceName: !!active?.invoice_name?.trim(),
     payout: (methods.count ?? 0) > 0,
     productsFull: max !== null && plan.usage.products >= max,
     email: me.email.toLowerCase(),

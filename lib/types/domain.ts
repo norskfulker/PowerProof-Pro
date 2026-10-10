@@ -12,4 +12,6 @@ export interface DnsRecord {
   value: string;
   /** What we found when we last checked, when it's wrong */
   found?: string;
+  /** Shown under the record: when it's optional, or what the DNS host may call it */
+  note?: string;
 }

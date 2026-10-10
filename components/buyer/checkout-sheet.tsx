@@ -76,7 +76,7 @@ async function post<T>(url: string, body: unknown): Promise<T> {
  * payment. The price is worked out on the server and the order is confirmed only by Razorpay's
  * signed proof, so nothing here can be used to pay less.
  */
-export function CheckoutSheet({ open, onOpenChange, storeId, storeSlug, lines, onLines, shipping }: { open: boolean; onOpenChange: (o: boolean) => void; storeId: string; storeSlug: string; lines: CartLine[]; onLines: (l: CartLine[]) => void; shipping?: ShippingSettings }) {
+export function CheckoutSheet({ open, onOpenChange, storeId, storeSlug, lines, onLines, shipping, sellerName }: { open: boolean; onOpenChange: (o: boolean) => void; storeId: string; storeSlug: string; lines: CartLine[]; onLines: (l: CartLine[]) => void; shipping?: ShippingSettings; /** The store's invoice name: who the buyer is buying from */ sellerName?: string }) {
   const router = useRouter();
   const [f, setF] = useState({ name: "", email: "", dial: "+91", phone: "", country: "IN", coupon: "", consent: false });
   const [addr, setAddr] = useState({ line1: "", line2: "", city: "", state: "", pincode: "" });
@@ -328,6 +328,12 @@ export function CheckoutSheet({ open, onOpenChange, storeId, storeSlug, lines, o
             <Checkbox checked={f.consent} onCheckedChange={(v) => setF({ ...f, consent: v === true })} className="mt-0.5" />
             <span>I accept the store&apos;s terms and refund policy.</span>
           </label>
+          {sellerName && (
+            <p className="rounded-control bg-surface-sunken px-3 py-2 text-xs text-muted-foreground" data-slot="seller">
+              Sold by <span className="font-semibold text-foreground">{sellerName}</span>. Your {method === "cod" ? "order confirmation" : "receipt and invoice"} will be emailed to{" "}
+              {/^\S+@\S+\.\S+$/.test(f.email.trim()) ? <span className="font-medium text-foreground [overflow-wrap:anywhere]">{f.email.trim()}</span> : "the email above"}.
+            </p>
+          )}
           {(error || blocked) && <p role="alert" className="rounded-control border border-danger/40 bg-danger-soft px-3 py-2 text-sm font-medium text-danger">{error ?? blocked}</p>}
           <Button type="submit" size="lg" disabled={busy || !!blocked} className="w-full">
             {busy ? <Loader2 className="animate-spin" aria-hidden /> : <Lock aria-hidden />} {busy ? (method === "cod" ? "Placing your order…" : "Opening payment…") : method === "cod" ? "Place order" : "Pay securely"}

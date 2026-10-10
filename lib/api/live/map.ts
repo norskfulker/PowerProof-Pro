@@ -172,6 +172,7 @@ export function storeFrom(row: StoreRow, owner: { name: string; email: string },
     onboarded: row.status === "published",
     logo: row.logo_url ? { src: row.logo_url, alt: `${row.name} logo` } : undefined,
     shipping: row.shipping !== undefined ? shippingFrom(row.shipping) : undefined,
+    invoiceName: row.invoice_name?.trim() || row.legal_name?.trim() || row.name,
   };
 }
 

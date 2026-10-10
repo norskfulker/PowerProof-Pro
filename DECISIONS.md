@@ -11,7 +11,7 @@ Small calls made while building the frontend, so the founder can check them in o
 
 | Choice | Why |
 | --- | --- |
-| Next.js 16.3 (App Router), React 19, TypeScript | Latest stable at build time. Deploys to Vercel as is. |
+| Next.js 16.3 (App Router), React 19, TypeScript | Latest stable at build time. Deploys to Cloudflare Workers through the OpenNext adapter (see "Hosting on Cloudflare Workers" at the end). |
 | Tailwind CSS v4 with tokens in `app/globals.css` | v4 is what `create-next-app` ships. Tokens are CSS variables mapped through `@theme`. |
 | shadcn/ui, new-york style, Radix primitives | As specified. Components live in `components/ui` and are restyled in place. The shadcn CLI wrote `import { cn } from "cn"` (an unrelated npm package) into every component; I fixed the imports and removed that package. |
 | TanStack Table **v8** | v9 shipped with a different API. v8 is stable and documented. |
@@ -26,7 +26,7 @@ Small calls made while building the frontend, so the founder can check them in o
 - **Pages fetch through the `useApi` hook**, so loading skeletons and error states with retry are real. A change in one tab tells other tabs to re-read through a `storage` event.
 - **Sign up creates a new, empty store.** Nothing is pre-filled.
 - **Nothing is made up.** A list with nothing in it shows an empty state with one next step; a figure with no source (visitors, conversion, sources, funnels, deal usage) shows "No data yet"; a feature that needs a server we don't have shows "Coming soon".
-- **Test data lives in `tests/fixtures` and in the rows the end-to-end tests create and delete.** App code can't import fixtures (ESLint rule, plus `tests/unit/security/no-demo-data.test.ts`).
+- **No test data in the app.** App code can't import fixtures (ESLint rule). The `tests/` suites (fixtures, end-to-end, integration) were dropped in Oct 2026 at the founder's request; unit tests sit next to their code.
 - **Admin console** is connected (see "The founder console" below).
 
 ## Money
@@ -88,7 +88,7 @@ Small calls made while building the frontend, so the founder can check them in o
 
 ## Not built (needs backend or a later phase)
 
-The gateway integration and webhooks, real email sending, `embed.js`, custom domains, team seats, the AI image maker, analytics ingestion (visitor, conversion and source figures show "No data yet"), GA/Clarity script injection on buyer pages.
+The gateway integration and webhooks, real email sending, `embed.js`, the AI image maker, analytics ingestion (visitor, conversion and source figures show "No data yet"), GA/Clarity script injection on buyer pages.
 
 ## Questions for the founder
 
@@ -112,7 +112,7 @@ The gateway integration and webhooks, real email sending, `embed.js`, custom dom
 - **No cart for digital products.** Every product has one Buy now that goes straight to checkout. Cart pieces exist (`components/pp/cart.tsx`: drawer, lines, totals) for physical products later; no digital store renders them. They're shown on `/design`.
 - **No buyer accounts anywhere.** Buyers get back to their files from the receipt email, the success page, or `/lookup`, which emails a fresh link to `/order/[token]`. The old `/download/[orderId]` route now forwards to `/order/[token]`.
 - **Guest checkout requires full name, email and phone** (with a country code picker and per-country length rules). One step. Coupon at checkout only. Pay button always shows the exact total.
-- **Custom domains:** `/store/domain` shows the field disabled with Coming soon. Stores live at `/s/[store]`.
+- **Custom domains:** see "Custom domains, finished" below. Stores live at `/s/[store]`, and on their own domain once one is connected.
 
 ## Store design (one Shopify-style editor for the home page and every other page)
 
@@ -268,7 +268,7 @@ The gateway integration and webhooks, real email sending, `embed.js`, custom dom
 
 ## Custom domains (7B)
 
-- **Coming soon.** Connecting a domain needs DNS and certificate checks on the server. The screen says so; `lib/api/domains.ts` keeps only the provider guides, DNS targets, problem explanations and hostname checks for when it is built.
+- Built since: see "Custom domains, finished" at the end of this file. `lib/api/domains.ts` keeps the provider guides, DNS targets, problem explanations and hostname checks the screen shows.
 
 ## Navigation (7C)
 
@@ -289,8 +289,8 @@ The gateway integration and webhooks, real email sending, `embed.js`, custom dom
 
 ## How the app reaches the database
 
-- **`/lib/api` is the only door, and it only talks to Supabase** (`lib/api/live/*`). There is no mock backend and no `NEXT_PUBLIC_BACKEND` switch. Unit tests use fixtures in `tests/fixtures`; the end-to-end and integration tests use the two test creators and create and delete their own data.
-- **Clients:** `lib/supabase/browser.ts` (anon key + session cookie), `server.ts` (same, for server code), `admin.ts` (service role). The service-role client imports `server-only`, ESLint blocks it in client code, and `tests/unit/security/service-role.test.ts` fails if the key is read anywhere else, imported by a client file, or found in the browser bundle.
+- **`/lib/api` is the only door, and it only talks to Supabase** (`lib/api/live/*`). There is no mock backend and no `NEXT_PUBLIC_BACKEND` switch.
+- **Clients:** `lib/supabase/browser.ts` (anon key + session cookie), `server.ts` (same, for server code), `admin.ts` (service role). The service-role client imports `server-only`, and ESLint blocks it in client code.
 - **Route guard:** `proxy.ts` (Next 16's name for middleware) refreshes the session and sends signed-out visitors on creator and admin screens to `/login`; `/admin` also needs `app_metadata.role = "admin"`. RLS is still what protects the data.
 - **Plan limits** are read from `plan_limits` (pricing page, Upgrade dialog, comparison table, AI credits). Creates aren't pre-checked: the database refuses, and the Upgrade dialog opens on that error.
 
@@ -307,7 +307,7 @@ The gateway integration and webhooks, real email sending, `embed.js`, custom dom
 
 ## Not in the database yet (no browser storage added for them)
 
-- Coming soon on the live backend: team seats, analytics integrations, limited-time store-wide sales, imported testimonials, renaming library files.
+- Coming soon on the live backend: analytics integrations, limited-time store-wide sales, imported testimonials, renaming library files.
 - The media library lists the store's Storage folder (`store-media/<store id>/media` and `/ai`).
 - Still in the browser until their migration lands: the visual page builder and sales pages, review pins, SKUs and tax codes, PAN and business type.
 
@@ -331,7 +331,7 @@ Anything else is new and needs a look before release.
 - **Invoices** are worked out from what was charged (`lib/invoice-view.ts`): a seller with a GSTIN charges IGST to India, nil to exports; no GSTIN, no tax. Still to be confirmed with a CA.
 - **Reviews** come from the order page: the link proves the purchase, one per product per order. Questions are open to anyone, rate limited.
 - **Only work that needs a secret key is a server route:** creating and confirming a Razorpay payment and its webhook, private download links, refunds, receipt emails, and attaching a domain. Email is Resend over HTTPS (`lib/server/email.ts`); nothing claims an email went out when it didn't. Lead, booking and contact notices to the store are not emailed yet (they show under Sales › Leads).
-- **Custom domains** use the existing `domains` table and `resolve_domain()`; the server attaches the domain through Vercel's API, shows the DNS records, re-checks every 30 seconds, and the proxy serves an active domain's store from `/s/<store>`.
+- **Custom domains** use the existing `domains` table and `resolve_domain()`; the server adds the domain as a Cloudflare for SaaS custom hostname, shows the DNS records, re-checks every 30 seconds, and the proxy serves an active domain's store from `/s/<store>`.
 - **Analytics:** the storefront counts visits itself (`track_event`, cookieless, Do Not Track respected) for the dashboard; Google Analytics and Clarity load only after the visitor agrees.
 
 ## The founder console
@@ -354,3 +354,50 @@ Anything else is new and needs a look before release.
 - **Tables** (Oct 2026): every list uses `components/pp/data-table.tsx`, which adds summary numbers for the matching rows, a period filter, CSV export (of the matching or ticked rows), row ticks with bulk actions, a Columns menu (choices remembered per table on the device), page size and page numbers. Products: type, stock (low/sold out, per variant), compare-at price, added/updated; bulk make live, move to drafts, duplicate, delete. Orders: items and units, payment (UPI/card/COD) and coupon, optional country, discount, shipping, fees and "you keep"; sales, net, average order, refunds. Customers: repeat or one order, average order, customer since; repeat rate; email the ticked ones. Collections became a table (order kept with the arrows): live/draft counts, units sold, revenue, and how many products aren't in any collection. Leads moved onto the same table with bulk delete and upcoming bookings.
 - **Store pages are updated, never inserted from the browser** (Oct 2026): every store gets its five `store_pages` rows from `seed_store_pages` when it's created, and creators may only update them. `savePage` used an upsert, which needs INSERT permission even when the row exists, so saving About/FAQ/policies (and going live with a changed About) failed with "permission denied for table store_pages". It's an update now; no new grant.
 - **Checks before publishing** (Oct 2026, `lib/pages/launch-check.ts`, `components/page-builder/launch-check-dialog.tsx`): Publish runs them first. "Fix" = buyers would hit something broken: links to drafts, unpublished pages, missing collections or sections; product cards and buy buttons for drafts or deleted products; empty product grids or collection lists; an ended countdown; and before going live, nothing live to buy, downloads without a file, shipped products with no shipping set. "Worth checking" = unfinished: empty pictures/video/gallery, starter or placeholder text, buttons with no link, empty sections, images without a description, reviews block with no reviews, placeholder FAQ/About, and before going live no logo, no support email, no payout method, policies that are stubs or still the default; unreadable colour schemes when going live or the theme changed. Blocks hidden on every device are skipped. Nothing found on an ordinary publish: it publishes straight away; going live always shows the result. Every item has a fix button (selects the block, opens the panel, or opens the page in a new tab). "Go live anyway" stays available: the check informs, it doesn't lock anyone out, and if it can't run, publishing goes ahead.
+
+## Invoice name, teams and custom domains (Oct 2026, migration 038)
+
+### The name on receipts and invoices
+
+- **Selling needs no GST.** Settings › Company and invoices asks for one thing: the **name on receipts and invoices** (`stores.invoice_name`). GSTIN, PAN, legal name and address are optional; once a GSTIN is typed, the legal name and full address become required, because a tax invoice must carry them.
+- **Buyers see it while buying:** the checkout says "Sold by <name>. Your receipt and invoice will be emailed to <their email>" (order confirmation for cash on delivery). The receipt email has a "Sold by" line, and the invoice prints it under "Sold by" (with the legal name under it when registered and different).
+- Older stores without one fall back to the legal name, then the store's name, everywhere. Buyers may read the column (it's public at checkout); GSTIN and PAN stay private.
+- The getting-started step is now "Set your invoice name" and counts as done once it's saved.
+
+### Store teams
+
+- **Invite by email** from Settings › Team. The invite is a link valid for 7 days; only someone signed in with that exact email can accept it (`team_accept` checks the account's email). New people sign up from the link and come straight back to it. If email isn't connected (no `RESEND_API_KEY`/`MAIL_FROM`), the screen gives the link to copy instead of claiming it was sent. "Send a new invite link" replaces the old link.
+- **Roles:** Owner (one, the store's creator); **Admin** (every area, can invite and manage Limited people; only the owner makes or changes admins); **Limited** (only the areas ticked). Areas (`lib/team.ts`): Products (catalog, media, SKUs, tax codes), Orders and customers (orders, shipping, refunds, customers, leads, reviews and questions), Store design (editor, pages, policies, SEO, analytics tags, domain), Offers (coupons, bundles, deal paths, marketplace deals), Analytics (dashboard figures), Business details (store settings, company, invoice name, tax).
+- **Always the owner's:** payouts and payout accounts, billing and the plan, deleting the store, making admins. Plan features (Pro, custom domain, AI page allowance) follow the **owner's** plan, whoever on the team uses them.
+- **Seats:** `plan_limits.team_seats`, Free 2, Pro 10 (invited and joined count; the owner doesn't). Easy to change in the table.
+- **The database enforces it.** `store_can(store, area)` replaced the owner check in every store policy (products, collections, media files, orders and their views, leads, reviews, questions, pages, drafts, offers, domains, analytics, storage). `is_product_owner` now means "can work on the catalog". Team members can update the `stores` row only in their areas' columns (`guard_store_member_update`: design = name, tagline, logo, theme, status; business = support email, refund days, invoice and company details, shipping); owner, slug, country and currency never. `team_list`, `team_invite`, `team_invite_info` (no secrets, works signed out), `team_accept`, `team_update`, `team_remove`, `my_stores`. `store_members` is read-only to clients. Tested with a throwaway user in a rolled-back transaction.
+- **In the app:** the store switcher lists joined stores with the role; the menu, settings tabs and phone tabs hide what the person can't open; opening one anyway shows "This part of the store isn't in your access" (`components/team/access-guard.tsx`). A member without Analytics gets a start page listing their areas instead of the dashboard. Members don't see the owner's setup checklist. Anyone can leave a store from Settings › Team. Someone who only belongs to other people's stores is never sent to onboarding.
+- Found on the way: `/api/import/*` accepted any published store id (published stores are readable by everyone) and copied media into it with the server key. It now checks `store_can(store, 'catalog')`.
+
+### Custom domains, finished
+
+- Pro (the owner's plan). Settings › Domain: type a domain, add the records shown, and it goes live by itself. The page checks every 30 seconds while open; **a scheduled job (the Worker's cron, every 10 minutes, calling `/api/cron/domains`) checks the rest**, so nobody has to keep the page open. Live domains are re-checked every 6 hours: a problem is shown on the page but the store stays up (a DNS hiccup shouldn't take it offline). A domain whose records never appear in a week is marked failed; Verify now tries again.
+- **A bare domain gets www too** (its own custom hostname; the proxy sends www visitors to the bare domain with a permanent redirect; the page shows the extra CNAME). A subdomain like shop.yourname.in doesn't.
+- **Clean addresses:** on the store's domain, links written as `/s/<store>/…` redirect to `/…`. Order, invoice, lookup and checkout pages work on the domain, and buyer emails (receipt, shipped, refund, payment failed) link to the domain once it's live.
+- **"Send visitors of your free address here"** (on by default, `domains.is_primary`): on PowerProof's production address, `/s/<store>/…` sends visitors on to the domain (a temporary redirect, so switching it off takes effect straight away). Not on localhost or `*.workers.dev` previews.
+- The old-address redirects in `next.config.ts` (`/products` → `/catalog/products` and so on) now apply only on PowerProof's own hosts; before, `/products` on a custom domain would have been sent into the creator app.
+- Team members with Store design can manage the domain.
+- **Needs:** the Cloudflare setup in the README ("Custom domains on Cloudflare"): `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ZONE_ID`, `CLOUDFLARE_CNAME_TARGET`, `NEXT_PUBLIC_SITE_URL`, and `CRON_SECRET` for the scheduled check.
+
+### Questions for the founder
+
+1. **Team seats:** Free 2 and Pro 10 are placeholders. Right numbers? Should teams be Pro-only?
+2. **Order emails to the team:** new-order emails still go to the owner only. Should people with Orders access get them too?
+
+## Hosting on Cloudflare Workers (Oct 2026)
+
+- **The founder chose Cloudflare Workers** over Vercel. The app is built with `@opennextjs/cloudflare` 1.20.10 (`npm run deploy`); `worker.ts` wraps the generated Worker and adds the cron trigger. Settings and secrets: README › "Deploying to Cloudflare Workers". `vercel.json` was removed.
+- **`proxy.ts` stays** (Next 16's name for middleware, Node runtime). OpenNext supports it since late 2026 but calls Node middleware "experimental" and not officially maintained. It was checked on a local `wrangler dev` run of the real build: sign-in redirects, the old-address redirects, a store page, invite links, the cron route and the scheduled trigger all worked. If it ever misbehaves, the fallback is renaming it to `middleware.ts` on the Edge runtime (nothing in it needs Node).
+- **Custom domains are Cloudflare for SaaS custom hostnames** (`lib/server/cloudflare.ts`) on PowerProof's zone, with the Worker as the fallback origin (a `*/*` route). Certificates are checked over HTTP, so a CNAME is all a creator adds; Cloudflare's optional TXT ownership record is shown too while pending. The page explains problems from Cloudflare's answer plus a public DNS lookup (DNS over HTTPS): no record, pointing elsewhere, a clashing record, a CAA record blocking the certificate, or nearly there. A certificate check that timed out is restarted on the next check.
+- **Bare domains** need a CNAME at the root: fine on Cloudflare DNS (flattening) and hosts with ALIAS/ANAME; elsewhere the page says to use a subdomain. With apex proxying on the zone (a Cloudflare plan feature), `CLOUDFLARE_APEX_IPS` switches bare domains to A records.
+- No incremental cache (R2) is set up: pages read live data. Add one in `open-next.config.ts` if ISR or the fetch cache is used later.
+
+### Question for the founder
+
+1. **Apex proxying:** does the Cloudflare plan include it? Without it, creators whose DNS host can't put a CNAME on the bare domain must use a subdomain (shop.yourname.in).
+

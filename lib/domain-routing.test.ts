@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { isAppHost, resolveHost, rewriteTarget } from "./domain-routing";
+import { cleanPath, isAppHost, isSiteHost, primaryDomain, resolveHost, rewriteTarget, storePath, wwwTarget } from "./domain-routing";
 
 describe("custom domain routing", () => {
   it("knows which hosts are ours", () => {
@@ -7,7 +7,7 @@ describe("custom domain routing", () => {
     expect(isAppHost("powerproof.app", site)).toBe(true);
     expect(isAppHost("www.powerproof.app", site)).toBe(true);
     expect(isAppHost("localhost:3000", site)).toBe(true);
-    expect(isAppHost("my-preview.vercel.app", site)).toBe(true);
+    expect(isAppHost("powerproof.team.workers.dev", site)).toBe(true);
     expect(isAppHost("shop.yourname.in", site)).toBe(false);
   });
 
@@ -42,5 +42,37 @@ describe("custom domain routing", () => {
     await resolveHost("keep.example.in", "https://db", "k", 1, good as never);
     const down = vi.fn().mockRejectedValue(new Error("offline"));
     expect(await resolveHost("keep.example.in", "https://db", "k", 100_000, down as never)).toBe("fix");
+  });
+
+  it("sends /s/<store> links on a store's own domain to the clean address, and leaves other stores alone", () => {
+    expect(cleanPath("/s/fix", "fix")).toBe("/");
+    expect(cleanPath("/s/fix/planner", "fix")).toBe("/planner");
+    expect(cleanPath("/s/other/planner", "fix")).toBeNull();
+    expect(cleanPath("/planner", "fix")).toBeNull();
+    expect(storePath("/s/fix/p/launch")).toEqual({ slug: "fix", rest: "/p/launch" });
+    expect(storePath("/dashboard")).toBeNull();
+  });
+
+  it("knows the bare domain a www address belongs to", () => {
+    expect(wwwTarget("www.yourname.in")).toBe("yourname.in");
+    expect(wwwTarget("www.yourname.co.in:443")).toBe("yourname.co.in");
+    expect(wwwTarget("shop.yourname.in")).toBeNull();
+    expect(wwwTarget("www.in")).toBeNull();
+  });
+
+  it("only redirects to a store's domain from PowerProof's production address", () => {
+    const site = "https://powerproof.app";
+    expect(isSiteHost("powerproof.app", site)).toBe(true);
+    expect(isSiteHost("www.powerproof.app", site)).toBe(true);
+    expect(isSiteHost("localhost:3000", site)).toBe(false);
+    expect(isSiteHost("powerproof.team.workers.dev", site)).toBe(false);
+    expect(isSiteHost("powerproof.app", undefined)).toBe(false);
+  });
+
+  it("accepts only a hostname as a store's primary domain", async () => {
+    const good = vi.fn().mockResolvedValue({ ok: true, json: async () => "Shop.Example.in" });
+    expect(await primaryDomain("p1", "https://db", "k", 1, good as never)).toBe("shop.example.in");
+    const bad = vi.fn().mockResolvedValue({ ok: true, json: async () => "evil.com/phish" });
+    expect(await primaryDomain("p2", "https://db", "k", 1, bad as never)).toBeNull();
   });
 });

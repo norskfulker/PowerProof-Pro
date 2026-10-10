@@ -15,12 +15,12 @@ import { ApiError } from "../client";
 import type { OwnedStore, PlanState, StoreInfo, StorePageUpdate } from "../account";
 import { fail, must } from "./errors";
 import { designFrom, designToTheme, initials, pagesFrom, storeFrom, DEFAULT_BRAND, type StoreRow } from "./map";
-import { activeStoreId, currentUser, setActiveStore, syncSession } from "./session";
+import { activeStoreId, currentUser, forgetMyStores, myStores, setActiveStore, syncSession } from "./session";
 
 /** The creator's stores, their settings, design and pages, and the plan, from Supabase. */
 
 /** Columns a creator reads for their own store (they may read all of them). */
-const STORE_COLS = "id, owner_id, name, slug, country, tagline, logo_url, status, theme, theme_mode, currency_base, brand_color, support_email, refund_days, legal_name, company_address, gstin, invoice_prefix, invoice_footer, pan, business_type, created_at, updated_at, shipping";
+const STORE_COLS = "id, owner_id, name, slug, country, tagline, logo_url, status, theme, theme_mode, currency_base, brand_color, support_email, refund_days, legal_name, invoice_name, company_address, gstin, invoice_prefix, invoice_footer, pan, business_type, created_at, updated_at, shipping";
 
 async function owner() {
   const u = await currentUser();
@@ -37,10 +37,11 @@ async function pageRows(storeId: string) {
 }
 
 export async function getStore(storeId?: string): Promise<Store> {
-  const [row, who] = await Promise.all([storeRow(storeId), owner()]);
+  const [row, who, list] = await Promise.all([storeRow(storeId), owner(), myStores()]);
   const store = storeFrom(row, who);
   const { pages } = pagesFrom(store, await pageRows(row.id));
-  return { ...store, refundPolicy: pages.refund };
+  const mine = list.find((s) => s.id === row.id);
+  return { ...store, refundPolicy: pages.refund, access: mine?.access, ownerPlan: mine?.ownerPlan };
 }
 
 /* Store settings ------------------------------------------------------------ */
@@ -136,6 +137,7 @@ export async function getCompany(): Promise<Company> {
   const lines = (row.company_address ?? "").split("\n");
   const at = (i: number) => lines[i] ?? "";
   return {
+    invoiceName: row.invoice_name ?? row.legal_name ?? row.name,
     legalName: row.legal_name ?? "",
     businessType: TYPE_FROM_DB[row.business_type ?? ""] ?? "individual",
     gstin: row.gstin ?? undefined,
@@ -156,6 +158,7 @@ export async function updateCompany(patch: Partial<Company>): Promise<Company> {
   const r = await sb()
     .from("stores")
     .update({
+      invoice_name: next.invoiceName.trim() || null,
       legal_name: next.legalName.trim() || null,
       gstin: next.gstin?.trim().toUpperCase() || null,
       pan: next.pan?.trim().toUpperCase() || null,
@@ -193,12 +196,13 @@ export async function updateInvoiceSettings(patch: Partial<InvoiceSettings>): Pr
 
 /* Several stores ---------------------------------------------------------------- */
 
+/** Every store the creator can open: their own, then the teams they joined (with their role there) */
 export async function getOwnedStores(): Promise<OwnedStore[]> {
-  const who = await owner();
   const active = await activeStoreId();
-  const rows = must(await sb().from("stores").select("id, name, slug, brand_color, created_at").eq("owner_id", who.id).order("created_at"));
+  const rows = await myStores();
+  // Products are counted only where the person can see the catalog (row level security)
   const counts = must(await sb().from("products").select("store_id").in("store_id", rows.map((r) => r.id)));
-  const list = rows.map((r) => ({ id: r.id, name: r.name, slug: r.slug, logoText: initials(r.name), brandColor: r.brand_color ?? DEFAULT_BRAND, active: r.id === active, products: counts.filter((c) => c.store_id === r.id).length }));
+  const list = rows.map((r) => ({ id: r.id, name: r.name, slug: r.slug, logoText: initials(r.name), brandColor: r.brandColor ?? DEFAULT_BRAND, active: r.id === active, products: counts.filter((c) => c.store_id === r.id).length, role: r.access.role }));
   return [...list.filter((s) => s.active), ...list.filter((s) => !s.active)];
 }
 
@@ -220,6 +224,7 @@ export async function createOwnedStore(input: { name: string; slug?: string }): 
     .select(STORE_COLS)
     .single();
   if (r.error) fail(r.error, { conflict: "That link is taken. Try another." });
+  forgetMyStores();
   return storeFrom(r.data as StoreRow, who);
 }
 
@@ -307,12 +312,17 @@ export async function updateStorePage(storeId: string, change: StorePageUpdate):
  */
 export async function getPlanState(): Promise<PlanState> {
   const who = await owner();
-  const [{ data: profile }, { data: limits }, { data: stores }] = await Promise.all([
+  const [{ data: profile }, { data: limits }, list, activeId] = await Promise.all([
     sb().from("profiles").select("plan, created_at").eq("id", who.id).single(),
     sb().from("plan_limits").select("*"),
-    sb().from("stores").select("id").eq("owner_id", who.id),
+    myStores(),
+    activeStoreId().catch(() => ""),
   ]);
-  const tier: PlanTier = profile?.plan ?? "free";
+  // On a store someone else owns, its features follow the owner's plan (and only that store is counted)
+  const active = list.find((s) => s.id === activeId);
+  const joined = active && active.access.role !== "owner";
+  const stores = joined ? [active] : list.filter((s) => s.access.role === "owner");
+  const tier: PlanTier = joined ? active.ownerPlan : profile?.plan ?? "free";
   const row = limits?.find((l) => l.plan === tier);
   const lim: PlanLimits = limitsFromRows(limits)[tier];
   const ids = (stores ?? []).map((s) => s.id);
@@ -320,7 +330,7 @@ export async function getPlanState(): Promise<PlanState> {
     ? await Promise.all([sb().from("products").select("id", { count: "exact", head: true }).in("store_id", ids), sb().from("custom_pages").select("id", { count: "exact", head: true }).in("store_id", ids).neq("slug", "home")])
     : [{ count: 0 }, { count: 0 }];
   const plan: Plan = { tier, name: tier === "pro" ? "Pro" : "Free", monthly: moneyOf(tier === "pro" ? PRO_PRICE_USD * 100 : 0, "USD"), platformFeePct: (row?.platform_fee_bps ?? 300) / 100, gatewayFeePct: 2, status: "active" };
-  return { plan, tier, limits: lim, usage: { stores: ids.length, products: count ?? 0, pages: pageCount ?? 0 } };
+  return { plan, tier, limits: lim, usage: { stores: ids.length, products: count ?? 0, pages: pageCount ?? 0 }, joined: !!joined };
 }
 
 export async function canCreate(kind: "stores" | "products" | "pages"): Promise<boolean> {

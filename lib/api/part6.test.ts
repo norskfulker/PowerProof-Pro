@@ -3,12 +3,18 @@ import { planComparison, proBenefits } from "../plans";
 import { limitsFromRows } from "../plan-limits";
 import { summarize, type DailyRow, type ProductSalesRow } from "./analytics";
 import { TAX_CODES } from "../tax-codes";
-import { TEST_PLAN_LIMITS } from "@/tests/fixtures";
+import type { AllPlanLimits } from "../plans";
+
+/** The limits the rows below describe */
+const TEST_PLAN_LIMITS: AllPlanLimits = {
+  free: { stores: 1, products: 10, pages: 3, aiCredits: 10, aiPagesDaily: 1, customDomain: false, teamSeats: 2 },
+  pro: { stores: null, products: null, pages: null, aiCredits: 200, aiPagesDaily: 10, customDomain: true, teamSeats: 10 },
+};
 
 describe("plan limits come from the database rows", () => {
   const rows = [
-    { plan: "free" as const, max_stores: 1, max_products: 10, max_pages: 3, ai_credits_monthly: 10, ai_pages_daily: 1, custom_domain: false, platform_fee_bps: 300 },
-    { plan: "pro" as const, max_stores: null, max_products: null, max_pages: null, ai_credits_monthly: 200, ai_pages_daily: 10, custom_domain: true, platform_fee_bps: 300 },
+    { plan: "free" as const, max_stores: 1, max_products: 10, max_pages: 3, ai_credits_monthly: 10, ai_pages_daily: 1, custom_domain: false, platform_fee_bps: 300, team_seats: 2 },
+    { plan: "pro" as const, max_stores: null, max_products: null, max_pages: null, ai_credits_monthly: 200, ai_pages_daily: 10, custom_domain: true, platform_fee_bps: 300, team_seats: 10 },
   ];
   it("maps the rows one to one", () => {
     expect(limitsFromRows(rows)).toEqual(TEST_PLAN_LIMITS);

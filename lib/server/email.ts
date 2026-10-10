@@ -50,6 +50,8 @@ const button = (href: string, label: string) => `<p style="margin:20px 0"><a hre
 
 export interface ReceiptInput {
   storeName: string;
+  /** Who the buyer bought from: the store's invoice name, as on the invoice */
+  sellerName?: string;
   buyerName: string;
   ref: string;
   lines: { title: string; amount: string }[];
@@ -76,14 +78,16 @@ export function receiptMail(o: ReceiptInput): Omit<Mail, "to"> {
     ? `<p>Your order is placed. You'll pay <strong>${esc(o.total)}</strong> in cash when it arrives. Order <strong>${esc(o.ref)}</strong> from ${esc(o.storeName)}:</p>`
     : `<p>Your payment went through. Order <strong>${esc(o.ref)}</strong> from ${esc(o.storeName)}:</p>`;
   const ship = o.shipTo ? `<p style="font-size:14px"><strong>Shipping to:</strong> ${esc(o.shipTo)}<br>We'll email you when it's on its way.</p>` : "";
+  const seller = o.sellerName?.trim() ?? "";
+  const soldBy = seller ? `<p style="font-size:14px"><strong>Sold by:</strong> ${esc(seller)}</p>` : "";
   return {
     subject: o.cod ? `Order placed: ${o.storeName} (${o.ref})` : `Your order from ${o.storeName} (${o.ref})`,
     replyTo: o.supportEmail,
     html: shell(
       `Thanks, ${o.buyerName.split(" ")[0]}!`,
-      `${intro}<table style="width:100%;border-collapse:collapse;border-top:1px solid #dfe5e1;border-bottom:1px solid #dfe5e1">${rows}<tr><td style="padding:8px 0;font-weight:700">${o.cod ? "To pay on delivery" : "Total"}</td><td style="padding:8px 0;text-align:right;font-weight:700">${esc(o.total)}</td></tr></table>${ship}${button(o.downloadUrl, files ? "Get your files" : "View your order")}${o.invoiceUrl && !o.cod ? `<p style="font-size:14px"><a href="${esc(o.invoiceUrl)}">View your invoice</a></p>` : ""}<p style="font-size:13px;color:#6b7b75">${files ? "The link works for 30 days. " : ""}Lost it? Look your order up again with this email address and your order number.</p>`
+      `${intro}<table style="width:100%;border-collapse:collapse;border-top:1px solid #dfe5e1;border-bottom:1px solid #dfe5e1">${rows}<tr><td style="padding:8px 0;font-weight:700">${o.cod ? "To pay on delivery" : "Total"}</td><td style="padding:8px 0;text-align:right;font-weight:700">${esc(o.total)}</td></tr></table>${soldBy}${ship}${button(o.downloadUrl, files ? "Get your files" : "View your order")}${o.invoiceUrl && !o.cod ? `<p style="font-size:14px"><a href="${esc(o.invoiceUrl)}">View your invoice</a></p>` : ""}<p style="font-size:13px;color:#6b7b75">${files ? "The link works for 30 days. " : ""}Lost it? Look your order up again with this email address and your order number.</p>`
     ),
-    text: `Thanks, ${o.buyerName}!\n\n${o.cod ? `Order placed: you'll pay ${o.total} in cash on delivery.` : "Your payment went through."}\nOrder ${o.ref} from ${o.storeName}\n${[...o.lines, ...(o.charges ?? [])].map((l) => `${l.title}  ${l.amount}`).join("\n")}\nTotal ${o.total}\n${o.shipTo ? `\nShipping to: ${o.shipTo}\n` : ""}\n${files ? "Your files" : "Your order"}: ${o.downloadUrl}\n${o.invoiceUrl && !o.cod ? `Invoice: ${o.invoiceUrl}\n` : ""}`,
+    text: `Thanks, ${o.buyerName}!\n\n${o.cod ? `Order placed: you'll pay ${o.total} in cash on delivery.` : "Your payment went through."}\nOrder ${o.ref} from ${o.storeName}\n${seller ? `Sold by: ${seller}\n` : ""}${[...o.lines, ...(o.charges ?? [])].map((l) => `${l.title}  ${l.amount}`).join("\n")}\nTotal ${o.total}\n${o.shipTo ? `\nShipping to: ${o.shipTo}\n` : ""}\n${files ? "Your files" : "Your order"}: ${o.downloadUrl}\n${o.invoiceUrl && !o.cod ? `Invoice: ${o.invoiceUrl}\n` : ""}`,
   };
 }
 
@@ -188,5 +192,19 @@ export function payoutMail(o: { ownerName: string; amount: string; to: string; o
       OWN
     ),
     text: o.ok ? `${o.amount} is on its way to ${o.to}.\n\nPayouts: ${o.payoutsUrl}` : `Your payout of ${o.amount} to ${o.to} didn't go through${o.reason ? `: ${o.reason}` : ""}.\nThe money is back in your balance.\n\nPayouts: ${o.payoutsUrl}`,
+  };
+}
+
+/** Someone was asked to join a store's team */
+export function teamInviteMail(o: { storeName: string; inviterName: string; role: string; areas: string[]; acceptUrl: string; email: string }): Omit<Mail, "to"> {
+  const what = o.role === "admin" ? "as an admin, with access to everything except payouts and billing" : `to help with ${o.areas.join(", ").toLowerCase()}`;
+  return {
+    subject: `${o.inviterName} invited you to ${o.storeName} on PowerProof`,
+    html: shell(
+      `Join ${o.storeName}`,
+      `<p>${esc(o.inviterName)} invited you to the ${esc(o.storeName)} store on PowerProof ${esc(what)}.</p>${button(o.acceptUrl, "Accept the invite")}${muted(`Log in or sign up with <strong>${esc(o.email)}</strong> to accept. The link works for 7 days. If you weren't expecting this, you can ignore it.`)}`,
+      OWN
+    ),
+    text: `${o.inviterName} invited you to the ${o.storeName} store on PowerProof ${what}.\n\nAccept: ${o.acceptUrl}\n\nLog in or sign up with ${o.email} to accept. The link works for 7 days.`,
   };
 }

@@ -76,7 +76,7 @@ function LoginForm() {
     <AuthCard
       title="Log in"
       description="Good to see you again."
-      footer={<>New here? <Link href="/signup" className="font-semibold text-foreground underline underline-offset-4">Start free</Link></>}
+      footer={<>New here? <Link href={next !== "/dashboard" ? `/signup?next=${encodeURIComponent(next)}` : "/signup"} className="font-semibold text-foreground underline underline-offset-4">Start free</Link></>}
     >
       <GoogleSignIn next={next} onError={setError} />
       <Form {...form}>

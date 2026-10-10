@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import type { Database } from "./lib/database.types";
-import { isAppHost, resolveHost, rewriteTarget } from "./lib/domain-routing";
+import { cleanPath, isAppHost, isSiteHost, primaryDomain, resolveHost, rewriteTarget, storePath, wwwTarget } from "./lib/domain-routing";
 import { missingEnv, SUPABASE_ANON_KEY, SUPABASE_URL } from "./lib/supabase/env";
 
 /**
@@ -23,14 +23,35 @@ export async function proxy(request: NextRequest) {
 
   // A store on its own domain: serve its pages from /s/<store> (buyers never see that address)
   const host = request.headers.get("host") ?? "";
-  if (!isAppHost(host, process.env.NEXT_PUBLIC_SITE_URL)) {
+  const site = process.env.NEXT_PUBLIC_SITE_URL;
+  if (!isAppHost(host, site)) {
     const slug = await resolveHost(host, SUPABASE_URL, SUPABASE_ANON_KEY);
-    const target = slug ? rewriteTarget(request.nextUrl.pathname, slug) : null;
-    if (target) {
-      const url = request.nextUrl.clone();
-      url.pathname = target;
-      return NextResponse.rewrite(url);
+    // www.<domain> of a store on its bare domain: send visitors on to the bare domain
+    const bare = wwwTarget(host);
+    if (!slug && bare && (await resolveHost(bare, SUPABASE_URL, SUPABASE_ANON_KEY))) {
+      return NextResponse.redirect(`https://${bare}${request.nextUrl.pathname}${request.nextUrl.search}`, 308);
     }
+    if (slug) {
+      // Links written as /s/<store>/... go to the clean address on the domain
+      const clean = cleanPath(request.nextUrl.pathname, slug);
+      if (clean !== null) {
+        const url = request.nextUrl.clone();
+        url.pathname = clean;
+        return NextResponse.redirect(url, 308);
+      }
+      const target = rewriteTarget(request.nextUrl.pathname, slug);
+      if (target) {
+        const url = request.nextUrl.clone();
+        url.pathname = target;
+        return NextResponse.rewrite(url);
+      }
+    }
+  } else if (isSiteHost(host, site)) {
+    // A store with its own live domain (set as primary): its free address sends visitors there
+    const sp = storePath(request.nextUrl.pathname);
+    const domain = sp ? await primaryDomain(sp.slug, SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+    // Temporary (307): the owner can switch this off, and browsers must not remember it
+    if (sp && domain) return NextResponse.redirect(`https://${domain}${sp.rest}${request.nextUrl.search}`, 307);
   }
 
   let response = NextResponse.next({ request });

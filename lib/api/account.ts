@@ -2,6 +2,7 @@ import type { AllPlanLimits, PlanLimits, PlanTier } from "../plans";
 import { fetchPlanLimits } from "../plan-limits";
 import { defaultPages } from "../defaults/store";
 import type { AboutContent, Plan, Store, StorePageKey, StorePages } from "../types";
+import type { StoreRole } from "../team";
 import { liveChange } from "./live/notify";
 import * as live from "./live/store";
 
@@ -15,6 +16,8 @@ export interface PlanState {
   tier: PlanTier;
   limits: PlanLimits;
   usage: { stores: number; products: number; pages: number };
+  /** The active store belongs to someone else's account: its plan is theirs, and upgrading is up to them */
+  joined?: boolean;
 }
 
 export { LimitError } from "./client";
@@ -34,6 +37,8 @@ export interface OwnedStore {
   brandColor: string;
   active: boolean;
   products: number;
+  /** Your role in this store: owner, or a team you joined */
+  role: StoreRole;
 }
 
 export const getOwnedStores = (): Promise<OwnedStore[]> => live.getOwnedStores();

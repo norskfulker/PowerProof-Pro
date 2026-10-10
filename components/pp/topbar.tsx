@@ -27,6 +27,7 @@ import {
 import { useApi } from "@/hooks/use-api";
 import { useCurrentStore } from "@/hooks/use-current-store";
 import { createOwnedStore, getOwnedStores, logout, switchStore } from "@/lib/api";
+import { roleLabel } from "@/lib/team";
 import { initials } from "@/lib/format";
 import { GlobalSearch } from "@/components/search/global-search";
 import { Notifications } from "./notifications";
@@ -119,7 +120,7 @@ function StoreSwitcher() {
             >
               {s.active ? <Check aria-hidden /> : <span className="size-4" aria-hidden />}
               <span className="min-w-0 flex-1 truncate">{s.name}</span>
-              <span className="font-mono text-[0.625rem] text-muted-foreground">{s.products} products</span>
+              <span className="font-mono text-[0.625rem] text-muted-foreground">{s.role === "owner" ? `${s.products} products` : `${roleLabel(s.role)} · team`}</span>
             </DropdownMenuItem>
           ))}
           <DropdownMenuItem onSelect={() => plan.guard("stores", () => setCreating(true))}>

@@ -26,8 +26,12 @@ function SignupForm() {
   const router = useRouter();
   const params = useSearchParams();
   const template = params.get("template");
+  // Where to go after signing up, when it's on this site (an invite link, for example)
+  const rawNext = params.get("next");
+  const next = rawNext && rawNext.startsWith("/") && !rawNext.startsWith("//") ? rawNext : undefined;
+  const start = next ?? (template ? `/onboarding?template=${template}` : "/onboarding");
   const [error, setError] = useState<string>();
-  const form = useForm<Values>({ resolver: zodResolver(schema), defaultValues: { name: "", email: "", password: "" }, mode: "onTouched" });
+  const form = useForm<Values>({ resolver: zodResolver(schema), defaultValues: { name: "", email: params.get("email") ?? "", password: "" }, mode: "onTouched" });
 
   async function onSubmit(v: Values) {
     setError(undefined);
@@ -35,11 +39,12 @@ function SignupForm() {
       const session = await signup(v.name, v.email, v.password);
       // Signed straight in (email confirmation off in this project): no code to enter
       if (!session.needsVerification) {
-        router.push(template ? `/onboarding?template=${template}` : "/onboarding");
+        router.push(start);
         return;
       }
       const q = new URLSearchParams({ email: v.email });
       if (template) q.set("template", template);
+      if (next) q.set("next", next);
       router.push(`/verify-email?${q}`);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong.");
@@ -53,9 +58,9 @@ function SignupForm() {
     <AuthCard
       title="Start your free month"
       description="No card needed. You'll have a store in about three minutes."
-      footer={<>Already selling? <Link href="/login" className="font-semibold text-foreground underline underline-offset-4">Log in</Link></>}
+      footer={<>Already selling? <Link href={next ? `/login?next=${encodeURIComponent(next)}` : "/login"} className="font-semibold text-foreground underline underline-offset-4">Log in</Link></>}
     >
-      <GoogleSignIn next={template ? `/onboarding?template=${template}` : "/onboarding"} onError={setError} />
+      <GoogleSignIn next={start} onError={setError} />
       <Form {...form}>
         <form noValidate onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-4">
           <FormError message={error} />

@@ -27,6 +27,8 @@ function Inner() {
   if (o.state === "error") return <div className="mx-auto max-w-md p-10 text-center"><h1 className="text-2xl">We can&apos;t open that invoice.</h1><p className="mt-2 text-muted-foreground">{o.message}</p></div>;
   const order = o.order;
   const inv = invoiceModel(order);
+  // The name the seller chose for invoices; older stores fall back to the legal name, then the store's name
+  const seller = order.store.invoiceName?.trim() || order.store.legalName?.trim() || order.storeName;
   const c = order.currency as CurrencyCode;
   const m = (amount: number) => <MoneyText value={{ amount, currency: c }} />;
   return (
@@ -42,7 +44,9 @@ function Inner() {
             {order.paidAt && <p className="text-sm text-[#6b7b75]">{formatDate(order.paidAt)}</p>}
           </div>
           <div className="text-right text-sm">
-            <p className="font-semibold">{order.store.legalName || order.storeName}</p>
+            <p className="text-xs text-[#6b7b75]">Sold by</p>
+            <p className="font-semibold">{seller}</p>
+            {order.store.gstin && order.store.legalName && order.store.legalName !== seller && <p>{order.store.legalName}</p>}
             {order.store.address && <p className="whitespace-pre-line text-[#6b7b75]">{order.store.address.split("\n").filter(Boolean).join(", ")}</p>}
             {order.store.gstin && <p>GSTIN <span className="font-mono">{order.store.gstin}</span></p>}
             {order.store.pan && <p>PAN <span className="font-mono">{order.store.pan}</span></p>}

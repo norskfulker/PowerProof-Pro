@@ -3,8 +3,8 @@ import { readProgress, writeProgress, type ProgressFlags } from "./flags";
 import { THEME_EVENT, THEME_KEY } from "../../theme";
 import { sb } from "../../supabase/browser";
 import type { Session } from "../../types";
+import { ALL_AREAS, type StoreAccess, type TeamArea } from "../../team";
 import { ApiError } from "../client";
-import { must } from "./errors";
 
 /**
  * The signed-in creator, as the app sees it. `getSession()` in the UI is synchronous, so the
@@ -61,6 +61,50 @@ function rememberActive(storeId: string) {
 
 let resolved: { user: string; id: string } | null = null;
 
+/** A store the signed-in person can open: their own, or one whose team they joined */
+export interface MyStore {
+  id: string;
+  name: string;
+  slug: string;
+  brandColor: string | null;
+  createdAt: string;
+  access: StoreAccess;
+  /** The owner's plan: the store's Pro features follow it, whoever is working on it */
+  ownerPlan: "free" | "pro";
+}
+
+let mine: { user: string; at: number; rows: Promise<MyStore[]> } | null = null;
+
+/** Every store this person can open (owned first). Cached briefly so one screen asks once. */
+export async function myStores(fresh = false): Promise<MyStore[]> {
+  const user = await currentUser();
+  if (!fresh && mine?.user === user.id && Date.now() - mine.at < 30_000) return mine.rows;
+  const rows = (async () => {
+    const r = await sb().rpc("my_stores");
+    if (r.error) {
+      mine = null;
+      throw new ApiError("We couldn't load your stores. Refresh to try again.");
+    }
+    return (r.data ?? []).map((s): MyStore => ({
+      id: s.id,
+      name: s.name,
+      slug: s.slug,
+      brandColor: s.brand_color,
+      createdAt: s.created_at,
+      access: s.role === "owner" ? { role: "owner", areas: ALL_AREAS } : { role: s.role === "admin" ? "admin" : "member", areas: (s.areas ?? []).filter((a): a is TeamArea => (ALL_AREAS as string[]).includes(a)) },
+      ownerPlan: s.owner_plan === "pro" ? "pro" : "free",
+    }));
+  })();
+  mine = { user: user.id, at: Date.now(), rows };
+  return rows;
+}
+
+/** Forget the cached list (after joining or leaving a team, or creating a store) */
+export function forgetMyStores() {
+  mine = null;
+  resolved = null;
+}
+
 /**
  * The store the switcher has chosen, or the creator's first store. Always checked against the
  * database (once per signed-in user per page load), so a stale browser copy can never point at a
@@ -69,7 +113,7 @@ let resolved: { user: string; id: string } | null = null;
 export async function activeStoreId(): Promise<string> {
   const user = await currentUser();
   if (resolved?.user === user.id) return resolved.id;
-  const rows = must(await sb().from("stores").select("id").eq("owner_id", user.id).order("created_at"));
+  const rows = await myStores();
   if (!rows.length) throw new ApiError("Create your store first.", "not_found");
   const wanted = readActive() ?? getSessionRaw()?.storeId;
   const id = rows.find((r) => r.id === wanted)?.id ?? rows[0].id;
@@ -82,6 +126,7 @@ export async function activeStoreId(): Promise<string> {
 
 export function setActiveStore(storeId: string) {
   resolved = null;
+  mine = null;
   rememberActive(storeId);
   const s = getSessionRaw();
   if (s) setSessionRaw({ ...s, storeId });
@@ -92,16 +137,16 @@ export function setActiveStore(storeId: string) {
  * the first one, and until then `storeId` is empty.
  */
 export async function syncSession(): Promise<Session> {
-  resolved = null;
+  forgetMyStores();
   const user = await currentUser();
   const client = sb();
-  const [{ data: profile }, { data: stores, error }] = await Promise.all([
+  const [{ data: profile }, list] = await Promise.all([
     client.from("profiles").select("full_name, email, onboarding").eq("id", user.id).maybeSingle(),
-    client.from("stores").select("id, name").eq("owner_id", user.id).order("created_at"),
+    myStores(true).catch(() => {
+      throw new ApiError("We couldn't load your account. Refresh to try again.");
+    }),
   ]);
-  if (error) throw new ApiError("We couldn't load your account. Refresh to try again.");
   const name = profile?.full_name || user.name;
-  const list = stores ?? [];
   const wanted = readActive();
   const storeId = list.find((s) => s.id === wanted)?.id ?? list[0]?.id ?? "";
   if (storeId) rememberActive(storeId);
@@ -129,6 +174,7 @@ export async function persistProgress(flags: ProgressFlags) {
 
 export function clearSession() {
   resolved = null;
+  mine = null;
   setSessionRaw(null);
   try {
     window.localStorage.removeItem(ACTIVE);

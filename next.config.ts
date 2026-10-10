@@ -64,9 +64,27 @@ const MOVED: [from: string, to: string][] = [
   ["/admin/system", "/admin/system/audit"],
 ];
 
+/**
+ * The redirects above are for PowerProof's own addresses only. A store on its own domain serves
+ * buyer pages like /products (lib/domain-routing.ts), so they must never apply there. The same
+ * hosts as isAppHost: local, *.workers.dev previews, and the site's address (with or without www).
+ */
+function appHosts(): string {
+  let own = "";
+  try {
+    own = process.env.NEXT_PUBLIC_SITE_URL ? new URL(process.env.NEXT_PUBLIC_SITE_URL).hostname.toLowerCase() : "";
+  } catch {
+    /* no valid site address set */
+  }
+  const esc = (h: string) => h.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const names = ["localhost", "127\\.0\\.0\\.1", "\\[::1\\]", ".+\\.localhost", ".+\\.workers\\.dev", ...(own ? [`(www\\.)?${esc(own)}`] : [])];
+  return `(${names.join("|")})(:\\d+)?`;
+}
+
 const nextConfig: NextConfig = {
   async redirects() {
-    return MOVED.map(([source, destination]) => ({ source, destination, permanent: false }));
+    const host = appHosts();
+    return MOVED.map(([source, destination]) => ({ source, destination, permanent: false, has: [{ type: "host" as const, value: host }] }));
   },
 };
 

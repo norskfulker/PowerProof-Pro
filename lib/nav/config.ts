@@ -2,6 +2,7 @@ import {
   AlertOctagon, Banknote, Box, Brush, FileText, Flag, FolderOpen, Globe, Images, Inbox, LayoutDashboard, MessagesSquare,
   Package, Plug, Receipt, ScrollText, Search, Settings, Shield, ShoppingBag, Sparkles, Store, Tag, Ticket, Users, Wallet, Wrench, type LucideIcon,
 } from "lucide-react";
+import type { Need } from "../team";
 
 /**
  * The one navigation config (Part 7C). The sidebar, mobile drawer, store tabs, command palette and
@@ -26,6 +27,8 @@ export interface NavNode {
   tab?: true;
   /** A panel of the store editor: found by search (with its badge), not shown as a tab */
   inEditor?: true;
+  /** Who on the store's team can open it (lib/team.ts); children inherit it. Default: everyone. */
+  need?: Need;
 }
 
 /** Every address that belongs to the Store area (Store settings is under Settings). */
@@ -40,7 +43,7 @@ const EDITOR = "/store/{store}/design/pages/home/edit";
 export const STORE_NAV: NavNode[] = [
   {
     // Pages, About and FAQ, reviews and questions are panels of the store editor, beside the pages that show them
-    id: "design", label: "Design", icon: Brush, children: [
+    id: "design", label: "Design", icon: Brush, need: "design", children: [
       { id: "design-base", label: "Theme editor", href: EDITOR, match: ["/store/{store}/design/pages/", "/store/{store}/design/theme", "/store/{store}/design/sections", "/store/{store}/design/backgrounds", "/store/{store}/design/content"] },
       { id: "design-pages", label: "Pages", href: `${EDITOR}?panel=pages`, inEditor: true },
       { id: "pages-about", label: "About", href: `${EDITOR}?panel=about`, inEditor: true },
@@ -50,14 +53,14 @@ export const STORE_NAV: NavNode[] = [
     ],
   },
   {
-    id: "policies", label: "Policies", icon: FileText, children: [
+    id: "policies", label: "Policies", icon: FileText, need: "design", children: [
       { id: "policy-refund", label: "Refund", href: "/store/{store}/pages/policies/refund" },
       { id: "policy-terms", label: "Terms", href: "/store/{store}/pages/policies/terms" },
       { id: "policy-privacy", label: "Privacy", href: "/store/{store}/pages/policies/privacy" },
     ],
   },
   {
-    id: "offers", label: "Offers", icon: Ticket, children: [
+    id: "offers", label: "Offers", icon: Ticket, need: "marketing", children: [
       { id: "offers-coupons", label: "Coupons", href: "/store/{store}/offers/coupons" },
       { id: "offers-bundles", label: "Bundles", href: "/store/{store}/offers/bundles" },
       { id: "offers-deal-paths", label: "Deal Paths", href: "/store/{store}/offers/deal-paths", match: ["/store/{store}/offers/deal-paths/"] },
@@ -65,7 +68,7 @@ export const STORE_NAV: NavNode[] = [
     ],
   },
   {
-    id: "seo-tools", label: "SEO", icon: Globe, children: [
+    id: "seo-tools", label: "SEO", icon: Globe, need: "design", children: [
       { id: "seo", label: "SEO", href: "/store/{store}/seo" },
       { id: "analytics-tags", label: "Analytics tags", href: "/store/{store}/analytics-tags" },
     ],
@@ -79,41 +82,41 @@ export const CREATOR_NAV: NavNode[] = [
   // then the Store's look and the rest. Store settings live under Settings.
   {
     id: "catalog", label: "Catalog", icon: Package, children: [
-      { id: "collections", label: "Collections", href: "/catalog/collections", icon: FolderOpen, match: ["/catalog/collections/"] },
-      { id: "products", label: "Products", href: "/catalog/products", icon: Package, badge: "products_all", match: ["/catalog/products/"] },
-      { id: "bundles", label: "Bundles", href: "/catalog/bundles", icon: Box },
-      { id: "deals", label: "Marketplace deals", href: "/catalog/deals", icon: Tag, match: ["/catalog/deals/"] },
-      { id: "media", label: "Media library", href: "/catalog/media", icon: Images },
+      { id: "collections", label: "Collections", href: "/catalog/collections", icon: FolderOpen, match: ["/catalog/collections/"], need: "catalog" },
+      { id: "products", label: "Products", href: "/catalog/products", icon: Package, badge: "products_all", match: ["/catalog/products/"], need: "catalog" },
+      { id: "bundles", label: "Bundles", href: "/catalog/bundles", icon: Box, need: "marketing" },
+      { id: "deals", label: "Marketplace deals", href: "/catalog/deals", icon: Tag, match: ["/catalog/deals/"], need: "marketing" },
+      { id: "media", label: "Media library", href: "/catalog/media", icon: Images, need: "catalog" },
       // Bring a store from Shopify, WooCommerce, Amazon, Etsy, Gumroad or a website
     ],
   },
   {
     id: "sales", label: "Sales", icon: Receipt, children: [
-      { id: "orders", label: "Orders", href: "/sales/orders", icon: Receipt, badge: "orders_disputed", match: ["/sales/orders/"] },
-      { id: "customers", label: "Customers", href: "/sales/customers", icon: Users, match: ["/sales/customers/"] },
-      { id: "leads", label: "Leads", href: "/sales/leads", icon: Inbox, match: ["/sales/leads/"] },
-      { id: "payouts", label: "Payouts", href: "/sales/payouts/balance", icon: Wallet, match: ["/sales/payouts/"] },
+      { id: "orders", label: "Orders", href: "/sales/orders", icon: Receipt, badge: "orders_disputed", match: ["/sales/orders/"], need: "orders" },
+      { id: "customers", label: "Customers", href: "/sales/customers", icon: Users, match: ["/sales/customers/"], need: "orders" },
+      { id: "leads", label: "Leads", href: "/sales/leads", icon: Inbox, match: ["/sales/leads/"], need: "orders" },
+      { id: "payouts", label: "Payouts", href: "/sales/payouts/balance", icon: Wallet, match: ["/sales/payouts/"], need: "owner" },
     ],
   },
   // Store is one plain item; its sections (Design, Policies, Offers and SEO) are tabs inside it
-  { id: "store", label: "Store", href: EDITOR, icon: Store, match: STORE_MATCH },
+  { id: "store", label: "Store", href: EDITOR, icon: Store, match: STORE_MATCH, need: "design" },
   // Every live deal and offer across stores, with the price and units sold (a public page)
   { id: "marketplace", label: "Marketplace", href: "/marketplace", icon: ShoppingBag },
   {
-    id: "tools", label: "Tools", icon: Wrench, children: [
+    id: "tools", label: "Tools", icon: Wrench, need: "design", children: [
       { id: "ai-images", label: "AI image maker", href: "/tools/ai-images", icon: Sparkles },
       { id: "integrations", label: "Integrations", href: "/tools/integrations", icon: Plug },
     ],
   },
   {
     id: "settings", label: "Settings", icon: Settings, children: [
-      { id: "settings-store", label: "Store", href: "/store/{store}/settings", match: ["/store/{store}/settings"] },
-      { id: "settings-domain", label: "Domain", href: "/store/{store}/domain", pro: "customDomain", match: ["/store/{store}/domain"] },
+      { id: "settings-store", label: "Store", href: "/store/{store}/settings", match: ["/store/{store}/settings"], need: "business" },
+      { id: "settings-domain", label: "Domain", href: "/store/{store}/domain", pro: "customDomain", match: ["/store/{store}/domain"], need: "design" },
       { id: "settings-profile", label: "Profile", href: "/settings/profile" },
-      { id: "settings-company", label: "Company", href: "/settings/company" },
-      { id: "settings-tax", label: "Tax (HSN/SAC)", href: "/settings/tax" },
-      { id: "settings-skus", label: "SKUs", href: "/settings/skus" },
-      { id: "settings-billing", label: "Billing and plan", href: "/settings/billing" },
+      { id: "settings-company", label: "Company and invoices", href: "/settings/company", need: "business" },
+      { id: "settings-tax", label: "Tax (HSN/SAC)", href: "/settings/tax", need: "business" },
+      { id: "settings-skus", label: "SKUs", href: "/settings/skus", need: "catalog" },
+      { id: "settings-billing", label: "Billing and plan", href: "/settings/billing", need: "owner" },
       { id: "settings-team", label: "Team", href: "/settings/team" },
     ],
   },

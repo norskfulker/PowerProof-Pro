@@ -7,7 +7,6 @@ import type { DnsProviderId, DomainIssue } from "../types";
  */
 
 export const SUBDOMAIN_ROOT = "powerproof.store";
-export const DNS_TARGET = { a: "76.76.21.21", cname: "cname.vercel-dns.com" };
 
 export interface DnsProvider {
   id: DnsProviderId;
@@ -28,11 +27,11 @@ export const DNS_PROVIDERS: Record<DnsProviderId, DnsProvider> = {
 };
 
 export const DOMAIN_ISSUES: Record<DomainIssue, { title: string; reason: string; fix: string }> = {
-  wrong_target: { title: "The record points to the wrong place", reason: "Your A record points somewhere else, so buyers would reach another site.", fix: `Change the A record for @ to ${DNS_TARGET.a}. Delete any other A records for @.` },
+  wrong_target: { title: "The record points to the wrong place", reason: "Your domain points somewhere else, so buyers would reach another site.", fix: "Change the record to the value shown below, and delete any other A, AAAA or CNAME records for the same name." },
   missing_record: { title: "We can't find the records yet", reason: "There are no records for this domain that point to PowerProof.", fix: "Add the records shown below exactly as written, then choose Verify now." },
-  conflicting_record: { title: "Two records clash", reason: "There's also an AAAA or older A record for @, so some visitors go to the old site.", fix: "Delete every A and AAAA record for @ except the one shown below." },
-  caa_blocks_ssl: { title: "Your domain blocks our certificate", reason: "A CAA record on your domain only allows another company to issue certificates.", fix: "Add a CAA record: 0 issue \"letsencrypt.org\", or remove the existing CAA record." },
-  propagation_slow: { title: "Still spreading", reason: "Your records are right, but some DNS servers haven't caught up yet.", fix: "Nothing to do. We'll keep checking every 30 seconds; it can take up to 24 hours." },
+  conflicting_record: { title: "Two records clash", reason: "There's also an AAAA or older A record for the same name, so some visitors go to the old site.", fix: "Delete every A, AAAA and CNAME record for that name except the ones shown below." },
+  caa_blocks_ssl: { title: "Your domain blocks our certificate", reason: "A CAA record on your domain only allows another company to issue certificates.", fix: "Add CAA records allowing letsencrypt.org, pki.goog and ssl.com (0 issue \"letsencrypt.org\" and so on), or remove the existing CAA record." },
+  propagation_slow: { title: "Almost there", reason: "Your records are right. DNS is still spreading, or your certificate is being issued.", fix: "Nothing to do. We keep checking; it usually takes minutes, sometimes up to 24 hours." },
 };
 
 /** Recognises the registrar from the name. A backend asks the domain's nameservers instead. */

@@ -1,0 +1,33 @@
+/**
+ * PowerProof on Cloudflare Workers, built with the OpenNext adapter (open-next.config.ts).
+ * `npm run deploy` builds and deploys; `npm run preview` runs the built Worker locally.
+ *
+ * Secrets (set each with `npx wrangler secret put NAME`, never in this file):
+ *   SUPABASE_SERVICE_ROLE_KEY, RAZORPAY_*, RESEND_API_KEY, GEMINI_API_KEY, CRON_SECRET,
+ *   CLOUDFLARE_API_TOKEN (custom domains: "SSL and Certificates: Edit" on the zone)
+ * NEXT_PUBLIC_* values are baked in at build time, so they come from .env files when building.
+ */
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "powerproof",
+  // worker.ts wraps the OpenNext Worker and adds the cron handler
+  "main": "worker.ts",
+  "compatibility_date": "2026-09-01",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "assets": { "directory": ".open-next/assets", "binding": "ASSETS" },
+  "services": [{ "binding": "WORKER_SELF_REFERENCE", "service": "powerproof" }],
+  "observability": { "enabled": true },
+  // Re-check custom domains waiting for DNS (app/api/cron/domains)
+  "triggers": { "crons": ["*/10 * * * *"] },
+  "vars": {
+    "MAIL_FROM": "",
+    // Custom domains (Cloudflare for SaaS on your own zone): the zone id and the CNAME creators point to
+    "CLOUDFLARE_ZONE_ID": "",
+    "CLOUDFLARE_CNAME_TARGET": "",
+    // Only if the zone has apex proxying: the addresses bare domains point to, comma separated
+    "CLOUDFLARE_APEX_IPS": ""
+  }
+  // Custom domains reach the app through a route that catches every hostname on the zone.
+  // Uncomment and set your zone once PowerProof's domain is on Cloudflare:
+  // "routes": [{ "pattern": "*/*", "zone_name": "powerproof.store" }]
+}

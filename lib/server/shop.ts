@@ -14,6 +14,20 @@ import { createGatewayOrder, GatewayError, razorpayConfig, refundPayment } from 
  * Callers (route handlers) have already checked who is asking.
  */
 export const siteUrl = () => (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000").replace(/\/+$/, "");
+
+/**
+ * Where a store's buyers should be sent: its own domain once it's live (order and invoice pages
+ * work there too), otherwise PowerProof's address. `home` is the store's front page.
+ */
+export async function storeOrigin(storeId: string): Promise<{ base: string; home: string }> {
+  const db = sbAdmin();
+  const [{ data: d }, { data: s }] = await Promise.all([
+    db.from("domains").select("hostname, status").eq("store_id", storeId).maybeSingle(),
+    db.from("stores").select("slug").eq("id", storeId).maybeSingle(),
+  ]);
+  if (d?.status === "active") return { base: `https://${d.hostname}`, home: `https://${d.hostname}` };
+  return { base: siteUrl(), home: s ? `${siteUrl()}/s/${s.slug}` : `${siteUrl()}/lookup` };
+}
 const asCurrency = (c: string): CurrencyCode => (["INR", "USD", "EUR", "GBP", "AED", "SGD", "AUD", "CAD"].includes(c) ? (c as CurrencyCode) : "INR");
 const money = (amount: number, currency: string): Money => ({ amount, currency: asCurrency(currency) });
 
@@ -232,7 +246,11 @@ export async function mailReceipt(orderId: string, token: string) {
   const db = sbAdmin();
   const { data: o } = await db.from("orders").select("ref, buyer_name, buyer_email, currency, total_minor, store_id, shipping_minor, cod_fee_minor, payment_method, ship_to").eq("id", orderId).single();
   if (!o) return;
-  const [{ data: store }, { data: items }] = await Promise.all([db.from("stores").select("name, support_email").eq("id", o.store_id).single(), db.from("order_items").select("title, line_total_minor, quantity, variant_title, fulfilment").eq("order_id", orderId)]);
+  const [{ data: store }, { data: items }, origin] = await Promise.all([
+    db.from("stores").select("name, support_email, invoice_name, legal_name").eq("id", o.store_id).single(),
+    db.from("order_items").select("title, line_total_minor, quantity, variant_title, fulfilment").eq("order_id", orderId),
+    storeOrigin(o.store_id),
+  ]);
   const fmt = (n: number) => formatMoney(money(n, o.currency));
   const charges = [
     ...(o.ship_to ? [{ title: "Shipping", amount: Number(o.shipping_minor) ? fmt(Number(o.shipping_minor)) : "Free" }] : []),
@@ -240,13 +258,14 @@ export async function mailReceipt(orderId: string, token: string) {
   ];
   const mail = receiptMail({
     storeName: store?.name ?? "the store",
+    sellerName: store?.invoice_name?.trim() || store?.legal_name?.trim() || store?.name,
     buyerName: o.buyer_name,
     ref: o.ref,
     lines: (items ?? []).map((i) => ({ title: `${i.title}${i.variant_title ? ` (${i.variant_title})` : ""}${i.quantity > 1 ? ` × ${i.quantity}` : ""}`, amount: fmt(Number(i.line_total_minor)) })),
     charges,
     total: fmt(Number(o.total_minor)),
-    downloadUrl: `${siteUrl()}/order/${token}`,
-    invoiceUrl: `${siteUrl()}/invoice/${orderId}?t=${token}`,
+    downloadUrl: `${origin.base}/order/${token}`,
+    invoiceUrl: `${origin.base}/invoice/${orderId}?t=${token}`,
     supportEmail: store?.support_email ?? undefined,
     shipTo: addressLine(o.ship_to as Partial<ShipTo> | null) || undefined,
     cod: o.payment_method === "cod",
@@ -260,7 +279,7 @@ export async function mailShipped(orderId: string, delivered: boolean) {
   const db = sbAdmin();
   const { data: o } = await db.from("orders").select("ref, buyer_name, buyer_email, currency, total_minor, store_id, status, tracking").eq("id", orderId).single();
   if (!o) return;
-  const { data: store } = await db.from("stores").select("name, support_email").eq("id", o.store_id).single();
+  const [{ data: store }, origin] = await Promise.all([db.from("stores").select("name, support_email").eq("id", o.store_id).single(), storeOrigin(o.store_id)]);
   const t = await db.rpc("issue_download_token", { p_order: orderId });
   const tr = (o.tracking ?? {}) as { carrier?: string; number?: string; url?: string };
   const mail = shippedMail({
@@ -271,7 +290,7 @@ export async function mailShipped(orderId: string, delivered: boolean) {
     carrier: tr.carrier,
     number: tr.number,
     trackUrl: tr.url,
-    orderUrl: `${siteUrl()}/order/${(t.data as string | null) ?? ""}`,
+    orderUrl: `${origin.base}/order/${(t.data as string | null) ?? ""}`,
     supportEmail: store?.support_email ?? undefined,
     cod: o.status === "cod" ? formatMoney(money(Number(o.total_minor), o.currency)) : undefined,
   });
@@ -347,13 +366,13 @@ export async function mailPaymentFailed(orderId: string, reason?: string) {
   const db = sbAdmin();
   const { data: o } = await db.from("orders").select("ref, buyer_name, buyer_email, currency, total_minor, store_id").eq("id", orderId).single();
   if (!o) return;
-  const { data: store } = await db.from("stores").select("name, slug, support_email").eq("id", o.store_id).single();
+  const [{ data: store }, origin] = await Promise.all([db.from("stores").select("name, slug, support_email").eq("id", o.store_id).single(), storeOrigin(o.store_id)]);
   const mail = paymentFailedMail({
     storeName: store?.name ?? "the store",
     buyerName: o.buyer_name,
     ref: o.ref,
     total: formatMoney(money(Number(o.total_minor), o.currency)),
-    retryUrl: store ? `${siteUrl()}/s/${store.slug}` : `${siteUrl()}/lookup`,
+    retryUrl: origin.home,
     reason: reason?.slice(0, 160),
     supportEmail: store?.support_email ?? undefined,
   });
@@ -365,7 +384,7 @@ export async function mailRefund(orderId: string, cash: boolean) {
   const db = sbAdmin();
   const { data: o } = await db.from("orders").select("ref, buyer_name, buyer_email, currency, total_minor, store_id, payment_method").eq("id", orderId).single();
   if (!o || !Number(o.total_minor)) return;
-  const { data: store } = await db.from("stores").select("name, support_email").eq("id", o.store_id).single();
+  const [{ data: store }, origin] = await Promise.all([db.from("stores").select("name, support_email").eq("id", o.store_id).single(), storeOrigin(o.store_id)]);
   const t = await db.rpc("issue_download_token", { p_order: orderId });
   const mail = refundMail({
     storeName: store?.name ?? "the store",
@@ -373,7 +392,7 @@ export async function mailRefund(orderId: string, cash: boolean) {
     ref: o.ref,
     amount: formatMoney(money(Number(o.total_minor), o.currency)),
     cash: cash || o.payment_method === "cod",
-    orderUrl: `${siteUrl()}/order/${(t.data as string | null) ?? ""}`,
+    orderUrl: `${origin.base}/order/${(t.data as string | null) ?? ""}`,
     supportEmail: store?.support_email ?? undefined,
   });
   return sendMail({ to: String(o.buyer_email), ...mail });

@@ -1,5 +1,6 @@
 import type { LucideIcon } from "lucide-react";
 import { ADMIN_NAV, CREATOR_NAV, STORE_NAV, type BadgeKey, type NavNode } from "./config";
+import { can, type Need, type StoreAccess } from "../team";
 
 export type { NavNode };
 
@@ -26,6 +27,8 @@ export interface NavData {
   counts: Partial<Record<BadgeKey, number>>;
   /** Pro features the plan doesn't include */
   locked: Set<"customDomain">;
+  /** The signed-in person's access to the active store; items they can't open are left out */
+  access?: StoreAccess;
 }
 
 const BADGE_LABEL: Record<BadgeKey, string> = {
@@ -44,12 +47,17 @@ const ALERT: BadgeKey[] = ["reviews_pending", "questions_open", "disputes_open",
 
 const fill = (s: string, storeId: string) => s.replaceAll("{store}", storeId);
 
-export function resolveNav(tree: NavNode[], data: NavData, path: string[] = []): ResolvedNode[] {
-  return tree.map((n) => {
+export function resolveNav(tree: NavNode[], data: NavData, path: string[] = [], inherited: Need = "any"): ResolvedNode[] {
+  const out: ResolvedNode[] = [];
+  for (const n of tree) {
+    const need = n.need ?? inherited;
+    if (!can(data.access, need)) continue;
     const here = [...path, n.label];
-    const children = n.children ? resolveNav(n.children, data, here) : undefined;
+    const children = n.children ? resolveNav(n.children, data, here, need) : undefined;
+    // A group whose items are all hidden goes too
+    if (n.children && !children?.length) continue;
     const count = n.badge ? data.counts[n.badge] : undefined;
-    return {
+    out.push({
       id: n.id,
       label: n.label,
       href: n.href ? fill(n.href, data.storeId) : undefined,
@@ -62,8 +70,9 @@ export function resolveNav(tree: NavNode[], data: NavData, path: string[] = []):
       match: n.match?.map((m) => fill(m, data.storeId)),
       ...(n.inEditor ? { inEditor: true as const } : {}),
       path: here,
-    };
-  });
+    });
+  }
+  return out;
 }
 
 export function flattenNav(tree: ResolvedNode[]): ResolvedNode[] {

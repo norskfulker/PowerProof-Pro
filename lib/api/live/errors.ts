@@ -17,6 +17,7 @@ export function fail(e: Pick<PostgrestError, "message" | "code"> | null | undefi
   if (msg.includes("payout_method_limit")) throw new ApiError("You can save up to 5 of each kind of payout method. Remove one to add another.", "validation");
   if (msg.includes("payout_holder_mismatch")) throw new ApiError("The account must be in your company's name or in the name of its director (you). Check the name matches your bank records.", "validation");
   if (msg.includes("plan_limit_stores")) throw new LimitError("stores", "The Free plan includes 1 store. Upgrade to Pro to open another.");
+  if (msg.includes("not_allowed_for_member")) throw new ApiError("Your team access doesn't cover that. Ask the store's owner.", "validation");
   if (msg.includes("custom domain needs the Pro plan")) throw new LimitError("customDomain", "Custom domains are part of Pro. Upgrade to connect yours.");
   if (e?.code === "23505") throw new ApiError(context.conflict ?? "That's already taken. Try another.", "conflict");
   if (e?.code === "23514" || e?.code === "22P02" || e?.code === "22023") throw new ApiError("Some details aren't in the right format. Check the form and try again.", "validation");

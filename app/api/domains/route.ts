@@ -1,9 +1,9 @@
 import "server-only";
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { addDomain, DomainError, getDomain, removeDomain } from "@/lib/server/domains";
+import { addDomain, DomainError, getDomain, removeDomain, setPrimary } from "@/lib/server/domains";
 
-/** Connect or remove a store's own domain. Pro plan, and only the store's owner. */
+/** Connect or remove a store's own domain. Pro plan; the owner, or someone on the team with the design area. */
 export const dynamic = "force-dynamic";
 
 const body = z.object({ storeId: z.string().uuid(), host: z.string().max(300).optional() });
@@ -18,6 +18,17 @@ export async function POST(request: Request) {
   if (!p.success || !p.data.host) return NextResponse.json({ ok: false, message: "Type the domain you own, like shop.yourname.in." }, { status: 400 });
   try {
     return NextResponse.json({ ok: true, domain: await addDomain(p.data.storeId, p.data.host) });
+  } catch (e) {
+    return reply(e);
+  }
+}
+
+/** Whether the store's free address sends visitors to this domain */
+export async function PATCH(request: Request) {
+  const p = z.object({ storeId: z.string().uuid(), primary: z.boolean() }).safeParse(await request.json().catch(() => null));
+  if (!p.success) return NextResponse.json({ ok: false, message: "That request wasn't right." }, { status: 400 });
+  try {
+    return NextResponse.json({ ok: true, domain: await setPrimary(p.data.storeId, p.data.primary) });
   } catch (e) {
     return reply(e);
   }

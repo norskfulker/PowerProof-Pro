@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Switch } from "@/components/ui/switch";
 import { useCurrentStore } from "@/hooks/use-current-store";
 import { DNS_PROVIDERS, DOMAIN_ISSUES, detectProvider, normaliseHost, validateHost } from "@/lib/api";
 import type { DomainIssue } from "@/lib/types";
@@ -18,14 +19,18 @@ import type { DomainIssue } from "@/lib/types";
 interface Domain {
   host: string;
   status: "pending" | "verifying" | "active" | "failed";
-  records: { type: string; name: string; value: string }[];
+  records: { type: string; name: string; value: string; note?: string }[];
   issue: string | null;
   checkedAt: string | null;
+  /** The free address sends visitors here */
+  primary: boolean;
+  /** www.<domain>, which redirects to the bare domain */
+  www: string | null;
 }
 type Load = { state: "loading" } | { state: "ready"; domain: Domain | null; connected: boolean } | { state: "blocked"; code: number; message: string };
 
-async function api(method: "GET" | "POST" | "DELETE", path: string, storeId: string, host?: string): Promise<{ ok: boolean; status: number; body: { message?: string; domain?: Domain | null; connected?: boolean } }> {
-  const res = await fetch(method === "GET" ? `${path}?storeId=${storeId}` : path, { method, headers: { "content-type": "application/json" }, body: method === "GET" ? undefined : JSON.stringify({ storeId, host }), cache: "no-store" });
+async function api(method: "GET" | "POST" | "PATCH" | "DELETE", path: string, storeId: string, extra?: { host?: string; primary?: boolean }): Promise<{ ok: boolean; status: number; body: { message?: string; domain?: Domain | null; connected?: boolean } }> {
+  const res = await fetch(method === "GET" ? `${path}?storeId=${storeId}` : path, { method, headers: { "content-type": "application/json" }, body: method === "GET" ? undefined : JSON.stringify({ storeId, ...extra }), cache: "no-store" });
   return { ok: res.ok, status: res.status, body: await res.json().catch(() => ({})) };
 }
 
@@ -60,7 +65,7 @@ export default function StoreDomainPage() {
   const [load, setLoad] = useState<Load>({ state: "loading" });
   const [host, setHost] = useState("");
   const [hostError, setHostError] = useState<string>();
-  const [busy, setBusy] = useState<"add" | "check" | "remove">();
+  const [busy, setBusy] = useState<"add" | "check" | "remove" | "primary">();
   const [confirm, setConfirm] = useState(false);
 
   const read = useCallback(async () => {
@@ -94,7 +99,7 @@ export default function StoreDomainPage() {
     if (bad) return setHostError(bad);
     setHostError(undefined);
     setBusy("add");
-    const r = await api("POST", "/api/domains", storeId, h).catch(() => undefined);
+    const r = await api("POST", "/api/domains", storeId, { host: h }).catch(() => undefined);
     setBusy(undefined);
     if (r?.ok && r.body.domain) {
       setLoad({ state: "ready", domain: r.body.domain, connected: true });
@@ -113,6 +118,20 @@ export default function StoreDomainPage() {
     } else toast.error("Couldn't check", { description: r?.body.message });
   }
 
+  async function setPrimary(primary: boolean) {
+    if (!storeId || load.state !== "ready" || !load.domain) return;
+    const before = load.domain;
+    setLoad({ ...load, domain: { ...before, primary } });
+    setBusy("primary");
+    const r = await api("PATCH", "/api/domains", storeId, { primary }).catch(() => undefined);
+    setBusy(undefined);
+    if (r?.ok && r.body.domain) setLoad({ state: "ready", domain: r.body.domain, connected: load.connected });
+    else {
+      setLoad({ ...load, domain: before });
+      toast.error("Couldn't save that", { description: r?.body.message });
+    }
+  }
+
   const header = <PageHeader title="Domain" description="Use your own web address for this store, like shop.yourname.in." />;
   if (load.state === "loading" || !storeId) return <>{header}<Skeleton className="h-64 rounded-card" /></>;
 
@@ -124,7 +143,7 @@ export default function StoreDomainPage() {
         {load.code === 402 ? (
           <EmptyState icon={Globe} title="Your own domain is part of Pro." body="Your store already has its free address. Upgrade to Pro to use a domain you own, with a free SSL certificate." action={<Button onClick={() => plan.upgrade("customDomain")}>See Pro</Button>} />
         ) : load.code === 503 ? (
-          <EmptyState icon={Globe} title="Custom domains aren't switched on here yet." body="Your store works at its free address. Connecting your own domain needs the hosting connection (VERCEL_API_TOKEN and VERCEL_PROJECT_ID) to be set for this site." />
+          <EmptyState icon={Globe} title="Custom domains aren't switched on here yet." body="Your store works at its free address. Connecting your own domain needs the Cloudflare connection (CLOUDFLARE_API_TOKEN, CLOUDFLARE_ZONE_ID and CLOUDFLARE_CNAME_TARGET) to be set for this site." />
         ) : (
           <EmptyState icon={Globe} title="We couldn't load your domain." body={load.message} action={<Button variant="secondary" onClick={() => void read()}>Try again</Button>} />
         )}
@@ -156,28 +175,41 @@ export default function StoreDomainPage() {
               <div>
                 <h2 id="dom-h" className="flex items-center gap-2 font-mono text-lg">{d.host}</h2>
                 <p className={d.status === "active" ? "mt-1 flex items-center gap-1.5 text-sm font-medium text-success" : "mt-1 text-sm text-muted-foreground"}>
-                  {d.status === "active" ? <><Check className="size-4" aria-hidden /> Live. Buyers can visit this address, with a free SSL certificate.</> : "Waiting for your DNS records. We check every 30 seconds."}
+                  {d.status === "active" ? (
+                    <><Check className="size-4" aria-hidden /> Live. Buyers can visit this address, with a free SSL certificate.</>
+                  ) : d.status === "failed" ? (
+                    "We stopped checking after a week without finding your records. Add them, then choose Verify now."
+                  ) : (
+                    "Waiting for your DNS records. We check every 30 seconds while this page is open, and every few minutes after you leave."
+                  )}
                 </p>
+                {d.www && <p className="mt-1 text-xs text-muted-foreground"><span className="font-mono">{d.www}</span> works too and sends visitors to <span className="font-mono">{d.host}</span>.</p>}
+                {d.checkedAt && <p className="mt-1 text-xs text-muted-foreground">Last checked {new Date(d.checkedAt).toLocaleString()}</p>}
               </div>
               <div className="flex gap-2">
-                {d.status !== "active" && (
-                  <Button variant="secondary" onClick={check} disabled={busy !== undefined}>
-                    {busy === "check" ? <Loader2 className="animate-spin" aria-hidden /> : <RefreshCw aria-hidden />} Verify now
-                  </Button>
-                )}
+                <Button variant="secondary" onClick={check} disabled={busy !== undefined}>
+                  {busy === "check" ? <Loader2 className="animate-spin" aria-hidden /> : <RefreshCw aria-hidden />} {d.status === "active" ? "Check again" : "Verify now"}
+                </Button>
                 <Button variant="ghost" className="text-danger" onClick={() => setConfirm(true)} disabled={busy !== undefined}><Trash2 aria-hidden /> Remove</Button>
               </div>
             </div>
-            {issue && d.status !== "active" && (
+            {issue && (
               <div role="status" className="rounded-control border border-warning/40 bg-warning-soft px-4 py-3 text-sm">
-                <p className="font-semibold">{issue.title}</p>
+                <p className="font-semibold">{d.status === "active" ? `Your domain is live, but something changed: ${issue.title.toLowerCase()}` : issue.title}</p>
                 <p className="mt-1">{issue.reason}</p>
                 <p className="mt-1 text-muted-foreground">{issue.fix}</p>
               </div>
             )}
+            <label className="flex min-h-11 cursor-pointer items-start justify-between gap-4 border-t pt-4 text-sm">
+              <span className="flex flex-col">
+                <span className="font-medium">Send visitors of your free address here</span>
+                <span className="text-muted-foreground">Once the domain is live, links to your PowerProof address open on {d.host} instead, so buyers always see your own address.</span>
+              </span>
+              <Switch checked={d.primary} disabled={busy !== undefined} onCheckedChange={(v) => void setPrimary(v)} aria-label="Send visitors of your free address to this domain" />
+            </label>
           </section>
 
-          {d.status !== "active" && (
+          {(d.status !== "active" || d.issue) && (
             <section aria-labelledby="rec-h" className="flex flex-col gap-4 rounded-card border bg-surface p-5 md:p-6">
               <h2 id="rec-h" className="font-sans text-base font-semibold tracking-normal">Add {d.records.length === 1 ? "this record" : "these records"} at {provider?.name ?? "your DNS provider"}</h2>
               <div className="overflow-x-auto rounded-control border">
@@ -185,7 +217,7 @@ export default function StoreDomainPage() {
                   <thead className="bg-surface-sunken text-xs text-muted-foreground"><tr><th className="px-3 py-2 font-medium">Type</th><th className="px-3 py-2 font-medium">Name</th><th className="px-3 py-2 font-medium">Value</th></tr></thead>
                   <tbody className="divide-y">
                     {d.records.map((r, i) => (
-                      <tr key={i}><td className="px-3 py-2 font-mono text-[0.8125rem]">{r.type}</td><td className="px-3 py-2"><Copyable text={r.name} label={`${r.type} name`} /></td><td className="px-3 py-2"><Copyable text={r.value} label={`${r.type} value`} /></td></tr>
+                      <tr key={i}><td className="px-3 py-2 font-mono text-[0.8125rem]">{r.type}</td><td className="px-3 py-2"><Copyable text={r.name} label={`${r.type} name`} /></td><td className="px-3 py-2"><Copyable text={r.value} label={`${r.type} value`} />{r.note && <p className="mt-1 max-w-md px-2 text-xs text-muted-foreground">{r.note}</p>}</td></tr>
                     ))}
                   </tbody>
                 </table>

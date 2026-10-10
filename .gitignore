@@ -34,8 +34,10 @@ yarn-error.log*
 .env*
 !.env.example
 
-# vercel
-.vercel
+# cloudflare workers (OpenNext build output, wrangler state, local secrets)
+.open-next
+.wrangler
+.dev.vars*
 
 # typescript
 *.tsbuildinfo
@@ -50,3 +52,4 @@ next-env.d.ts
 
 # end-to-end test data and sign-in state (created and removed by the tests)
 /tests/e2e/.data/
+cloudflare-env.d.ts

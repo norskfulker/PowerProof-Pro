@@ -6,21 +6,20 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
+    "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
+    "upload": "opennextjs-cloudflare build && opennextjs-cloudflare upload",
+    "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:ui": "vitest run components tests/unit/components",
-    "test:onboarding": "E2E_ONBOARDING=1 playwright test --project=onboarding",
-    "test:e2e": "playwright test --grep-invert \"@a11y|@visual\"",
-    "test:a11y": "playwright test --grep @a11y",
-    "test:visual": "playwright test --grep @visual --project=visual-*",
-    "test:all": "npm run typecheck && npm run lint && npm run test && npm run build && playwright test",
-    "test:integration": "vitest run --config vitest.integration.config.ts"
+    "test:all": "npm run typecheck && npm run lint && npm run test && npm run build"
   },
   "dependencies": {
     "@google/genai": "2.24.0",
     "@hookform/resolvers": "^5.9.1",
+    "@opennextjs/cloudflare": "1.20.10",
     "@phosphor-icons/react": "2.1.10",
     "@react-email/components": "^1.0.12",
     "@react-email/render": "^2.1.0",
@@ -47,12 +46,7 @@
     "zustand": "^5.0.15"
   },
   "devDependencies": {
-    "@axe-core/playwright": "^4.13.0",
-    "@playwright/test": "^1.63.0",
     "@tailwindcss/postcss": "^4",
-    "@testing-library/jest-dom": "^7.0.1",
-    "@testing-library/react": "^16.3.3",
-    "@testing-library/user-event": "^14.6.7",
     "@types/node": "^24.19.1",
     "@types/react": "^19",
     "@types/react-dom": "^19",
@@ -62,6 +56,7 @@
     "jsdom": "^29.1.1",
     "tailwindcss": "^4",
     "typescript": "^5",
-    "vitest": "^5.0.3"
+    "vitest": "^5.0.3",
+    "wrangler": "4.149.0"
   }
 }

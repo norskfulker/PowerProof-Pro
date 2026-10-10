@@ -34,5 +34,6 @@ export interface OrderView {
   shippedAt?: string | null;
   deliveredAt?: string | null;
   files: { id: string; name: string; size: number; product: string }[];
-  store: { legalName?: string; gstin?: string; pan?: string; address?: string; invoicePrefix?: string; invoiceFooter?: string };
+  /** The seller's invoice details. invoiceName is the name buyers see; legalName is the registered one (GST). */
+  store: { invoiceName?: string; legalName?: string; gstin?: string; pan?: string; address?: string; invoicePrefix?: string; invoiceFooter?: string };
 }

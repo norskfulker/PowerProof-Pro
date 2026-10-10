@@ -17,6 +17,8 @@ export interface PlanLimits {
   aiPagesDaily: number;
   /** Connect your own domain (Part 7B) */
   customDomain: boolean;
+  /** People a store can invite to its team, not counting the owner; null = unlimited */
+  teamSeats: number | null;
 }
 
 /** What each AI action costs, in credits */
@@ -47,6 +49,7 @@ export function planComparison(l: AllPlanLimits): { feature: string; free: strin
     { feature: "Products", free: count(l.free.products), pro: count(l.pro.products) },
     { feature: "Pages (launch, sale, link in bio)", free: count(l.free.pages), pro: count(l.pro.pages) },
     { feature: "Your own domain (shop.yourname.in)", free: l.free.customDomain ? "Included, with free SSL" : "yourname.powerproof.store", pro: l.pro.customDomain ? "Included, with free SSL" : "yourname.powerproof.store" },
+    { feature: "Team members (besides you)", free: count(l.free.teamSeats), pro: count(l.pro.teamSeats) },
     { feature: "AI image credits each month", free: String(l.free.aiCredits), pro: String(l.pro.aiCredits) },
     { feature: "Deal paths, coupons, bundles", free: "Included", pro: "Included" },
     { feature: "Payouts to your bank: each sale is held 3 hours, then yours to withdraw any time", free: "Included", pro: "Included" },
@@ -56,7 +59,7 @@ export function planComparison(l: AllPlanLimits): { feature: string; free: strin
 
 /** Plain-words list for the Upgrade dialog */
 export function proBenefits(l: AllPlanLimits): string[] {
-  return ["Unlimited stores, products and pages", "Connect your own domain, with free SSL", `${l.pro.aiCredits} AI image credits a month`, "Same 3% fee per sale, nothing hidden", "Cancel any time from Settings"];
+  return ["Unlimited stores, products and pages", "Connect your own domain, with free SSL", `${l.pro.aiCredits} AI image credits a month`, l.pro.teamSeats === null ? "As many team members as you need" : `Up to ${l.pro.teamSeats} team members`, "Same 3% fee per sale, nothing hidden", "Cancel any time from Settings"];
 }
 
 /** What one store may keep in its media library. */

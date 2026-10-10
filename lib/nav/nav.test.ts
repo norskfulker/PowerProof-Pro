@@ -29,6 +29,23 @@ describe("nav config", () => {
 });
 
 describe("resolveNav", () => {
+  it("shows a team member only the parts of the store they work on", () => {
+    const ids = flattenNav(resolveNav(CREATOR_NAV, { ...data, access: { role: "member", areas: ["orders"] } })).map((n) => n.id);
+    expect(ids).toContain("orders");
+    expect(ids).toContain("customers");
+    expect(ids).toContain("settings-team");
+    expect(ids).toContain("settings-profile");
+    expect(ids).not.toContain("products");
+    expect(ids).not.toContain("payouts");
+    expect(ids).not.toContain("settings-billing");
+    // A group with nothing left in it disappears
+    expect(ids).not.toContain("catalog");
+    expect(ids).not.toContain("tools");
+    const admin = flattenNav(resolveNav(CREATOR_NAV, { ...data, access: { role: "admin", areas: [] } })).map((n) => n.id);
+    expect(admin).toContain("products");
+    expect(admin).not.toContain("payouts");
+  });
+
   it("fills the store id, counts and locks", () => {
     const flat = [...flattenNav(tree), ...flattenNav(storeTree)];
     expect(flat.find((n) => n.id === "design-base")?.href).toBe("/store/store_fx/design/pages/home/edit");

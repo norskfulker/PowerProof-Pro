@@ -53,7 +53,7 @@ const DEF: Omit<ChecklistStep, "state" | "href" | "detail" | "n">[] = [
   { id: "first_sale", title: "Get your first sale", why: "It'll show up under Sales › Orders the moment it happens.", optional: false, coach: "share-link", coachText: "Share your link again, or run a launch offer." },
   { id: "payout", title: "Add a payout method", why: "Where your money goes.", optional: false, coach: "add-payout-method", coachText: "Add the bank account (or UPI ID) to send your earnings to." },
   { id: "customize", title: "Customize your store", why: "Your colour, fonts and pages.", optional: false, coach: "design-hero", coachText: "Pick your brand colour and fonts, then build a page." },
-  { id: "business", title: "Add business details", why: "Needed for GST invoices. You can do this later.", optional: true, coach: "company-form", coachText: "Fill in your legal name and address. Skip if you're not registered yet." },
+  { id: "business", title: "Set your invoice name", why: "Buyers see it at checkout and on their receipt and invoice. GST details are optional.", optional: true, coach: "company-form", coachText: "Add the name buyers should see. Add GST details only if you're registered." },
   { id: "analytics", title: "Connect analytics", why: "See where buyers come from. Optional.", optional: true, coach: "integration-google-analytics", coachText: "Paste your Google Analytics ID to start tracking." },
 ];
 
@@ -67,6 +67,8 @@ interface Facts {
   paid: boolean;
   analytics: boolean;
   businessFields: number;
+  /** The store has a name for receipts and invoices */
+  invoiceName: boolean;
   payout: boolean;
   productsFull: boolean;
   email: string;
@@ -87,7 +89,7 @@ function build(flags: ProgressFlags, f: Facts): Checklist {
       case "collections":
         return [f.anyCollection ? "done" : "not_started"];
       case "business":
-        return [businessFields >= 3 ? "done" : businessFields > 0 ? "in_progress" : "not_started"];
+        return [f.invoiceName ? "done" : businessFields > 0 ? "in_progress" : "not_started"];
       case "payout":
         return [f.payout ? "done" : "not_started"];
       case "first_product":

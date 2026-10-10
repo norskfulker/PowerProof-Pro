@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { detectProvider, DNS_TARGET, DOMAIN_ISSUES, normaliseHost, validateHost } from "./domains";
+import { detectProvider, DOMAIN_ISSUES, normaliseHost, validateHost } from "./domains";
 
 describe("hosts", () => {
   it("cleans what people paste", () => {
@@ -27,7 +27,7 @@ describe("domain problems", () => {
       expect(issue.fix.length).toBeGreaterThan(3);
     }
   });
-  it("the wrong-target fix names the address buyers must point to", () => {
-    expect(DOMAIN_ISSUES.wrong_target.fix).toContain(DNS_TARGET.a);
+  it("the wrong-target fix points to the records on the page", () => {
+    expect(DOMAIN_ISSUES.wrong_target.fix).toMatch(/value shown below/);
   });
 });

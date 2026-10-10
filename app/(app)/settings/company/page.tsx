@@ -21,20 +21,39 @@ import type { Company } from "@/lib/types";
 
 const opt = (re: RegExp, msg: string) => z.string().trim().toUpperCase().refine((s) => s === "" || re.test(s), msg);
 
+/**
+ * Only the invoice name is needed to sell: buyers see it at checkout and on every receipt and
+ * invoice. GST is optional; once a GSTIN is entered, the legal name and address a tax invoice must
+ * carry become required too.
+ */
 const schema = z
   .object({
-    legalName: z.string().trim().min(2, "Enter the legal name for invoices."),
+    invoiceName: z.string().trim().min(2, "Add the name buyers should see on receipts and invoices.").max(120, "Keep it under 120 characters."),
+    legalName: z.string().trim().max(150, "Keep it under 150 characters."),
     businessType: z.enum(["individual", "proprietorship", "partnership", "llp", "private_limited"]),
     gstin: opt(GSTIN_RE, "GSTINs are 15 characters, like 27ABCPR1234F1Z5."),
     pan: opt(PAN_RE, "PANs are 10 characters, like ABCPR1234F."),
-    address1: z.string().trim().min(3, "Enter the first line of your address."),
+    address1: z.string().trim(),
     address2: z.string().optional(),
-    city: z.string().trim().min(2, "Enter your city."),
-    state: z.string().min(1, "Pick your state."),
-    pincode: z.string().regex(PINCODE_RE, "PIN codes are 6 digits."),
+    city: z.string().trim(),
+    state: z.string(),
+    pincode: z.string().trim().refine((v) => v === "" || PINCODE_RE.test(v), "PIN codes are 6 digits."),
     country: z.string(),
   })
-  .refine((v) => !v.gstin || !v.pan || v.gstin.slice(2, 12) === v.pan, { path: ["gstin"], message: "The PAN inside this GSTIN doesn't match your PAN." });
+  .refine((v) => !v.gstin || !v.pan || v.gstin.slice(2, 12) === v.pan, { path: ["gstin"], message: "The PAN inside this GSTIN doesn't match your PAN." })
+  .superRefine((v, ctx) => {
+    if (v.legalName && v.legalName.length < 2) ctx.addIssue({ code: "custom", path: ["legalName"], message: "Enter the full legal name, or leave it empty." });
+    if (!v.gstin) return;
+    // A GST invoice must name the registered business and its address
+    const need: [keyof typeof v, boolean, string][] = [
+      ["legalName", v.legalName.length >= 2, "Enter the legal name your GSTIN is registered to."],
+      ["address1", v.address1.length >= 3, "Enter the first line of your registered address."],
+      ["city", v.city.length >= 2, "Enter your city."],
+      ["state", !!v.state, "Pick your state."],
+      ["pincode", PINCODE_RE.test(v.pincode), "Enter your 6-digit PIN code."],
+    ];
+    for (const [path, ok, message] of need) if (!ok) ctx.addIssue({ code: "custom", path: [path], message });
+  });
 
 type Values = z.input<typeof schema>;
 
@@ -126,7 +145,7 @@ function GstinLookup({ form }: { form: UseFormReturn<Values> }) {
 function CompanyForm({ company, onSaved }: { company: Company; onSaved: (c: Company) => void }) {
   const form = useForm<Values>({
     resolver: zodResolver(schema),
-    defaultValues: { ...company, gstin: company.gstin ?? "", pan: company.pan ?? "", address2: company.address2 ?? "" },
+    defaultValues: { ...company, invoiceName: company.invoiceName ?? "", gstin: company.gstin ?? "", pan: company.pan ?? "", address2: company.address2 ?? "" },
     mode: "onTouched",
   });
   const bar = useFormSaveBar(
@@ -135,8 +154,10 @@ function CompanyForm({ company, onSaved }: { company: Company; onSaved: (c: Comp
       const v = schema.parse(raw);
       onSaved(await updateCompany({ ...v, gstin: v.gstin || undefined, pan: v.pan || undefined }));
     },
-    "Company details saved. New invoices use them straight away."
+    "Saved. New receipts and invoices use it straight away."
   );
+  const registered = !!(useWatch({ control: form.control, name: "gstin" }) ?? "").toString().trim();
+  const optional = registered ? "" : " (optional)";
   const text = (name: keyof Values, label: string, opts: { mono?: boolean; desc?: string; span?: boolean; auto?: string; max?: number } = {}) => (
     <FormField control={form.control} name={name} render={({ field }) => (
       <FormItem className={opts.span ? "sm:col-span-2" : undefined}>
@@ -159,9 +180,11 @@ function CompanyForm({ company, onSaved }: { company: Company; onSaved: (c: Comp
           bar.save();
         }}
       >
-        <SettingsSection title="Company details" description="Printed on every tax invoice. Leave GSTIN blank if you're not registered." saveBar={<SaveBar state={bar} />}>
+        <SettingsSection title="Company and invoices" description="Who buyers are buying from. You can sell without GST registration: only the invoice name is needed." saveBar={<SaveBar state={bar} />}>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            {text("legalName", "Legal name", { span: true, auto: "organization" })}
+            {text("invoiceName", "Name on receipts and invoices", { span: true, auto: "organization", max: 120, desc: "Buyers see it at checkout (\u201cSold by\u201d) and on the receipt and invoice we email them. Your store name, your own name or your business name all work." })}
+            <h3 className="mt-2 font-sans text-sm font-semibold tracking-normal sm:col-span-2">GST and registered details <span className="font-normal text-muted-foreground">(only if you&apos;re registered)</span></h3>
+            <p className="-mt-3 text-sm text-muted-foreground sm:col-span-2">With a GSTIN, invoices become tax invoices with GST worked out. Without one, they say no GST was charged.</p>
             <FormField control={form.control} name="businessType" render={({ field }) => (
               <FormItem>
                 <FormLabel>Business type</FormLabel>
@@ -172,15 +195,16 @@ function CompanyForm({ company, onSaved }: { company: Company; onSaved: (c: Comp
               </FormItem>
             )} />
             <div />
-            {text("gstin", "GSTIN", { mono: true, max: 15, desc: "15 characters. Optional. We'll look up your registered details." })}
-            {text("pan", "PAN", { mono: true, max: 10, desc: "Needed for TDS and payouts above ₹50,000 a year." })}
+            {text("gstin", "GSTIN (optional)", { mono: true, max: 15, desc: "15 characters. We'll look up your registered details." })}
+            {text("pan", "PAN (optional)", { mono: true, max: 10, desc: "Needed for TDS and payouts above ₹50,000 a year." })}
             <GstinLookup form={form} />
-            {text("address1", "Address", { span: true, auto: "address-line1" })}
+            {text("legalName", `Legal name${optional}`, { span: true, auto: "organization", desc: "Exactly as registered. Printed on tax invoices." })}
+            {text("address1", `Address${optional}`, { span: true, auto: "address-line1" })}
             {text("address2", "Address line 2 (optional)", { span: true, auto: "address-line2" })}
-            {text("city", "City", { auto: "address-level2" })}
+            {text("city", `City${optional}`, { auto: "address-level2" })}
             <FormField control={form.control} name="state" render={({ field }) => (
               <FormItem>
-                <FormLabel>State</FormLabel>
+                <FormLabel>State{optional}</FormLabel>
                 <Select value={field.value} onValueChange={field.onChange}>
                   <FormControl><SelectTrigger className="w-full"><SelectValue placeholder="Choose" /></SelectTrigger></FormControl>
                   <SelectContent>{INDIAN_STATES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
@@ -188,7 +212,7 @@ function CompanyForm({ company, onSaved }: { company: Company; onSaved: (c: Comp
                 <FormMessage />
               </FormItem>
             )} />
-            {text("pincode", "PIN code", { mono: true, max: 6, auto: "postal-code" })}
+            {text("pincode", `PIN code${optional}`, { mono: true, max: 6, auto: "postal-code" })}
             {text("country", "Country")}
           </div>
         </SettingsSection>

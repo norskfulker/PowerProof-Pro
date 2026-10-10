@@ -37,7 +37,9 @@ function VerifyForm() {
       await verifyEmail(code, params.get("email") ?? undefined);
       toast.success("Email confirmed");
       const t = params.get("template");
-      router.push(t ? `/onboarding?template=${t}` : "/onboarding");
+      // Same-site paths only (an invite link, for example)
+      const next = params.get("next");
+      router.push(next && next.startsWith("/") && !next.startsWith("//") ? next : t ? `/onboarding?template=${t}` : "/onboarding");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
       setPending(false);

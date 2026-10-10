@@ -7,7 +7,7 @@ The app talks to **Supabase only**. There is no demo mode, no mock data layer an
 ## Run it
 
 ```bash
-cp .env.example .env.local   # then fill in the Supabase URL and anon key
+# make .env.local with NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY and NEXT_PUBLIC_SITE_URL
 npm install
 npm run dev
 ```
@@ -18,25 +18,13 @@ Open http://localhost:3000. If the Supabase variables are missing the app says s
 | --- | --- |
 | `npm run dev` | Dev server |
 | `npm run build` | Production build (also typechecks) |
-| `npm run lint` | ESLint (also bans importing test fixtures from app code) |
+| `npm run lint` | ESLint |
 | `npm run typecheck` | TypeScript only |
-| `npm test` | Unit and component tests (Vitest, with test-only fixtures in `tests/fixtures`) |
-| `npm run test:integration` | Row level security checks against the real project |
-| `npm run test:e2e` | Playwright: layout on every screen size and engine, flows, empty states, persistence |
-| `npm run test:a11y` | axe on every route (zero serious or critical issues) |
-| `npm run test:visual` | Screenshot comparisons at phone, tablet and desktop |
-| `npm run test:all` | Typecheck, lint, unit tests, a production build, then Playwright |
+| `npm test` | Unit tests (Vitest; each sits next to its code as `*.test.ts`) |
+| `npm run test:all` | Typecheck, lint, unit tests, then a production build |
+| `npm run preview` / `npm run deploy` | Build for Cloudflare Workers, then run locally / deploy (see below) |
 
-## Tests run against the real database
-
-The end-to-end and integration tests use two throwaway creator accounts on the real project. Put their logins in `.env.test.local` (see `.env.example`):
-
-- **Creator A** gets test data (a product, collection, coupon, page, and with the service-role key also a second product, a deal path, and a paid order with a review). Everything is named `e2e …` and deleted again at the end. A crashed run's leftovers are swept at the next start.
-- **Creator B** is never given data. The empty-state tests use it to check what a brand-new account sees.
-
-Playwright's global setup creates the data and signs both creators in through the real login page; the teardown removes it. Playwright runs against a production build on port 3100, so run `npm run build` first. First time only: `npx playwright install`.
-
-Visual baselines are not committed: create them once with `npx playwright test --grep @visual --update-snapshots`, look at every image, then commit them.
+The end-to-end, accessibility, visual and integration suites (Playwright, `tests/`) were removed in Oct 2026; only the unit tests next to the code remain.
 
 ## Where things are
 
@@ -58,11 +46,6 @@ lib/
   defaults/         starter copy for a new store (policies, FAQ, design) with no names, prices or links
   tax-codes.ts      the GST reference list (products save their own code and rate)
   database.types.ts generated from the Supabase schema
-tests/
-  fixtures/         made-up records for unit tests only (app code can't import them)
-  unit/             component tests; lib tests sit next to their code
-  integration/      row level security tests against the real project
-  e2e/              Playwright specs and the setup that creates and removes their data
 ```
 
 ## What lives where
@@ -101,7 +84,7 @@ Everything below is built; each piece switches on when its keys are set, and say
 | Orders, payments, refunds, downloads | `SUPABASE_SERVICE_ROLE_KEY`, `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET` | In Razorpay add the webhook `https://<site>/api/webhooks/razorpay` (events `payment.captured`, `order.paid`, `payment.failed`, and the `payment.dispute.*` events). Test with Razorpay's test keys first. |
 | Seller payouts (automatic, rupees to Indian accounts) | `RAZORPAYX_ACCOUNT_NUMBER` (plus the Razorpay keys) | Fund the RazorpayX account; add `payout.processed`, `payout.reversed`, `payout.rejected` to the webhook. Sellers must add their bank account again after this is on, so it is registered with Razorpay. |
 | Receipt emails (and resending them) | `RESEND_API_KEY`, `MAIL_FROM` | Verify the sending domain in Resend. |
-| Custom domains | `VERCEL_API_TOKEN`, `VERCEL_PROJECT_ID` (`VERCEL_TEAM_ID` for a team) | Creators on Pro add their domain on Store › Domain and set the DNS records shown. |
+| Custom domains | `CLOUDFLARE_API_TOKEN` (secret), `CLOUDFLARE_ZONE_ID`, `CLOUDFLARE_CNAME_TARGET`, `CRON_SECRET` (secret); `CLOUDFLARE_APEX_IPS` only with apex proxying | See "Custom domains on Cloudflare" below. Creators on Pro add their domain on Settings › Domain and set the DNS records shown. |
 | Dashboard visits, sources, funnel | nothing | Counted by the storefront itself, cookieless. |
 | Google Analytics, Clarity | nothing | Creators paste their IDs on Store › Analytics tags. |
 | Live GST lookup | `GST_LOOKUP_URL`, `GST_LOOKUP_KEY` | See above. |
@@ -109,3 +92,29 @@ Everything below is built; each piece switches on when its keys are set, and say
 After setting them, open **Admin › Money › Payment gateway**: it shows what's in place, tests the Razorpay keys, and gives the exact webhook address to paste into Razorpay.
 
 `NEXT_PUBLIC_SITE_URL` must be the real site address: receipt links and custom-domain routing use it.
+
+## Deploying to Cloudflare Workers
+
+The app runs on Cloudflare Workers through the OpenNext adapter (`@opennextjs/cloudflare`). The files: `wrangler.jsonc` (the Worker, its cron and plain settings), `worker.ts` (OpenNext's handler plus the cron that re-checks custom domains), `open-next.config.ts`, `public/_headers`.
+
+```bash
+npm run preview   # build, then run the real Worker locally (wrangler)
+npm run deploy    # build and deploy
+```
+
+- `NEXT_PUBLIC_*` values are baked in at build time, so build with them in `.env.local` (or the build machine's environment): `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_SITE_URL`.
+- Server secrets go to Cloudflare, one at a time: `npx wrangler secret put SUPABASE_SERVICE_ROLE_KEY` (and the Razorpay keys, `RESEND_API_KEY`, `GEMINI_API_KEY`, `CRON_SECRET`, `CLOUDFLARE_API_TOKEN`). Plain settings (`MAIL_FROM`, `CLOUDFLARE_ZONE_ID`, `CLOUDFLARE_CNAME_TARGET`) can sit in `vars` in `wrangler.jsonc`.
+- For `npm run preview`, local secrets go in `.dev.vars` (git-ignored), with `NEXTJS_ENV=development` on its first line.
+
+### Custom domains on Cloudflare
+
+Creators' domains are Cloudflare for SaaS custom hostnames on PowerProof's own zone. One-time setup, on the zone that holds the site's domain (say `powerproof.store`):
+
+1. **SSL/TLS › Custom Hostnames**: enable Cloudflare for SaaS.
+2. Add a proxied DNS record for the fallback origin, `fallback.powerproof.store AAAA 100::` (the Worker answers, so the address is never used), and set it as the **fallback origin**.
+3. Add a proxied `customers.powerproof.store CNAME fallback.powerproof.store`. That's what creators point their domains at: set `CLOUDFLARE_CNAME_TARGET=customers.powerproof.store`.
+4. Route every hostname on the zone to the Worker: uncomment `routes` in `wrangler.jsonc` (`*/*` on the zone).
+5. Make an API token with **SSL and Certificates: Edit** on that zone (`CLOUDFLARE_API_TOKEN`), and set `CLOUDFLARE_ZONE_ID`.
+6. Set `CRON_SECRET` so the 10-minute cron can re-check pending domains.
+
+Creators then add a CNAME for their subdomain (or for `@` and `www` on a bare domain, where their DNS host allows a CNAME at the root, as Cloudflare does). Cloudflare checks the domain and issues its certificate; the app marks it live, and sends `www` to the bare domain. If your Cloudflare plan includes apex proxying, set `CLOUDFLARE_APEX_IPS` to its addresses and bare domains get A records instead.

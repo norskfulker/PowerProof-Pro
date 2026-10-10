@@ -53,7 +53,7 @@ export function StorefrontProvider({ slug, view, reload, children }: { slug: str
   return (
     <StorefrontContext.Provider value={{ slug, view, currency, setCurrency, convertible, buy, buying, reload }}>
       {children}
-      <CheckoutSheet open={!!cart && items.length > 0} onOpenChange={(o) => !o && setCart(undefined)} storeId={view.store.id} storeSlug={slug} lines={items} onLines={setCart} shipping={view.store.shipping} />
+      <CheckoutSheet open={!!cart && items.length > 0} onOpenChange={(o) => !o && setCart(undefined)} storeId={view.store.id} storeSlug={slug} lines={items} onLines={setCart} shipping={view.store.shipping} sellerName={view.store.invoiceName} />
     </StorefrontContext.Provider>
   );
 }

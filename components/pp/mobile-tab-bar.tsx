@@ -4,8 +4,10 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Menu } from "lucide-react";
 import { useApi } from "@/hooks/use-api";
+import { useCurrentStore } from "@/hooks/use-current-store";
 import { getActiveStoreId } from "@/lib/api";
 import { ADMIN_TABS, MOBILE_TABS, type TabItem } from "@/lib/nav/config";
+import { can, needForPath } from "@/lib/team";
 import { cn } from "@/lib/utils";
 
 /** The longest matching prefix wins, so /admin/orders lights Disputes, not Overview. */
@@ -20,11 +22,13 @@ export function activeTab(tabs: TabItem[], pathname: string): TabItem | undefine
 export function MobileTabBar({ area, onMore }: { area: "creator" | "admin"; onMore: () => void }) {
   const pathname = usePathname();
   const store = useApi(getActiveStoreId, []);
-  const tabs = area === "admin" ? ADMIN_TABS : MOBILE_TABS;
+  const access = useCurrentStore().data?.access;
+  // Team members only get the tabs for the parts of the store they work on
+  const tabs = area === "admin" ? ADMIN_TABS : MOBILE_TABS.filter((t) => can(access, needForPath(t.href)));
   const active = activeTab(tabs, pathname);
   return (
     <nav aria-label="Quick" className="fixed inset-x-0 bottom-0 z-40 border-t bg-surface pb-[env(safe-area-inset-bottom)] md:hidden">
-      <ul className="grid grid-cols-5">
+      <ul className="grid auto-cols-fr grid-flow-col">
         {tabs.map((t) => {
           const on = t === active;
           const Icon = t.icon;

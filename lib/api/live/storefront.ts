@@ -14,8 +14,8 @@ import { collectionFrom, currency, dealRuleFrom, designFrom, pagesFrom, productF
  * level security decides what is visible (published stores, live products, published pages).
  */
 
-/** Columns an anonymous visitor may read (owner, GSTIN and PAN are never among them). */
-const STORE_COLS = "id, name, slug, country, tagline, logo_url, status, theme, theme_mode, currency_base, brand_color, support_email, refund_days, created_at, shipping";
+/** Columns an anonymous visitor may read (owner, GSTIN and PAN are never among them). The invoice name is shown at checkout. */
+const STORE_COLS = "id, name, slug, country, tagline, logo_url, status, theme, theme_mode, currency_base, brand_color, support_email, refund_days, created_at, shipping, invoice_name, legal_name";
 const PRODUCT_COLS = "id, store_id, title, slug, description, status, currency, price_minor, min_price_minor, compare_at_price_minor, cover_bg, sku, hsn_sac, tax_rate_bps, product_type, fulfilment, source_url, created_at, updated_at, options, track_stock, stock, weight_grams";
 const REVIEW_COLS = "id, store_id, product_id, reviewer_name, rating, title, body, photos, status, creator_reply, replied_at, created_at, pinned";
 const QUESTION_COLS = "id, store_id, product_id, asker_name, body, answer, answered_at, status, created_at";
