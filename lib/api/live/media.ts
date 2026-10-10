@@ -77,6 +77,10 @@ export async function listMedia(): Promise<MediaItem[]> {
 /** Where each file is used in the active store, so deleting warns about it. */
 async function usesBySrc(): Promise<(src: string) => MediaUse[]> {
   const [products, collections, design, store] = await Promise.all([getProducts(), getCollections(), getStoreDesign(), getStore()]);
+  const [pageRows, draftRows] = await Promise.all([sb().from("custom_pages").select("id, title, slug, layout").eq("store_id", store.id), sb().from("custom_page_drafts").select("page_id, data").eq("store_id", store.id)]);
+  // Drafts (unpublished work) count too; before migration 031 there is no drafts table and they're in layout
+  const drafts = new Map((draftRows.data ?? []).map((d) => [d.page_id, d.data]));
+  const pages = (pageRows.data ?? []).map((p) => ({ title: p.title, slug: p.slug, layout: [p.layout, drafts.get(p.id)] }));
   const has = (v: unknown, src: string) => JSON.stringify(v ?? null).includes(`"${src}"`);
   return (src) => {
     const out: MediaUse[] = [];
@@ -86,7 +90,8 @@ async function usesBySrc(): Promise<(src: string) => MediaUse[]> {
       if (has(p.tileBackground, src)) out.push({ label: `Product card: ${p.title}`, href: `/catalog/products/${p.id}` });
     }
     for (const c of collections) if (has(c.background, src)) out.push({ label: `Collection tile: ${c.name}`, href: "/catalog/collections" });
-    if (has(design.hero.background, src)) out.push({ label: "Store hero", href: "/store/current/design/base" });
+    if (has(design.hero.background, src)) out.push({ label: "Store hero", href: "/store/current/design/pages/home/edit" });
+    for (const pg of pages) if (has(pg.layout, src)) out.push({ label: pg.slug === "home" ? "Home page" : `Page: ${pg.title}`, href: "/store/current/design/pages" });
     if (store.logo?.src === src) out.push({ label: "Store logo", href: "/store/current/settings" });
     if (has(design.about.photo, src)) out.push({ label: "About page photo", href: `/store/${store.id}/pages/about` });
     return out;

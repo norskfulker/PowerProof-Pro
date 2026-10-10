@@ -2,11 +2,11 @@
 
 import { Check } from "lucide-react";
 import { Label } from "@/components/ui/label";
-import { HERO_STYLES, PALETTES } from "@/lib/store-themes";
+import { PALETTES } from "@/lib/store-themes";
 import type { StoreTheme } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-/** Advanced look: palette, accent and hero layout. Brand colour, fonts, corners and colour mode are on the Base design panel. */
+/** Palette and accent. Brand colour, fonts, corners and colour mode are in the theme settings beside it. */
 export function ThemePicker({ theme, onChange }: { theme: StoreTheme; onChange: (t: StoreTheme) => void }) {
   const palette = PALETTES.find((p) => p.id === theme.palette) ?? PALETTES[0];
   const set = (p: Partial<StoreTheme>) => onChange({ ...theme, ...p });
@@ -54,28 +54,6 @@ export function ThemePicker({ theme, onChange }: { theme: StoreTheme; onChange: 
         )}
       </div>
 
-      <fieldset>
-        <legend className="eyebrow mb-2">Hero layout</legend>
-        <div className="grid grid-cols-3 gap-2">
-          {HERO_STYLES.map((h) => (
-            <button
-              key={h.id}
-              type="button"
-              aria-pressed={theme.heroStyle === h.id}
-              onClick={() => set({ heroStyle: h.id })}
-              title={h.description}
-              className={cn("flex flex-col items-center gap-2 rounded-control border bg-surface p-2 text-xs font-medium", theme.heroStyle === h.id ? "border-primary outline-2 outline-primary" : "hover:border-border-strong")}
-            >
-              <span className="flex h-12 w-full gap-1 rounded-[6px] bg-muted p-1.5" aria-hidden>
-                {h.id === "left" && (<><span className="flex-1 rounded-[3px] bg-foreground/60" /><span className="flex-1 rounded-[3px] bg-accent" /></>)}
-                {h.id === "centered" && <span className="mx-auto w-2/3 rounded-[3px] bg-foreground/60" />}
-                {h.id === "full" && <span className="flex-1 rounded-[3px] bg-primary" />}
-              </span>
-              {h.name}
-            </button>
-          ))}
-        </div>
-      </fieldset>
     </div>
   );
 }

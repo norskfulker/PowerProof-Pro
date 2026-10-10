@@ -20,9 +20,83 @@ export type SectionId =
   | "faq"
   | "newsletter";
 
+/** Sections the creator can add any number of times. Their content lives on the section itself. */
+export type ExtraSectionKind = "text" | "columns" | "table" | "marquee" | "image" | "video";
+export type SectionKind = SectionId | ExtraSectionKind;
+
+export type Align = "left" | "center" | "right";
+
+/** Where a button or link goes: "products", "collection:<slug>", "product:<slug>", "page:<faq|about|contact>", "url:https://…" or "section:<id>" */
+export type LinkTarget = string;
+
+/** The same quick controls on every section */
+export interface SectionLayout {
+  align?: Align;
+  width?: "narrow" | "normal" | "wide" | "full";
+  space?: "none" | "sm" | "md" | "lg";
+  /** A tinted or outlined panel behind the section */
+  tone?: "none" | "soft" | "outline";
+  /** Hide on one kind of screen */
+  hideOn?: "mobile" | "desktop";
+}
+
+export interface HighlightItem {
+  icon: "download" | "shield" | "refund" | "star" | "zap" | "heart" | "globe" | "check";
+  title: string;
+  body: string;
+}
+
+export interface MarqueeItem {
+  text?: string;
+  /** A logo image (https) */
+  src?: string;
+  alt?: string;
+  href?: LinkTarget;
+}
+
+export interface SectionContent {
+  /** A hero added after the first one (the first uses design.hero) */
+  hero?: HeroContent;
+  /** Replaces the automatic items of the highlights strip */
+  highlights?: HighlightItem[];
+  text?: { heading: string; body: string; ctaLabel?: string; ctaTarget?: LinkTarget };
+  columns?: { title: string; body: string; ctaLabel?: string; ctaTarget?: LinkTarget }[];
+  table?: { rows: string[][]; header: boolean; striped: boolean };
+  marquee?: { mode: "text" | "logos"; items: MarqueeItem[]; speed: "slow" | "normal" | "fast"; direction: "left" | "right"; pauseOnHover: boolean };
+  /** A picture uploaded to the media library (empty until one is added) */
+  image?: { src: string; alt: string; aspect: "16:9" | "4:3" | "1:1" | "3:1"; fit: "cover" | "contain"; kind?: "image" | "gif"; caption?: string; href?: LinkTarget };
+  /** An uploaded video, or a YouTube or Vimeo link */
+  video?: { src: string; poster?: string; url?: string; caption?: string };
+  /** Products shown by bestsellers / new arrivals */
+  count?: number;
+}
+
 export interface SectionSetting {
-  id: SectionId;
+  /** Unique on the page. Sections made before this was added use their kind as the id. */
+  id: string;
+  /** What it shows. Defaults to the id. */
+  kind?: SectionKind;
   enabled: boolean;
+  /** Heading above the section, for kinds that show one */
+  title?: string;
+  layout?: SectionLayout;
+  content?: SectionContent;
+}
+
+/** The store header: the bar above the menu, and the menu itself */
+export interface HeaderSettings {
+  align?: "left" | "center";
+  sticky?: boolean;
+  search?: boolean;
+  /** Your own menu links. Empty uses All products, your collections and Contact. */
+  links?: { label: string; target: LinkTarget }[];
+  /** A colour scheme from the theme (its id); empty keeps the store's own look */
+  scheme?: string;
+}
+
+export interface FooterSettings {
+  /** A colour scheme from the theme (its id) */
+  scheme?: string;
 }
 
 export type PaletteId = "emerald" | "midnight" | "plum" | "terracotta" | "ocean" | "graphite";
@@ -53,6 +127,27 @@ export interface StoreTheme {
   customFont?: CustomFont;
   /** Buttons and corners, in three steps */
   corners?: "sharp" | "soft" | "round";
+  /** Named colour schemes sections pick from. Empty uses the five made from the palette. */
+  schemes?: ColorScheme[];
+}
+
+/** The colours of one scheme in one mode. All hex. */
+export interface SchemeColors {
+  background: string;
+  text: string;
+  /** Solid buttons and links */
+  button: string;
+  buttonText: string;
+  /** Lines around cards, inputs and tables */
+  border: string;
+}
+
+/** A colour scheme (like Shopify's): a section picks one by id, and it applies in light and dark */
+export interface ColorScheme {
+  id: string;
+  name: string;
+  light: SchemeColors;
+  dark: SchemeColors;
 }
 
 export interface HeroContent {
@@ -60,18 +155,27 @@ export interface HeroContent {
   subtext: string;
   ctaLabel: string;
   /** "products", "collection:<slug>" or "product:<slug>" */
-  ctaTarget: string;
+  ctaTarget: LinkTarget;
   /** Product ids whose covers make the image or collage. */
   imageProductIds: string[];
   videoUrl?: string;
   /** Uploaded image, GIF or looping video behind the hero. Phones and reduced motion get the poster. */
   background?: TileBackground;
+  /** Second button, next to the first */
+  cta2Label?: string;
+  cta2Target?: LinkTarget;
 }
 
 export interface Announcement {
   text: string;
   code?: string;
   endsAt?: ISODate;
+  align?: Align;
+  tone?: "brand" | "dark" | "soft";
+  /** Scroll the message across the bar */
+  scroll?: boolean;
+  /** Makes the message a link */
+  target?: LinkTarget;
 }
 
 export interface SocialLinks {
@@ -100,6 +204,8 @@ export interface HtmlSectionContent {
 
 export interface StoreDesign {
   sections: SectionSetting[];
+  header?: HeaderSettings;
+  footer?: FooterSettings;
   theme: StoreTheme;
   hero: HeroContent;
   announcement: Announcement;

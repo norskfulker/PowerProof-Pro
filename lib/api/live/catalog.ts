@@ -11,14 +11,14 @@ import type { ProductQuery } from "../products";
 import type { InboxQuestion, InboxReview, Offers } from "../store-admin";
 import type { NavCounts } from "../nav";
 import { fail, must } from "./errors";
-import { collectionFrom, dealRuleFrom, mediaUrl, productFrom, productType, questionFrom, reviewFrom, toDbStatus, type FileRow, type MediaRow, type ProductStats, type QuestionInput, type ReviewInput } from "./map";
+import { collectionFrom, dealRuleFrom, mediaUrl, productFrom, productType, questionFrom, reviewFrom, toDbStatus, type FileRow, type MediaRow, type ProductStats, type QuestionInput, type ReviewInput, type VariantRow } from "./map";
 import { openDisputeOrderIds } from "./orders";
 import { activeStoreId, currentUser } from "./session";
 import { removeFromStorage } from "./upload";
 
 /** Products, collections, coupons, deal paths, reviews and questions for the active store. */
 
-const PRODUCT_COLS = "id, store_id, title, slug, description, status, currency, price_minor, min_price_minor, compare_at_price_minor, cover_bg, sku, hsn_sac, tax_rate_bps, product_type, fulfilment, source_url, created_at, updated_at";
+const PRODUCT_COLS = "id, store_id, title, slug, description, status, currency, price_minor, min_price_minor, compare_at_price_minor, cover_bg, sku, hsn_sac, tax_rate_bps, product_type, fulfilment, source_url, created_at, updated_at, options, track_stock, stock, weight_grams";
 
 /* Products ------------------------------------------------------------------ */
 
@@ -41,12 +41,13 @@ async function loadProducts(storeId: string, ids?: string[]): Promise<Product[]>
   const rows = must(await q);
   if (!rows.length) return [];
   const pids = rows.map((r) => r.id);
-  const [media, files, stats] = await Promise.all([
+  const [media, files, stats, variants] = await Promise.all([
     sb().from("product_media").select("*").in("product_id", pids),
     sb().from("product_files").select("*").in("product_id", pids),
     salesStats(storeId),
+    sb().from("product_variants").select("*").in("product_id", pids),
   ]);
-  return rows.map((r) => productFrom(r, (media.data ?? []) as MediaRow[], (files.data ?? []) as FileRow[], stats.get(r.id)));
+  return rows.map((r) => productFrom(r, (media.data ?? []) as MediaRow[], (files.data ?? []) as FileRow[], stats.get(r.id), (variants.data ?? []) as VariantRow[]));
 }
 
 export async function getProducts(q: ProductQuery = {}): Promise<Product[]> {
@@ -137,7 +138,45 @@ function productRow(input: Partial<ProductInput> & { priceFloor?: Product["price
   }
   if ("sourceUrl" in input) row.source_url = input.sourceUrl && /^https:\/\//.test(input.sourceUrl) ? input.sourceUrl.slice(0, 2048) : null;
   if ("tileBackground" in input) row.cover_bg = input.tileBackground ? JSON.parse(JSON.stringify(input.tileBackground)) : null;
+  // Variants, options and stock are for physical products
+  if (input.options !== undefined) row.options = input.options.slice(0, 3).map((o) => ({ name: o.name.trim().slice(0, 40), values: o.values.map((v) => v.trim().slice(0, 60)).filter(Boolean).slice(0, 50) })).filter((o) => o.name && o.values.length);
+  if (input.trackStock !== undefined) row.track_stock = input.trackStock;
+  if ("stock" in input) row.stock = input.stock === undefined || input.stock === null ? null : Math.max(0, Math.round(input.stock));
+  if ("weightGrams" in input) row.weight_grams = input.weightGrams === undefined ? null : Math.max(0, Math.round(input.weightGrams));
   return row;
+}
+
+/**
+ * Saves a physical product's variants: kept ones are updated in place (so orders keep pointing at
+ * them), new ones added, removed ones deleted. Stock is only kept when the product counts it.
+ */
+async function saveVariants(productId: string, input: Partial<ProductInput>) {
+  if (input.variants === undefined) return;
+  const client = sb();
+  const current = must(await client.from("product_variants").select("id").eq("product_id", productId));
+  const keep = new Set(input.variants.map((v) => v.id));
+  const gone = current.filter((v) => !keep.has(v.id)).map((v) => v.id);
+  if (gone.length) must(await client.from("product_variants").delete().in("id", gone).select("id"));
+  const known = new Set(current.map((v) => v.id));
+  const rows = input.variants.slice(0, 100).map((v, i) => ({
+    product_id: productId,
+    title: (v.title || v.options.join(" / ") || `Option ${i + 1}`).slice(0, 120),
+    options: v.options.map((o) => o.slice(0, 60)),
+    sku: v.sku.trim() || null,
+    price_minor: Math.max(0, Math.round(v.price.amount)),
+    compare_at_minor: v.compareAt && v.compareAt.amount > v.price.amount ? Math.round(v.compareAt.amount) : null,
+    stock: input.trackStock ? Math.max(0, Math.round(v.stock ?? 0)) : null,
+    image_url: v.image && /^https:\/\//.test(v.image) ? v.image.slice(0, 2048) : null,
+    sort_order: i,
+    ...(known.has(v.id) ? { id: v.id } : {}),
+  }));
+  const updates = rows.filter((r) => "id" in r);
+  const inserts = rows.filter((r) => !("id" in r));
+  for (const u of updates) must(await client.from("product_variants").update(u).eq("id", (u as { id: string }).id).select("id"));
+  if (inserts.length) {
+    const r = await client.from("product_variants").insert(inserts).select("id");
+    if (r.error) fail(r.error);
+  }
 }
 
 /** Replaces the product's gallery and video, and syncs its files with what the form holds. */
@@ -194,6 +233,7 @@ export async function createProduct(input: ProductInput): Promise<Product> {
     .single();
   if (r.error) fail(r.error, { conflict: productConflict(r.error) });
   await saveAttachments(r.data.id, input);
+  await saveVariants(r.data.id, input);
   await rememberTaxCode(storeId, input.taxCode, input.taxRate);
   return getProduct(r.data.id);
 }
@@ -209,6 +249,7 @@ export async function updateProduct(id: string, patch: Partial<ProductInput>): P
     if (r.error) fail(r.error, { notFound: "Product", conflict: productConflict(r.error) });
   }
   await saveAttachments(id, patch);
+  await saveVariants(id, patch);
   if (patch.taxCode) await rememberTaxCode(await activeStoreId(), patch.taxCode, patch.taxRate);
   return getProduct(id);
 }

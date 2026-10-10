@@ -10,6 +10,8 @@ export interface OrderQuery {
   customerId?: string;
   /** Only orders with an open dispute (Sales › Orders › Disputed) */
   disputed?: boolean;
+  /** Only orders waiting to be shipped */
+  toShip?: boolean;
   limit?: number;
 }
 
@@ -29,5 +31,15 @@ async function call(path: string, body?: unknown): Promise<void> {
 }
 export const refundOrder = (id: string, reason: string): Promise<Order> => liveChange(call(`/api/orders/${id}/refund`, { reason }).then(() => live.getOrder(id)));
 export const resendReceipt = (id: string): Promise<void> => call(`/api/orders/${id}/resend`);
+
+/** Ship an order: sent (with tracking), delivered, cash collected, or cancelled (COD). Tells the buyer by email when sent or delivered. */
+export interface FulfilInput {
+  step: "shipped" | "delivered" | "cod_paid" | "cancelled";
+  carrier?: string;
+  number?: string;
+  url?: string;
+  notify?: boolean;
+}
+export const fulfilOrder = (id: string, input: FulfilInput): Promise<Order> => liveChange(call(`/api/orders/${id}/fulfil`, input).then(() => live.getOrder(id)));
 export const getCustomers = (q: CustomerQuery = {}): Promise<Customer[]> => live.getCustomers(q);
 export const getCustomer = (id: string): Promise<{ customer: Customer; orders: Order[] }> => live.getCustomer(id);

@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import type { ColumnDef } from "@tanstack/react-table";
 import { ArrowDown, ArrowUp, FolderOpen, Loader2, Pencil, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -9,9 +10,10 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { Skeleton } from "@/components/ui/skeleton";
 import { ConfirmDialog } from "@/components/pp/confirm-dialog";
-import { EmptyState, ErrorState } from "@/components/pp/empty-state";
+import { DataTable } from "@/components/pp/data-table";
+import { EmptyState } from "@/components/pp/empty-state";
+import { MoneyText } from "@/components/pp/money-text";
 import { PALETTES } from "@/lib/palettes";
 import { PageHeader } from "@/components/pp/page-header";
 import { BackgroundPicker } from "@/components/media/background-picker";
@@ -20,8 +22,17 @@ import { SaveBar } from "@/components/save/save-bar";
 import { useUnsavedGuard } from "@/components/save/unsaved-guard";
 import { useDirtyForm } from "@/hooks/use-dirty-form";
 import { useApi } from "@/hooks/use-api";
+import { useCurrentStore } from "@/hooks/use-current-store";
 import { deleteCollection, getCollections, getProducts, moveCollection, saveCollection } from "@/lib/api";
-import type { Collection } from "@/lib/types";
+import { money } from "@/lib/money";
+import type { Collection, Product } from "@/lib/types";
+
+/** A collection with what's in it, for the table */
+interface Row {
+  c: Collection;
+  index: number;
+  items: Product[];
+}
 
 type Draft = Omit<Collection, "id" | "slug"> & { id?: string };
 
@@ -49,6 +60,68 @@ export default function CollectionsPage() {
     autosave: false,
   });
   const [toDelete, setToDelete] = useState<Collection | null>(null);
+  const store = useCurrentStore();
+  const cur = store.data?.currency ?? "INR";
+  const rows = useMemo<Row[] | undefined>(() => data?.map((c, index) => ({ c, index, items: (products.data ?? []).filter((p) => c.productIds.includes(p.id)) })), [data, products.data]);
+  const grouped = useMemo(() => new Set(data?.flatMap((c) => c.productIds)), [data]);
+  const loose = (products.data ?? []).filter((p) => !grouped.has(p.id));
+
+  const columns = useMemo<ColumnDef<Row, unknown>[]>(
+    () => [
+      { id: "order", header: "#", cell: ({ row }) => <span className="font-mono text-xs text-muted-foreground">{row.original.index + 1}</span> },
+      {
+        id: "name",
+        accessorFn: (r) => `${r.c.name} ${r.c.slug}`,
+        header: "Collection",
+        cell: ({ row }) => (
+          <button type="button" onClick={() => open({ ...row.original.c })} className="flex min-h-11 min-w-0 items-center gap-3 text-left">
+            <CollectionTileArt collection={row.original.c} size="xs" className="w-16 shrink-0" />
+            <span className="flex min-w-0 flex-col">
+              <span className="font-semibold hover:underline">{row.original.c.name}</span>
+              <span className="truncate font-mono text-xs text-muted-foreground">/c/{row.original.c.slug}</span>
+            </span>
+          </button>
+        ),
+      },
+      { id: "products", accessorFn: (r) => r.c.productIds.length, header: "Products", enableSorting: true, meta: { align: "right" }, cell: ({ row }) => <span className="font-mono text-[0.8125rem]">{row.original.c.productIds.length}</span> },
+      {
+        id: "live",
+        accessorFn: (r) => r.items.filter((p) => p.status === "published").length,
+        header: "Live",
+        enableSorting: true,
+        meta: { align: "right" },
+        cell: ({ row }) => {
+          const live = row.original.items.filter((p) => p.status === "published").length;
+          const drafts = row.original.items.length - live;
+          return (
+            <span className="flex flex-col items-end">
+              <span className={`font-mono text-[0.8125rem] ${live === 0 ? "text-warning-ink" : ""}`}>{live}</span>
+              {drafts > 0 && <span className="text-xs text-muted-foreground">{drafts} draft{drafts === 1 ? "" : "s"}</span>}
+            </span>
+          );
+        },
+      },
+      { id: "sold", accessorFn: (r) => r.items.reduce((t, p) => t + p.salesCount, 0), header: "Sold", enableSorting: true, meta: { align: "right" }, cell: ({ getValue }) => <span className="font-mono text-[0.8125rem]">{getValue() as number}</span> },
+      { id: "revenue", accessorFn: (r) => r.items.reduce((t, p) => t + p.revenue.amount, 0), header: "Revenue", enableSorting: true, meta: { align: "right" }, cell: ({ getValue }) => <MoneyText value={money(getValue() as number, cur)} mono /> },
+      {
+        id: "actions",
+        header: () => <span className="sr-only">Actions</span>,
+        cell: ({ row }) => {
+          const { c, index } = row.original;
+          return (
+            <div className="flex justify-end gap-0.5">
+              <Button variant="ghost" size="icon-sm" disabled={index === 0} onClick={async () => setData(await moveCollection(c.id, -1))} aria-label={`Move ${c.name} up`}><ArrowUp /></Button>
+              <Button variant="ghost" size="icon-sm" disabled={index === (data?.length ?? 0) - 1} onClick={async () => setData(await moveCollection(c.id, 1))} aria-label={`Move ${c.name} down`}><ArrowDown /></Button>
+              <Button variant="ghost" size="icon-sm" onClick={() => open({ ...c })} aria-label={`Edit ${c.name}`}><Pencil /></Button>
+              <Button variant="ghost" size="icon-sm" onClick={() => setToDelete(c)} aria-label={`Delete ${c.name}`}><Trash2 /></Button>
+            </div>
+          );
+        },
+      },
+    ],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [data, cur]
+  );
 
   const newDraft = (): Draft => ({ name: "", productIds: [], cover: { template: "block", title: "", subtitle: "", ...PALETTES[0] } });
 
@@ -67,31 +140,35 @@ export default function CollectionsPage() {
         description="Group products so buyers can browse. Each one gets a tile on your store and its own page."
         actions={<Button onClick={() => open(newDraft())}><Plus aria-hidden /> New collection</Button>}
       />
-      {error ? (
-        <ErrorState message={error} onRetry={reload} />
-      ) : loading && !data ? (
-        <div className="flex flex-col gap-3">{[0, 1, 2].map((i) => <Skeleton key={i} className="h-24 rounded-card" />)}</div>
-      ) : data?.length === 0 ? (
-        <EmptyState icon={FolderOpen} title="No collections yet." body="Collections just help organize products. You can sell without one." action={<Button onClick={() => open(newDraft())}><Plus aria-hidden /> New collection</Button>} />
-      ) : (
-        <ol className="flex flex-col gap-3">
-          {data?.map((c, i) => (
-            <li key={c.id} className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-card border bg-surface p-3">
-              <CollectionTileArt collection={c} size="xs" className="w-20 shrink-0 sm:w-24" />
-              <div className="min-w-0 flex-1">
-                <p className="font-semibold">{c.name}</p>
-                <p className="truncate text-sm text-muted-foreground">{c.productIds.length} products · /c/{c.slug}</p>
-              </div>
-              <div className="flex shrink-0 gap-0.5 max-sm:w-full max-sm:justify-end">
-              <Button variant="ghost" size="icon-sm" disabled={i === 0} onClick={async () => setData(await moveCollection(c.id, -1))} aria-label={`Move ${c.name} up`}><ArrowUp /></Button>
-              <Button variant="ghost" size="icon-sm" disabled={i === (data?.length ?? 0) - 1} onClick={async () => setData(await moveCollection(c.id, 1))} aria-label={`Move ${c.name} down`}><ArrowDown /></Button>
-              <Button variant="ghost" size="icon-sm" onClick={() => open({ ...c })} aria-label={`Edit ${c.name}`}><Pencil /></Button>
-              <Button variant="ghost" size="icon-sm" onClick={() => setToDelete(c)} aria-label={`Delete ${c.name}`}><Trash2 /></Button>
-              </div>
-            </li>
-          ))}
-        </ol>
-      )}
+      <DataTable
+        label="Collections"
+        columns={columns}
+        data={rows}
+        loading={loading && !data}
+        error={error}
+        onRetry={reload}
+        pageSize={100}
+        searchPlaceholder="Search collections"
+        noResults="No collection matches."
+        summary={(list) => [
+          { label: "Collections", value: list.length },
+          { label: "Products grouped", value: grouped.size, hint: products.data ? `of ${products.data.length} products` : undefined },
+          { label: "Not in a collection", value: products.data ? loose.length : "—", hint: loose.some((p) => p.fulfilment === "physical") ? "Physical products need one to be found" : loose.length ? "Buyers can still find them in search" : "Everything is grouped" },
+          { label: "Revenue", value: <MoneyText value={money(list.reduce((t, r) => t + r.items.reduce((u, p) => u + p.revenue.amount, 0), 0), cur)} />, hint: "Products in more than one count in each" },
+        ]}
+        mobileCard={(r) => (
+          <div className="flex items-center gap-3 rounded-card border bg-surface p-3">
+            <CollectionTileArt collection={r.c} size="xs" className="w-20 shrink-0" />
+            <button type="button" onClick={() => open({ ...r.c })} className="min-w-0 flex-1 text-left">
+              <span className="block truncate font-semibold">{r.c.name}</span>
+              <span className="block truncate text-sm text-muted-foreground">{r.c.productIds.length} products · {r.items.filter((p) => p.status === "published").length} live</span>
+            </button>
+            <Button variant="ghost" size="icon-sm" disabled={r.index === 0} onClick={async () => setData(await moveCollection(r.c.id, -1))} aria-label={`Move ${r.c.name} up`}><ArrowUp /></Button>
+            <Button variant="ghost" size="icon-sm" onClick={() => setToDelete(r.c)} aria-label={`Delete ${r.c.name}`}><Trash2 /></Button>
+          </div>
+        )}
+        empty={<EmptyState icon={FolderOpen} title="No collections yet." body="Collections just help organize products. You can sell without one." action={<Button onClick={() => open(newDraft())}><Plus aria-hidden /> New collection</Button>} />}
+      />
 
       <Sheet open={!!draft} onOpenChange={(o) => !o && (bar.dirty ? unsaved.confirmLeave(() => setDraft(null)) : setDraft(null))}>
         <SheetContent className="w-full overflow-y-auto sm:max-w-md">

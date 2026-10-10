@@ -8,19 +8,19 @@ import path from "node:path";
  * tables fails with "permission denied". Code uses the creator_* views (where `select *` is safe)
  * or names columns that are granted. This keeps both true.
  *
- * The lists mirror the column grants in the database (supabase migrations 008, 009, 012 and 016).
+ * The lists mirror the column grants in the database (supabase migrations 008, 009, 012, 016 and 035).
  */
 const AUTHENTICATED: Record<string, string[]> = {
-  orders: "available_at buyer_country buyer_email buyer_name consent_at created_at currency deals_applied discount_minor gateway gateway_order_id gateway_payment_id id invoice_no invoice_path paid_at ref status store_id subtotal_minor tax_minor total_minor updated_at".split(" "),
+  orders: "available_at buyer_country buyer_email buyer_name consent_at created_at currency deals_applied discount_minor gateway gateway_order_id gateway_payment_id id invoice_no invoice_path paid_at ref status store_id subtotal_minor tax_minor total_minor updated_at payment_method shipping_minor cod_fee_minor ship_to fulfilment_status tracking shipped_at delivered_at".split(" "),
   reviews: "body created_at creator_reply id photos pinned product_id rating replied_at reviewer_name status store_id title".split(" "),
   questions: "answer answered_at asker_name body created_at id product_id status store_id".split(" "),
   profiles: "avatar_url country created_at email full_name id onboarding plan updated_at".split(" "),
-  stores: "brand_color business_type company_address country created_at currency_base gstin id invoice_footer invoice_prefix legal_name logo_url name owner_id pan refund_days slug status support_email tagline theme theme_mode updated_at".split(" "),
+  stores: "brand_color business_type company_address country created_at currency_base gstin id invoice_footer invoice_prefix legal_name logo_url name owner_id pan refund_days slug status support_email tagline theme theme_mode updated_at shipping".split(" "),
 };
 const ANON: Record<string, string[]> = {
   reviews: AUTHENTICATED.reviews,
   questions: AUTHENTICATED.questions,
-  stores: "brand_color company_address country created_at currency_base id legal_name logo_url name refund_days slug status support_email tagline theme theme_mode".split(" "),
+  stores: "brand_color company_address country created_at currency_base id legal_name logo_url name refund_days slug status support_email tagline theme theme_mode shipping".split(" "),
 };
 /** Files that run for visitors with no sign-in */
 const VISITOR_FILES = ["lib/api/live/storefront.ts"];

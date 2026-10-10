@@ -2,6 +2,7 @@
 
 import { use, useCallback } from "react";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { PageRenderer } from "@/components/page-builder/renderer";
 import { useStorefront } from "@/components/storefront/storefront-context";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -11,6 +12,8 @@ import { getBookedSlots, getPublicVisualPage, submitLead, subscribeNewsletter } 
 /** A published visual page, rendered by the same renderer the editor uses. */
 export default function StoreVisualPage({ params }: { params: Promise<{ store: string; slug: string }> }) {
   const { store, slug } = use(params);
+  // The home page lives at the store's own address
+  if (slug === "home") redirect(`/s/${store}`);
   const { currency, buy, buying } = useStorefront();
   // Stable, so a calendar doesn't reload its times on every render
   const loadBooked = useCallback((from: Date, to: Date) => getBookedSlots(store, slug, from, to), [store, slug]);
@@ -45,7 +48,7 @@ export default function StoreVisualPage({ params }: { params: Promise<{ store: s
       <PageRenderer
         doc={data.doc}
         context={data.context}
-        env={{ mode: "live", currency, onBuy: (productId) => buy({ productId }), buying, onSubscribe: (email) => subscribeNewsletter(store, email), onLead: (input) => submitLead(store, slug, input), loadBooked }}
+        env={{ mode: "live", currency, onBuy: (productId) => buy({ productId }), onBuyBundle: (bundleId) => buy({ bundleId }), buying, onSubscribe: (email) => subscribeNewsletter(store, email), onLead: (input) => submitLead(store, slug, input), loadBooked }}
       />
     </>
   );

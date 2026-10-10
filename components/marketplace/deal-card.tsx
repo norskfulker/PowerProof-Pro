@@ -158,6 +158,7 @@ export function SpotlightCard({ d, rank, show }: { d: Deal; rank: number; show?:
           <div className="mt-auto flex flex-col gap-3">
             <Price d={d} show={show} big />
             <Stats d={d} show={show} />
+            {ends(d) ?? <p className="flex items-center gap-1 text-xs text-muted-foreground"><Clock className="size-3.5" aria-hidden /> No end date · runs until paused</p>}
           </div>
         </div>
       </Link>

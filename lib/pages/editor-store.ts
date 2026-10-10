@@ -14,7 +14,16 @@ import {
   type BlockType,
   type PageDoc,
   type PageNode,
+  type StorePageDoc,
 } from "./schema";
+
+/** The store-wide look (theme, schemes, header, announcement, footer) and logo, edited beside the page */
+export type SiteDraft = NonNullable<StorePageDoc["site"]>;
+
+interface Snapshot {
+  doc: PageDoc;
+  site?: SiteDraft;
+}
 
 /**
  * Editor state for one page (Part 4C). Every change goes through `commit`, which records the
@@ -24,11 +33,16 @@ import {
 
 export type Device = "mobile" | "tablet" | "desktop";
 
+export const EDITOR_PANELS = ["sections", "pages", "theme", "content", "reviews", "questions", "edit"] as const;
+export type EditorPanel = (typeof EDITOR_PANELS)[number];
+
 export interface EditorState {
   doc: PageDoc;
+  /** Store-wide settings; undefined where the editor doesn't edit them */
+  site?: SiteDraft;
   selectedId?: string;
-  past: PageDoc[];
-  future: PageDoc[];
+  past: Snapshot[];
+  future: Snapshot[];
   /** Bumped on every edit; autosave compares it to `savedRev` */
   rev: number;
   savedRev: number;
@@ -38,6 +52,31 @@ export interface EditorState {
   /** Before/after: show the published page next to the draft */
   compare: boolean;
   lastKey?: { key: string; at: number };
+  /** The "Add" picker: a section at a position on the page, or a block inside a section */
+  adding?: { kind: "section"; index: number } | { kind: "block"; parentId: string };
+  setAdding: (a: EditorState["adding"]) => void;
+  /** The icon picker, opened by clicking an icon on the page */
+  iconPick?: { id: string; path: string; current: string };
+  setIconPick: (p: EditorState["iconPick"]) => void;
+  /**
+   * An AI build in progress: the page and site as they were before it, so it can be kept (one undo
+   * step) or thrown away. While set, the canvas shows the build and nothing is autosaved.
+   */
+  aiBase?: Snapshot;
+  /** Start showing an AI build (remembers the page as it is) */
+  beginAi: () => void;
+  /** Show the build so far, outside undo history */
+  showAi: (doc: PageDoc, site?: SiteDraft) => void;
+  /** Keep the build as one undo step, or go back to the page as it was */
+  endAi: (keep: boolean) => void;
+  /** A link clicked in the header or footer: offer to go and edit where it leads */
+  linkPrompt?: { href: string; label: string };
+  setLinkPrompt: (p: EditorState["linkPrompt"]) => void;
+  /** The editor's side panel: the page's sections, the store's pages, theme, About and FAQ, reviews, questions */
+  panel: EditorPanel;
+  /** Opens a panel; `at` scrolls to a part of it (like "faq") */
+  openPanel: (panel: EditorPanel, at?: string) => void;
+  panelAt?: string;
 
   select: (id?: string) => void;
   setDevice: (d: Device) => void;
@@ -46,7 +85,11 @@ export interface EditorState {
   undo: () => void;
   redo: () => void;
   /** Replace the whole document (load, discard, restore). Clears history. */
-  reset: (doc: PageDoc) => void;
+  reset: (doc: PageDoc, site?: SiteDraft) => void;
+  /** Change the store-wide settings (undoable) */
+  updateSite: (fn: (s: SiteDraft) => SiteDraft, coalesceKey?: string) => void;
+  /** Put a ready-made section (from SECTION_PRESETS) at the top level */
+  insertSection: (section: PageNode, index?: number) => string | undefined;
   markSaved: (rev: number) => void;
 
   insert: (type: BlockType, opts?: { parentId?: string; index?: number }) => string | undefined;
@@ -103,6 +146,11 @@ export function insertionPoint(blocks: PageNode[], type: BlockType, selectedId?:
   const sel = findNode(blocks, selectedId)!;
   // Selected a container that can take it: append inside
   if (CHILDREN[sel.type].includes(type)) return { parentId: sel.id, index: sel.children.length, wrap: false };
+  // Selected a card: another card goes after it
+  if (sel.type === "card" && type === "card") {
+    const at = locate(blocks, selectedId)!;
+    return { parentId: at.parentId, index: at.index + 1, wrap: false };
+  }
   // Selected columns: put it in the first column
   if (sel.type === "columns" && sel.children[0]) return { parentId: sel.children[0].id, index: sel.children[0].children.length, wrap: false };
   // Otherwise right after the selection, if its parent allows it
@@ -117,16 +165,18 @@ export function insertionPoint(blocks: PageNode[], type: BlockType, selectedId?:
 /* Store                                                                */
 /* ------------------------------------------------------------------ */
 
-export function createEditorStore(initial: PageDoc) {
+export function createEditorStore(initial: PageDoc, initialSite?: SiteDraft) {
   return createStore<EditorState>((set, get) => {
+    const snap = (): Snapshot => ({ doc: get().doc, site: get().site });
     /** Apply a change to the document, recording undo history. */
-    const commit = (next: PageDoc, coalesceKey?: string, selectedId?: string) => {
+    const commit = (next: PageDoc, coalesceKey?: string, selectedId?: string, site = get().site) => {
       const s = get();
       const now = Date.now();
       const coalesce = !!coalesceKey && s.lastKey?.key === coalesceKey && now - s.lastKey.at < COALESCE_MS;
       set({
         doc: next,
-        past: coalesce ? s.past : [...s.past, s.doc].slice(-HISTORY),
+        site,
+        past: coalesce ? s.past : [...s.past, snap()].slice(-HISTORY),
         future: [],
         rev: s.rev + 1,
         lastKey: coalesceKey ? { key: coalesceKey, at: now } : undefined,
@@ -138,6 +188,7 @@ export function createEditorStore(initial: PageDoc) {
 
     return {
       doc: initial,
+      site: initialSite,
       selectedId: undefined,
       past: [],
       future: [],
@@ -151,20 +202,49 @@ export function createEditorStore(initial: PageDoc) {
       setDevice: (device) => set({ device }),
       setFocusSection: (focusSection) => set({ focusSection }),
       setCompare: (compare) => set({ compare }),
+      setAdding: (adding) => set({ adding }),
+      setIconPick: (iconPick) => set({ iconPick }),
+      setLinkPrompt: (linkPrompt) => set({ linkPrompt }),
+      panel: "sections",
+      openPanel: (panel, panelAt) => set({ panel, panelAt }),
+      beginAi: () => set({ aiBase: snap(), selectedId: undefined, lastKey: undefined }),
+      showAi: (doc, site) => {
+        if (!get().aiBase) return;
+        set({ doc, ...(site ? { site } : {}) });
+      },
+      endAi: (keep) => {
+        const s = get();
+        const base = s.aiBase;
+        if (!base) return;
+        if (keep) set({ aiBase: undefined, past: [...s.past, base].slice(-HISTORY), future: [], rev: s.rev + 1, lastKey: undefined });
+        else set({ aiBase: undefined, doc: base.doc, site: base.site, selectedId: undefined });
+      },
 
       undo: () => {
         const s = get();
         const prev = s.past.at(-1);
         if (!prev) return;
-        set({ doc: prev, past: s.past.slice(0, -1), future: [s.doc, ...s.future], rev: s.rev + 1, lastKey: undefined, selectedId: s.selectedId && findNode(prev.blocks, s.selectedId) ? s.selectedId : undefined });
+        set({ doc: prev.doc, site: prev.site, past: s.past.slice(0, -1), future: [snap(), ...s.future], rev: s.rev + 1, lastKey: undefined, selectedId: keepSelection(prev.doc, s.selectedId) });
       },
       redo: () => {
         const s = get();
         const next = s.future[0];
         if (!next) return;
-        set({ doc: next, past: [...s.past, s.doc], future: s.future.slice(1), rev: s.rev + 1, lastKey: undefined, selectedId: s.selectedId && findNode(next.blocks, s.selectedId) ? s.selectedId : undefined });
+        set({ doc: next.doc, site: next.site, past: [...s.past, snap()], future: s.future.slice(1), rev: s.rev + 1, lastKey: undefined, selectedId: keepSelection(next.doc, s.selectedId) });
       },
-      reset: (doc) => set({ doc, past: [], future: [], rev: 0, savedRev: 0, selectedId: undefined, lastKey: undefined }),
+      reset: (doc, site) => set({ doc, ...(site ? { site } : {}), past: [], future: [], rev: 0, savedRev: 0, selectedId: undefined, lastKey: undefined }),
+      updateSite: (fn, coalesceKey) => {
+        const site = get().site;
+        if (!site) return;
+        commit(get().doc, coalesceKey ? `site:${coalesceKey}` : undefined, undefined, fn(site));
+      },
+      insertSection: (section, index) => {
+        const b = blocks();
+        if (b.length >= 40 || !CHILDREN.root.includes(section.type)) return undefined;
+        const at = Math.max(0, Math.min(index ?? b.length, b.length));
+        commit(docWith([...b.slice(0, at), section, ...b.slice(at)]), undefined, section.id);
+        return section.id;
+      },
       markSaved: (rev) => set({ savedRev: rev }),
 
       insert: (type, opts) => {
@@ -183,8 +263,9 @@ export function createEditorStore(initial: PageDoc) {
         const at = locate(b, id);
         if (!at) return;
         const parent = at.parentId === "root" ? undefined : findNode(b, at.parentId);
-        // Columns keep at least two columns: removing one of two removes the whole columns block
+        // Columns keep at least two columns, and cards at least one: removing the last removes the whole block
         if (parent?.type === "columns" && parent.children.length <= 2) return get().remove(parent.id);
+        if (parent?.type === "cards" && parent.children.length <= 1) return get().remove(parent.id);
         const siblings = at.parentId === "root" ? b : parent!.children;
         const nextSel = siblings[at.index + 1]?.id ?? siblings[at.index - 1]?.id ?? (at.parentId === "root" ? undefined : at.parentId);
         commit(docWith(removeNode(b, id)), undefined, nextSel ?? "");
@@ -199,6 +280,7 @@ export function createEditorStore(initial: PageDoc) {
         if (at.parentId === "root" && b.length >= 40) return undefined;
         const parent = at.parentId === "root" ? undefined : findNode(b, at.parentId);
         if (parent?.type === "columns" && parent.children.length >= 4) return undefined;
+        if (parent?.type === "cards" && parent.children.length >= 12) return undefined;
         const copy = cloneNode(node);
         commit(docWith(withChildren(b, at.parentId, (kids) => [...kids.slice(0, at.index + 1), copy, ...kids.slice(at.index + 1)])), undefined, copy.id);
         return copy.id;
@@ -239,6 +321,10 @@ export function createEditorStore(initial: PageDoc) {
   });
 }
 
+function keepSelection(doc: PageDoc, id?: string) {
+  return id && (id.startsWith("@") || findNode(doc.blocks, id)) ? id : undefined;
+}
+
 function childCount(blocks: PageNode[], parentId: string): number {
   return parentId === "root" ? blocks.length : findNode(blocks, parentId)?.children.length ?? 0;
 }
@@ -248,11 +334,12 @@ export type EditorStore = ReturnType<typeof createEditorStore>;
 /** Content blocks grouped for the Add panel. */
 export const BLOCK_GROUPS: { label: string; types: BlockType[] }[] = [
   { label: "Layout", types: ["section", "hero", "columns", "divider", "spacer"] },
-  { label: "Text", types: ["heading", "text", "button", "table"] },
-  { label: "Media", types: ["image", "gallery", "video"] },
-  { label: "Store", types: ["product_card", "product_grid", "highlights", "testimonials"] },
+  { label: "Text", types: ["heading", "text", "button", "table", "cards"] },
+  { label: "Media", types: ["image", "gallery", "video", "marquee"] },
+  { label: "Store", types: ["product_card", "product_grid", "collection_list", "offers", "highlights", "testimonials", "about"] },
   { label: "Engage", types: ["faq", "countdown", "newsletter"] },
   { label: "Leads", types: ["lead_form", "booking"] },
+  { label: "Advanced", types: ["custom_html"] },
 ];
 
 export const BLOCK_LABELS: Record<BlockType, string> = {
@@ -278,6 +365,13 @@ export const BLOCK_LABELS: Record<BlockType, string> = {
   newsletter: "Newsletter",
   lead_form: "Lead form",
   booking: "Booking calendar",
+  cards: "Cards",
+  card: "Card",
+  collection_list: "Collection list",
+  offers: "Offers",
+  about: "About you",
+  marquee: "Scrolling strip",
+  custom_html: "Custom HTML",
 };
 
 export { CONTENT_TYPES };

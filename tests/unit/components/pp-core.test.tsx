@@ -328,5 +328,37 @@ describe("DataTable", () => {
     rerender(<DataTable label="Orders" columns={cols} data={[]} />);
     expect(screen.getAllByText(/nothing|no /i).length).toBeGreaterThan(0);
   });
+  it("sums the rows that match the search", async () => {
+    const rows = DB.orders;
+    render(<DataTable label="Orders" columns={cols} data={rows} summary={(list) => [{ label: "Orders shown", value: list.length }]} />);
+    const stat = () => screen.getByText("Orders shown").nextElementSibling;
+    expect(stat()).toHaveTextContent(String(rows.length));
+    await userEvent.type(screen.getByRole("searchbox"), rows[0].number);
+    expect(stat()).toHaveTextContent("1");
+  });
+  it("ticks rows and hands them to the bulk actions", async () => {
+    const rows = DB.orders.slice(0, 3);
+    const act = vi.fn();
+    render(<DataTable label="Orders" columns={cols} data={rows} rowId={(o) => o.id} selectable bulkActions={(list, clear) => <button onClick={() => { act(list.map((o) => o.id)); clear(); }}>Do it</button>} />);
+    expect(screen.queryByText("Do it")).not.toBeInTheDocument();
+    await userEvent.click(screen.getAllByRole("checkbox", { name: "Select row" })[1]);
+    expect(screen.getByText("1 selected")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Select all 3" }));
+    await userEvent.click(screen.getByText("Do it"));
+    expect(act).toHaveBeenCalledWith(rows.map((o) => o.id));
+    expect(screen.queryByText(/selected/)).not.toBeInTheDocument();
+  });
+  it("hides columns until shown, and exports what matches", async () => {
+    const create = vi.fn(() => "blob:x");
+    Object.assign(URL, { createObjectURL: create, revokeObjectURL: vi.fn() });
+    const click = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
+    render(<DataTable label="Orders hidden test" columns={cols} data={DB.orders.slice(0, 2)} defaultHidden={["buyerName"]} csv={{ filename: "orders", columns: [{ header: "Order", value: (o) => o.number }] }} />);
+    const table = screen.getAllByRole("table")[0];
+    expect(within(table).queryByText("Buyer")).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: /export/i }));
+    expect(create).toHaveBeenCalledTimes(1);
+    expect(click).toHaveBeenCalled();
+    click.mockRestore();
+  });
 });
 

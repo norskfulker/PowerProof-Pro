@@ -1,6 +1,7 @@
 "use client";
 
 import { Suspense, useState, useSyncExternalStore } from "react";
+import { usePathname } from "next/navigation";
 import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { SidebarProgress } from "@/components/getting-started/getting-started-card";
 import { NavTree } from "@/components/nav/nav-tree";
@@ -63,22 +64,35 @@ function Sidebar({ admin, collapsed, onToggle, onNavigate, footer }: { admin: bo
 export function AppShell({ children, variant = "creator" }: { children: React.ReactNode; variant?: "creator" | "admin" }) {
   const [more, setMore] = useState(false);
   const admin = variant === "admin";
-  const rail = useSyncExternalStore((cb) => (railListeners.add(cb), () => railListeners.delete(cb)), readRail, () => false);
+  const savedRail = useSyncExternalStore((cb) => (railListeners.add(cb), () => railListeners.delete(cb)), readRail, () => false);
+  // In the store editor the menu starts as icons, to leave room for the page; it still opens on click
+  const [editorRail, setEditorRail] = useState(true);
   const footer = admin ? undefined : <SidebarProgress />;
+  // Full-height tools (the store editor) fill the space beside the sidebar instead of scrolling a page
+  const bleed = /\/design\/pages\/[^/]+\/edit$/.test(usePathname() ?? "");
+  const rail = bleed ? editorRail : savedRail;
   return (
     <CreatorProviders tracker={!admin}>
-      <div className={cn("min-h-dvh md:grid", rail ? "md:grid-cols-[72px_minmax(0,1fr)]" : "md:grid-cols-[272px_minmax(0,1fr)]")}>
+      <div className={cn("md:grid", bleed ? "h-dvh overflow-hidden" : "min-h-dvh", rail ? "md:grid-cols-[72px_minmax(0,1fr)]" : "md:grid-cols-[272px_minmax(0,1fr)]")}>
         <SkipLink />
         <aside className={cn("sticky top-0 hidden h-dvh border-r md:block", admin && "border-transparent")}>
-          <Sidebar admin={admin} collapsed={rail} onToggle={() => setRail(!rail)} footer={footer} />
+          <Sidebar admin={admin} collapsed={rail} onToggle={() => (bleed ? setEditorRail(!rail) : setRail(!rail))} footer={footer} />
         </aside>
-        <div className="flex min-w-0 flex-col">
+        <div className={cn("flex min-w-0 flex-col", bleed && "h-dvh min-h-0")}>
           <Topbar admin={admin} />
-          <main id="main" tabIndex={-1} className="gutter mx-auto w-full max-w-[1280px] flex-1 pt-6 pb-28 outline-none md:pt-8 md:pb-16">
+          <main
+            id="main"
+            tabIndex={-1}
+            className={cn(
+              "w-full flex-1 outline-none",
+              bleed ? "flex min-h-0 flex-col px-3 pt-3 md:px-4" : "gutter mx-auto max-w-[1280px] pt-6 pb-28 md:pt-8 md:pb-16"
+            )}
+          >
             {children}
           </main>
         </div>
-        <MobileTabBar area={admin ? "admin" : "creator"} onMore={() => setMore(true)} />
+        {/* The editor has its own tool bar at the bottom on phones */}
+        {!bleed && <MobileTabBar area={admin ? "admin" : "creator"} onMore={() => setMore(true)} />}
         <Sheet open={more} onOpenChange={setMore}>
           <SheetContent side="left" className="w-[88vw] max-w-sm p-0">
             <SheetTitle className="sr-only">Menu</SheetTitle>

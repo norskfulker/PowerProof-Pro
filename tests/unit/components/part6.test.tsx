@@ -12,7 +12,7 @@ import { sameValues, useDirtyForm } from "@/hooks/use-dirty-form";
 import type { ChecklistStep } from "@/lib/api";
 import { planComparison } from "@/lib/plans";
 import { TEST_PLAN_LIMITS } from "@/tests/fixtures";
-import type { SectionSetting, TileBackground } from "@/lib/types";
+import type { TileBackground } from "@/lib/types";
 
 const PLAN_COMPARISON = planComparison(TEST_PLAN_LIMITS);
 
@@ -260,29 +260,5 @@ describe("PlanComparisonTable", () => {
     render(<PlanComparisonTable current="free" limits={TEST_PLAN_LIMITS} />);
     expect(screen.getAllByRole("row")).toHaveLength(PLAN_COMPARISON.length + 1);
     expect(screen.getByRole("columnheader", { name: "Free (yours)" })).toBeInTheDocument();
-  });
-});
-
-describe("section switches agree", () => {
-  it("the switch in a section's own settings and the one in the list are the same setting", async () => {
-    const { SectionSwitch, SectionToggleList } = await import("@/components/pp/section-toggle-list");
-    function Both() {
-      const [sections, setSections] = useState<SectionSetting[]>([{ id: "announcement", enabled: false }, { id: "hero", enabled: true }]);
-      return (
-        <>
-          <SectionSwitch id="announcement" sections={sections} onChange={setSections} />
-          <SectionToggleList sections={sections} onChange={setSections} />
-        </>
-      );
-    }
-    render(<Both />);
-    const own = screen.getByRole("switch", { name: "Announcement bar on your store" });
-    const list = screen.getByRole("switch", { name: "Show Announcement bar" });
-    expect(own).not.toBeChecked();
-    expect(list).not.toBeChecked();
-    fireEvent.click(own);
-    expect(list).toBeChecked();
-    fireEvent.click(list);
-    expect(own).not.toBeChecked();
   });
 });

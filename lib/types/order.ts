@@ -1,6 +1,20 @@
 import type { CurrencyCode, ISODate, Money } from "./money";
 
-export type OrderStatus = "pending" | "paid" | "refund_requested" | "refunded" | "failed";
+export type OrderStatus = "pending" | "cod" | "paid" | "refund_requested" | "refunded" | "failed";
+
+/** Where a shipped order is. Absent for orders with nothing to ship. */
+export type FulfilmentStatus = "unfulfilled" | "shipped" | "delivered" | "cancelled";
+
+export interface ShipAddress {
+  name: string;
+  phone: string;
+  line1: string;
+  line2?: string;
+  city: string;
+  state?: string;
+  pincode: string;
+  country: string;
+}
 
 export interface OrderFees {
   gateway: Money;
@@ -22,6 +36,10 @@ export interface OrderItem {
   gift?: boolean;
   /** Deal rules that changed this line */
   ruleIds?: string[];
+  quantity?: number;
+  /** "M / Blue" */
+  variant?: string;
+  physical?: boolean;
 }
 
 export interface Order {
@@ -71,6 +89,16 @@ export interface Order {
   dealRuleIds?: string[];
   dealSaving?: Money;
   reviewed?: boolean;
+  /** Paid online, or cash on delivery */
+  payment?: "online" | "cod";
+  /** Physical orders: what shipping and the COD charge added */
+  shipping?: Money;
+  codFee?: Money;
+  shipTo?: ShipAddress;
+  fulfilment?: FulfilmentStatus;
+  tracking?: { carrier?: string; number?: string; url?: string };
+  shippedAt?: ISODate;
+  deliveredAt?: ISODate;
 }
 
 export interface Customer {

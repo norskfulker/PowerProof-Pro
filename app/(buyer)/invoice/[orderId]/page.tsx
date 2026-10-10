@@ -50,11 +50,20 @@ function Inner() {
         </header>
         <section className="grid grid-cols-2 gap-6 py-6 text-sm">
           <div><p className="text-xs text-[#6b7b75]">Billed to</p><p className="font-medium">{order.buyerName}</p><p>{order.buyerEmail}</p><p>{order.buyerCountry}</p></div>
-          <div className="text-right"><p className="text-xs text-[#6b7b75]">Order</p><p className="font-mono">{order.ref}</p></div>
+          <div className="text-right">
+            <p className="text-xs text-[#6b7b75]">Order</p>
+            <p className="font-mono">{order.ref}</p>
+            {order.shipTo && (
+              <>
+                <p className="mt-2 text-xs text-[#6b7b75]">Shipped to (place of supply)</p>
+                <p>{[order.shipTo.city, order.shipTo.state, order.shipTo.pincode].filter(Boolean).join(", ")}</p>
+              </>
+            )}
+          </div>
         </section>
         <table className="w-full text-left text-sm">
           <thead className="border-y text-xs text-[#6b7b75]">
-            <tr><th className="py-2 pr-2 font-medium">Item</th><th className="py-2 pr-2 font-medium">HSN/SAC</th><th className="py-2 pr-2 text-right font-medium">Taxable</th>{inv.kind === "igst" && <th className="py-2 pr-2 text-right font-medium">IGST</th>}<th className="py-2 text-right font-medium">Amount</th></tr>
+            <tr><th className="py-2 pr-2 font-medium">Item</th><th className="py-2 pr-2 font-medium">HSN/SAC</th><th className="py-2 pr-2 text-right font-medium">Taxable</th>{inv.kind === "igst" && <th className="py-2 pr-2 text-right font-medium">IGST</th>}{inv.kind === "cgst_sgst" && <><th className="py-2 pr-2 text-right font-medium">CGST</th><th className="py-2 pr-2 text-right font-medium">SGST</th></>}<th className="py-2 text-right font-medium">Amount</th></tr>
           </thead>
           <tbody className="divide-y">
             {inv.lines.map((l, i) => (
@@ -63,6 +72,12 @@ function Inner() {
                 <td className="py-2 pr-2 font-mono text-xs">{l.hsn ?? "—"}</td>
                 <td className="py-2 pr-2 text-right">{m(l.taxable)}</td>
                 {inv.kind === "igst" && <td className="py-2 pr-2 text-right">{l.rate > 0 ? <>{m(l.tax)} <span className="text-xs text-[#6b7b75]">({l.rate}%)</span></> : "—"}</td>}
+                {inv.kind === "cgst_sgst" && (
+                  <>
+                    <td className="py-2 pr-2 text-right">{l.rate > 0 ? <>{m(Math.floor(l.tax / 2))} <span className="text-xs text-[#6b7b75]">({l.rate / 2}%)</span></> : "—"}</td>
+                    <td className="py-2 pr-2 text-right">{l.rate > 0 ? <>{m(l.tax - Math.floor(l.tax / 2))} <span className="text-xs text-[#6b7b75]">({l.rate / 2}%)</span></> : "—"}</td>
+                  </>
+                )}
                 <td className="py-2 text-right">{m(l.total)}</td>
               </tr>
             ))}
@@ -71,6 +86,12 @@ function Inner() {
         <dl className="mt-4 ml-auto flex max-w-xs flex-col gap-1 text-sm">
           <div className="flex justify-between"><dt>Taxable value</dt><dd>{m(inv.taxable)}</dd></div>
           {inv.kind === "igst" && <div className="flex justify-between"><dt>IGST</dt><dd>{m(inv.tax)}</dd></div>}
+          {inv.kind === "cgst_sgst" && (
+            <>
+              <div className="flex justify-between"><dt>CGST</dt><dd>{m(inv.lines.reduce((t, l) => t + Math.floor(l.tax / 2), 0))}</dd></div>
+              <div className="flex justify-between"><dt>SGST</dt><dd>{m(inv.lines.reduce((t, l) => t + l.tax - Math.floor(l.tax / 2), 0))}</dd></div>
+            </>
+          )}
           <div className="flex justify-between border-t pt-2 text-base font-semibold"><dt>Total paid</dt><dd>{m(inv.total)}</dd></div>
         </dl>
         <footer className="mt-8 border-t pt-4 text-xs text-[#6b7b75]">

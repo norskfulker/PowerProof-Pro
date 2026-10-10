@@ -2,6 +2,7 @@ import { sb } from "../supabase/browser";
 import { questionFrom } from "./live/map";
 import { submitLead } from "./leads";
 import type { Rates } from "../fx";
+import type { PageDoc } from "../pages/schema";
 import type { Bundle, Collection, Money, PriceInfo, Product, Question, RatingSummary, Review, Store, StoreDesign, StorePages } from "../types";
 import { ApiError } from "./client";
 import * as live from "./live/storefront";
@@ -30,13 +31,13 @@ export interface StorefrontView {
   topReviews: (Review & { productTitle: string; productSlug: string })[];
   /** Published visual pages, for the footer */
   extraPages: { title: string; slug: string }[];
+  /** The published home page, once the creator has published one from the editor */
+  home?: PageDoc;
   /** Units per US dollar, for showing prices in another currency. Empty until rates are loaded into the database. */
   rates?: Rates;
 }
 
 export const getStorefront = (slug: string): Promise<StorefrontView> => live.getStorefront(slug);
-/** Design preview: the same view with a draft design swapped in. */
-export const previewStorefront = (slug: string, design: StoreDesign): Promise<StorefrontView> => live.previewStorefront(slug, design);
 
 export interface ProductView {
   view: StorefrontView;

@@ -7,8 +7,7 @@ import { CartDrawer, CartLines, type CartLine } from "@/components/pp/cart";
 import { CheckoutForm, PayLabel } from "@/components/pp/checkout-form";
 import { CollectionTile } from "@/components/pp/collection-tile";
 import { FaqAccordion } from "@/components/pp/faq-accordion";
-import { HeroSection } from "@/components/pp/hero-section";
-import { HighlightsStrip } from "@/components/pp/highlights-strip";
+import { HighlightsStrip, autoHighlights } from "@/components/pp/highlights-strip";
 import { MobilePayBar } from "@/components/pp/mobile-pay-bar";
 import { NewsletterForm } from "@/components/pp/newsletter-form";
 import { OfferCard } from "@/components/pp/offer-card";
@@ -16,7 +15,6 @@ import { OrderBump } from "@/components/pp/order-bump";
 import { QuestionThread } from "@/components/pp/question-thread";
 import { ReviewItem } from "@/components/pp/review-item";
 import { ReviewSummary } from "@/components/pp/review-summary";
-import { SectionToggleList } from "@/components/pp/section-toggle-list";
 import { StickyBuyBar } from "@/components/pp/sticky-buy-bar";
 import { StoreFooter } from "@/components/pp/store-footer";
 import { StoreLogo, StoreNavbar } from "@/components/pp/store-navbar";
@@ -25,6 +23,7 @@ import { StoreThemeScope } from "@/components/pp/store-theme";
 import { ThemePicker } from "@/components/pp/theme-picker";
 import { money } from "@/lib/money";
 import { ratingSummary } from "@/lib/pricing";
+import { targetHref } from "@/lib/store-themes";
 import { COLLECTION, COUPON, DB, INR, LONG, PRODUCT, QUESTION, REVIEW, card } from "@/tests/fixtures";
 
 const LINES: CartLine[] = [{ id: "l1", title: "Planner", unit: INR(499), qty: 2, image: PRODUCT.images[0] }];
@@ -132,18 +131,16 @@ describe("FaqAccordion", () => {
   });
 });
 
-describe("HeroSection", () => {
-  it.each(["left", "centered", "full"] as const)("renders the %s layout", (style) => {
-    render(<HeroSection hero={DB.design.hero} style={style} images={PRODUCT.images} href="/s/x/products" />);
-    expect(screen.getByRole("heading", { name: DB.design.hero.headline })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: new RegExp(DB.design.hero.ctaLabel) })).toBeInTheDocument();
-  });
-});
-
 describe("HighlightsStrip", () => {
   it("lists trust signals", () => {
-    render(<HighlightsStrip refundDays={7} rating={4.8} reviewCount={38} />);
+    const items = autoHighlights(7, 4.8, 38).map((h) => ({ key: h.title, icon: "•", ...h }));
+    render(<HighlightsStrip items={items} />);
     expect(screen.getByRole("region", { name: "Why buy here" })).toBeInTheDocument();
+    expect(screen.getByText("7-day refunds")).toBeInTheDocument();
+    expect(screen.getByText("4.8 out of 5")).toBeInTheDocument();
+  });
+  it("leaves the rating out until there are reviews", () => {
+    expect(autoHighlights(14, 0, 0).map((h) => h.title)).toEqual(["Instant download", "Secure payment", "14-day refunds"]);
   });
 });
 
@@ -210,14 +207,18 @@ describe("Questions and reviews", () => {
   });
 });
 
-describe("SectionToggleList", () => {
-  it("toggles and reorders sections", async () => {
-    const onChange = vi.fn();
-    render(<SectionToggleList sections={DB.design.sections} onChange={onChange} />);
-    await userEvent.click(screen.getAllByRole("switch")[0]);
-    expect(onChange).toHaveBeenCalled();
-    await userEvent.click(screen.getAllByRole("button", { name: /move .* down/i })[0]);
-    expect(onChange).toHaveBeenCalledTimes(2);
+describe("targetHref", () => {
+  it.each([
+    ["products", "/s/shop/products"],
+    ["collection:planners", "/s/shop/c/planners"],
+    ["product:daily", "/s/shop/daily"],
+    ["page:faq", "/s/shop/faq"],
+    ["section:table-1", "#section-table-1"],
+    ["url:https://example.com/a", "https://example.com/a"],
+  ])("%s", (target, href) => expect(targetHref("shop", target)).toBe(href));
+  it("never follows a link that is not https or mailto", () => {
+    expect(targetHref("shop", "url:javascript:alert(1)")).toBe("/s/shop/products");
+    expect(targetHref("shop", undefined)).toBe("/s/shop/products");
   });
 });
 
@@ -443,7 +444,7 @@ describe("buying", () => {
     }));
     return calls;
   };
-  const sheet = (CheckoutSheet: typeof import("@/components/buyer/checkout-sheet").CheckoutSheet) => <CheckoutSheet open onOpenChange={() => {}} storeId="s1" storeSlug="fix" products={[product]} />;
+  const sheet = (CheckoutSheet: typeof import("@/components/buyer/checkout-sheet").CheckoutSheet) => <CheckoutSheet open onOpenChange={() => {}} storeId="s1" storeSlug="fix" lines={[{ product, quantity: 1 }]} onLines={() => {}} />;
 
   it("checks the buyer's details before anything is sent", async () => {
     const { CheckoutSheet } = await import("@/components/buyer/checkout-sheet");

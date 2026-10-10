@@ -78,3 +78,74 @@ describe("pricing an order on the server", () => {
     expect(() => couponDiscount(undefined, [])).toThrow(/doesn't exist/);
   });
 });
+
+describe("physical products: quantities, variants, stock, shipping and cash on delivery", () => {
+  const shirt: ProductRow = { id: "shirt", title: "Tee", price_minor: 50000, hsn_sac: "6109", tax_rate_bps: 500, fulfilment: "physical", track_stock: true, variants: [{ id: "s", title: "S", price_minor: 50000, stock: 3 }, { id: "xl", title: "XL", price_minor: 60000, stock: 0 }] };
+  const mug: ProductRow = { id: "mug", title: "Mug", price_minor: 30000, hsn_sac: "6912", tax_rate_bps: 1200, fulfilment: "physical", track_stock: true, stock: 10 };
+  const ebook = p("ebook", 20000);
+  const shipping = {
+    zones: [
+      { id: "in", name: "India", countries: ["IN"], rate: 5000, freeOver: 200000 },
+      { id: "world", name: "Everywhere else", countries: ["*"], rate: 150000 },
+    ],
+    cod: { enabled: true, fee: 4000, maxOrder: 500000 },
+  };
+  const phys = { ...base, products: [shirt, mug, ebook], shipping };
+
+  it("charges each unit, at the variant's price, plus the zone's flat rate", () => {
+    const o = priceOrder({ ...phys, lines: [{ productId: "shirt", variantId: "s", quantity: 2 }, { productId: "mug", quantity: 1 }] });
+    expect(o.items.find((i) => i.product_id === "shirt")).toMatchObject({ quantity: 2, variant_title: "S", line_total_minor: 100000, fulfilment: "physical" });
+    expect(o.shipping).toBe(5000);
+    expect(o.total).toBe(130000 + 5000);
+    expect(o.physical).toBe(true);
+  });
+
+  it("ships free over the zone's amount, and charges the rest of the world its own rate", () => {
+    expect(priceOrder({ ...phys, lines: [{ productId: "mug", quantity: 7 }] }).shipping).toBe(0);
+    expect(priceOrder({ ...phys, countryCode: "US", lines: [{ productId: "mug", quantity: 1 }] }).shipping).toBe(150000);
+    expect(() => priceOrder({ ...phys, shipping: { ...shipping, zones: [shipping.zones[0]] }, countryCode: "US", lines: [{ productId: "mug" }] })).toThrow(/doesn't ship/);
+  });
+
+  it("stops at what's in stock, and needs an option when there are variants", () => {
+    expect(() => priceOrder({ ...phys, lines: [{ productId: "shirt", variantId: "s", quantity: 4 }] })).toThrow(/Only 3 of Tee \(S\) left/);
+    expect(() => priceOrder({ ...phys, lines: [{ productId: "shirt", variantId: "xl" }] })).toThrow(/sold out/);
+    expect(() => priceOrder({ ...phys, lines: [{ productId: "shirt" }] })).toThrow(/Pick an option/);
+    expect(() => priceOrder({ ...phys, lines: [{ productId: "mug", variantId: "s" }] })).toThrow(/options isn't for sale/);
+  });
+
+  it("downloads are always one, however many are asked for", () => {
+    expect(priceOrder({ ...phys, lines: [{ productId: "ebook", quantity: 5 }] }).items[0].quantity).toBe(1);
+  });
+
+  it("takes cash on delivery only for shipped-only orders in India, within the limit, with its fee", () => {
+    const o = priceOrder({ ...phys, cod: true, lines: [{ productId: "mug" }] });
+    expect(o.codFee).toBe(4000);
+    expect(o.total).toBe(30000 + 5000 + 4000);
+    expect(() => priceOrder({ ...phys, cod: true, lines: [{ productId: "mug" }, { productId: "ebook" }] })).toThrow(/everything is shipped/);
+    expect(() => priceOrder({ ...phys, cod: true, countryCode: "US", lines: [{ productId: "mug" }] })).toThrow(/only available in India/);
+    expect(() => priceOrder({ ...phys, shipping: { ...shipping, cod: { enabled: true, fee: 4000, maxOrder: 100000 } }, cod: true, lines: [{ productId: "mug", quantity: 4 }] })).toThrow(/too large/);
+    expect(() => priceOrder({ ...phys, shipping: { ...shipping, cod: { enabled: false, fee: 0 } }, cod: true, lines: [{ productId: "mug" }] })).toThrow(/doesn't take cash/);
+  });
+
+  it("puts GST in the shipping at the main item's rate, for a registered seller in India", () => {
+    const o = priceOrder({ ...phys, lines: [{ productId: "shirt", variantId: "s" }, { productId: "mug" }] });
+    const goodsTax = (50000 - Math.round(50000 / 1.05)) + (30000 - Math.round(30000 / 1.12));
+    expect(o.tax).toBe(goodsTax + (5000 - Math.round(5000 / 1.12)));
+    expect(priceOrder({ ...phys, registered: false, lines: [{ productId: "mug" }] }).tax).toBe(0);
+  });
+
+  it("a percentage deal takes off every unit; a free one, only one unit", () => {
+    const pct = rule({ id: "pct", kind: "bundle_discount", productIds: ["mug", "ebook"], percent: 50 });
+    const both = priceOrder({ ...phys, rules: [pct], lines: [{ productId: "mug", quantity: 2 }, { productId: "ebook" }] });
+    expect(both.items.find((i) => i.product_id === "mug")?.line_total_minor).toBe(30000);
+    // The gift is already in the cart three times: one of them is free, not all three
+    const gift = rule({ id: "gift", kind: "free_gift", triggerIds: ["ebook"], giftId: "mug" } as never);
+    const g = priceOrder({ ...phys, rules: [gift], lines: [{ productId: "ebook" }, { productId: "mug", quantity: 3 }] });
+    expect(g.dealIds).toContain("gift");
+    expect(g.items.find((i) => i.product_id === "mug")?.line_total_minor).toBe(60000);
+  });
+
+  it("needs the store's shipping set up before anything ships", () => {
+    expect(() => priceOrder({ ...base, products: [mug], lines: [{ productId: "mug" }] })).toThrow(/hasn't set up shipping/);
+  });
+});

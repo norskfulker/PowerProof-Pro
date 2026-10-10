@@ -55,7 +55,7 @@ export default function ProductPage({ params }: { params: Promise<{ store: strin
   const { product, reviews, questions, related, bundles } = data;
   const creator = view.design.about.name;
   const hasVideo = product.kind === "course" || product.kind === "preset";
-  const onBuy = () => buy({ productId: product.id });
+  const onBuy = (choice?: { variantId?: string; quantity: number }) => buy({ productId: product.id, ...choice });
 
   return (
     <div className="mx-auto max-w-[1200px] px-4 pt-6 pb-24 md:px-6 md:pt-10 md:pb-0">

@@ -31,7 +31,7 @@ describe("nav config", () => {
 describe("resolveNav", () => {
   it("fills the store id, counts and locks", () => {
     const flat = [...flattenNav(tree), ...flattenNav(storeTree)];
-    expect(flat.find((n) => n.id === "design-base")?.href).toBe("/store/store_fx/design/base");
+    expect(flat.find((n) => n.id === "design-base")?.href).toBe("/store/store_fx/design/pages/home/edit");
     expect(flat.find((n) => n.id === "products")?.count).toBe(17);
     expect(flat.find((n) => n.id === "reviews")?.count).toBe(3);
     expect(flat.find((n) => n.id === "orders")?.count).toBeUndefined();
@@ -41,9 +41,16 @@ describe("resolveNav", () => {
   });
   it("makes Store one plain sidebar item whose sections are tabs, and Store settings sit in Settings without an icon", () => {
     const store = tree.find((g) => g.id === "store")!;
-    expect(store.href).toBe("/store/store_fx/design/base");
+    expect(store.href).toBe("/store/store_fx/design/pages/home/edit");
     expect(store.children).toBeUndefined();
-    expect(storeTree.map((t) => t.label)).toEqual(["Design", "Info pages", "Offers", "Reviews and Q&A", "SEO"]);
+    expect(storeTree.map((t) => t.label)).toEqual(["Design", "Policies", "Offers", "SEO"]);
+  });
+  it("opens Pages, About, FAQ, reviews and questions as panels of the store editor, still found by search with their badges", () => {
+    const design = storeTree.find((t) => t.id === "design")!;
+    const panels = design.children!.filter((c) => c.inEditor);
+    expect(panels.map((c) => c.label)).toEqual(["Pages", "About", "FAQ", "Reviews", "Questions"]);
+    expect(panels.find((c) => c.id === "reviews")).toMatchObject({ href: "/store/store_fx/design/pages/home/edit?panel=reviews", count: 3 });
+    expect(navSearch(storeTree, "faq")[0].href).toBe("/store/store_fx/design/pages/home/edit?panel=faq");
     const settings = tree.find((g) => g.id === "settings")!.children!.find((c) => c.id === "settings-store")!;
     expect(settings.href).toBe("/store/store_fx/settings");
     expect(settings.icon).toBeUndefined();
@@ -74,7 +81,7 @@ describe("activeTrail", () => {
   });
   it("covers detail pages with match prefixes", () => {
     expect(activeTrail(tree, "/sales/orders/ord_1078").map((n) => n.label)).toEqual(["Sales", "Orders"]);
-    expect(activeTrail(storeTree, "/store/store_fx/pages/policies/refund").map((n) => n.label)).toEqual(["Info pages", "Policies", "Refund"]);
+    expect(activeTrail(storeTree, "/store/store_fx/pages/policies/refund").map((n) => n.label)).toEqual(["Policies", "Refund"]);
   });
   it("returns nothing for pages outside the menu", () => {
     expect(activeTrail(tree, "/nowhere")).toEqual([]);
@@ -84,7 +91,7 @@ describe("activeTrail", () => {
 describe("filter and search", () => {
   it("keeps the ancestors of matching items", () => {
     const f = filterTree(storeTree, "refund");
-    expect(f.map((n) => n.label)).toEqual(["Info pages"]);
+    expect(f.map((n) => n.label)).toEqual(["Policies"]);
   });
   it("finds leaf links by label or path, best first", () => {
     const r = navSearch([...tree, ...storeTree], "coupons");

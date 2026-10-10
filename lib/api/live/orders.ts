@@ -16,7 +16,7 @@ import { activeStoreId } from "./session";
  * holds columns they may see (never the buyer's phone). `select *` is safe on it; the base
  * `orders` table refuses it.
  */
-type Row = { id: string; ref: string; store_id: string; buyer_name: string; buyer_email: string; buyer_country: string | null; currency: string; subtotal_minor: number; discount_minor: number; total_minor: number; deals_applied: unknown; status: "pending" | "paid" | "failed" | "refunded"; invoice_no: string | null; paid_at: string | null; created_at: string };
+type Row = { id: string; ref: string; store_id: string; buyer_name: string; buyer_email: string; buyer_country: string | null; currency: string; subtotal_minor: number; discount_minor: number; total_minor: number; deals_applied: unknown; status: "pending" | "cod" | "paid" | "failed" | "refunded"; invoice_no: string | null; paid_at: string | null; created_at: string; payment_method?: string | null; shipping_minor?: number | null; cod_fee_minor?: number | null; ship_to?: unknown; fulfilment_status?: string | null; tracking?: unknown; shipped_at?: string | null; delivered_at?: string | null };
 
 /** Buyers have no accounts, so a customer is identified by their email. */
 export const customerId = (email: string) => `c_${encodeURIComponent(email.toLowerCase())}`;
@@ -32,7 +32,7 @@ async function load(storeId: string): Promise<Order[]> {
   if (!rows.length) return [];
   const ids = rows.map((r) => r.id);
   const [items, ledger, refunds] = await Promise.all([
-    client.from("order_items").select("order_id, product_id, title, unit_price_minor, quantity, discount_minor, line_total_minor, is_gift").in("order_id", ids),
+    client.from("order_items").select("order_id, product_id, title, unit_price_minor, quantity, discount_minor, line_total_minor, is_gift, variant_title, fulfilment").in("order_id", ids),
     client.from("ledger_entries").select("order_id, account, kind, amount_minor").in("order_id", ids),
     client.from("refunds").select("order_id, reason, status, created_at").in("order_id", ids),
   ]);
@@ -52,6 +52,9 @@ async function load(storeId: string): Promise<Order[]> {
       basePrice: Number(l.discount_minor) > 0 ? money(Number(l.unit_price_minor) * l.quantity, cur) : undefined,
       free: l.is_gift || Number(l.line_total_minor) === 0 ? true : undefined,
       gift: l.is_gift || undefined,
+      quantity: l.quantity,
+      variant: l.variant_title ?? undefined,
+      physical: l.fulfilment === "physical" || undefined,
     }));
     const platform = sum((e) => e.kind === "platform_fee" && e.account === "platform");
     const gateway = sum((e) => e.kind === "gateway_fee" && e.account === "gateway");
@@ -72,7 +75,8 @@ async function load(storeId: string): Promise<Order[]> {
       buyerTotal: money(r.total_minor, cur),
       total: money(r.total_minor, cur),
       fees: { gateway: money(gateway, cur), platform: money(platform, cur) },
-      net: money(r.status === "paid" ? Math.max(0, creator) : 0, cur),
+      // Cash on delivery: the creator kept the cash; the fee came out of their balance
+      net: money(r.status === "paid" ? (r.payment_method === "cod" ? Math.max(0, Number(r.total_minor) - platform) : Math.max(0, creator)) : 0, cur),
       status: r.status,
       invoiceNumber: r.invoice_no ?? undefined,
       createdAt: r.created_at,
@@ -82,6 +86,18 @@ async function load(storeId: string): Promise<Order[]> {
       items: orderItems,
       discount: Number(r.discount_minor) > 0 ? money(r.discount_minor, cur) : undefined,
       dealRuleIds: dealIds(r.deals_applied),
+      payment: r.payment_method === "cod" ? "cod" : "online",
+      ...(r.fulfilment_status
+        ? {
+            shipping: money(Number(r.shipping_minor ?? 0), cur),
+            codFee: Number(r.cod_fee_minor ?? 0) > 0 ? money(Number(r.cod_fee_minor), cur) : undefined,
+            shipTo: (r.ship_to as Order["shipTo"]) ?? undefined,
+            fulfilment: r.fulfilment_status as Order["fulfilment"],
+            tracking: (r.tracking as Order["tracking"]) ?? undefined,
+            shippedAt: r.shipped_at ?? undefined,
+            deliveredAt: r.delivered_at ?? undefined,
+          }
+        : {}),
     };
   });
 }
@@ -102,6 +118,8 @@ export async function getOrders(q: OrderQuery = {}): Promise<Order[]> {
       (!disputed || disputed.has(o.id)) &&
       (!s || o.number.toLowerCase().includes(s) || o.buyerEmail.toLowerCase().includes(s) || o.buyerName.toLowerCase().includes(s) || o.productTitle.toLowerCase().includes(s)) &&
       (!q.status || q.status === "all" || o.status === q.status) &&
+      // "To ship": placed or paid, not sent yet
+      (!q.toShip || (o.fulfilment === "unfulfilled" && (o.status === "paid" || o.status === "cod"))) &&
       (!q.productId || o.items.some((i) => i.productId === q.productId)) &&
       (!q.customerId || o.customerId === q.customerId)
   );

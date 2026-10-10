@@ -1,3 +1,4 @@
+import type { ShippingSettings } from "../shipping";
 import type { CurrencyCode, ISODate } from "./money";
 
 export interface Store {
@@ -20,6 +21,8 @@ export interface Store {
   onboarded: boolean;
   /** Uploaded logo; logoText is the fallback */
   logo?: { src: string; alt: string };
+  /** Physical products: shipping zones and cash on delivery */
+  shipping?: ShippingSettings;
 }
 
 export interface Company {

@@ -1,6 +1,7 @@
 "use client";
 
-import { Download, Link2, Loader2, RotateCcw, Share2, ShieldCheck } from "lucide-react";
+import { useState } from "react";
+import { Download, Link2, Loader2, Minus, Plus, RotateCcw, Share2, ShieldCheck, Truck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { copyText } from "@/components/pp/copy-field";
 import { CountdownTimer } from "@/components/pp/countdown-timer";
@@ -10,6 +11,15 @@ import { Stars } from "@/components/pp/stars";
 import type { StoreProduct } from "@/lib/api";
 import { localPrice } from "@/lib/money";
 import type { CurrencyCode, Store } from "@/lib/types";
+
+/** What buyers are told about shipping: free over an amount, the days, or "worked out at checkout" */
+function shipLine(store: Store): string {
+  const z = store.shipping?.zones.find((x) => x.countries.includes(store.country)) ?? store.shipping?.zones[0];
+  if (!z) return "Shipped to you";
+  if (z.rate === 0) return z.days ? `Free shipping · ${z.days}` : "Free shipping";
+  if (z.freeOver !== undefined) return `Free shipping over ${new Intl.NumberFormat("en-IN", { style: "currency", currency: store.currency, maximumFractionDigits: 0 }).format(z.freeOver / 100)}`;
+  return z.days ? `Ships in ${z.days}` : "Shipping at checkout";
+}
 
 export function ProductBuyBox({
   product,
@@ -23,10 +33,27 @@ export function ProductBuyBox({
   store: Store;
   creatorName: string;
   currency: CurrencyCode;
-  onBuy: () => void;
+  /** With the variant and how many, for physical products */
+  onBuy: (choice?: { variantId?: string; quantity: number }) => void;
   buying: boolean;
 }) {
-  const { info, rating } = product;
+  const { rating } = product;
+  const physical = product.fulfilment === "physical";
+  const options = product.options ?? [];
+  const variants = product.variants ?? [];
+  // The buyer picks a value for each option; the variant is the one that matches them all
+  const [picked, setPicked] = useState<string[]>(() => variants.find((v) => !product.trackStock || (v.stock ?? 0) > 0)?.options ?? variants[0]?.options ?? []);
+  const [quantity, setQuantity] = useState(1);
+  const variant = variants.find((v) => options.every((_, i) => v.options[i] === picked[i]));
+  const left = !physical || !product.trackStock ? undefined : variants.length ? variant?.stock ?? 0 : product.stock ?? 0;
+  const soldOut = left !== undefined && left <= 0;
+  const info = variant ? { ...product.info, price: variant.price, compareAt: variant.compareAt, percentOff: variant.compareAt ? Math.round((1 - variant.price.amount / variant.compareAt.amount) * 100) : undefined } : product.info;
+  /** A value that no in-stock variant has, with what's already picked for the other options */
+  const unavailable = (i: number, value: string) => {
+    const want = picked.map((p, j) => (j === i ? value : p));
+    const match = variants.find((v) => options.every((_, k) => v.options[k] === want[k]));
+    return !match || (!!product.trackStock && (match.stock ?? 0) <= 0);
+  };
   const url = typeof window === "undefined" ? "" : window.location.href;
   const share = encodeURIComponent(`${product.title} by ${store.name}: ${url}`);
 
@@ -62,13 +89,64 @@ export function ProductBuyBox({
         )}
       </div>
 
+      {physical && options.length > 0 && (
+        <div className="flex flex-col gap-4">
+          {options.map((o, i) => (
+            <fieldset key={o.name} className="flex flex-col gap-2">
+              <legend className="mb-1 text-sm font-semibold">
+                {o.name}: <span className="font-normal text-muted-foreground">{picked[i] ?? "Pick one"}</span>
+              </legend>
+              <div className="flex flex-wrap gap-2">
+                {o.values.map((value) => {
+                  const on = picked[i] === value;
+                  const off = unavailable(i, value);
+                  return (
+                    <button
+                      key={value}
+                      type="button"
+                      aria-pressed={on}
+                      onClick={() => {
+                        setPicked(options.map((_, j) => (j === i ? value : picked[j])));
+                        setQuantity(1);
+                      }}
+                      className={`min-h-11 min-w-11 rounded-control border px-3 text-sm font-medium ${on ? "border-primary bg-primary-soft text-primary" : "bg-surface hover:border-border-strong"} ${off ? "text-muted-foreground line-through decoration-1" : ""}`}
+                    >
+                      {value}
+                      {off && <span className="sr-only"> (not available)</span>}
+                    </button>
+                  );
+                })}
+              </div>
+            </fieldset>
+          ))}
+        </div>
+      )}
+
       <div id="main-buy" className="flex flex-col gap-3">
-        <Button size="lg" className="h-14 w-full text-lg" onClick={onBuy} disabled={buying}>
+        {physical && (
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="inline-flex items-center rounded-control border" role="group" aria-label="Quantity">
+              <Button type="button" variant="ghost" size="icon" aria-label="One fewer" disabled={quantity <= 1} onClick={() => setQuantity(quantity - 1)}><Minus /></Button>
+              <span className="min-w-10 text-center font-mono" aria-live="polite">{quantity}</span>
+              <Button type="button" variant="ghost" size="icon" aria-label="One more" disabled={quantity >= Math.min(99, left ?? 99)} onClick={() => setQuantity(quantity + 1)}><Plus /></Button>
+            </span>
+            {soldOut ? (
+              <span className="text-sm font-semibold text-danger">Sold out</span>
+            ) : left !== undefined && left <= 5 ? (
+              <span className="text-sm font-medium text-warning-ink">Only {left} left</span>
+            ) : null}
+          </div>
+        )}
+        <Button size="lg" className="h-14 w-full text-lg" onClick={() => onBuy(physical ? { variantId: variant?.id, quantity } : undefined)} disabled={buying || soldOut || (variants.length > 0 && !variant)}>
           {buying && <Loader2 className="animate-spin" aria-hidden />}
-          {buying ? "Opening checkout…" : "Buy now"}
+          {buying ? "Opening checkout…" : soldOut ? "Sold out" : variants.length > 0 && !variant ? "Pick an option" : "Buy now"}
         </Button>
         <ul className="grid grid-cols-1 gap-1.5 text-sm text-muted-foreground sm:grid-cols-3">
-          <li className="flex items-center gap-1.5"><Download className="size-4 text-primary" aria-hidden /> Instant download</li>
+          {physical ? (
+            <li className="flex items-center gap-1.5"><Truck className="size-4 text-primary" aria-hidden /> {shipLine(store)}</li>
+          ) : (
+            <li className="flex items-center gap-1.5"><Download className="size-4 text-primary" aria-hidden /> Instant download</li>
+          )}
           <li className="flex items-center gap-1.5"><ShieldCheck className="size-4 text-primary" aria-hidden /> Secure payment</li>
           <li className="flex items-center gap-1.5"><RotateCcw className="size-4 text-primary" aria-hidden /> {store.refundDays}-day refunds</li>
         </ul>

@@ -40,6 +40,9 @@ export function StoreScopeGuard({ storeId, children, badge = true }: { storeId: 
     };
   }, [storeId, pathname, search, router]);
 
+  // The store editor fills the screen under the tabs
+  const editing = /\/design\/pages\/[^/]+\/edit$/.test(pathname);
+
   if (error) return <ErrorState message={error} onRetry={() => router.replace(pathname.replace(`/store/${storeId}`, "/store/current"))} />;
   if (!ready) {
     return (
@@ -52,7 +55,7 @@ export function StoreScopeGuard({ storeId, children, badge = true }: { storeId: 
   }
   return (
     <>
-      {badge && <StoreBadge />}
+      {badge && !editing && <StoreBadge />}
       {/* Store settings and Domain belong to Settings; everything else in the Store area has tabs */}
       {!pathname.endsWith("/settings") && !pathname.endsWith("/domain") && <StoreTabs />}
       {children}

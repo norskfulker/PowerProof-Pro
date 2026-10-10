@@ -40,9 +40,9 @@ function DashboardSections({ isNew, hasLive, range, setRange, summary, balance, 
   return (
     <Accordion type="multiple" defaultValue={settingUp ? ["getting-started", "operations"] : ["operations", "analytics"]} className="rounded-card border bg-surface px-5">
       <AccordionItem value="getting-started" id="getting-started">
-        <AccordionTrigger className="min-h-14 font-display text-xl">
-          Getting started
-          <span className="ml-3 font-sans text-sm font-normal text-muted-foreground">{checklist.dismissed ? "Hidden" : checklist.complete ? "All done" : `${checklist.percent}%`}</span>
+        <AccordionTrigger className="min-h-14 items-center font-display text-xl">
+          <span className="flex-1">Further steps</span>
+          <span className="shrink-0 font-sans text-sm font-normal text-muted-foreground">{checklist.dismissed ? "Hidden" : checklist.complete ? "All done" : `${checklist.percent}%`}</span>
         </AccordionTrigger>
         <AccordionContent>
           {checklist.dismissed ? <p className="text-sm text-muted-foreground">You&apos;ve hidden the checklist. Everything required was done.</p> : <GettingStartedCard bare />}
@@ -134,7 +134,7 @@ export default function DashboardPage() {
     <>
       <PageHeader
         title={firstName ? `${greeting()}, ${firstName}` : greeting()}
-        description={isNew ? "Your store is live. Here's what's left before the first sale." : "Here's how today is going."}
+        description={isNew ? "Your store is live. Get your sales rollin!" : "Here's how today is going."}
         actions={
           <>
             {store.data && (

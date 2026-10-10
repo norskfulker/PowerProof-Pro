@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRight, Clock, CornerDownRight, Eye, Loader2, Search, X } from "lucide-react";
 import { Command as CommandPrimitive } from "cmdk";
@@ -44,13 +44,22 @@ export const SEARCH_TIPS = [
 ] as const;
 
 /**
- * Global search palette (Ctrl K). Admins search every store with buyer contact masked; creators
+ * Global search palette (⌘K on Mac, Ctrl K on Windows/Linux). Admins search every store with buyer contact masked; creators
  * search their own store. Up/Down move, Enter opens, Tab and Shift+Tab jump between groups,
- * Ctrl+Enter opens actions for the highlighted result, Esc closes.
+ * ⌘/Ctrl+Enter opens actions for the highlighted result, Esc closes.
  */
+/** The platform never changes while the page is open */
+const noSubscribe = () => () => {};
+
 export function GlobalSearch({ scope }: { scope: SearchScope }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
+  // ⌘ on Apple keyboards, Ctrl everywhere else — the key handler below accepts both
+  const mod = useSyncExternalStore(
+    noSubscribe,
+    () => (/Mac|iPhone|iPad|iPod/.test(navigator.platform + " " + navigator.userAgent) ? "⌘" : "Ctrl"),
+    () => "Ctrl"
+  );
   const [query, setQuery] = useState("");
   const [types, setTypes] = useState<SearchType[]>([]);
   const [data, setData] = useState<SearchResponse>();
@@ -139,11 +148,11 @@ export function GlobalSearch({ scope }: { scope: SearchScope }) {
         variant="secondary"
         onClick={() => onOpenChange(true)}
         className="w-full max-w-sm min-w-0 shrink justify-start font-normal text-muted-foreground max-sm:hidden"
-        aria-label="Search (Ctrl K)"
+        aria-label={`Search (${mod} K)`}
       >
         <Search aria-hidden />
         <span className="truncate">{scope === "admin" ? "Search orders, stores, people" : "Search products, orders, people"}</span>
-        <kbd className="ml-auto rounded-[4px] border bg-surface-sunken px-1.5 font-mono text-[0.625rem]">Ctrl K</kbd>
+        <kbd className="ml-auto rounded-[4px] border bg-surface-sunken px-1.5 font-mono text-[0.625rem]">{mod} K</kbd>
       </Button>
       <Button variant="ghost" size="icon" className="sm:hidden" onClick={() => onOpenChange(true)} aria-label="Search">
         <Search />
@@ -319,7 +328,7 @@ export function GlobalSearch({ scope }: { scope: SearchScope }) {
               </div>
             )}
             <p className="hidden border-t px-4 py-2 text-xs text-muted-foreground md:block">
-              <kbd className="font-mono">↑↓</kbd> move · <kbd className="font-mono">Enter</kbd> open · <kbd className="font-mono">Tab</kbd> next group · <kbd className="font-mono">Ctrl Enter</kbd> actions · <kbd className="font-mono">Esc</kbd> close
+              <kbd className="font-mono">↑↓</kbd> move · <kbd className="font-mono">Enter</kbd> open · <kbd className="font-mono">Tab</kbd> next group · <kbd className="font-mono">{mod} Enter</kbd> actions · <kbd className="font-mono">Esc</kbd> close
               {hasQuery && scope === "admin" && (
                 <>
                   {" · "}

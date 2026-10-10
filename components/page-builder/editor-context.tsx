@@ -2,14 +2,14 @@
 
 import { createContext, useContext, useState } from "react";
 import { useStore } from "zustand";
-import { createEditorStore, type EditorState, type EditorStore } from "@/lib/pages/editor-store";
+import { createEditorStore, type EditorState, type EditorStore, type SiteDraft } from "@/lib/pages/editor-store";
 import type { PageDoc } from "@/lib/pages/schema";
 
 const EditorCtx = createContext<EditorStore | null>(null);
 
 /** One editor store per open page. */
-export function EditorProvider({ initial, children }: { initial: PageDoc; children: React.ReactNode }) {
-  const [store] = useState(() => createEditorStore(initial));
+export function EditorProvider({ initial, site, children }: { initial: PageDoc; /** Store-wide settings, edited beside the page */ site?: SiteDraft; children: React.ReactNode }) {
+  const [store] = useState(() => createEditorStore(initial, site));
   return <EditorCtx.Provider value={store}>{children}</EditorCtx.Provider>;
 }
 

@@ -13,6 +13,8 @@ export interface PlanLimits {
   pages: number | null;
   /** AI image credits per calendar month; one generation of 4 variations costs 1 credit */
   aiCredits: number;
+  /** Pages AI may build per day (India time); a failed run doesn't count */
+  aiPagesDaily: number;
   /** Connect your own domain (Part 7B) */
   customDomain: boolean;
 }

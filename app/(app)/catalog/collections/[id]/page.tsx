@@ -37,7 +37,7 @@ export default function CollectionPage({ params }: { params: Promise<{ id: strin
       />
       <div className="mb-6 max-w-xs"><CollectionTileArt collection={col} /></div>
       {products.length === 0 ? (
-        <EmptyState title="No products in this collection yet." body="Edit the collection to pick some." />
+        <EmptyState title="No products in this collection yet." body="Edit the collection to pick some." action={<Button asChild><Link href="/catalog/collections">Edit in Collections</Link></Button>} />
       ) : (
         <ul className="divide-y rounded-card border bg-surface" aria-label="Products in this collection">
           {products.map((p) => (

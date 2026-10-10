@@ -180,6 +180,6 @@ export const INR = (n: number) => fromMajor(n);
 
 /** Plan limits as the plan_limits table would return them. */
 export const TEST_PLAN_LIMITS = {
-  free: { stores: 1, products: 10, pages: 3, aiCredits: 10, customDomain: false },
-  pro: { stores: null, products: null, pages: null, aiCredits: 200, customDomain: true },
+  free: { stores: 1, products: 10, pages: 3, aiCredits: 10, aiPagesDaily: 1, customDomain: false },
+  pro: { stores: null, products: null, pages: null, aiCredits: 200, aiPagesDaily: 10, customDomain: true },
 };

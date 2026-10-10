@@ -1,4 +1,4 @@
-import { CheckCircle2, CircleDashed, Download, RotateCcw, ShoppingCart, XCircle } from "lucide-react";
+import { CheckCircle2, CircleDashed, Download, HandCoins, PackageCheck, RotateCcw, ShoppingCart, Truck, XCircle } from "lucide-react";
 import { formatDate } from "@/lib/format";
 import type { Order } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -11,17 +11,36 @@ interface Step {
   tone: "done" | "pending" | "bad";
 }
 
+const trackingText = (o: Order) => [o.tracking?.carrier, o.tracking?.number].filter(Boolean).join(" · ") || undefined;
+
 function stepsFor(o: Order): Step[] {
   const s: Step[] = [{ icon: ShoppingCart, title: "Checkout started", at: o.createdAt, tone: "done", body: `${o.country}` }];
+  if (o.status === "failed" && o.fulfilment === "cancelled") {
+    s.push({ icon: HandCoins, title: "Placed for cash on delivery", tone: "done" });
+    s.push({ icon: XCircle, title: "Cancelled", body: "Not delivered, so no cash was collected. The stock went back.", tone: "bad" });
+    return s;
+  }
   if (o.status === "failed") {
     s.push({ icon: XCircle, title: "Payment failed", body: "The bank declined it. No money moved.", tone: "bad" });
+    return s;
+  }
+  if (o.status === "cod") {
+    s.push({ icon: HandCoins, title: "Placed for cash on delivery", body: "Collect the total when it's delivered.", tone: "done" });
+    if (o.shippedAt) s.push({ icon: Truck, title: "Shipped", body: trackingText(o), at: o.shippedAt, tone: "done" });
+    if (o.deliveredAt) s.push({ icon: PackageCheck, title: "Delivered", at: o.deliveredAt, tone: "done" });
+    s.push({ icon: CircleDashed, title: o.shippedAt ? "Waiting for the cash" : "Waiting to be shipped", tone: "pending" });
     return s;
   }
   if (o.status === "pending") {
     s.push({ icon: CircleDashed, title: "Waiting for payment", body: "Buyer hasn't finished paying.", tone: "pending" });
     return s;
   }
-  s.push({ icon: CheckCircle2, title: o.paymentMethod ? `Paid by ${o.paymentMethod.toUpperCase()}` : "Paid", at: o.paidAt, tone: "done" });
+  s.push({ icon: o.payment === "cod" ? HandCoins : CheckCircle2, title: o.payment === "cod" ? "Cash collected on delivery" : o.paymentMethod ? `Paid by ${o.paymentMethod.toUpperCase()}` : "Paid", at: o.paidAt, tone: "done" });
+  if (o.fulfilment && o.payment !== "cod") {
+    if (o.shippedAt) s.push({ icon: Truck, title: "Shipped", body: trackingText(o), at: o.shippedAt, tone: "done" });
+    if (o.deliveredAt) s.push({ icon: PackageCheck, title: "Delivered", at: o.deliveredAt, tone: "done" });
+    if (o.fulfilment === "unfulfilled" && o.status === "paid") s.push({ icon: CircleDashed, title: "Waiting to be shipped", tone: "pending" });
+  }
   if (o.downloads) s.push({ icon: Download, title: `Downloaded ${o.downloads} time${o.downloads === 1 ? "" : "s"}`, tone: "done" });
   if (o.status === "refund_requested") s.push({ icon: RotateCcw, title: "Refund requested", body: o.refundReason, tone: "pending" });
   if (o.status === "refunded") s.push({ icon: RotateCcw, title: "Refunded", body: o.refundReason, at: o.refundedAt, tone: "bad" });

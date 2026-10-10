@@ -19,6 +19,10 @@ export function toValues(p: Pick<Product, keyof ProductInput> & { sourceUrl?: st
     video: p.video,
     tileBackground: p.tileBackground,
     collectionIds,
+    options: p.options ?? [],
+    variants: (p.variants ?? []).map((v) => ({ ...v, price: { amount: v.price.amount, currency: v.price.currency }, compareAt: v.compareAt ? { amount: v.compareAt.amount, currency: v.compareAt.currency } : undefined })),
+    trackStock: p.trackStock ?? false,
+    stock: p.stock,
   };
 }
 
@@ -26,8 +30,14 @@ export function toInput(v: ProductValues): ProductInput {
   // Collections are saved separately, after the product
   const { collectionIds: _collections, ...rest } = v;
   void _collections;
+  const physical = v.fulfilment === "physical";
   return {
     ...rest,
+    // Variants, options and stock belong to physical products
+    options: physical ? v.options ?? [] : [],
+    variants: physical ? (v.variants ?? []).map((x) => ({ ...x, title: x.title || x.options.join(" / ") })) : [],
+    trackStock: physical ? !!v.trackStock : false,
+    stock: physical && v.trackStock && !(v.variants ?? []).length ? v.stock ?? 0 : undefined,
     images: v.images as ProductInput["images"],
     video: v.video as ProductInput["video"],
     tileBackground: v.tileBackground as ProductInput["tileBackground"],
@@ -48,6 +58,9 @@ export const blankProduct = (fulfilment: "digital" | "physical" = "digital", cur
   taxRate: fulfilment === "physical" ? undefined : 18,
   status: "draft",
   collectionIds: [],
+  options: [],
+  variants: [],
+  trackStock: false,
 });
 
 export const BLANK_PRODUCT: ProductValues = blankProduct("digital");

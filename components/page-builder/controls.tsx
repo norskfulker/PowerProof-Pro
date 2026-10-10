@@ -1,16 +1,20 @@
 "use client";
 
-import { useId } from "react";
+import { useId, useState } from "react";
 import { AlertTriangle, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ICON_GROUPS, StoreIcon, type IconWeight } from "@/components/pp/icon-library";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Segmented } from "@/components/pp/segmented";
 import type { RenderContext } from "@/lib/api";
-import { PALETTES } from "@/lib/store-themes";
+import { normalizeHex } from "@/lib/color";
+import { PALETTES, schemesOf } from "@/lib/store-themes";
+import type { StoreTheme } from "@/lib/types";
 import { MediaUploader as SharedUploader } from "@/components/media/media-uploader";
 import type { MediaKind } from "@/lib/media/store";
 import type { Background, BlockStyle } from "@/lib/pages/schema";
@@ -84,13 +88,16 @@ export function ChoiceField<T extends string>({ label, value, onChange, options 
 }
 
 /* ------------------------------------------------------------------ */
-/* Colours: store palette swatches plus a short list, never free-form   */
+/* Colours: store palette swatches, a short list, and a free picker      */
 /* ------------------------------------------------------------------ */
 
 const EXTRA = ["#FFFFFF", "#F5F6F4", "#F6EFDF", "#0C1F1B", "#000000"];
 
-export function ColorField({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
-  const swatches = [...new Set([...PALETTES.flatMap((p) => [p.primary, p.accent, p.primarySoft]), ...EXTRA].map((c) => c.toUpperCase()))];
+export function ColorField({ label, value, onChange, swatches: own }: { label: string; value: string; onChange: (v: string) => void; /** Colours offered first; the palette list when left out */ swatches?: string[] }) {
+  const pickerId = useId();
+  const swatches = [...new Set((own ?? [...PALETTES.flatMap((p) => [p.primary, p.accent, p.primarySoft]), ...EXTRA]).map((c) => c.toUpperCase()))];
+  const current = normalizeHex(value) ?? "#000000";
+  const custom = !swatches.includes(current);
   return (
     <fieldset className="flex flex-col gap-1.5">
       <legend className="mb-1 text-sm font-medium">{label}</legend>
@@ -107,6 +114,11 @@ export function ColorField({ label, value, onChange }: { label: string; value: s
             style={{ background: c }}
           />
         ))}
+        <label htmlFor={pickerId} className={cn("relative flex h-8 cursor-pointer items-center gap-1.5 rounded-full border bg-surface pr-3 pl-1 text-xs pointer-coarse:h-11", custom && "ring-2 ring-primary ring-offset-2")}>
+          <span className="size-6 rounded-full border" style={{ background: current }} aria-hidden />
+          <span className="font-mono uppercase">{custom ? current : "Custom"}</span>
+          <input id={pickerId} type="color" value={current} onChange={(e) => { const c = normalizeHex(e.target.value); if (c) onChange(c); }} className="absolute inset-0 size-full cursor-pointer opacity-0" aria-label={`${label}: pick any colour`} />
+        </label>
       </div>
     </fieldset>
   );
@@ -301,3 +313,160 @@ export function TableEditor({ rows, onChange }: { rows: string[][]; onChange: (r
   );
 }
 
+
+/* ------------------------------------------------------------------ */
+/* Links: the store's own places, a section on this page, or any https  */
+/* ------------------------------------------------------------------ */
+
+const CUSTOM = "__custom";
+const NOWHERE = "__none";
+
+/** Where a link can go, as page-builder hrefs */
+export function linkOptions(context: RenderContext, sections: { id: string; label: string }[] = []): { group: string; items: { value: string; label: string }[] }[] {
+  const base = `/s/${context.store.slug}`;
+  return [
+    { group: "Store", items: [{ value: base, label: "Home" }, { value: `${base}/products`, label: "All products" }, { value: `${base}/about`, label: "About" }, { value: `${base}/faq`, label: "FAQ" }, { value: `${base}/contact`, label: "Contact" }] },
+    { group: "Collections", items: context.collections.map((c) => ({ value: `${base}/c/${c.slug}`, label: c.name })) },
+    { group: "Products", items: context.products.map((p) => ({ value: `${base}/${p.slug}`, label: p.title })) },
+    { group: "On this page", items: sections.map((s) => ({ value: `#section-${s.id}`, label: s.label })) },
+  ].filter((g) => g.items.length);
+}
+
+/**
+ * "Goes to": a store page, a collection, a product, a section on this page, or any address.
+ * The value is a plain href (a store path, #section-…, https:// or mailto:).
+ */
+export function LinkField({ label, value, onChange, context, sections, allowNone, error }: { label: string; value: string; onChange: (v: string) => void; context: RenderContext; sections?: { id: string; label: string }[]; allowNone?: boolean; error?: string }) {
+  const id = useId();
+  const groups = linkOptions(context, sections);
+  const known = groups.some((g) => g.items.some((i) => i.value === value));
+  const choice = value === "" ? (allowNone ? NOWHERE : CUSTOM) : known ? value : CUSTOM;
+  return (
+    <div className="flex flex-col gap-1.5">
+      <Label htmlFor={id}>{label}</Label>
+      <Select value={choice} onValueChange={(v) => onChange(v === CUSTOM ? (known ? "https://" : value || "https://") : v === NOWHERE ? "" : v)}>
+        <SelectTrigger id={id} className="w-full"><SelectValue /></SelectTrigger>
+        <SelectContent>
+          {allowNone && <SelectItem value={NOWHERE}>Nowhere</SelectItem>}
+          {groups.map((g) => (
+            <SelectGroup key={g.group}>
+              <SelectLabel>{g.group}</SelectLabel>
+              {g.items.map((i) => <SelectItem key={i.value} value={i.value}>{i.label}</SelectItem>)}
+            </SelectGroup>
+          ))}
+          <SelectItem value={CUSTOM}>Another address…</SelectItem>
+        </SelectContent>
+      </Select>
+      {choice === CUSTOM && <Input aria-label={`${label}: address`} value={value} placeholder="https://" maxLength={500} onChange={(e) => onChange(e.target.value)} aria-invalid={!!error || undefined} />}
+      {error && <p className="text-sm font-medium text-danger">{error}</p>}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Colour schemes                                                       */
+/* ------------------------------------------------------------------ */
+
+/** Pick one of the theme's colour schemes, shown as little swatches. Empty follows what's around it. */
+export function SchemeField({ label = "Colour scheme", value, onChange, theme, mode = "light", noneLabel = "Same as around it" }: { label?: string; value: string; onChange: (v: string) => void; theme: StoreTheme; mode?: "light" | "dark"; noneLabel?: string }) {
+  const schemes = schemesOf(theme);
+  return (
+    <fieldset className="flex flex-col gap-1.5">
+      <legend className="mb-1 text-sm font-medium">{label}</legend>
+      <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label={label}>
+        <button type="button" role="radio" aria-checked={!value} onClick={() => onChange("")} className={cn("flex min-h-14 flex-col items-center justify-center gap-1 rounded-control border border-dashed p-1.5 text-center text-[0.6875rem] leading-tight", !value ? "border-primary ring-2 ring-primary" : "hover:border-border-strong")}>
+          {noneLabel}
+        </button>
+        {schemes.map((sc) => {
+          const c = sc[mode];
+          return (
+            <button key={sc.id} type="button" role="radio" aria-checked={value === sc.id} aria-label={sc.name} onClick={() => onChange(sc.id)} className={cn("flex min-h-14 flex-col items-center justify-center gap-1 rounded-control border p-1.5", value === sc.id ? "border-primary ring-2 ring-primary" : "hover:border-border-strong")} style={{ background: c.background, color: c.text }}>
+              <span className="font-display text-base leading-none font-bold" aria-hidden>Aa</span>
+              <span className="flex items-center gap-1" aria-hidden>
+                <span className="h-2 w-5 rounded-full" style={{ background: c.button }} />
+              </span>
+              <span className="max-w-full truncate text-[0.6875rem]">{sc.name}</span>
+            </button>
+          );
+        })}
+      </div>
+    </fieldset>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Icons                                                                */
+/* ------------------------------------------------------------------ */
+
+const WEIGHT_LABEL: Record<IconWeight, string> = { thin: "Thin", light: "Light", regular: "Regular", bold: "Bold", fill: "Filled", duotone: "Two-tone" };
+
+/** A searchable grid of the icon library. Picking one applies it at once. */
+export function IconPicker({ value, onPick, weight = "regular" }: { value: string; onPick: (name: string) => void; weight?: IconWeight }) {
+  const [q, setQ] = useState("");
+  const term = q.trim().toLowerCase();
+  const groups = ICON_GROUPS.map((g) => ({ ...g, names: g.names.filter((n) => !term || n.toLowerCase().includes(term) || g.label.toLowerCase().includes(term)) })).filter((g) => g.names.length);
+  return (
+    <div className="flex flex-col gap-3">
+      <Input type="search" aria-label="Search icons" placeholder="Search icons: truck, heart, gift…" value={q} onChange={(e) => setQ(e.target.value)} autoFocus />
+      {groups.length === 0 && <p className="text-sm text-muted-foreground">No icon called “{q}”.</p>}
+      {groups.map((g) => (
+        <fieldset key={g.label} className="flex flex-col gap-1.5">
+          <legend className="eyebrow mb-1">{g.label}</legend>
+          <div role="radiogroup" aria-label={g.label} className="grid grid-cols-[repeat(auto-fill,minmax(2.75rem,1fr))] gap-1.5">
+            {g.names.map((n) => (
+              <button
+                key={n}
+                type="button"
+                role="radio"
+                aria-checked={value === n}
+                aria-label={n.replace(/([a-z])([A-Z])/g, "$1 $2")}
+                title={n.replace(/([a-z])([A-Z])/g, "$1 $2")}
+                onClick={() => onPick(n)}
+                className={cn("grid aspect-square place-items-center rounded-control border bg-surface hover:border-primary hover:bg-primary-soft", value === n && "border-primary bg-primary-soft text-primary ring-2 ring-primary")}
+              >
+                <StoreIcon name={n} weight={weight} className="size-5" />
+              </button>
+            ))}
+          </div>
+        </fieldset>
+      ))}
+    </div>
+  );
+}
+
+export function IconPickerDialog({ open, value, weight, onPick, onClose }: { open: boolean; value: string; weight?: IconWeight; onPick: (name: string) => void; onClose: () => void }) {
+  return (
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-h-[85dvh] overflow-y-auto sm:max-w-xl">
+        <DialogHeader>
+          <DialogTitle>Pick an icon</DialogTitle>
+          <DialogDescription>It changes on the page straight away.</DialogDescription>
+        </DialogHeader>
+        <IconPicker value={value} weight={weight} onPick={(n) => { onPick(n); onClose(); }} />
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/** The current icon with a button to change it (and, optionally, to take it away) */
+export function IconField({ label = "Icon", value, onChange, weight, allowNone }: { label?: string; value: string; onChange: (name: string) => void; weight?: IconWeight; allowNone?: boolean }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="flex flex-col gap-1.5">
+      <span className="text-sm font-medium">{label}</span>
+      <div className="flex items-center gap-2">
+        <button type="button" onClick={() => setOpen(true)} className="flex min-h-11 flex-1 items-center gap-3 rounded-control border bg-surface px-3 text-left text-sm hover:border-primary">
+          {value ? <StoreIcon name={value} weight={weight} className="size-5 text-primary" /> : <span className="size-5 rounded-full border border-dashed" aria-hidden />}
+          <span className="flex-1 truncate">{value ? value.replace(/([a-z])([A-Z])/g, "$1 $2") : "No icon"}</span>
+          <span className="font-medium text-primary">Change</span>
+        </button>
+        {allowNone && value && <Button type="button" variant="ghost" size="sm" onClick={() => onChange("")}>Remove</Button>}
+      </div>
+      <IconPickerDialog open={open} value={value} weight={weight} onPick={onChange} onClose={() => setOpen(false)} />
+    </div>
+  );
+}
+
+export function IconWeightField({ value, onChange }: { value: IconWeight; onChange: (w: IconWeight) => void }) {
+  return <SelectField label="Icon style" value={value} onChange={onChange} options={(Object.keys(WEIGHT_LABEL) as IconWeight[]).map((w) => ({ value: w, label: WEIGHT_LABEL[w] }))} />;
+}

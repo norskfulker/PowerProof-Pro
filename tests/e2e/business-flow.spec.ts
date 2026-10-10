@@ -50,13 +50,11 @@ for (const [who, state] of [["A", "with data"], ["B", "empty"]] as const) {
       expect(at).toEqual([...at].sort((x, y) => x - y));
     });
 
-    test("Design shows only Base design and Pages up front @flow", async ({ page }, testInfo) => {
+    test("Design opens the store editor, and Pages lists the home page @flow", async ({ page }, testInfo) => {
       await prepare(page, testInfo);
       await page.goto("/store/current/design/base");
-      await settle(page);
-      const tabs = page.getByRole("navigation", { name: "Design" }).getByRole("link");
-      await expect(tabs).toHaveText(["Base design", "Pages"]);
-      await expect(page.getByLabel("Colour mode").first()).toBeVisible();
+      await expect(page).toHaveURL(/\/design\/pages\/home\/edit$/);
+      await page.getByRole("tab", { name: "Theme" }).click();
       await expect(page.getByText("Brand colour")).toBeVisible();
       await page.goto("/store/current/design/pages");
       await settle(page);

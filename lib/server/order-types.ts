@@ -7,7 +7,7 @@ export interface OrderView {
   /** The store's analytics tags, so a purchase can be reported after the visitor agreed */
   analytics?: AnalyticsTags;
   ref: string;
-  status: "pending" | "paid" | "failed" | "refunded";
+  status: "pending" | "cod" | "paid" | "failed" | "refunded";
   storeName: string;
   storeSlug: string;
   supportEmail?: string;
@@ -23,7 +23,16 @@ export interface OrderView {
   paidAt?: string;
   /** Products in this order the buyer has already reviewed */
   reviewed: string[];
-  lines: { productId?: string; title: string; unit: number; discount: number; total: number; gift: boolean; hsn?: string; rateBps?: number }[];
+  lines: { productId?: string; title: string; unit: number; discount: number; total: number; gift: boolean; hsn?: string; rateBps?: number; quantity?: number; variant?: string | null; physical?: boolean }[];
+  /** Physical orders */
+  shipping?: number;
+  codFee?: number;
+  paymentMethod?: "online" | "cod";
+  shipTo?: { name: string; phone: string; line1: string; line2?: string; city: string; state?: string; pincode: string; country: string } | null;
+  fulfilment?: "unfulfilled" | "shipped" | "delivered" | "cancelled" | null;
+  tracking?: { carrier?: string; number?: string; url?: string } | null;
+  shippedAt?: string | null;
+  deliveredAt?: string | null;
   files: { id: string; name: string; size: number; product: string }[];
   store: { legalName?: string; gstin?: string; pan?: string; address?: string; invoicePrefix?: string; invoiceFooter?: string };
 }

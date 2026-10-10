@@ -12,7 +12,8 @@ import { MoneyText } from "@/components/pp/money-text";
 import { PageHeader } from "@/components/pp/page-header";
 import { useApi } from "@/hooks/use-api";
 import { getCustomers } from "@/lib/api";
-import { countryShort, initials, timeAgo } from "@/lib/format";
+import { countryShort, formatDate, initials, timeAgo } from "@/lib/format";
+import { money } from "@/lib/money";
 import type { Customer } from "@/lib/types";
 
 export default function CustomersPage() {
@@ -39,17 +40,32 @@ export default function CustomersPage() {
           </Link>
         ),
       },
+      {
+        id: "type",
+        accessorFn: (c) => (c.ordersCount > 1 ? "repeat" : "new"),
+        header: "Type",
+        filterFn: "equals",
+        cell: ({ row }) => (row.original.ordersCount > 1 ? <span className="rounded-full bg-success-soft px-2 py-0.5 text-xs font-semibold text-success">Repeat</span> : <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium">One order</span>),
+      },
       { accessorKey: "countryCode", header: "Country", filterFn: "equals", cell: ({ getValue }) => countryShort(getValue() as string) },
       { accessorKey: "ordersCount", header: "Orders", enableSorting: true, meta: { align: "right" }, cell: ({ getValue }) => <span className="font-mono text-[0.8125rem]">{getValue() as number}</span> },
       { id: "spent", accessorFn: (c) => c.totalSpent.amount, header: "Spent", enableSorting: true, meta: { align: "right" }, cell: ({ row }) => <MoneyText value={row.original.totalSpent} mono /> },
-      { id: "last", accessorFn: (c) => c.lastOrderAt, header: "Last order", enableSorting: true, cell: ({ row }) => timeAgo(row.original.lastOrderAt) },
+      { id: "avg", accessorFn: (c) => (c.ordersCount ? c.totalSpent.amount / c.ordersCount : 0), header: "Average order", enableSorting: true, meta: { align: "right" }, cell: ({ row }) => <MoneyText value={money(Math.round(row.original.totalSpent.amount / Math.max(1, row.original.ordersCount)), row.original.totalSpent.currency)} mono className="text-muted-foreground" /> },
+      { id: "first", accessorFn: (c) => c.firstOrderAt, header: "Customer since", enableSorting: true, cell: ({ row }) => <span className="whitespace-nowrap" title={formatDate(row.original.firstOrderAt)}>{formatDate(row.original.firstOrderAt)}</span> },
+      { id: "last", accessorFn: (c) => c.lastOrderAt, header: "Last order", enableSorting: true, cell: ({ row }) => <span className="whitespace-nowrap" title={formatDate(row.original.lastOrderAt, { time: true })}>{timeAgo(row.original.lastOrderAt)}</span> },
     ],
     []
   );
 
   return (
     <>
-      <PageHeader title="Customers" description="Everyone who has bought from you. Their email is theirs; use it for receipts and replies, not spam." />
+      <PageHeader
+        title="Customers"
+        description="Everyone who has bought from you. Their email is theirs; use it for receipts and replies, not spam."
+        actions={
+          <Button asChild variant="secondary"><Link href="/dashboard">Get your store link</Link></Button>
+        }
+      />
       <DataTable
         label="Customers"
         columns={columns}
@@ -58,7 +74,44 @@ export default function CustomersPage() {
         error={error}
         onRetry={reload}
         searchPlaceholder="Search name or email"
-        filters={[{ columnId: "countryCode", label: "Countries", options: countries }]}
+        filters={[
+          { columnId: "type", label: "Customers", options: [{ value: "repeat", label: "Repeat buyers" }, { value: "new", label: "One order" }] },
+          ...(countries.length > 1 ? [{ columnId: "countryCode", label: "Countries", options: countries }] : []),
+        ]}
+        rowId={(c) => c.id}
+        selectable
+        bulkActions={(list) => (
+          <Button size="sm" variant="secondary" asChild>
+            <a href={`mailto:?bcc=${encodeURIComponent(list.map((c) => c.email).join(","))}`}>Email {list.length}</a>
+          </Button>
+        )}
+        defaultHidden={["first"]}
+        dateFilter={{ get: (c) => c.lastOrderAt, label: "Last order" }}
+        summary={(rows) => {
+          const cur = rows[0]?.totalSpent.currency ?? "INR";
+          const total = rows.reduce((t, c) => t + c.totalSpent.amount, 0);
+          const repeat = rows.filter((c) => c.ordersCount > 1).length;
+          const orders = rows.reduce((t, c) => t + c.ordersCount, 0);
+          return [
+            { label: "Customers", value: rows.length.toLocaleString("en-IN") },
+            { label: "Repeat buyers", value: repeat, hint: rows.length ? `${Math.round((repeat / rows.length) * 100)}% came back` : undefined },
+            { label: "Total spent", value: <MoneyText value={money(total, cur)} /> },
+            { label: "Per customer", value: rows.length ? <MoneyText value={money(Math.round(total / rows.length), cur)} /> : "—", hint: rows.length ? `${(orders / rows.length).toFixed(1)} orders each` : undefined },
+          ];
+        }}
+        csv={{
+          filename: "powerproof-customers",
+          columns: [
+            { header: "Name", value: (c) => c.name },
+            { header: "Email", value: (c) => c.email },
+            { header: "Country", value: (c) => c.country },
+            { header: "Orders", value: (c) => c.ordersCount },
+            { header: "Spent", value: (c) => (c.totalSpent.amount / 100).toFixed(2) },
+            { header: "Currency", value: (c) => c.totalSpent.currency },
+            { header: "First order", value: (c) => c.firstOrderAt },
+            { header: "Last order", value: (c) => c.lastOrderAt },
+          ],
+        }}
         rowHref={(c) => `/sales/customers/${c.id}`}
         mobileCard={(c) => (
           <Link href={`/sales/customers/${c.id}`} className="flex items-center gap-3 rounded-card border bg-surface p-4">

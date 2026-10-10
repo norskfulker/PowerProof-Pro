@@ -1,7 +1,8 @@
 import type { Database, Json } from "../../database.types";
 import { defaultDesign as defaultDesignFor, defaultPages } from "../../defaults/store";
+import { shippingFrom } from "../../shipping";
 import { initialsOf } from "../../slug";
-import { DEFAULT_SECTIONS } from "../../store-themes";
+import { DEFAULT_SECTIONS, kindOf } from "../../store-themes";
 import type {
   AboutContent,
   Collection,
@@ -14,7 +15,9 @@ import type {
   Product,
   ProductImage,
   ProductKind,
+  ProductOption,
   ProductStatus,
+  ProductVariant,
   Question,
   Review,
   Store,
@@ -34,6 +37,29 @@ export type StoreRow = Partial<T["stores"]["Row"]> & Pick<T["stores"]["Row"], "i
 export type ProductRow = T["products"]["Row"];
 export type MediaRow = T["product_media"]["Row"];
 export type FileRow = T["product_files"]["Row"];
+export type VariantRow = T["product_variants"]["Row"];
+
+/** The product's options as stored: [{ name, values }], up to 3, cleaned */
+export function optionsFrom(v: Json | undefined): ProductOption[] {
+  if (!Array.isArray(v)) return [];
+  return v
+    .map((o) => (o && typeof o === "object" && !Array.isArray(o) ? { name: String((o as { name?: unknown }).name ?? "").slice(0, 40), values: Array.isArray((o as { values?: unknown }).values) ? ((o as { values: unknown[] }).values.map((x) => String(x).slice(0, 60)).filter(Boolean).slice(0, 50)) : [] } : null))
+    .filter((o): o is ProductOption => !!o && !!o.name && o.values.length > 0)
+    .slice(0, 3);
+}
+
+export function variantFrom(r: VariantRow, cur: string): ProductVariant {
+  return {
+    id: r.id,
+    title: r.title,
+    options: Array.isArray(r.options) ? r.options.map(String) : [],
+    sku: r.sku ?? "",
+    price: money(r.price_minor, cur),
+    compareAt: r.compare_at_minor ? money(r.compare_at_minor, cur) : undefined,
+    stock: r.stock ?? undefined,
+    image: r.image_url ?? undefined,
+  };
+}
 
 const CURRENCIES: CurrencyCode[] = ["INR", "USD", "EUR", "GBP", "AED", "SGD", "AUD", "CAD"];
 export const currency = (c: string | null | undefined): CurrencyCode => (CURRENCIES.includes(c as CurrencyCode) ? (c as CurrencyCode) : "INR");
@@ -81,7 +107,9 @@ export interface ProductStats {
   revenue: number;
 }
 
-export function productFrom(row: ProductRow, media: MediaRow[] = [], files: FileRow[] = [], stats?: ProductStats): Product {
+export function productFrom(row: ProductRow, media: MediaRow[] = [], files: FileRow[] = [], stats?: ProductStats, variantRows: VariantRow[] = []): Product {
+  const variants = variantRows.filter((v) => v.product_id === row.id).sort((a, b) => a.sort_order - b.sort_order).map((v) => variantFrom(v, row.currency));
+  const physical = row.fulfilment === "physical";
   const mine = media.filter((m) => m.product_id === row.id).sort((a, b) => a.sort_order - b.sort_order);
   const video = mine.find((m) => m.kind === "video");
   return {
@@ -109,6 +137,15 @@ export function productFrom(row: ProductRow, media: MediaRow[] = [], files: File
     updatedAt: row.updated_at,
     salesCount: stats?.salesCount ?? 0,
     revenue: money(stats?.revenue ?? 0, row.currency),
+    ...(physical
+      ? {
+          options: optionsFrom(row.options),
+          variants,
+          trackStock: !!row.track_stock,
+          stock: row.track_stock && !variants.length ? (row.stock ?? 0) : undefined,
+          weightGrams: row.weight_grams ?? undefined,
+        }
+      : {}),
   };
 }
 
@@ -134,6 +171,7 @@ export function storeFrom(row: StoreRow, owner: { name: string; email: string },
     createdAt: row.created_at,
     onboarded: row.status === "published",
     logo: row.logo_url ? { src: row.logo_url, alt: `${row.name} logo` } : undefined,
+    shipping: row.shipping !== undefined ? shippingFrom(row.shipping) : undefined,
   };
 }
 
@@ -149,7 +187,8 @@ export function designFrom(store: Store, theme: Json, mode: string, about?: Abou
   // The brand colour lives in stores.brand_color: it always wins over any copy in the JSON
   const design: StoreDesign = { ...base, ...saved, theme: { ...base.theme, ...saved.theme, mode: (mode as StoreDesign["theme"]["mode"]) ?? "auto", brand: store.brandColor } };
   // Designs saved before a section existed get it added (off), so it can be switched on
-  design.sections = [...design.sections, ...DEFAULT_SECTIONS.filter((id) => !design.sections.some((s) => s.id === id)).map((id) => ({ id, enabled: false }))];
+  // (only the built-in ones: sections the creator added are kept as saved)
+  design.sections = [...design.sections, ...DEFAULT_SECTIONS.filter((id) => !design.sections.some((s) => kindOf(s) === id)).map((id) => ({ id, enabled: false }))];
   if (about) design.about = about;
   return design;
 }

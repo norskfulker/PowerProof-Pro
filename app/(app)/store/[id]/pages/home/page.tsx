@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 
-/** Editing the home page happens on Design › Base design: click a section in the preview. */
+/** The home page is edited in the store editor. */
 export default async function StoreHomePage({ params }: { params: Promise<{ id: string }> }) {
-  redirect(`/store/${(await params).id}/design/base`);
+  redirect(`/store/${(await params).id}/design/pages/home/edit`);
 }

@@ -19,6 +19,7 @@ import { MediaUploader } from "@/components/media/media-uploader";
 import { MediaImg } from "@/components/media/tile-background";
 import { SaveBar } from "@/components/save/save-bar";
 import { SettingsLoading, SettingsSection } from "@/components/settings/settings-section";
+import { ShippingSettingsSection } from "@/components/store-admin/shipping-settings";
 import { useFormSaveBar } from "@/hooks/use-dirty-form";
 import { useCurrentStore } from "@/hooks/use-current-store";
 import { updateStore } from "@/lib/api";
@@ -131,6 +132,7 @@ function StoreForm({ store, onSaved }: { store: Store; onSaved: (s: Store) => vo
           </div>
         </SettingsSection>
       </form>
+      <ShippingSettingsSection store={store} onSaved={onSaved} />
       <SettingsSection title="Address and domain" description="Your free powerproof.store address, and your own domain on Pro.">
         <Button asChild variant="secondary" className="self-start">
           <Link href={`/store/${store.id}/domain`}>

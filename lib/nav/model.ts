@@ -15,6 +15,8 @@ export interface ResolvedNode {
   badgeTone?: "alert";
   locked?: "customDomain";
   match?: string[];
+  /** A panel of the store editor: found by search, not shown as a tab */
+  inEditor?: true;
   /** Labels of the ancestors, for search results */
   path: string[];
 }
@@ -58,6 +60,7 @@ export function resolveNav(tree: NavNode[], data: NavData, path: string[] = []):
       badgeTone: n.badge && ALERT.includes(n.badge) ? "alert" : undefined,
       locked: n.pro && data.locked.has(n.pro) ? n.pro : undefined,
       match: n.match?.map((m) => fill(m, data.storeId)),
+      ...(n.inEditor ? { inEditor: true as const } : {}),
       path: here,
     };
   });

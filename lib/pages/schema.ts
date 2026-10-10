@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { Store, StoreDesign } from "../types";
 
 /**
  * Store page documents (Part 4C): a JSON tree of blocks, validated with zod.
@@ -59,6 +60,10 @@ export const styleSchema = z.object({
   radius: z.enum(["none", "sm", "md", "lg"]).default("none"),
   border: z.boolean().default(false),
   shadow: z.enum(["none", "soft"]).default("none"),
+  /** Content blocks: their own alignment. Empty follows the section or column around them. */
+  selfAlign: z.enum(["", "left", "center", "right"]).default(""),
+  /** A colour scheme from the theme (its id). Empty follows the section around it, or the page. */
+  scheme: z.string().max(40).default(""),
 });
 export type BlockStyle = z.infer<typeof styleSchema>;
 
@@ -67,6 +72,8 @@ export const layoutSchema = z.object({
   width: z.enum(["narrow", "normal", "wide", "full"]).default("normal"),
   minHeight: z.enum(["auto", "sm", "md", "lg", "screen"]).default("auto"),
   gap: z.enum(["sm", "md", "lg"]).default("md"),
+  /** Sections: the background and colour scheme cover the whole width, or only a panel behind the content */
+  fill: z.enum(["full", "content"]).default("full"),
 });
 export type BlockLayout = z.infer<typeof layoutSchema>;
 
@@ -76,7 +83,9 @@ export const visibilitySchema = z.object({ mobile: z.boolean().default(true), de
 /* Block props                                                          */
 /* ------------------------------------------------------------------ */
 
-export const HIGHLIGHT_ICONS = ["check", "download", "shield", "refund", "star", "zap", "heart", "globe"] as const;
+/** An icon from the library (components/pp/icon-library.tsx), by name. Older pages used short lowercase names. */
+const iconName = z.string().regex(/^[A-Za-z]{1,40}$/, "Pick an icon from the list.");
+export const ICON_WEIGHTS = ["thin", "light", "regular", "bold", "fill", "duotone"] as const;
 
 const text = (max: number) => z.string().max(max, `Keep it under ${max} characters.`);
 
@@ -98,7 +107,7 @@ export const BOOKING_ZONES = [
 
 export const PROPS = {
   section: z.object({ label: text(60).default("") }),
-  columns: z.object({ stackOnMobile: z.boolean().default(true), ratio: z.enum(["equal", "2:1", "1:2"]).default("equal") }),
+  columns: z.object({ stackOnMobile: z.boolean().default(true), ratio: z.enum(["equal", "2:1", "1:2"]).default("equal"), valign: z.enum(["start", "center", "end"]).default("start") }),
   column: z.object({}),
   hero: z.object({
     eyebrow: text(60).default(""),
@@ -109,8 +118,19 @@ export const PROPS = {
     image: mediaSrc.default(""),
     imageAlt: text(200).default(""),
     layout: z.enum(["left", "centered", "split"]).default("left"),
+    /** Up to two more pictures beside the first, as a collage */
+    moreImages: z.array(mediaSrc).max(2).default([]),
+    cta2Label: text(40).default(""),
+    cta2Href: safeHref.default(""),
   }),
-  heading: z.object({ text: text(160).min(1, "Add some text."), level: z.union([z.literal(1), z.literal(2), z.literal(3)]).default(2), size: z.enum(["sm", "md", "lg", "xl"]).default("lg") }),
+  heading: z.object({
+    text: text(160).min(1, "Add some text."),
+    level: z.union([z.literal(1), z.literal(2), z.literal(3)]).default(2),
+    size: z.enum(["sm", "md", "lg", "xl"]).default("lg"),
+    /** An optional link on the right, like "View all" */
+    linkLabel: text(40).default(""),
+    linkHref: safeHref.default(""),
+  }),
   /** Rich text, kept safe: **bold**, _italic_ and [links](https://…) only. No HTML. */
   text: z.object({ text: text(4000).default(""), size: z.enum(["sm", "md", "lg"]).default("md") }),
   button: z.object({
@@ -122,9 +142,10 @@ export const PROPS = {
     variant: z.enum(["primary", "secondary", "brass"]).default("primary"),
     size: z.enum(["sm", "md", "lg"]).default("md"),
   }),
-  image: z.object({ src: mediaSrc.default(""), alt: text(200).default(""), aspect: z.enum(["auto", "1:1", "4:3", "16:9", "3:4"]).default("4:3"), fit: z.enum(["cover", "contain"]).default("cover"), focal: focal.default({ x: 50, y: 50 }), caption: text(200).default("") }),
+  image: z.object({ src: mediaSrc.default(""), alt: text(200).default(""), aspect: z.enum(["auto", "1:1", "4:3", "16:9", "3:4"]).default("4:3"), fit: z.enum(["cover", "contain"]).default("cover"), focal: focal.default({ x: 50, y: 50 }), caption: text(200).default(""), href: safeHref.default("") }),
   gallery: z.object({ images: z.array(z.object({ src: mediaSrc, alt: text(200).default("") })).max(12, "Up to 12 images.").default([]), columns: z.union([z.literal(2), z.literal(3), z.literal(4)]).default(3) }),
-  video: z.object({ src: mediaSrc.default(""), poster: mediaSrc.default(""), caption: text(200).default("") }),
+  /** An uploaded video, or a YouTube or Vimeo link (played in their privacy-friendly players) */
+  video: z.object({ src: mediaSrc.default(""), poster: mediaSrc.default(""), caption: text(200).default(""), autoplay: z.boolean().default(false), aspect: z.enum(["16:9", "4:3", "1:1", "9:16"]).default("16:9") }),
   table: z.object({
     rows: z.array(z.array(text(200)).min(1).max(8, "Up to 8 columns.")).min(1).max(30, "Up to 30 rows.").default([["Column 1", "Column 2"], ["", ""]]),
     header: z.boolean().default(true),
@@ -133,10 +154,38 @@ export const PROPS = {
   divider: z.object({}),
   spacer: z.object({ size: z.enum(["sm", "md", "lg", "xl"]).default("md") }),
   product_card: z.object({ productId: z.string().default(""), showBuy: z.boolean().default(true) }),
-  product_grid: z.object({ source: z.enum(["all", "collection", "manual"]).default("all"), collectionSlug: z.string().default(""), productIds: z.array(z.string()).default([]), limit: z.number().int().min(1).max(24).default(6), columns: z.union([z.literal(2), z.literal(3), z.literal(4)]).default(3) }),
-  highlights: z.object({ items: z.array(z.object({ icon: z.enum(HIGHLIGHT_ICONS).default("check"), title: text(60), body: text(160).default("") })).max(4, "Up to 4 items.").default([]) }),
+  product_grid: z.object({ source: z.enum(["all", "collection", "manual"]).default("all"), sort: z.enum(["featured", "popular", "newest", "price-asc", "price-desc"]).default("featured"), collectionSlug: z.string().default(""), productIds: z.array(z.string()).default([]), limit: z.number().int().min(1).max(24).default(6), columns: z.union([z.literal(2), z.literal(3), z.literal(4)]).default(3) }),
+  /** "auto" shows instant download, secure payment, the refund window and your rating */
+  highlights: z.object({
+    source: z.enum(["auto", "manual"]).default("manual"),
+    items: z.array(z.object({ icon: iconName.default("Check"), title: text(60), body: text(160).default("") })).max(6, "Up to 6 items.").default([]),
+    /** Icons for the automatic points, in order: download, payment, refunds, rating */
+    autoIcons: z.array(iconName).max(4).default(["DownloadSimple", "ShieldCheck", "ArrowCounterClockwise", "Star"]),
+    iconWeight: z.enum(ICON_WEIGHTS).default("regular"),
+    look: z.enum(["strip", "cards"]).default("strip"),
+  }),
   testimonials: z.object({ source: z.enum(["reviews", "manual"]).default("reviews"), items: z.array(z.object({ quote: text(400), author: text(60) })).max(6).default([]), limit: z.number().int().min(1).max(6).default(3) }),
-  faq: z.object({ items: z.array(z.object({ q: text(200), a: text(1000) })).max(20).default([]) }),
+  /** "store" shows the questions from Store › Pages › FAQ */
+  faq: z.object({ source: z.enum(["manual", "store"]).default("manual"), limit: z.number().int().min(1).max(20).default(5), items: z.array(z.object({ q: text(200), a: text(1000) })).max(20).default([]) }),
+  /** Cards side by side, each its own block (image, title, text, button) */
+  cards: z.object({ columns: z.union([z.literal(2), z.literal(3), z.literal(4)]).default(3), look: z.enum(["card", "plain"]).default("card"), aspect: z.enum(["none", "1:1", "4:3", "16:9", "3:4"]).default("4:3") }),
+  card: z.object({ icon: z.union([iconName, z.literal("")]).default(""), iconWeight: z.enum(ICON_WEIGHTS).default("duotone"), image: mediaSrc.default(""), imageAlt: text(200).default(""), title: text(120).default(""), text: text(600).default(""), ctaLabel: text(40).default(""), ctaHref: safeHref.default("") }),
+  /** The store's collections as tiles */
+  collection_list: z.object({ limit: z.number().int().min(1).max(12).default(6), columns: z.union([z.literal(2), z.literal(3), z.literal(4), z.literal(6)]).default(6) }),
+  /** The store's live bundles */
+  offers: z.object({}),
+  /** The creator's photo, story and a link to the About page (edited in Store › Pages › About) */
+  about: z.object({ showLink: z.boolean().default(true) }),
+  /** A moving line of words or logos */
+  marquee: z.object({
+    mode: z.enum(["text", "logos"]).default("text"),
+    items: z.array(z.object({ text: text(80).default(""), src: mediaSrc.default(""), alt: text(200).default(""), href: safeHref.default("") })).max(12, "Up to 12 items.").default([]),
+    speed: z.enum(["slow", "normal", "fast"]).default("normal"),
+    direction: z.enum(["left", "right"]).default("left"),
+    pauseOnHover: z.boolean().default(true),
+  }),
+  /** An uploaded HTML file, shown in a sandboxed frame */
+  custom_html: z.object({ name: text(120).default(""), source: z.string().max(300 * 1024, "HTML files can be up to 300 KB.").default(""), height: z.number().int().min(80).max(4000).optional() }),
   countdown: z.object({ endsAt: z.string().default(""), label: text(80).default("Offer ends in") }),
   newsletter: z.object({ heading: text(100).default("Get new releases first"), body: text(240).default("") }),
   /** Collects name, email and answers. Submissions land in Sales › Leads. */
@@ -182,13 +231,15 @@ export const BLOCK_TYPES = Object.keys(PROPS) as BlockType[];
 export type BlockProps<T extends BlockType> = z.infer<(typeof PROPS)[T]>;
 
 /** Which children each type may hold. Content blocks hold nothing. */
-export const CONTENT_TYPES: BlockType[] = ["heading", "text", "button", "image", "gallery", "video", "table", "divider", "spacer", "product_card", "product_grid", "highlights", "testimonials", "faq", "countdown", "newsletter", "lead_form", "booking"];
+export const CONTENT_TYPES: BlockType[] = ["heading", "text", "button", "image", "gallery", "video", "table", "divider", "spacer", "cards", "product_card", "product_grid", "collection_list", "offers", "highlights", "testimonials", "about", "marquee", "faq", "countdown", "newsletter", "lead_form", "booking", "custom_html"];
 export const CHILDREN = {
   ...(Object.fromEntries(CONTENT_TYPES.map((t) => [t, []])) as unknown as Record<BlockType, BlockType[]>),
   root: ["section", "hero"],
   section: ["columns", ...CONTENT_TYPES],
   columns: ["column"],
-  column: CONTENT_TYPES,
+  column: CONTENT_TYPES.filter((t) => t !== "cards"),
+  cards: ["card"],
+  card: [],
   hero: [],
 } as Record<BlockType | "root", BlockType[]>;
 
@@ -221,6 +272,7 @@ const nodeSchema: z.ZodType<PageNode> = z.lazy(() =>
         if (!allowed.includes(c.type)) ctx.addIssue({ code: "custom", path: ["children", i], message: `A ${n.type} block can't hold a ${c.type} block.` });
       });
       if (n.type === "columns" && (n.children.length < 2 || n.children.length > 4)) ctx.addIssue({ code: "custom", path: ["children"], message: "Columns need 2 to 4 columns." });
+      if (n.type === "cards" && (n.children.length < 1 || n.children.length > 12)) ctx.addIssue({ code: "custom", path: ["children"], message: "Cards need 1 to 12 cards." });
     }) as unknown as z.ZodType<PageNode>
 );
 
@@ -270,6 +322,8 @@ export interface StorePageDoc {
   seo: { title: string; description: string };
   /** Newest first, at most 20 */
   versions: PageVersion[];
+  /** Home page only: store-wide settings changed in the editor, not yet published */
+  site?: { design: StoreDesign; logo?: Store["logo"] };
 }
 
 /* ------------------------------------------------------------------ */
@@ -296,7 +350,11 @@ export function makeNode<T extends BlockType>(type: T, props: Partial<z.input<(t
   const parsedProps = PROPS[type].parse({ ...(defaults[type] as object), ...props }) as BlockProps<T>;
   const children =
     rest.children ??
-    (type === "columns" ? [makeNode("column", {}, { children: [makeNode("text", { text: "Left column" })] }), makeNode("column", {}, { children: [makeNode("text", { text: "Right column" })] })] : []);
+    (type === "columns"
+      ? [makeNode("column", {}, { children: [makeNode("text", { text: "Left column" })] }), makeNode("column", {}, { children: [makeNode("text", { text: "Right column" })] })]
+      : type === "cards"
+        ? [1, 2, 3].map((i) => makeNode("card", { title: `Card ${i}`, text: "A line or two about this." }))
+        : []);
   return {
     id: rest.id ?? nodeId(),
     type,

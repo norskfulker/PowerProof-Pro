@@ -19,6 +19,7 @@ export type Database = {
           created_at: string
           credits_used: number
           id: string
+          kind: string
           owner_id: string
           prompt: string
           result_path: string | null
@@ -29,6 +30,7 @@ export type Database = {
           created_at?: string
           credits_used?: number
           id?: string
+          kind?: string
           owner_id: string
           prompt: string
           result_path?: string | null
@@ -39,6 +41,7 @@ export type Database = {
           created_at?: string
           credits_used?: number
           id?: string
+          kind?: string
           owner_id?: string
           prompt?: string
           result_path?: string | null
@@ -163,6 +166,42 @@ export type Database = {
           },
         ]
       }
+      store_imports: {
+        Row: {
+          counts: Json
+          created_at: string
+          finished_at: string | null
+          id: string
+          proof: Json
+          source: string
+          source_label: string
+          status: string
+          store_id: string
+        }
+        Insert: {
+          counts?: Json
+          created_at?: string
+          finished_at?: string | null
+          id?: string
+          proof?: Json
+          source: string
+          source_label: string
+          status?: string
+          store_id: string
+        }
+        Update: {
+          counts?: Json
+          created_at?: string
+          finished_at?: string | null
+          id?: string
+          proof?: Json
+          source?: string
+          source_label?: string
+          status?: string
+          store_id?: string
+        }
+        Relationships: []
+      }
       coupons: {
         Row: {
           active: boolean
@@ -269,6 +308,42 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "custom_pages_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      custom_page_drafts: {
+        Row: {
+          data: Json
+          page_id: string
+          store_id: string
+          updated_at: string
+        }
+        Insert: {
+          data?: Json
+          page_id: string
+          store_id: string
+          updated_at?: string
+        }
+        Update: {
+          data?: Json
+          page_id?: string
+          store_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "custom_page_drafts_page_id_fkey"
+            columns: ["page_id"]
+            isOneToOne: true
+            referencedRelation: "custom_pages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "custom_page_drafts_store_id_fkey"
             columns: ["store_id"]
             isOneToOne: false
             referencedRelation: "stores"
@@ -510,6 +585,9 @@ export type Database = {
           tax_rate_bps: number
           title: string
           unit_price_minor: number
+          variant_id: string | null
+          variant_title: string | null
+          fulfilment: string
         }
         Insert: {
           discount_minor?: number
@@ -523,6 +601,9 @@ export type Database = {
           tax_rate_bps?: number
           title: string
           unit_price_minor: number
+          variant_id?: string | null
+          variant_title?: string | null
+          fulfilment?: string
         }
         Update: {
           discount_minor?: number
@@ -536,6 +617,9 @@ export type Database = {
           tax_rate_bps?: number
           title?: string
           unit_price_minor?: number
+          variant_id?: string | null
+          variant_title?: string | null
+          fulfilment?: string
         }
         Relationships: [
           {
@@ -581,6 +665,15 @@ export type Database = {
           tax_minor: number
           total_minor: number
           updated_at: string
+          payment_method: string
+          shipping_minor: number
+          cod_fee_minor: number
+          ship_to: Json | null
+          fulfilment_status: string | null
+          tracking: Json | null
+          shipped_at: string | null
+          delivered_at: string | null
+          stock_taken: boolean
         }
         Insert: {
           available_at?: string | null
@@ -608,6 +701,15 @@ export type Database = {
           tax_minor?: number
           total_minor: number
           updated_at?: string
+          payment_method?: string
+          shipping_minor?: number
+          cod_fee_minor?: number
+          ship_to?: Json | null
+          fulfilment_status?: string | null
+          tracking?: Json | null
+          shipped_at?: string | null
+          delivered_at?: string | null
+          stock_taken?: boolean
         }
         Update: {
           available_at?: string | null
@@ -635,6 +737,15 @@ export type Database = {
           tax_minor?: number
           total_minor?: number
           updated_at?: string
+          payment_method?: string
+          shipping_minor?: number
+          cod_fee_minor?: number
+          ship_to?: Json | null
+          fulfilment_status?: string | null
+          tracking?: Json | null
+          shipped_at?: string | null
+          delivered_at?: string | null
+          stock_taken?: boolean
         }
         Relationships: [
           {
@@ -861,6 +972,7 @@ export type Database = {
         Row: {
           max_pages: number | null
           ai_credits_monthly: number
+          ai_pages_daily: number
           custom_domain: boolean
           max_products: number | null
           max_stores: number | null
@@ -870,6 +982,7 @@ export type Database = {
         Insert: {
           max_pages?: number | null
           ai_credits_monthly: number
+          ai_pages_daily?: number
           custom_domain?: boolean
           max_products?: number | null
           max_stores?: number | null
@@ -972,6 +1085,56 @@ export type Database = {
           },
         ]
       }
+      product_variants: {
+        Row: {
+          compare_at_minor: number | null
+          created_at: string
+          id: string
+          image_url: string | null
+          options: Json
+          price_minor: number
+          product_id: string
+          sku: string | null
+          sort_order: number
+          stock: number | null
+          title: string
+        }
+        Insert: {
+          compare_at_minor?: number | null
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          options?: Json
+          price_minor: number
+          product_id: string
+          sku?: string | null
+          sort_order?: number
+          stock?: number | null
+          title: string
+        }
+        Update: {
+          compare_at_minor?: number | null
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          options?: Json
+          price_minor?: number
+          product_id?: string
+          sku?: string | null
+          sort_order?: number
+          stock?: number | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_variants_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       products: {
         Row: {
           fulfilment: string
@@ -993,6 +1156,10 @@ export type Database = {
           tax_rate_bps: number
           title: string
           updated_at: string
+          options: Json
+          track_stock: boolean
+          stock: number | null
+          weight_grams: number | null
         }
         Insert: {
           fulfilment?: string
@@ -1014,6 +1181,10 @@ export type Database = {
           tax_rate_bps?: number
           title: string
           updated_at?: string
+          options?: Json
+          track_stock?: boolean
+          stock?: number | null
+          weight_grams?: number | null
         }
         Update: {
           fulfilment?: string
@@ -1035,6 +1206,10 @@ export type Database = {
           tax_rate_bps?: number
           title?: string
           updated_at?: string
+          options?: Json
+          track_stock?: boolean
+          stock?: number | null
+          weight_grams?: number | null
         }
         Relationships: [
           {
@@ -1351,6 +1526,7 @@ export type Database = {
           theme: Json
           theme_mode: string
           updated_at: string
+          shipping: Json
         }
         Insert: {
           brand_color?: string | null
@@ -1376,6 +1552,7 @@ export type Database = {
           theme?: Json
           theme_mode?: string
           updated_at?: string
+          shipping?: Json
         }
         Update: {
           brand_color?: string | null
@@ -1401,6 +1578,7 @@ export type Database = {
           theme?: Json
           theme_mode?: string
           updated_at?: string
+          shipping?: Json
         }
         Relationships: [
           {
@@ -1466,6 +1644,14 @@ export type Database = {
           available_at: string | null
           invoice_no: string | null
           created_at: string | null
+          payment_method: string | null
+          shipping_minor: number | null
+          cod_fee_minor: number | null
+          ship_to: Json | null
+          fulfilment_status: string | null
+          tracking: Json | null
+          shipped_at: string | null
+          delivered_at: string | null
         }
         Relationships: []
       }
@@ -1595,6 +1781,9 @@ export type Database = {
         }[]
       }
       ai_credits_remaining: { Args: never; Returns: number }
+      ai_page_allowance: { Args: never; Returns: { daily: number; used: number }[] }
+      finish_ai_page: { Args: { p_id: string; p_status: string }; Returns: undefined }
+      start_ai_page: { Args: { p_prompt: string; p_store: string }; Returns: string }
       apply_payment: {
         Args: {
           p_gateway_fee_minor?: number
@@ -1686,9 +1875,15 @@ export type Database = {
           p_subtotal: number
           p_tax: number
           p_total: number
+          p_payment_method?: string
+          p_shipping?: number
+          p_cod_fee?: number
+          p_ship_to?: Json
         }
         Returns: string
       }
+      set_order_fulfilment: { Args: { p_order: string; p_status: string; p_carrier?: string; p_number?: string; p_url?: string }; Returns: undefined }
+      settle_cod: { Args: { p_order: string }; Returns: undefined }
       issue_download_token: { Args: { p_order: string }; Returns: string }
       order_for_token: { Args: { p_token: string }; Returns: string }
       claim_download: { Args: { p_file: string; p_token: string }; Returns: { file_name: string; mime_type: string | null; storage_path: string }[] }
@@ -1740,7 +1935,7 @@ export type Database = {
       discount_kind: "percent" | "fixed"
       domain_status: "pending" | "verifying" | "active" | "failed"
       moderation_status: "published" | "hidden"
-      order_status: "pending" | "paid" | "failed" | "refunded"
+      order_status: "pending" | "cod" | "paid" | "failed" | "refunded"
       page_status: "draft" | "published"
       payout_status:
         | "requested"
@@ -1883,7 +2078,7 @@ export const Constants = {
       discount_kind: ["percent", "fixed"],
       domain_status: ["pending", "verifying", "active", "failed"],
       moderation_status: ["published", "hidden"],
-      order_status: ["pending", "paid", "failed", "refunded"],
+      order_status: ["pending", "cod", "paid", "failed", "refunded"],
       page_status: ["draft", "published"],
       payout_status: ["requested", "processing", "paid", "failed", "cancelled"],
       plan_tier: ["free", "pro"],

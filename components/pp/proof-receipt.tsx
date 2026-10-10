@@ -44,8 +44,18 @@ export function ProofReceipt({
       <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2.5 px-5 py-4 text-sm">
         <dt className="text-muted-foreground">Order</dt>
         <dd className="text-right font-mono text-[0.8125rem]">{order.number}</dd>
-        <dt className="text-muted-foreground">Item</dt>
-        <dd className="text-right font-medium">{order.productTitle}</dd>
+        <dt className="text-muted-foreground">{order.items.length > 1 ? "Items" : "Item"}</dt>
+        <dd className="text-right font-medium">
+          {order.items.length > 1 || order.items[0]?.quantity && order.items[0].quantity > 1 || order.items[0]?.variant
+            ? order.items.map((i) => (
+                <span key={`${i.productId}-${i.variant ?? ""}`} className="block">
+                  {i.title}
+                  {i.variant ? ` (${i.variant})` : ""}
+                  {i.quantity && i.quantity > 1 ? ` × ${i.quantity}` : ""}
+                </span>
+              ))
+            : order.productTitle}
+        </dd>
         <dt className="text-muted-foreground">Sold by</dt>
         <dd className="text-right">{storeName}</dd>
         <dt className="text-muted-foreground">Date</dt>
@@ -56,10 +66,27 @@ export function ProofReceipt({
             <dd className="truncate text-right">{order.buyerEmail}</dd>
           </>
         )}
-        {order.paymentMethod && (
+        {order.payment === "cod" ? (
+          <>
+            <dt className="text-muted-foreground">{order.status === "paid" ? "Paid with" : "Pay with"}</dt>
+            <dd className="text-right">Cash on delivery</dd>
+          </>
+        ) : order.paymentMethod ? (
           <>
             <dt className="text-muted-foreground">Paid with</dt>
             <dd className="text-right">{METHOD[order.paymentMethod]}</dd>
+          </>
+        ) : null}
+        {order.shipping && (
+          <>
+            <dt className="text-muted-foreground">Shipping</dt>
+            <dd className="text-right">{order.shipping.amount ? <MoneyText value={order.shipping} /> : "Free"}</dd>
+          </>
+        )}
+        {order.codFee && (
+          <>
+            <dt className="text-muted-foreground">Cash on delivery charge</dt>
+            <dd className="text-right"><MoneyText value={order.codFee} /></dd>
           </>
         )}
         {order.invoiceNumber && (
@@ -71,6 +98,7 @@ export function ProofReceipt({
       </dl>
       {showFees && (
         <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 border-t border-dashed border-border-strong px-5 py-4 text-sm">
+          {order.payment === "cod" && <p className="col-span-2 text-xs text-muted-foreground">You collect the cash yourself; PowerProof&apos;s fee comes out of your balance.</p>}
           <dt className="text-muted-foreground">Gateway fee</dt>
           <dd className="text-right"><MoneyText value={{ ...order.fees.gateway, amount: -order.fees.gateway.amount }} mono /></dd>
           <dt className="text-muted-foreground">PowerProof fee</dt>

@@ -34,6 +34,7 @@ import { useDirtyForm } from "@/hooks/use-dirty-form";
 import { ImageGalleryField } from "./image-gallery-field";
 import { DRAFT_NOTE, publishBlockers, readiness } from "./readiness";
 import { productSchema, type ProductValues } from "./product-schema";
+import { VariantsEditor } from "./variants-editor";
 
 const CUSTOM = "__custom";
 
@@ -137,6 +138,10 @@ export function ProductForm({
   const kind = useWatch({ control: form.control, name: "kind" });
   const video = useWatch({ control: form.control, name: "video" });
   const memberOf = useWatch({ control: form.control, name: "collectionIds" });
+  const options = useWatch({ control: form.control, name: "options" });
+  const variants = useWatch({ control: form.control, name: "variants" });
+  const trackStock = useWatch({ control: form.control, name: "trackStock" });
+  const stock = useWatch({ control: form.control, name: "stock" });
   const todo = readiness({ fulfilment: physical ? "physical" : "digital", images: images ?? [], video, files: files ?? [], kind }, (memberOf?.length ?? 0) > 0).filter((i) => !i.done);
   const pending = form.formState.isSubmitting;
   const dirty = form.formState.isDirty;
@@ -425,6 +430,20 @@ export function ProductForm({
             </div>
             <FeeBreakdown sale={price ?? money(0, cur)} className="border-dashed bg-surface-sunken" />
           </Panel>
+
+          {physical && (
+            <Panel title="Variants and stock" at={2} description="Optional. Add sizes or colours, and count what you have so you never sell more than you can send.">
+              <VariantsEditor
+                value={{ options, variants, trackStock, stock }}
+                currency={cur}
+                price={price ?? money(0, cur)}
+                errors={{ options: form.formState.errors.options?.message, stock: form.formState.errors.stock?.message, variants: form.formState.errors.variants?.message ?? (Array.isArray(form.formState.errors.variants) ? "Check the variants' prices and SKUs." : undefined) }}
+                onChange={(patch) => {
+                  for (const [k, v] of Object.entries(patch)) form.setValue(k as "options", v as never, { shouldDirty: true, shouldValidate: form.formState.isSubmitted });
+                }}
+              />
+            </Panel>
+          )}
 
           <Panel title="Organisation" at={physical ? 2 : undefined}>
             {!physical && (

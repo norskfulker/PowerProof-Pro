@@ -42,15 +42,56 @@ const shell = (title: string, body: string) =>
 
 const button = (href: string, label: string) => `<p style="margin:20px 0"><a href="${esc(href)}" style="background:#0f3d33;color:#fff;text-decoration:none;padding:12px 18px;border-radius:8px;display:inline-block;font-weight:600">${esc(label)}</a></p>`;
 
-export function receiptMail(o: { storeName: string; buyerName: string; ref: string; lines: { title: string; amount: string }[]; total: string; downloadUrl: string; invoiceUrl?: string; supportEmail?: string }): Omit<Mail, "to"> {
-  const rows = o.lines.map((l) => `<tr><td style="padding:6px 0">${esc(l.title)}</td><td style="padding:6px 0;text-align:right">${esc(l.amount)}</td></tr>`).join("");
+export interface ReceiptInput {
+  storeName: string;
+  buyerName: string;
+  ref: string;
+  lines: { title: string; amount: string }[];
+  total: string;
+  /** The order page: files to download, or where the parcel is */
+  downloadUrl: string;
+  invoiceUrl?: string;
+  supportEmail?: string;
+  /** Shipping and COD charges, as lines under the products */
+  charges?: { title: string; amount: string }[];
+  /** Where it's going, one line */
+  shipTo?: string;
+  /** Placed for cash on delivery: nothing paid yet */
+  cod?: boolean;
+  /** Something to download */
+  files?: boolean;
+}
+
+export function receiptMail(o: ReceiptInput): Omit<Mail, "to"> {
+  const files = o.files ?? true;
+  const row = (l: { title: string; amount: string }) => `<tr><td style="padding:6px 0">${esc(l.title)}</td><td style="padding:6px 0;text-align:right">${esc(l.amount)}</td></tr>`;
+  const rows = [...o.lines, ...(o.charges ?? [])].map(row).join("");
+  const intro = o.cod
+    ? `<p>Your order is placed. You'll pay <strong>${esc(o.total)}</strong> in cash when it arrives. Order <strong>${esc(o.ref)}</strong> from ${esc(o.storeName)}:</p>`
+    : `<p>Your payment went through. Order <strong>${esc(o.ref)}</strong> from ${esc(o.storeName)}:</p>`;
+  const ship = o.shipTo ? `<p style="font-size:14px"><strong>Shipping to:</strong> ${esc(o.shipTo)}<br>We'll email you when it's on its way.</p>` : "";
   return {
-    subject: `Your order from ${o.storeName} (${o.ref})`,
+    subject: o.cod ? `Order placed: ${o.storeName} (${o.ref})` : `Your order from ${o.storeName} (${o.ref})`,
     replyTo: o.supportEmail,
     html: shell(
       `Thanks, ${o.buyerName.split(" ")[0]}!`,
-      `<p>Your payment went through. Order <strong>${esc(o.ref)}</strong> from ${esc(o.storeName)}:</p><table style="width:100%;border-collapse:collapse;border-top:1px solid #dfe5e1;border-bottom:1px solid #dfe5e1">${rows}<tr><td style="padding:8px 0;font-weight:700">Total</td><td style="padding:8px 0;text-align:right;font-weight:700">${esc(o.total)}</td></tr></table>${button(o.downloadUrl, "Get your files")}${o.invoiceUrl ? `<p style="font-size:14px"><a href="${esc(o.invoiceUrl)}">View your invoice</a></p>` : ""}<p style="font-size:13px;color:#6b7b75">The link works for 30 days. Lost it? Look your order up again with this email address and your order number.</p>`
+      `${intro}<table style="width:100%;border-collapse:collapse;border-top:1px solid #dfe5e1;border-bottom:1px solid #dfe5e1">${rows}<tr><td style="padding:8px 0;font-weight:700">${o.cod ? "To pay on delivery" : "Total"}</td><td style="padding:8px 0;text-align:right;font-weight:700">${esc(o.total)}</td></tr></table>${ship}${button(o.downloadUrl, files ? "Get your files" : "View your order")}${o.invoiceUrl && !o.cod ? `<p style="font-size:14px"><a href="${esc(o.invoiceUrl)}">View your invoice</a></p>` : ""}<p style="font-size:13px;color:#6b7b75">${files ? "The link works for 30 days. " : ""}Lost it? Look your order up again with this email address and your order number.</p>`
     ),
-    text: `Thanks, ${o.buyerName}!\n\nOrder ${o.ref} from ${o.storeName}\n${o.lines.map((l) => `${l.title}  ${l.amount}`).join("\n")}\nTotal ${o.total}\n\nYour files: ${o.downloadUrl}\n${o.invoiceUrl ? `Invoice: ${o.invoiceUrl}\n` : ""}\nThe link works for 30 days.`,
+    text: `Thanks, ${o.buyerName}!\n\n${o.cod ? `Order placed: you'll pay ${o.total} in cash on delivery.` : "Your payment went through."}\nOrder ${o.ref} from ${o.storeName}\n${[...o.lines, ...(o.charges ?? [])].map((l) => `${l.title}  ${l.amount}`).join("\n")}\nTotal ${o.total}\n${o.shipTo ? `\nShipping to: ${o.shipTo}\n` : ""}\n${files ? "Your files" : "Your order"}: ${o.downloadUrl}\n${o.invoiceUrl && !o.cod ? `Invoice: ${o.invoiceUrl}\n` : ""}`,
+  };
+}
+
+/** The parcel is on its way (or has arrived) */
+export function shippedMail(o: { storeName: string; buyerName: string; ref: string; delivered?: boolean; carrier?: string; number?: string; trackUrl?: string; orderUrl: string; supportEmail?: string; cod?: string }): Omit<Mail, "to"> {
+  const track = [o.carrier, o.number].filter(Boolean).join(" · ");
+  const title = o.delivered ? "Your order has arrived" : "Your order is on its way";
+  return {
+    subject: `${o.delivered ? "Delivered" : "Shipped"}: your ${o.storeName} order (${o.ref})`,
+    replyTo: o.supportEmail,
+    html: shell(
+      title,
+      `<p>Hi ${esc(o.buyerName.split(" ")[0])}, ${o.delivered ? `order <strong>${esc(o.ref)}</strong> from ${esc(o.storeName)} has been delivered.` : `${esc(o.storeName)} has sent order <strong>${esc(o.ref)}</strong>.`}</p>${track ? `<p style="font-size:14px"><strong>Tracking:</strong> ${esc(track)}</p>` : ""}${o.cod && !o.delivered ? `<p style="font-size:14px">Keep <strong>${esc(o.cod)}</strong> ready in cash for the courier.</p>` : ""}${o.trackUrl && !o.delivered ? button(o.trackUrl, "Track your parcel") : button(o.orderUrl, "View your order")}`
+    ),
+    text: `${title}\n\nOrder ${o.ref} from ${o.storeName}.\n${track ? `Tracking: ${track}\n` : ""}${o.cod && !o.delivered ? `Keep ${o.cod} ready in cash for the courier.\n` : ""}${o.trackUrl ? `Track it: ${o.trackUrl}\n` : ""}Your order: ${o.orderUrl}`,
   };
 }

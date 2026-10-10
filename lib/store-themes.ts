@@ -1,6 +1,6 @@
-import { liftTo, mixHex, readableOn } from "./color";
+import { contrast, liftTo, mixHex, readableOn } from "./color";
 import { FONT_FAMILY, fontFaceCss } from "./fonts";
-import type { FontPairId, HeroStyle, PaletteId, SectionId, StoreTheme } from "./types";
+import type { ColorScheme, FontPairId, HeroStyle, PaletteId, SchemeColors, SectionContent, SectionId, SectionKind, SectionSetting, StoreTheme } from "./types";
 
 /**
  * Store themes override the design tokens inside a store's scope only.
@@ -41,22 +41,84 @@ export const HERO_STYLES: { id: HeroStyle; name: string; description: string }[]
   { id: "full", name: "Full width", description: "Cover image across the top, words on top." },
 ];
 
-export const SECTION_META: Record<SectionId, { name: string; description: string }> = {
-  announcement: { name: "Announcement bar", description: "Offer text, a code and an optional countdown." },
-  hero: { name: "Hero", description: "Headline, one button and your best images." },
-  highlights: { name: "Highlights strip", description: "Instant download, secure payment, rating, sales." },
-  collections: { name: "Collections", description: "Tiles that open filtered product lists." },
-  bestsellers: { name: "Bestsellers", description: "Your most bought products." },
-  new: { name: "New arrivals", description: "Latest products first." },
-  offers: { name: "Offers", description: "Coupons, bundles and the live deal." },
-  reviews: { name: "Reviews wall", description: "Top verified reviews and your average." },
-  html: { name: "Custom HTML", description: "A section made from an HTML file you upload." },
-  about: { name: "About you", description: "Photo, story and social links." },
-  faq: { name: "FAQ", description: "Questions you edit in Store › Pages." },
-  newsletter: { name: "Newsletter", description: "Collect emails from visitors." },
+export const SECTION_META: Record<SectionKind, { name: string; description: string; /** Can be added more than once */ multiple: boolean }> = {
+  announcement: { name: "Announcement bar", description: "Offer text, a code and an optional countdown.", multiple: false },
+  hero: { name: "Hero", description: "Headline, up to two buttons and your best images.", multiple: true },
+  highlights: { name: "Highlights strip", description: "Instant download, secure payment, rating, sales. Or your own points.", multiple: true },
+  collections: { name: "Collections", description: "Tiles that open filtered product lists.", multiple: false },
+  bestsellers: { name: "Bestsellers", description: "Your most bought products.", multiple: true },
+  new: { name: "New arrivals", description: "Latest products first.", multiple: true },
+  offers: { name: "Offers", description: "Coupons, bundles and the live deal.", multiple: false },
+  reviews: { name: "Reviews wall", description: "Top verified reviews and your average.", multiple: false },
+  html: { name: "Custom HTML", description: "A section made from an HTML file you upload.", multiple: false },
+  about: { name: "About you", description: "Photo, story and social links.", multiple: false },
+  faq: { name: "FAQ", description: "Questions you edit in Store › Pages.", multiple: false },
+  newsletter: { name: "Newsletter", description: "Collect emails from visitors.", multiple: false },
+  text: { name: "Text and button", description: "A heading, a few lines and a button.", multiple: true },
+  columns: { name: "Columns", description: "Two to four side-by-side points, each with an optional link.", multiple: true },
+  table: { name: "Table", description: "Rows and columns: comparisons, specs, what's included.", multiple: true },
+  marquee: { name: "Scrolling strip", description: "A moving line of text or logos.", multiple: true },
+  image: { name: "Image", description: "One picture or GIF, uploaded straight onto the page.", multiple: true },
+  video: { name: "Video", description: "An uploaded video, or a YouTube or Vimeo link.", multiple: true },
 };
 
 export const DEFAULT_SECTIONS: SectionId[] = ["announcement", "hero", "highlights", "collections", "bestsellers", "new", "offers", "reviews", "html", "about", "faq", "newsletter"];
+
+/** The order sections are offered in "Add section" */
+export const ADDABLE_KINDS: SectionKind[] = ["hero", "text", "image", "video", "columns", "table", "marquee", "highlights", "bestsellers", "new", "collections", "offers", "reviews", "faq", "about", "newsletter", "html"];
+
+/** Sections whose content can sit left, centre or right */
+export const ALIGNABLE = new Set<SectionKind>(["hero", "text", "columns", "image"]);
+
+export const kindOf = (s: Pick<SectionSetting, "id" | "kind">): SectionKind => s.kind ?? (s.id as SectionKind);
+
+/** What a new section of this kind starts with. The creator edits it straight away. */
+export function startContent(kind: SectionKind): SectionContent | undefined {
+  switch (kind) {
+    case "hero":
+      return { hero: { headline: "A new headline", subtext: "", ctaLabel: "Shop now", ctaTarget: "products", imageProductIds: [] } };
+    case "text":
+      return { text: { heading: "A short heading", body: "Say a little about this part of your store.", ctaLabel: "", ctaTarget: "products" } };
+    case "columns":
+      return { columns: [1, 2, 3].map((n) => ({ title: `Point ${n}`, body: "One or two lines." })) };
+    case "table":
+      return { table: { rows: [["", "Basic", "Pro"], ["Feature", "Yes", "Yes"]], header: true, striped: true } };
+    case "marquee":
+      return { marquee: { mode: "text", items: [{ text: "Instant download" }, { text: "Secure payment" }, { text: "Made in India" }], speed: "normal", direction: "left", pauseOnHover: true } };
+    case "image":
+      return { image: { src: "", alt: "", aspect: "16:9", fit: "cover" } };
+    case "video":
+      return { video: { src: "" } };
+    case "bestsellers":
+    case "new":
+      return { count: 4 };
+    default:
+      return undefined;
+  }
+}
+
+/** An id no other section has, so the same kind can sit on the page many times */
+export const newSectionId = (kind: SectionKind): string => `${kind}-${Math.random().toString(36).slice(2, 7)}`;
+
+/** A fresh section with its own id, so the same kind can sit on the page many times. */
+export function makeSection(kind: SectionKind, id: string): SectionSetting {
+  // Custom HTML has nothing to show until a file is uploaded
+  return { id, kind, enabled: kind !== "html", content: startContent(kind) };
+}
+
+/**
+ * Where a button or link goes. Accepts the store's own things (products, a collection, a product,
+ * a store page, a section on this page) and https links. Anything else falls back to all products.
+ */
+export function targetHref(slug: string, target: string | undefined): string {
+  const t = target ?? "products";
+  if (t.startsWith("collection:")) return `/s/${slug}/c/${t.slice(11)}`;
+  if (t.startsWith("product:")) return `/s/${slug}/${t.slice(8)}`;
+  if (t.startsWith("page:")) return `/s/${slug}/${t.slice(5)}`;
+  if (t.startsWith("section:")) return `#section-${t.slice(8)}`;
+  if (t.startsWith("url:")) return /^(https:\/\/|mailto:)/i.test(t.slice(4)) ? t.slice(4) : `/s/${slug}/products`;
+  return `/s/${slug}/products`;
+}
 
 /** Which theme a store shows: the buyer's own choice, else the creator's default, else the site's. */
 export function resolveStoreMode(theme: StoreTheme, siteMode: "light" | "dark", buyer?: "light" | "dark"): "light" | "dark" {
@@ -164,4 +226,113 @@ function darkVars(theme: StoreTheme, p: Palette): Record<string, string> {
     "--font-display": `${f.display}, ui-sans-serif, system-ui, sans-serif`,
     "--font-sans": `${f.body}, ui-sans-serif, system-ui, sans-serif`,
   };
+}
+
+/** "Hero", then "Hero 2" for the next one, so two sections of a kind can be told apart */
+export function sectionNames(sections: SectionSetting[]): Record<string, string> {
+  const seen: Record<string, number> = {};
+  return Object.fromEntries(
+    sections.map((s) => {
+      const kind = kindOf(s);
+      seen[kind] = (seen[kind] ?? 0) + 1;
+      const base = SECTION_META[kind].name;
+      return [s.id, seen[kind] > 1 ? `${base} ${seen[kind]}` : base];
+    })
+  );
+}
+
+/* Colour schemes ------------------------------------------------------------ */
+
+const INK = "#0C1F1B";
+const PORCELAIN = "#F5F6F4";
+
+/** The store's primary colour in a mode: its brand colour when it has one, else the palette's */
+function primaryOf(theme: StoreTheme, p: Palette, mode: "light" | "dark"): string {
+  const brand = theme.brand && /^#[0-9a-f]{6}$/i.test(theme.brand) ? theme.brand : undefined;
+  if (mode === "dark") return brand ? mixHex(brand, "#FFFFFF", 0.4) : p.dark.primary;
+  return brand ?? p.primary;
+}
+
+function colors(background: string, button: string, text = readableOn(background), border = mixHex(background, text, 0.14)): SchemeColors {
+  return { background, text, button, buttonText: readableOn(button), border };
+}
+
+/** The five schemes every store starts with, made from its palette and brand colour */
+export function defaultSchemes(theme: StoreTheme): ColorScheme[] {
+  const p = PALETTES.find((x) => x.id === theme.palette) ?? PALETTES[0];
+  const accent = theme.accent && /^#[0-9a-f]{6}$/i.test(theme.accent) ? theme.accent : p.accent;
+  const lp = primaryOf(theme, p, "light");
+  const dp = primaryOf(theme, p, "dark");
+  return [
+    { id: "scheme-1", name: "Page", light: colors(p.background, lp, INK), dark: colors(p.dark.background, dp, "#EAF0ED") },
+    { id: "scheme-2", name: "Card", light: colors("#FFFFFF", lp, INK), dark: colors(p.dark.surface, dp, "#EAF0ED") },
+    { id: "scheme-3", name: "Tinted", light: colors(mixHex(lp, "#FFFFFF", 0.88), lp, INK), dark: colors(mixHex(dp, "#000000", 0.78), dp, "#EAF0ED") },
+    { id: "scheme-4", name: "Brand", light: colors(lp, accent), dark: colors(mixHex(dp, "#000000", 0.45), accent) },
+    { id: "scheme-5", name: "Ink", light: colors(INK, accent, PORCELAIN), dark: colors("#050B0A", accent, PORCELAIN) },
+  ];
+}
+
+/** The store's schemes: its own when it has edited them, else the defaults */
+export function schemesOf(theme: StoreTheme): ColorScheme[] {
+  return theme.schemes?.length ? theme.schemes : defaultSchemes(theme);
+}
+
+/** An id for a new scheme that no other scheme has */
+export function newSchemeId(schemes: ColorScheme[]): string {
+  let n = schemes.length + 1;
+  while (schemes.some((s) => s.id === `scheme-${n}`)) n++;
+  return `scheme-${n}`;
+}
+
+/**
+ * The tokens a scheme sets on a section, so everything inside it (text, cards, buttons, inputs,
+ * tables) takes its colours without knowing about schemes.
+ */
+export function schemeVars(c: SchemeColors): Record<string, string> {
+  const soft = mixHex(c.button, c.background, 0.86);
+  return {
+    "--background": c.background,
+    "--surface": mixHex(c.background, c.text, 0.03),
+    "--surface-sunken": mixHex(c.background, c.text, 0.06),
+    "--muted": mixHex(c.background, c.text, 0.07),
+    "--foreground": c.text,
+    "--muted-foreground": liftTo(mixHex(c.text, c.background, 0.32), c.background),
+    "--border": c.border,
+    "--border-strong": mixHex(c.border, c.text, 0.25),
+    "--input": c.border,
+    "--primary": c.button,
+    "--primary-hover": mixHex(c.button, c.text, 0.14),
+    "--primary-foreground": c.buttonText,
+    "--primary-soft": soft,
+    "--ring": c.button,
+    background: c.background,
+    color: c.text,
+  };
+}
+
+/** Where a scheme's text or button may be hard to read, in plain words */
+export function schemeWarnings(c: SchemeColors): string[] {
+  const out: string[] = [];
+  if (contrast(c.text, c.background) < 4.5) out.push(`Text on the background is ${contrast(c.text, c.background).toFixed(1)}:1. Aim for 4.5:1.`);
+  if (contrast(c.buttonText, c.button) < 4.5) out.push(`Button label on the button is ${contrast(c.buttonText, c.button).toFixed(1)}:1. Aim for 4.5:1.`);
+  return out;
+}
+
+/** Class a block or the header carries to take a scheme's colours */
+export const schemeClass = (id: string | undefined): string | undefined => (id && /^[\w-]{1,40}$/.test(id) ? `pp-scheme-${id}` : undefined);
+
+/**
+ * CSS for every scheme, in light and dark. The store's theme scope carries data-store-mode (not
+ * data-theme, which the app's own root also has), so a section
+ * picks the right colours however the mode was chosen (creator default, buyer switch, device).
+ */
+export function schemeCss(theme: StoreTheme): string {
+  const decl = (c: SchemeColors) =>
+    Object.entries(schemeVars(c))
+      .map(([k, v]) => (k === "background" ? `background-color:${v}` : `${k}:${v}`))
+      .join(";");
+  return schemesOf(theme)
+    .filter((s) => schemeClass(s.id))
+    .map((s) => `[data-store-mode="light"] .${schemeClass(s.id)}{${decl(s.light)}}[data-store-mode="dark"] .${schemeClass(s.id)}{${decl(s.dark)}}`)
+    .join("");
 }

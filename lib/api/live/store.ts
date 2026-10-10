@@ -1,3 +1,4 @@
+import { shippingSettingsSchema } from "../../shipping";
 import { countryByCode } from "../../countries";
 import { cleanStoreName, slugify, storeNameError } from "../../slug";
 import { normalizeHex } from "../../color";
@@ -19,7 +20,7 @@ import { activeStoreId, currentUser, setActiveStore, syncSession } from "./sessi
 /** The creator's stores, their settings, design and pages, and the plan, from Supabase. */
 
 /** Columns a creator reads for their own store (they may read all of them). */
-const STORE_COLS = "id, owner_id, name, slug, country, tagline, logo_url, status, theme, theme_mode, currency_base, brand_color, support_email, refund_days, legal_name, company_address, gstin, invoice_prefix, invoice_footer, pan, business_type, created_at, updated_at";
+const STORE_COLS = "id, owner_id, name, slug, country, tagline, logo_url, status, theme, theme_mode, currency_base, brand_color, support_email, refund_days, legal_name, company_address, gstin, invoice_prefix, invoice_footer, pan, business_type, created_at, updated_at, shipping";
 
 async function owner() {
   const u = await currentUser();
@@ -101,6 +102,11 @@ export async function updateStore(patch: Partial<Store>): Promise<Store> {
   if (patch.refundDays !== undefined) row.refund_days = Math.max(0, Math.min(365, Math.round(patch.refundDays)));
   if (patch.currency !== undefined) row.currency_base = patch.currency;
   if ("logo" in patch) row.logo_url = patch.logo?.src && /^https:\/\//.test(patch.logo.src) ? patch.logo.src : null;
+  if (patch.shipping !== undefined) {
+    const r = shippingSettingsSchema.safeParse(patch.shipping);
+    if (!r.success) throw new ApiError(r.error.issues[0]?.message ?? "Check the shipping settings.", "validation");
+    row.shipping = JSON.parse(JSON.stringify(r.data));
+  }
   // Publishing is the end of onboarding: the store becomes visible to buyers
   if (patch.onboarded !== undefined) row.status = patch.onboarded ? "published" : "draft";
   if (Object.keys(row).length) {
@@ -219,13 +225,17 @@ export async function createOwnedStore(input: { name: string; slug?: string }): 
 
 /* Design, About, FAQ and policies ------------------------------------------------ */
 
+/** Every store gets its five pages when it's made (seed_store_pages), so creators only ever update them */
 async function savePage(storeId: string, kind: StorePageKey, content: Record<string, unknown>) {
   must(
     await sb()
       .from("store_pages")
-      .upsert({ store_id: storeId, kind, content: JSON.parse(JSON.stringify(content)), edited: true, updated_at: new Date().toISOString() })
+      .update({ content: JSON.parse(JSON.stringify(content)), edited: true, updated_at: new Date().toISOString() })
+      .eq("store_id", storeId)
+      .eq("kind", kind)
       .select("kind")
-      .single()
+      .single(),
+    { notFound: "Store page" }
   );
 }
 
@@ -307,7 +317,7 @@ export async function getPlanState(): Promise<PlanState> {
   const lim: PlanLimits = limitsFromRows(limits)[tier];
   const ids = (stores ?? []).map((s) => s.id);
   const [{ count }, { count: pageCount }] = ids.length
-    ? await Promise.all([sb().from("products").select("id", { count: "exact", head: true }).in("store_id", ids), sb().from("custom_pages").select("id", { count: "exact", head: true }).in("store_id", ids)])
+    ? await Promise.all([sb().from("products").select("id", { count: "exact", head: true }).in("store_id", ids), sb().from("custom_pages").select("id", { count: "exact", head: true }).in("store_id", ids).neq("slug", "home")])
     : [{ count: 0 }, { count: 0 }];
   const plan: Plan = { tier, name: tier === "pro" ? "Pro" : "Free", monthly: moneyOf(tier === "pro" ? PRO_PRICE_USD * 100 : 0, "USD"), platformFeePct: (row?.platform_fee_bps ?? 300) / 100, gatewayFeePct: 2, status: "active" };
   return { plan, tier, limits: lim, usage: { stores: ids.length, products: count ?? 0, pages: pageCount ?? 0 } };

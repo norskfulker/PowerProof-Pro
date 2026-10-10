@@ -333,3 +333,27 @@
     scroll-behavior: auto !important;
   }
 }
+
+/* Scrolling strips (store home and announcement bar). Static when motion is reduced. */
+@keyframes pp-marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+.pp-marquee-track {
+  display: flex;
+  width: max-content;
+  animation: pp-marquee var(--pp-marquee-s, 30s) linear infinite;
+}
+.pp-marquee[data-reverse] .pp-marquee-track { animation-direction: reverse; }
+.pp-marquee[data-pause]:hover .pp-marquee-track,
+.pp-marquee[data-pause]:focus-within .pp-marquee-track { animation-play-state: paused; }
+@media (prefers-reduced-motion: reduce) {
+  .pp-marquee-track { animation: none; flex-wrap: wrap; width: auto; justify-content: center; }
+  .pp-marquee-track [data-dup] { display: none; }
+}
+
+/* Text typed straight onto the page in the store editor */
+.pp-editable { cursor: text; border-radius: 2px; outline: 1px dashed transparent; outline-offset: 3px; min-width: 1ch; }
+.pp-editable:hover { outline-color: color-mix(in oklab, currentColor 45%, transparent); }
+.pp-editable:focus { outline: 2px solid var(--ring); }
+.pp-editable:empty::before { content: attr(data-placeholder); opacity: 0.5; }

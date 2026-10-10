@@ -7,8 +7,8 @@ import { TEST_PLAN_LIMITS } from "@/tests/fixtures";
 
 describe("plan limits come from the database rows", () => {
   const rows = [
-    { plan: "free" as const, max_stores: 1, max_products: 10, max_pages: 3, ai_credits_monthly: 10, custom_domain: false, platform_fee_bps: 300 },
-    { plan: "pro" as const, max_stores: null, max_products: null, max_pages: null, ai_credits_monthly: 200, custom_domain: true, platform_fee_bps: 300 },
+    { plan: "free" as const, max_stores: 1, max_products: 10, max_pages: 3, ai_credits_monthly: 10, ai_pages_daily: 1, custom_domain: false, platform_fee_bps: 300 },
+    { plan: "pro" as const, max_stores: null, max_products: null, max_pages: null, ai_credits_monthly: 200, ai_pages_daily: 10, custom_domain: true, platform_fee_bps: 300 },
   ];
   it("maps the rows one to one", () => {
     expect(limitsFromRows(rows)).toEqual(TEST_PLAN_LIMITS);

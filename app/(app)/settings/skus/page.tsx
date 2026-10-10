@@ -90,7 +90,7 @@ export default function SkusPage() {
         onRetry={skus.reload}
         searchPlaceholder="Search SKUs"
         toolbar={<Button variant="secondary" onClick={() => open({ code: "", taxCode: codes.data?.find((c) => c.isDefault)?.code ?? "998433" })}><Plus aria-hidden /> Add SKU</Button>}
-        empty={<EmptyState icon={Barcode} compact title="No SKUs yet." body="They appear when you add products." />}
+        empty={<EmptyState icon={Barcode} compact title="No SKUs yet." body="They appear when you add products." action={<Button variant="secondary" onClick={() => open({ code: "", taxCode: codes.data?.find((c) => c.isDefault)?.code ?? "998433" })}><Plus aria-hidden /> Add SKU</Button>} />}
       />
       <Sheet open={!!draft} onOpenChange={(o) => !o && (bar.dirty ? unsaved.confirmLeave(() => setDraft(null)) : setDraft(null))}>
         <SheetContent className="w-full sm:max-w-md">

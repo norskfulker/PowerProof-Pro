@@ -12,6 +12,7 @@ import { PageHeader } from "@/components/pp/page-header";
 import { ProofReceipt } from "@/components/pp/proof-receipt";
 import { StatusPill } from "@/components/pp/status-pill";
 import { OrderTimeline } from "@/components/orders/order-timeline";
+import { ShippingCard } from "@/components/orders/shipping-card";
 import { useApi } from "@/hooks/use-api";
 import { useCurrentStore } from "@/hooks/use-current-store";
 import { getOrder, refundOrder, resendReceipt } from "@/lib/api";
@@ -83,7 +84,11 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
         open={confirm}
         onOpenChange={setConfirm}
         title={`Refund ${o.number}?`}
-        description={`The full amount goes back to ${o.buyerName}'s original payment method, their downloads stop, and your balance is reduced. This can't be undone.`}
+        description={
+          o.payment === "cod"
+            ? `${o.buyerName} paid in cash, so give the money back to them yourself. PowerProof returns its fee to your balance. This can't be undone.`
+            : `The full amount goes back to ${o.buyerName}'s original payment method, their downloads stop, and your balance is reduced. This can't be undone.`
+        }
         confirmLabel="Refund the full amount"
         onConfirm={async () => {
           try {
@@ -106,6 +111,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
         <div className="flex flex-col gap-6">
+          {o.fulfilment && <ShippingCard order={o} onChange={(next) => order.setData(next)} />}
           <section className="rounded-card border bg-surface p-5 md:p-6" aria-labelledby="tl-h">
             <h2 id="tl-h" className="font-sans text-base font-semibold tracking-normal">What happened</h2>
             <OrderTimeline order={o} />

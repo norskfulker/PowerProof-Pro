@@ -4,7 +4,6 @@ import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 import { StatusTabs } from "@/components/pp/status-tabs";
 import { HtmlSection, htmlDocument } from "@/components/storefront/html-section";
-import { PreviewPicker } from "@/components/storefront/store-shell";
 import { checkHtmlFile, HTML_MAX_BYTES, HtmlEditor } from "@/components/store-admin/html-editor";
 import { storageState } from "@/components/media/storage-meter";
 import { PricePreview } from "@/components/products/price-preview";
@@ -180,25 +179,5 @@ describe("HTML section", () => {
   });
   it("reports its height with a message tied to its own id", () => {
     expect(htmlDocument("<p/>", "abc")).toContain('"abc"');
-  });
-});
-
-describe("clicking a section in the preview", () => {
-  it("tells the editor which section was clicked and stops the click doing anything else", () => {
-    const post = vi.spyOn(window.parent, "postMessage").mockImplementation(() => undefined);
-    const href = vi.fn();
-    render(
-      <>
-        <PreviewPicker />
-        <div data-pp-section="hero"><button type="button" onClick={href}>Shop</button></div>
-        <button type="button">Outside</button>
-      </>
-    );
-    fireEvent.click(screen.getByText("Shop"));
-    expect(post).toHaveBeenCalledWith({ type: "pp-select", section: "hero" }, window.location.origin);
-    expect(href).not.toHaveBeenCalled();
-    post.mockClear();
-    fireEvent.click(screen.getByText("Outside"));
-    expect(post).not.toHaveBeenCalled();
   });
 });

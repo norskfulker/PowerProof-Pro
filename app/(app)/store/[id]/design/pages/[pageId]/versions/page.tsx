@@ -22,7 +22,7 @@ export default function VersionsPage({ params }: { params: Promise<{ id: string;
       <title>{`Versions · ${data?.page.title ?? "Page"} · PowerProof`}</title>
       <PageHeader
         title="Versions"
-        back={{ href: "/store/current/design/pages", label: "Store pages" }}
+        back={{ href: `/store/current/design/pages/${id}/edit`, label: "Back to the editor" }}
         description="A version is saved every time you publish. Restoring one puts it in your draft so you can check it before publishing again."
         actions={
           <Button asChild variant="secondary">

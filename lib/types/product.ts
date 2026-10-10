@@ -36,6 +36,28 @@ export interface ProductFile {
   path?: string;
 }
 
+/** A choice buyers make, like Size: S, M, L. Up to 3 per product. */
+export interface ProductOption {
+  name: string;
+  values: string[];
+}
+
+/** One combination of a physical product's options, with its own price, SKU and stock */
+export interface ProductVariant {
+  id: string;
+  /** "M / Blue" */
+  title: string;
+  /** The value for each option, in the product's option order */
+  options: string[];
+  sku: string;
+  price: Money;
+  compareAt?: Money;
+  /** Units left, when the product counts stock */
+  stock?: number;
+  /** A picture for this variant (https) */
+  image?: string;
+}
+
 export interface Product {
   id: string;
   slug: string;
@@ -62,6 +84,14 @@ export interface Product {
   status: ProductStatus;
   sourceUrl?: string;
   pageId?: string;
+  /** Physical products: the choices (Size, Colour) and one variant per combination */
+  options?: ProductOption[];
+  variants?: ProductVariant[];
+  /** Physical products: count stock and stop selling at zero */
+  trackStock?: boolean;
+  /** Units left when the product has no variants and counts stock */
+  stock?: number;
+  weightGrams?: number;
   createdAt: ISODate;
   updatedAt: ISODate;
   /** Denormalized for lists */
@@ -72,7 +102,7 @@ export interface Product {
 export type ProductInput = Pick<
   Product,
   "title" | "description" | "kind" | "fulfilment" | "price" | "images" | "files" | "sku" | "taxCode" | "status" | "video" | "tileBackground"
-> & { sourceUrl?: string; compareAt?: Money; taxRate?: number };
+> & { sourceUrl?: string; compareAt?: Money; taxRate?: number; options?: ProductOption[]; variants?: ProductVariant[]; trackStock?: boolean; stock?: number; weightGrams?: number };
 
 export interface LinkAutofill {
   url: string;

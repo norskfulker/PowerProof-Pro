@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { createEditorStore, insertionPoint } from "./editor-store";
+import { DB } from "@/tests/fixtures";
 import { findNode, locate, makeNode, pageDocSchema, type PageDoc } from "./schema";
+
+const DB_DESIGN = DB.design;
 
 function setup() {
   const text = makeNode("text", { text: "one" }, { id: "t1" });
@@ -170,5 +173,65 @@ describe("style, layout and visibility", () => {
     expect(n.layout.paddingY).toBe("xl");
     expect(n.visibility).toEqual({ mobile: false, desktop: true });
     expect(valid(s().doc)).toBe(true);
+  });
+});
+
+describe("store-wide settings beside the page", () => {
+  const site = { design: DB_DESIGN, logo: undefined };
+  it("changes them with undo and redo, together with the page", () => {
+    const store = createEditorStore({ version: 1, blocks: [] }, site);
+    const s = () => store.getState();
+    s().updateSite((x) => ({ ...x, design: { ...x.design, theme: { ...x.design.theme, corners: "round" } } }));
+    expect(s().site?.design.theme.corners).toBe("round");
+    expect(s().rev).toBe(1);
+    s().insertSection(makeNode("section", {}, { id: "sx" }));
+    s().undo();
+    expect(s().doc.blocks).toHaveLength(0);
+    expect(s().site?.design.theme.corners).toBe("round");
+    s().undo();
+    expect(s().site?.design.theme.corners).not.toBe("round");
+    s().redo();
+    expect(s().site?.design.theme.corners).toBe("round");
+  });
+  it("keeps a header or footer selected through undo", () => {
+    const store = createEditorStore({ version: 1, blocks: [] }, site);
+    store.getState().select("@header");
+    store.getState().updateSite((x) => x);
+    store.getState().undo();
+    expect(store.getState().selectedId).toBe("@header");
+  });
+});
+
+describe("sections from presets", () => {
+  it("go where asked and are selected", () => {
+    const { s } = setup();
+    const id = s().insertSection(makeNode("section", {}, { id: "new" }), 1);
+    expect(id).toBe("new");
+    expect(s().doc.blocks.map((b) => b.id)).toEqual(["hero", "new", "s1"]);
+    expect(s().selectedId).toBe("new");
+  });
+  it("only at the top level", () => {
+    const { s } = setup();
+    expect(s().insertSection(makeNode("text", {}))).toBeUndefined();
+  });
+});
+
+describe("cards", () => {
+  it("start with three cards; another card goes after the selected one; removing the last removes the block", () => {
+    const { s } = setup();
+    s().select("s1");
+    const cardsId = s().insert("cards")!;
+    const cards = findNode(s().doc.blocks, cardsId)!;
+    expect(cards.children).toHaveLength(3);
+    s().select(cards.children[0].id);
+    const added = s().insert("card")!;
+    expect(findNode(s().doc.blocks, cardsId)!.children.map((c) => c.id).indexOf(added)).toBe(1);
+    expect(valid(s().doc)).toBe(true);
+    for (const c of [...findNode(s().doc.blocks, cardsId)!.children]) s().remove(c.id);
+    expect(findNode(s().doc.blocks, cardsId)).toBeUndefined();
+  });
+  it("can't go straight into a section without its wrapper", () => {
+    const { s } = setup();
+    expect(s().insert("card", { parentId: "s1" })).toBeUndefined();
   });
 });

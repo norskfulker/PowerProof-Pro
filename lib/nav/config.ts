@@ -1,6 +1,6 @@
 import {
   AlertOctagon, Banknote, Box, Brush, FileText, Flag, FolderOpen, Globe, Images, Inbox, LayoutDashboard, MessagesSquare,
-  Package, Plug, Receipt, ScrollText, Search, Settings, Shield, ShoppingBag, Sparkles, Star, Store, Tag, Ticket, Users, Wallet, Wrench, type LucideIcon,
+  Package, Plug, Receipt, ScrollText, Search, Settings, Shield, ShoppingBag, Sparkles, Store, Tag, Ticket, Users, Wallet, Wrench, type LucideIcon,
 } from "lucide-react";
 
 /**
@@ -24,6 +24,8 @@ export interface NavNode {
   match?: string[];
   /** Shown in the bottom tab bar on phones */
   tab?: true;
+  /** A panel of the store editor: found by search (with its badge), not shown as a tab */
+  inEditor?: true;
 }
 
 /** Every address that belongs to the Store area (Store settings is under Settings). */
@@ -33,24 +35,25 @@ const STORE_MATCH = ["/store/{store}/design", "/store/{store}/pages", "/store/{s
  * What's inside the Store area: shown as tabs at the top of the Store pages (and found by search),
  * not as nested items in the sidebar.
  */
+const EDITOR = "/store/{store}/design/pages/home/edit";
+
 export const STORE_NAV: NavNode[] = [
   {
+    // Pages, About and FAQ, reviews and questions are panels of the store editor, beside the pages that show them
     id: "design", label: "Design", icon: Brush, children: [
-      { id: "design-base", label: "Base design", href: "/store/{store}/design/base", match: ["/store/{store}/design/theme", "/store/{store}/design/sections", "/store/{store}/design/backgrounds", "/store/{store}/design/content"] },
-      { id: "design-pages", label: "Pages", href: "/store/{store}/design/pages", match: ["/store/{store}/design/pages/"] },
+      { id: "design-base", label: "Theme editor", href: EDITOR, match: ["/store/{store}/design/pages/", "/store/{store}/design/theme", "/store/{store}/design/sections", "/store/{store}/design/backgrounds", "/store/{store}/design/content"] },
+      { id: "design-pages", label: "Pages", href: `${EDITOR}?panel=pages`, inEditor: true },
+      { id: "pages-about", label: "About", href: `${EDITOR}?panel=about`, inEditor: true },
+      { id: "pages-faq", label: "FAQ", href: `${EDITOR}?panel=faq`, inEditor: true },
+      { id: "reviews", label: "Reviews", href: `${EDITOR}?panel=reviews`, badge: "reviews_pending", inEditor: true },
+      { id: "questions", label: "Questions", href: `${EDITOR}?panel=questions`, badge: "questions_open", inEditor: true },
     ],
   },
   {
-    id: "info-pages", label: "Info pages", icon: FileText, children: [
-      { id: "pages-about", label: "About", href: "/store/{store}/pages/about" },
-      { id: "pages-faq", label: "FAQ", href: "/store/{store}/pages/faq" },
-      {
-        id: "policies", label: "Policies", children: [
-          { id: "policy-refund", label: "Refund", href: "/store/{store}/pages/policies/refund" },
-          { id: "policy-terms", label: "Terms", href: "/store/{store}/pages/policies/terms" },
-          { id: "policy-privacy", label: "Privacy", href: "/store/{store}/pages/policies/privacy" },
-        ],
-      },
+    id: "policies", label: "Policies", icon: FileText, children: [
+      { id: "policy-refund", label: "Refund", href: "/store/{store}/pages/policies/refund" },
+      { id: "policy-terms", label: "Terms", href: "/store/{store}/pages/policies/terms" },
+      { id: "policy-privacy", label: "Privacy", href: "/store/{store}/pages/policies/privacy" },
     ],
   },
   {
@@ -59,12 +62,6 @@ export const STORE_NAV: NavNode[] = [
       { id: "offers-bundles", label: "Bundles", href: "/store/{store}/offers/bundles" },
       { id: "offers-deal-paths", label: "Deal Paths", href: "/store/{store}/offers/deal-paths", match: ["/store/{store}/offers/deal-paths/"] },
       { id: "offers-deals", label: "Limited-time deals", href: "/store/{store}/offers/deals" },
-    ],
-  },
-  {
-    id: "engage", label: "Reviews and Q&A", icon: Star, children: [
-      { id: "reviews", label: "Reviews", href: "/store/{store}/reviews", badge: "reviews_pending" },
-      { id: "questions", label: "Questions", href: "/store/{store}/questions", badge: "questions_open" },
     ],
   },
   {
@@ -87,6 +84,7 @@ export const CREATOR_NAV: NavNode[] = [
       { id: "bundles", label: "Bundles", href: "/catalog/bundles", icon: Box },
       { id: "deals", label: "Marketplace deals", href: "/catalog/deals", icon: Tag, match: ["/catalog/deals/"] },
       { id: "media", label: "Media library", href: "/catalog/media", icon: Images },
+      // Bring a store from Shopify, WooCommerce, Amazon, Etsy, Gumroad or a website
     ],
   },
   {
@@ -97,8 +95,8 @@ export const CREATOR_NAV: NavNode[] = [
       { id: "payouts", label: "Payouts", href: "/sales/payouts/balance", icon: Wallet, match: ["/sales/payouts/"] },
     ],
   },
-  // Store is one plain item; its sections (Design, Info pages, Offers, Reviews, Domain and SEO) are tabs inside it
-  { id: "store", label: "Store", href: "/store/{store}/design/base", icon: Store, match: STORE_MATCH },
+  // Store is one plain item; its sections (Design, Policies, Offers and SEO) are tabs inside it
+  { id: "store", label: "Store", href: EDITOR, icon: Store, match: STORE_MATCH },
   // Every live deal and offer across stores, with the price and units sold (a public page)
   { id: "marketplace", label: "Marketplace", href: "/marketplace", icon: ShoppingBag },
   {

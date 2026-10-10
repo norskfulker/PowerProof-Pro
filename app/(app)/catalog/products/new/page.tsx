@@ -1,11 +1,13 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
-import { ArrowRight, FileSpreadsheet, FileUp, Package } from "lucide-react";
+import { ArrowRight, FileSpreadsheet, FileUp, Link2, Package } from "lucide-react";
 import { GuardedLink, LimitNotice } from "@/components/plan/plan-context";
 import { PageHeader } from "@/components/pp/page-header";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { LinkImportDialog } from "@/components/products/link-import";
 import { NewProductForm } from "@/components/products/new-product-form";
 import { useApi } from "@/hooks/use-api";
 import { getProducts } from "@/lib/api";
@@ -31,6 +33,7 @@ const WAYS = [
 
 export default function NewProductPage() {
   const products = useApi(() => getProducts(), []);
+  const [fromLink, setFromLink] = useState(false);
   // Someone's first product is three short steps; after that, the full form and a way to import many
   if (!products.data && !products.error) return <Skeleton className="h-96 rounded-card" />;
   if (products.data?.length === 0) return <NewProductForm type="digital" wizard />;
@@ -59,7 +62,16 @@ export default function NewProductPage() {
           </li>
         ))}
       </ul>
-      <section aria-labelledby="bulk-h" className="mt-6 flex flex-wrap items-center gap-4 rounded-card border border-dashed bg-surface-sunken p-5">
+      <section aria-labelledby="link-h" className="mt-6 flex flex-wrap items-center gap-4 rounded-card border bg-surface p-5">
+        <span className="grid size-12 shrink-0 place-items-center rounded-control bg-primary-soft text-primary"><Link2 className="size-5" aria-hidden /></span>
+        <span className="min-w-0 flex-1">
+          <h2 id="link-h" className="font-sans text-base font-semibold tracking-normal">Add from a link</h2>
+          <p className="text-sm text-muted-foreground">Paste a product page or a shop&apos;s address (Amazon, Flipkart, Shopify, any shop). The title, description and price fill in, checked by AI.</p>
+        </span>
+        <Button variant="secondary" onClick={() => setFromLink(true)}>Paste a link</Button>
+      </section>
+      <LinkImportDialog open={fromLink} onOpenChange={setFromLink} />
+      <section aria-labelledby="bulk-h" className="mt-4 flex flex-wrap items-center gap-4 rounded-card border border-dashed bg-surface-sunken p-5">
         <span className="grid size-12 shrink-0 place-items-center rounded-control bg-muted text-muted-foreground"><FileSpreadsheet className="size-5" aria-hidden /></span>
         <span className="min-w-0 flex-1">
           <h2 id="bulk-h" className="font-sans text-base font-semibold tracking-normal">Import many products at once</h2>

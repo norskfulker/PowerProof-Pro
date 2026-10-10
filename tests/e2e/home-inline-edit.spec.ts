@@ -2,40 +2,52 @@ import { expect, test } from "@playwright/test";
 import { prepare, settle } from "./helpers";
 import { STATE } from "./support/manifest";
 
-/** Base design: click a section in the preview and its editor opens right there; HTML upload works. */
+/**
+ * The store editor on the home page, Shopify-style: the section tree on the left, the page in a
+ * frame in the middle (text is typed straight into it), settings for the selection on the right.
+ * Nothing reaches buyers until Publish, so every test discards its draft.
+ */
 test.use({ storageState: STATE.A });
 
-test("clicking a section in the preview opens that section's editor, and typing updates the preview @flow", async ({ page }, testInfo) => {
+async function open(page: import("@playwright/test").Page, testInfo: import("@playwright/test").TestInfo) {
   await prepare(page, testInfo);
-  await page.goto("/store/current/design/base");
+  await page.goto("/store/current/design/pages/home/edit");
   await settle(page);
-  const preview = page.frameLocator("iframe").first();
-  await expect(preview.locator('[data-pp-section="hero"]')).toBeVisible({ timeout: 20_000 });
-  await preview.locator('[data-pp-section="hero"]').click();
-  const headline = page.getByLabel("Headline", { exact: true });
-  await expect(headline).toBeVisible();
-  // No navigation happened: still on the one screen
-  await expect(page).toHaveURL(/\/design\/base$/);
-  await headline.fill("e2e inline headline");
-  await expect(preview.getByText("e2e inline headline").first()).toBeVisible();
-  await preview.locator('[data-pp-section="newsletter"]').click();
-  await expect(page.getByLabel("Heading", { exact: true })).toBeVisible();
+  const canvas = page.frameLocator('iframe[title="Page editor canvas"]');
+  await expect(canvas.locator("[data-node-type=hero]").first()).toBeVisible({ timeout: 20_000 });
+  return canvas;
+}
+
+const discard = (page: import("@playwright/test").Page) =>
+  page.getByRole("button", { name: "Discard" }).click().then(() => page.getByRole("button", { name: "Discard changes" }).click()).catch(() => undefined);
+
+test("text is typed straight into the page and the settings follow @flow", async ({ page }, testInfo) => {
+  const canvas = await open(page, testInfo);
+  const headline = canvas.getByRole("textbox", { name: "Headline" }).first();
+  await headline.click();
+  await headline.press("End");
+  await headline.pressSequentially(" e2e typed");
+  await expect(page.getByLabel("Headline", { exact: true })).toHaveValue(/e2e typed$/);
+  await expect(page.getByText("Draft saved")).toBeVisible({ timeout: 10_000 });
+  await discard(page);
 });
 
-test("an HTML file can be chosen or dropped, shows in the preview in a safe frame, and can be removed @flow", async ({ page }, testInfo) => {
-  await prepare(page, testInfo);
-  await page.goto("/store/current/design/base");
-  await settle(page);
-  await page.getByRole("button", { name: "Custom HTML" }).click();
-  await page.locator('input[type="file"][accept*="html"]').setInputFiles({ name: "e2e-promo.html", mimeType: "text/html", buffer: Buffer.from("<h2 id='x'>e2e html section</h2><script>document.getElementById('x').dataset.ran='1'</script>") });
-  await expect(page.getByText("e2e-promo.html")).toBeVisible();
-  const section = page.frameLocator("iframe").first().frameLocator('iframe[title="e2e-promo.html"]');
-  await expect(section.getByText("e2e html section")).toBeVisible({ timeout: 20_000 });
-  // The frame can't reach the store page around it
-  const sandbox = await page.frameLocator("iframe").first().locator('iframe[title="e2e-promo.html"]').getAttribute("sandbox");
-  expect(sandbox).not.toContain("allow-same-origin");
-  await page.getByRole("button", { name: /Remove e2e-promo.html/ }).click();
-  await expect(page.getByText("e2e-promo.html")).toHaveCount(0);
-  // Nothing saved: leave without publishing the test file
-  await page.getByRole("button", { name: /discard/i }).click().catch(() => undefined);
+test("sections are added from presets and get a colour scheme @flow", async ({ page }, testInfo) => {
+  const canvas = await open(page, testInfo);
+  await page.getByRole("navigation", { name: "Sections" }).getByRole("button", { name: "Add section" }).click();
+  await page.getByRole("dialog").getByRole("button", { name: /^Cards/ }).click();
+  await expect(canvas.locator("[data-node-type=card]")).toHaveCount(3);
+  await page.getByRole("tab", { name: "Style" }).click();
+  await page.getByRole("radio", { name: "Ink" }).click();
+  await expect(canvas.locator("section.pp-scheme-scheme-5")).toBeVisible();
+  await discard(page);
+});
+
+test("the header and theme settings are part of the editor @flow", async ({ page }, testInfo) => {
+  const canvas = await open(page, testInfo);
+  await canvas.locator('[data-node-id="@header"]').click();
+  await expect(page.getByText("Part of every page of your store")).toBeVisible();
+  await page.getByRole("tab", { name: "Theme" }).click();
+  await page.getByRole("button", { name: "Colour schemes" }).click();
+  await expect(page.getByRole("button", { name: /Brand/ }).first()).toBeVisible();
 });

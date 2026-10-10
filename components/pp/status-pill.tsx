@@ -10,6 +10,11 @@ const MAP: Record<string, [string, Tone]> = {
   refund_requested: ["Refund asked", "warning"],
   refunded: ["Refunded", "neutral"],
   failed: ["Failed", "danger"],
+  cod: ["Cash on delivery", "info"],
+  // shipping
+  unfulfilled: ["To ship", "warning"],
+  shipped: ["Shipped", "info"],
+  delivered: ["Delivered", "success"],
   // products / pages
   published: ["Live", "success"],
   live: ["Live", "success"],

@@ -28,9 +28,11 @@ export function HtmlSection({ html }: { html: HtmlSectionContent }) {
       const d = e.data as { type?: string; id?: string; h?: number };
       if (d?.type === "pp-html-height" && d.id === id && typeof d.h === "number" && d.h > 0) setHeight(Math.min(4000, Math.ceil(d.h)));
     };
-    window.addEventListener("message", onMsg);
-    return () => window.removeEventListener("message", onMsg);
-  }, [id]);
+    // The window that holds the frame: the editor draws pages inside its own frame
+    const win = frame.current?.ownerDocument.defaultView ?? window;
+    win.addEventListener("message", onMsg);
+    return () => win.removeEventListener("message", onMsg);
+  }, [id, html.source]);
 
   if (!html.source.trim()) return null;
   return (

@@ -29,6 +29,28 @@ export const productSchema = z
     sourceUrl: z.string().optional(),
     /** Optional: collections only help organize products, nothing requires one */
     collectionIds: z.array(z.string()).optional(),
+    /** Physical: the choices buyers make, one variant per combination, and stock */
+    options: z
+      .array(z.object({ name: z.string().trim().min(1, "Name the option, like Size.").max(40), values: z.array(z.string().trim().min(1).max(60)).min(1, "Add at least one choice.").max(50) }))
+      .max(3, "Up to 3 options.")
+      .default([]),
+    variants: z
+      .array(
+        z.object({
+          id: z.string(),
+          title: z.string().max(120),
+          options: z.array(z.string()),
+          sku: z.string().trim().max(32, "SKUs are 32 characters at most.").regex(/^[A-Za-z0-9-_]*$/, "Use letters, numbers, dashes and underscores."),
+          price: money.refine((m) => m.amount >= 100, "Set a price."),
+          compareAt: money.optional(),
+          stock: z.number().int().min(0, "Stock can't be negative.").max(1_000_000).optional(),
+          image: z.string().optional(),
+        })
+      )
+      .max(100, "Up to 100 variants. Use fewer choices.")
+      .default([]),
+    trackStock: z.boolean().default(false),
+    stock: z.number({ message: "Enter how many you have." }).int().min(0, "Stock can't be negative.").max(1_000_000).optional(),
   })
   .refine((v) => !v.compareAt || v.compareAt.amount > v.price.amount, { path: ["compareAt"], message: "The original price should be higher than the price." })
   // Only a digital product has something to download
@@ -40,6 +62,8 @@ export const productSchema = z
   .refine((v) => v.fulfilment !== "physical" || (v.collectionIds?.length ?? 0) > 0, {
     path: ["collectionIds"],
     message: "Put this product in a collection. Physical products need one so buyers can find them.",
-  });
+  })
+  .refine((v) => v.fulfilment !== "physical" || !v.trackStock || v.variants.length > 0 || v.stock !== undefined, { path: ["stock"], message: "Enter how many you have, or stop counting stock." })
+  .refine((v) => !v.options.length || v.variants.length > 0, { path: ["options"], message: "Add a choice to each option." });
 
-export type ProductValues = z.infer<typeof productSchema>;
+export type ProductValues = z.input<typeof productSchema>;

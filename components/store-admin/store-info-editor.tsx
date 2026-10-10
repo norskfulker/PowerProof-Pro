@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowDown, ArrowUp, ExternalLink, Plus, RotateCcw, Trash2 } from "lucide-react";
 import { MediaUploader } from "@/components/media/media-uploader";
@@ -20,10 +20,11 @@ import { uid } from "@/lib/uid";
 import type { AboutContent, FaqItem, StorePageKey } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-const KEYS: StorePageKey[] = ["about", "faq", "refund", "terms", "privacy"];
+const POLICIES: StorePageKey[] = ["refund", "terms", "privacy"];
 
+/** About and FAQ are edited in the store editor, beside the page that shows them; policies here */
 export function pageHref(storeId: string, key: StorePageKey) {
-  return key === "about" || key === "faq" ? `/store/${storeId}/pages/${key}` : `/store/${storeId}/pages/policies/${key}`;
+  return key === "about" || key === "faq" ? `/store/${storeId}/design/pages/home/edit?panel=${key}` : `/store/${storeId}/pages/policies/${key}`;
 }
 
 function publicHref(slug: string, key: StorePageKey) {
@@ -35,8 +36,18 @@ function NotEdited({ edited }: { edited?: boolean }) {
   return <span className="rounded-full bg-accent-soft px-2 py-0.5 text-[0.6875rem] font-semibold text-accent-ink">Not edited yet</span>;
 }
 
-function AboutForm({ info, onSaved }: { info: StoreInfo; onSaved: (i: StoreInfo) => void }) {
+interface FormProps<T> {
+  info: StoreInfo;
+  onSaved: (i: StoreInfo) => void;
+  /** In a narrow panel (the store editor): one column */
+  compact?: boolean;
+  /** Called with every edit, so a preview can follow along before it's saved */
+  onLive?: (v: T) => void;
+}
+
+export function AboutForm({ info, onSaved, compact, onLive }: FormProps<AboutContent>) {
   const [value, setValue] = useState<AboutContent>(info.about);
+  useEffect(() => onLive?.(value), [value, onLive]);
   const state = useDirtyForm({
     value,
     saved: info.about,
@@ -46,7 +57,7 @@ function AboutForm({ info, onSaved }: { info: StoreInfo; onSaved: (i: StoreInfo)
   });
   return (
     <div className="flex flex-col gap-5">
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div className={cn("grid grid-cols-1 gap-4", !compact && "sm:grid-cols-2")}>
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="ab-name">Your name</Label>
           <Input id="ab-name" value={value.name} onChange={(e) => setValue({ ...value, name: e.target.value })} />
@@ -58,16 +69,17 @@ function AboutForm({ info, onSaved }: { info: StoreInfo; onSaved: (i: StoreInfo)
       </div>
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="ab-story">Your story</Label>
-        <Textarea id="ab-story" rows={8} value={value.story} onChange={(e) => setValue({ ...value, story: e.target.value })} />
+        <Textarea id="ab-story" rows={compact ? 6 : 8} value={value.story} onChange={(e) => setValue({ ...value, story: e.target.value })} />
       </div>
       <MediaUploader label="Photo of you (optional)" kinds={["image"]} aspect="1:1" aiPurpose="social_post" value={value.photo} onChange={(photo) => setValue({ ...value, photo })} />
-      <SaveBar state={state} className="md:order-first md:self-end" />
+      <SaveBar state={state} className={compact ? "order-first" : "md:order-first md:self-end"} />
     </div>
   );
 }
 
-function FaqForm({ info, onSaved }: { info: StoreInfo; onSaved: (i: StoreInfo) => void }) {
+export function FaqForm({ info, onSaved, compact, onLive }: FormProps<FaqItem[]>) {
   const [items, setItems] = useState<FaqItem[]>(info.pages.faq);
+  useEffect(() => onLive?.(items), [items, onLive]);
   const state = useDirtyForm({
     value: items,
     saved: info.pages.faq,
@@ -82,10 +94,10 @@ function FaqForm({ info, onSaved }: { info: StoreInfo; onSaved: (i: StoreInfo) =
   };
   return (
     <div className="flex flex-col gap-4">
-      <SaveBar state={state} className="md:self-end" />
+      <SaveBar state={state} className={compact ? undefined : "md:self-end"} />
       <ol className="flex flex-col gap-3">
         {items.map((f, i) => (
-          <li key={f.id} className="flex flex-col gap-2 rounded-card border bg-surface p-4">
+          <li key={f.id} className={cn("flex flex-col gap-2 rounded-card border bg-surface", compact ? "p-3" : "p-4")}>
             <div className="flex items-center justify-between gap-2">
               <span className="eyebrow">Question {i + 1}</span>
               <div className="flex gap-1 pointer-coarse:gap-2">
@@ -136,12 +148,16 @@ function PolicyForm({ info, k, onSaved }: { info: StoreInfo; k: "refund" | "term
   );
 }
 
-/** One store's About, FAQ and policies, each page with its own save bar (Part 6C). */
-export function StoreInfoEditor({ storeId, page }: { storeId: string; page: StorePageKey }) {
+/** One store's policies, each with its own save bar (Part 6C). About and FAQ are in the store editor. */
+export function StoreInfoEditor({ storeId, page }: { storeId: string; page: "refund" | "terms" | "privacy" }) {
   const { data, error, reload, setData } = useApi(() => getStoreInfo(storeId), [storeId]);
   return (
     <>
-      <PageHeader title="About, FAQ and policies" description="Each store has its own. Nothing here is shared with your other stores." />
+      <PageHeader title="Policies" description="Each store has its own. Nothing here is shared with your other stores." />
+      <p className="-mt-2 mb-6 text-sm text-muted-foreground">
+        Your About page and FAQ are edited in the{" "}
+        <Link href={pageHref(storeId, "about")} className="font-medium text-primary underline underline-offset-4">store editor</Link>, beside the page that shows them.
+      </p>
       {error ? (
         <ErrorState message={error} onRetry={reload} />
       ) : !data ? (
@@ -149,7 +165,7 @@ export function StoreInfoEditor({ storeId, page }: { storeId: string; page: Stor
       ) : (
         <>
           <nav aria-label="Store pages" className="mb-6 flex gap-2 overflow-x-auto pb-1">
-            {KEYS.map((k) => (
+            {POLICIES.map((k) => (
               <Link
                 key={k}
                 href={pageHref(storeId, k)}
@@ -169,9 +185,7 @@ export function StoreInfoEditor({ storeId, page }: { storeId: string; page: Stor
                 <ExternalLink className="size-4" aria-hidden /> View on store
               </Link>
             </div>
-            {page === "about" && <AboutForm key={storeId} info={data} onSaved={setData} />}
-            {page === "faq" && <FaqForm key={storeId} info={data} onSaved={setData} />}
-            {(page === "refund" || page === "terms" || page === "privacy") && <PolicyForm key={`${storeId}-${page}`} info={data} k={page} onSaved={setData} />}
+            <PolicyForm key={`${storeId}-${page}`} info={data} k={page} onSaved={setData} />
           </section>
         </>
       )}

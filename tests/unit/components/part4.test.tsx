@@ -1,11 +1,14 @@
 import { useState } from "react";
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
-import { PageRenderer, autoTone, contrastWarning } from "@/components/page-builder/renderer";
+import { PageRenderer, autoTone, contrastWarning, embedUrl } from "@/components/page-builder/renderer";
 import { AddBlockMenu } from "@/components/page-builder/add-block-menu";
 import { DevicePreviewSwitch } from "@/components/page-builder/device-preview-switch";
-import { EditorProvider } from "@/components/page-builder/editor-context";
+import { EditorProvider, useEditor } from "@/components/page-builder/editor-context";
+import { setAtPath } from "@/components/page-builder/canvas";
+import { editTarget } from "@/components/page-builder/link-prompt";
+import { contrast } from "@/lib/color";
 import { LayersPanel } from "@/components/page-builder/layers-panel";
 import { SettingsPanel } from "@/components/page-builder/settings-panel";
 import { TableEditor } from "@/components/page-builder/controls";
@@ -25,8 +28,9 @@ import { DB, NOW } from "@/tests/fixtures";
 
 const live = DB.products.filter((p) => p.status === "published");
 const PRODUCTS = live.map((p) => ({ ...p, info: priceInfo(p, DB.deals, NOW), rating: ratingSummary([]) }));
-const CONTEXT: RenderContext = { store: DB.store, theme: DB.design.theme, products: PRODUCTS, collections: DB.collections, reviews: [{ id: "r", title: "Great", body: "Loved it", author: "Asha K.", rating: 5 }] };
+const CONTEXT: RenderContext = { store: DB.store, theme: DB.design.theme, products: PRODUCTS, collections: DB.collections, reviews: [{ id: "r", title: "Great", body: "Loved it", author: "Asha K.", rating: 5 }], bundles: [], about: DB.design.about, faq: [{ id: "f1", q: "How do I get it?", a: "Instantly." }], rating: ratingSummary([]) };
 const RULES = DB.dealRules;
+const NOW_ISO = new Date(NOW).toISOString();
 
 describe("deal parts", () => {
   it("summarises every rule type", () => {
@@ -209,6 +213,170 @@ describe("page renderer", () => {
   });
 });
 
+describe("store blocks, cards and typing on the page", () => {
+  it("renders cards, collections, offers, about and a store FAQ", () => {
+    const cards = makeNode("cards", { columns: 2 }, { children: [makeNode("card", { title: "First card", text: "Words", ctaLabel: "More", ctaHref: "/s/x/about" }), makeNode("card", { title: "Second card" })] });
+    const doc: PageDoc = { version: 1, blocks: [makeNode("section", {}, { children: [cards, makeNode("collection_list", {}), makeNode("offers", {}), makeNode("about", {}), makeNode("faq", { source: "store" })] })] };
+    render(<PageRenderer doc={doc} context={CONTEXT} env={{ mode: "live", currency: "INR" }} />);
+    expect(screen.getByRole("heading", { name: "First card" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "More" })).toHaveAttribute("href", "/s/x/about");
+    expect(screen.getByRole("heading", { name: DB.design.about.name })).toBeInTheDocument();
+    expect(screen.getByText("How do I get it?")).toBeInTheDocument();
+  });
+
+  it("gives sections their scheme and an anchor, and headings a View all link", () => {
+    const heading = makeNode("heading", { text: "Bestsellers", linkLabel: "View all", linkHref: "/s/x/products" });
+    const sec = makeNode("section", {}, { id: "sec1", style: { scheme: "scheme-4" }, children: [heading, makeNode("product_grid", { sort: "price-asc", limit: 2 })] });
+    render(<PageRenderer doc={{ version: 1, blocks: [sec] }} context={CONTEXT} env={{ mode: "live", currency: "INR" }} />);
+    const el = document.getElementById("section-sec1")!;
+    expect(el).toHaveClass("pp-scheme-scheme-4");
+    expect(screen.getByRole("link", { name: /View all/ })).toHaveAttribute("href", "/s/x/products");
+  });
+
+  it("makes the first hero the page's h1 and later ones h2", () => {
+    const doc: PageDoc = { version: 1, blocks: [makeNode("hero", { headline: "One" }), makeNode("hero", { headline: "Two", cta2Label: "Watch", cta2Href: "/s/x/about" })] };
+    render(<PageRenderer doc={doc} context={CONTEXT} env={{ mode: "live", currency: "INR" }} />);
+    expect(screen.getByRole("heading", { level: 1, name: "One" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 2, name: "Two" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Watch" })).toBeInTheDocument();
+  });
+
+  it("lets text be typed straight into the page in the editor", () => {
+    const onText = vi.fn();
+    const heading = makeNode("heading", { text: "Old" });
+    const table = makeNode("table", { rows: [["A", "B"], ["c", "d"]], header: true });
+    render(<PageRenderer doc={{ version: 1, blocks: [makeNode("section", {}, { children: [heading, table] })] }} context={CONTEXT} env={{ mode: "edit", currency: "INR", onText }} />);
+    const box = screen.getByRole("textbox", { name: "Heading" });
+    expect(box).toHaveAttribute("contenteditable", "plaintext-only");
+    box.innerText = "New";
+    fireEvent.input(box);
+    expect(onText).toHaveBeenCalledWith(heading.id, "text", "New");
+    const cell = screen.getAllByRole("textbox", { name: "Cell" })[1];
+    cell.innerText = "z";
+    fireEvent.input(cell);
+    expect(onText).toHaveBeenLastCalledWith(table.id, "rows.1.1", "z");
+  });
+
+  it("shows plain text on the live page", () => {
+    render(<PageRenderer doc={{ version: 1, blocks: [makeNode("section", {}, { children: [makeNode("heading", { text: "Live" })] })] }} context={CONTEXT} env={{ mode: "live", currency: "INR", onText: vi.fn() }} />);
+    expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
+  });
+
+  it("sets nested text by path without touching anything else", () => {
+    const props = { rows: [["a", "b"], ["c", "d"]], header: true };
+    expect(setAtPath(props, "rows.1.0", "x")).toEqual({ rows: [["a", "b"], ["x", "d"]], header: true });
+    expect(props.rows[1][0]).toBe("c");
+    expect(setAtPath({ items: [{ text: "a" }] }, "items.0.text", "b")).toEqual({ items: [{ text: "b" }] });
+    expect(setAtPath(props, "rows.9.0", "x")).toBe(props);
+    expect(setAtPath(props, "__proto__", "x")).toBe(props);
+  });
+});
+
+describe("video, image links and alignment", () => {
+  it("plays YouTube and Vimeo in their privacy-friendly players", () => {
+    expect(embedUrl("https://www.youtube.com/watch?v=abcdefgh")).toBe("https://www.youtube-nocookie.com/embed/abcdefgh");
+    expect(embedUrl("https://youtu.be/abcdefgh")).toBe("https://www.youtube-nocookie.com/embed/abcdefgh");
+    expect(embedUrl("https://vimeo.com/123456")).toBe("https://player.vimeo.com/video/123456");
+    expect(embedUrl("http://youtube.com/watch?v=abcdefgh")).toBeUndefined();
+    expect(embedUrl("https://example.com/v")).toBeUndefined();
+    const doc: PageDoc = { version: 1, blocks: [makeNode("section", {}, { children: [makeNode("video", { src: "https://youtu.be/abcdefgh", caption: "Tour" })] })] };
+    render(<PageRenderer doc={doc} context={CONTEXT} env={{ mode: "live", currency: "INR" }} />);
+    expect(screen.getByTitle("Tour")).toHaveAttribute("src", "https://www.youtube-nocookie.com/embed/abcdefgh");
+  });
+  it("links an image when it has somewhere to go", () => {
+    const doc: PageDoc = { version: 1, blocks: [makeNode("section", {}, { children: [makeNode("image", { src: "https://x.test/a.png", alt: "Kit", href: "/s/x/products" })] })] };
+    render(<PageRenderer doc={doc} context={CONTEXT} env={{ mode: "live", currency: "INR" }} />);
+    expect(screen.getByRole("link", { name: "Kit" })).toHaveAttribute("href", "/s/x/products");
+  });
+  it("aligns one block on its own, or follows the section", () => {
+    const own = makeNode("heading", { text: "Mine" }, { style: { selfAlign: "right" } });
+    const follows = makeNode("heading", { text: "Section's" });
+    render(<PageRenderer doc={{ version: 1, blocks: [makeNode("section", {}, { style: { align: "center" }, children: [own, follows] })] }} context={CONTEXT} env={{ mode: "edit", currency: "INR" }} />);
+    expect(document.querySelector(`[data-node-id="${own.id}"]`)).toHaveClass("text-right");
+    expect(document.querySelector(`[data-node-id="${follows.id}"]`)).not.toHaveClass("text-right");
+  });
+});
+
+describe("icons, backgrounds and links in the editor", () => {
+  it("draws highlight icons from the library and lets the editor change one by clicking it", async () => {
+    const onIcon = vi.fn();
+    const hl = makeNode("highlights", { source: "manual", items: [{ icon: "Truck", title: "Fast", body: "" }] });
+    render(<PageRenderer doc={{ version: 1, blocks: [makeNode("section", {}, { children: [hl] })] }} context={CONTEXT} env={{ mode: "edit", currency: "INR", onIcon, onSelect: vi.fn() }} />);
+    await userEvent.click(screen.getByRole("button", { name: "Change icon" }));
+    expect(onIcon).toHaveBeenCalledWith(hl.id, "items.0.icon", "Truck");
+  });
+
+  it("keeps old icon names working", () => {
+    const hl = makeNode("highlights", { source: "manual", items: [{ icon: "download", title: "Old", body: "" }] });
+    render(<PageRenderer doc={{ version: 1, blocks: [makeNode("section", {}, { children: [hl] })] }} context={CONTEXT} env={{ mode: "live", currency: "INR" }} />);
+    expect(document.querySelector("svg")).toBeInTheDocument();
+  });
+
+  it("puts a content-area background on a panel, not across the page", () => {
+    const sec = makeNode("section", {}, { id: "panel", style: { scheme: "scheme-4" }, layout: { fill: "content" }, children: [makeNode("heading", { text: "Hi" })] });
+    render(<PageRenderer doc={{ version: 1, blocks: [sec] }} context={CONTEXT} env={{ mode: "live", currency: "INR" }} />);
+    const outer = document.getElementById("section-panel")!;
+    expect(outer).not.toHaveClass("pp-scheme-scheme-4");
+    expect(outer.querySelector(".pp-scheme-scheme-4")).toHaveClass("rounded-card");
+  });
+
+  it("corrects colours on a section's own dark background so everything inside stays readable", () => {
+    const sec = makeNode("section", {}, { id: "dark", style: { background: { kind: "solid", color: "#111111" } }, children: [makeNode("heading", { text: "Hi" })] });
+    render(<PageRenderer doc={{ version: 1, blocks: [sec] }} context={CONTEXT} env={{ mode: "live", currency: "INR" }} />);
+    const el = document.getElementById("section-dark")!;
+    const fg = el.style.getPropertyValue("--foreground");
+    expect(contrast(fg, "#111111")).toBeGreaterThanOrEqual(4.5);
+    expect(contrast(el.style.getPropertyValue("--primary"), "#111111")).toBeGreaterThanOrEqual(3);
+    expect(contrast(el.style.getPropertyValue("--primary-foreground"), el.style.getPropertyValue("--primary"))).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it("says where a header or footer link is edited", () => {
+    const pages = [{ id: "home-id", title: "Home page", slug: "home", template: "home", status: "draft" as const, updatedAt: NOW_ISO, sections: 1, home: true }, { id: "sale-id", title: "Sale", slug: "sale", template: "sale", status: "published" as const, updatedAt: NOW_ISO, sections: 1 }];
+    const base = `/s/${CONTEXT.store.slug}`;
+    // About and FAQ open their panel beside the page
+    expect(editTarget(`${base}/about`, CONTEXT, pages, "home-id")).toMatchObject({ kind: "panel", panel: "content", at: "about" });
+    expect(editTarget(`${base}/faq`, CONTEXT, pages, "home-id")).toMatchObject({ kind: "panel", panel: "content", at: "faq" });
+    expect(editTarget(`${base}/policies/refund`, CONTEXT, pages, "home-id")).toMatchObject({ kind: "route", href: "/store/current/pages/policies/refund" });
+    expect(editTarget(`${base}/p/sale`, CONTEXT, pages, "home-id")).toMatchObject({ kind: "page", id: "sale-id" });
+    expect(editTarget(base, CONTEXT, pages, "sale-id")).toMatchObject({ kind: "page", id: "home-id" });
+    expect(editTarget(base, CONTEXT, pages, "home-id")).toMatchObject({ kind: "here" });
+    expect(editTarget("#section-abc", CONTEXT, pages, "home-id")).toMatchObject({ kind: "section", id: "abc" });
+    expect(editTarget("https://instagram.com/x", CONTEXT, pages, "home-id").kind).toBe("none");
+    expect(editTarget(`${base}/${PRODUCTS[0].slug}`, CONTEXT, pages, "home-id")).toMatchObject({ kind: "route", href: `/catalog/products/${PRODUCTS[0].id}` });
+  });
+});
+
+describe("section tree", () => {
+  it("shows the header and footer groups and opens Add section", async () => {
+    const doc: PageDoc = { version: 1, blocks: [makeNode("section", { label: "Intro" }, { children: [makeNode("heading", { text: "Hi" })] })] };
+    render(
+      <EditorProvider initial={doc} site={{ design: DB.design }}>
+        <LayersPanel pageTitle="Home page" />
+        <Probe />
+      </EditorProvider>
+    );
+    expect(screen.getByRole("heading", { name: "Header" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Footer" })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Add section" }));
+    expect(screen.getByTestId("adding")).toHaveTextContent('{"kind":"section","index":1}');
+    await userEvent.click(screen.getByRole("button", { name: "Header" }));
+    expect(screen.getByTestId("selected")).toHaveTextContent("@header");
+    await userEvent.click(screen.getByRole("button", { name: "Hide Intro" }));
+    expect(screen.getByRole("button", { name: "Show Intro" })).toBeInTheDocument();
+  });
+});
+
+function Probe() {
+  const adding = useEditor((s) => s.adding);
+  const selected = useEditor((s) => s.selectedId);
+  return (
+    <>
+      <p data-testid="adding">{JSON.stringify(adding ?? null)}</p>
+      <p data-testid="selected">{selected}</p>
+    </>
+  );
+}
+
 describe("editor panels", () => {
   const doc = PAGE_TEMPLATES[0].build({ storeName: "S", ownerName: "Ana R", slug: "s", products: live.map((p) => ({ id: p.id, title: p.title })), collections: [], brand: "#0F3D33", accent: "#C9A24F", now: NOW });
 
@@ -237,7 +405,7 @@ describe("editor panels", () => {
         <SettingsPanel context={CONTEXT} />
       </EditorProvider>
     );
-    expect(screen.getByText(/Select a block/)).toBeInTheDocument();
+    expect(screen.getByText(/Select a section or block/)).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: /^Hero:/ }));
     expect(screen.getByRole("tab", { name: "Content" })).toBeInTheDocument();
     const headline = screen.getByRole("textbox", { name: "Headline" });

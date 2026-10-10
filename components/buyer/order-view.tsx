@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { CheckCircle2, Download, FileText, Loader2, Mail, RotateCcw } from "lucide-react";
+import { CheckCircle2, Download, ExternalLink, FileText, HandCoins, Loader2, Mail, PackageCheck, RotateCcw, Truck } from "lucide-react";
 import { BuyerShell } from "@/components/buyer/buyer-shell";
 import { ReviewForm } from "@/components/buyer/review-form";
 import { MoneyText } from "@/components/pp/money-text";
@@ -92,13 +92,15 @@ function OrderBody({ order, token, justPaid, c, reload, state }: { order: OrderV
       <title>{`Order ${order.ref}`}</title>
       <div className="flex flex-col gap-6">
         <header className="flex flex-col gap-2">
-          {justPaid && <p className="flex items-center gap-2 font-semibold text-success"><CheckCircle2 className="size-5" aria-hidden /> Payment received</p>}
+          {justPaid && (order.status === "cod" ? <p className="flex items-center gap-2 font-semibold text-success"><HandCoins className="size-5" aria-hidden /> Order placed: pay on delivery</p> : <p className="flex items-center gap-2 font-semibold text-success"><CheckCircle2 className="size-5" aria-hidden /> Payment received</p>)}
           <h1 className="text-[1.75rem]">{justPaid ? `Thank you, ${order.buyerName.split(" ")[0]}!` : `Order ${order.ref}`}</h1>
           <p className="text-muted-foreground">
             {order.storeName} · {order.ref}
             {justPaid && <> · We&apos;ve emailed your receipt to {order.buyerEmail} (if it&apos;s missing, check spam).</>}
           </p>
         </header>
+
+        {order.shipTo && <Delivery order={order} c={c} />}
 
         {order.files.length > 0 ? (
           <section aria-labelledby="dl-h" className="rounded-card border bg-surface p-5">
@@ -114,7 +116,7 @@ function OrderBody({ order, token, justPaid, c, reload, state }: { order: OrderV
             </ul>
             <p className="mt-3 text-xs text-muted-foreground">This page works for 30 days. Each link is private; keep it to yourself.</p>
           </section>
-        ) : order.status === "paid" ? (
+        ) : order.shipTo ? null : order.status === "paid" ? (
           <section className="rounded-card border bg-surface p-5"><p className="text-sm text-muted-foreground">There are no files to download with this order. The seller will be in touch about delivery{order.supportEmail ? <> at <a className="underline underline-offset-4" href={`mailto:${order.supportEmail}`}>{order.supportEmail}</a></> : ""}.</p></section>
         ) : (
           <section className="rounded-card border bg-surface p-5"><p className="flex items-center gap-2 text-sm"><RotateCcw className="size-4" aria-hidden /> This order is {order.status}. {order.status === "refunded" ? "Your money has been sent back and the files are no longer available." : ""}</p></section>
@@ -125,15 +127,17 @@ function OrderBody({ order, token, justPaid, c, reload, state }: { order: OrderV
           <ul className="mt-3 flex flex-col gap-2 text-sm">
             {order.lines.map((l, i) => (
               <li key={i} className="flex items-baseline justify-between gap-3">
-                <span className="min-w-0 truncate">{l.title}{l.gift && <span className="ml-1 rounded-full bg-accent-soft px-1.5 py-0.5 text-[0.6875rem] font-semibold text-accent-ink">Free gift</span>}</span>
+                <span className="min-w-0 truncate">{l.title}{l.variant && <span className="text-muted-foreground"> · {l.variant}</span>}{l.quantity && l.quantity > 1 ? <span className="text-muted-foreground"> × {l.quantity}</span> : null}{l.gift && <span className="ml-1 rounded-full bg-accent-soft px-1.5 py-0.5 text-[0.6875rem] font-semibold text-accent-ink">Free gift</span>}</span>
                 <span className="flex shrink-0 items-baseline gap-2">{l.discount > 0 && <MoneyText value={{ amount: l.unit, currency: c }} className="text-xs text-muted-foreground line-through" />}<MoneyText value={{ amount: l.total, currency: c }} /></span>
               </li>
             ))}
           </ul>
           <dl className="mt-3 flex flex-col gap-1 border-t pt-3 text-sm">
             {order.discount > 0 && <div className="flex justify-between"><dt className="text-muted-foreground">Savings</dt><dd>−<MoneyText value={{ amount: order.discount, currency: c }} /></dd></div>}
+            {order.shipTo && <div className="flex justify-between"><dt className="text-muted-foreground">Shipping</dt><dd>{order.shipping ? <MoneyText value={{ amount: order.shipping, currency: c }} /> : "Free"}</dd></div>}
+            {!!order.codFee && <div className="flex justify-between"><dt className="text-muted-foreground">Cash on delivery charge</dt><dd><MoneyText value={{ amount: order.codFee, currency: c }} /></dd></div>}
             {order.tax > 0 && <div className="flex justify-between"><dt className="text-muted-foreground">GST included</dt><dd><MoneyText value={{ amount: order.tax, currency: c }} /></dd></div>}
-            <div className="flex justify-between text-base font-semibold"><dt>Total paid</dt><dd><MoneyText value={{ amount: order.total, currency: c }} /></dd></div>
+            <div className="flex justify-between text-base font-semibold"><dt>{order.status === "cod" ? "To pay on delivery" : "Total paid"}</dt><dd><MoneyText value={{ amount: order.total, currency: c }} /></dd></div>
           </dl>
           {order.status === "paid" && (
             <Button asChild variant="secondary" size="sm" className="mt-4"><Link href={`/invoice/${order.id}?t=${token}`}><FileText aria-hidden /> View the tax invoice</Link></Button>
@@ -154,5 +158,53 @@ function OrderBody({ order, token, justPaid, c, reload, state }: { order: OrderV
         {state === "ready" && order.status === "pending" && <p className="flex items-center gap-2 text-sm"><Loader2 className="size-4 animate-spin" aria-hidden /> Waiting for the bank to confirm. <button type="button" className="underline underline-offset-4" onClick={reload}>Check again</button></p>}
       </div>
     </BuyerShell>
+  );
+}
+
+const STEPS = [
+  { key: "unfulfilled", label: "Being packed", icon: PackageCheck },
+  { key: "shipped", label: "On its way", icon: Truck },
+  { key: "delivered", label: "Delivered", icon: CheckCircle2 },
+] as const;
+
+/** Where the parcel is, where it's going, and (for cash on delivery) what to keep ready */
+function Delivery({ order, c }: { order: OrderView; c: CurrencyCode }) {
+  const a = order.shipTo!;
+  const at = STEPS.findIndex((s) => s.key === order.fulfilment);
+  const cancelled = order.fulfilment === "cancelled";
+  const t = order.tracking;
+  return (
+    <section aria-labelledby="dv-h" className="rounded-card border bg-surface p-5">
+      <h2 id="dv-h" className="font-sans text-base font-semibold tracking-normal">Delivery</h2>
+      {cancelled ? (
+        <p className="mt-2 text-sm">This order was cancelled. {order.status === "refunded" ? "Your money has been sent back." : "Nothing was charged."}</p>
+      ) : (
+        <ol className="mt-3 grid grid-cols-3 gap-2" aria-label="Delivery progress">
+          {STEPS.map((s, i) => (
+            <li key={s.key} aria-current={i === at ? "step" : undefined} className={`flex flex-col items-center gap-1 rounded-control px-2 py-2 text-center text-xs font-medium ${i <= at ? "bg-primary-soft text-primary" : "bg-muted text-muted-foreground"}`}>
+              <s.icon className="size-5" aria-hidden />
+              {s.label}
+            </li>
+          ))}
+        </ol>
+      )}
+      {t && (t.carrier || t.number) && (
+        <p className="mt-3 flex flex-wrap items-center gap-2 text-sm">
+          <Truck className="size-4 text-muted-foreground" aria-hidden />
+          {[t.carrier, t.number].filter(Boolean).join(" · ")}
+          {t.url && (
+            <a href={t.url} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-9 items-center gap-1 font-medium text-primary underline-offset-4 hover:underline">
+              Track your parcel <ExternalLink className="size-3.5" aria-hidden />
+            </a>
+          )}
+        </p>
+      )}
+      {order.status === "cod" && !cancelled && (
+        <p className="mt-3 rounded-control bg-info-soft px-3 py-2 text-sm">Keep <strong><MoneyText value={{ amount: order.total, currency: c }} /></strong> ready in cash for the courier.</p>
+      )}
+      <p className="mt-3 text-sm text-muted-foreground">
+        Going to {a.name}, {[a.line1, a.line2, a.city, a.state, a.pincode].filter(Boolean).join(", ")}
+      </p>
+    </section>
   );
 }
