@@ -68,24 +68,24 @@ export function AppShell({ children, variant = "creator" }: { children: React.Re
   // In the store editor the menu starts as icons, to leave room for the page; it still opens on click
   const [editorRail, setEditorRail] = useState(true);
   const footer = admin ? undefined : <SidebarProgress />;
-  // Full-height tools (the store editor) fill the space beside the sidebar instead of scrolling a page
+  // The store editor uses the full width beside the sidebar; it scrolls as one page like everything else
   const bleed = /\/design\/pages\/[^/]+\/edit$/.test(usePathname() ?? "");
   const rail = bleed ? editorRail : savedRail;
   return (
     <CreatorProviders tracker={!admin}>
-      <div className={cn("md:grid", bleed ? "h-dvh overflow-hidden" : "min-h-dvh", rail ? "md:grid-cols-[72px_minmax(0,1fr)]" : "md:grid-cols-[272px_minmax(0,1fr)]")}>
+      <div className={cn("min-h-dvh md:grid", rail ? "md:grid-cols-[72px_minmax(0,1fr)]" : "md:grid-cols-[272px_minmax(0,1fr)]")}>
         <SkipLink />
         <aside className={cn("sticky top-0 hidden h-dvh border-r md:block", admin && "border-transparent")}>
           <Sidebar admin={admin} collapsed={rail} onToggle={() => (bleed ? setEditorRail(!rail) : setRail(!rail))} footer={footer} />
         </aside>
-        <div className={cn("flex min-w-0 flex-col", bleed && "h-dvh min-h-0")}>
+        <div className="flex min-w-0 flex-col">
           <Topbar admin={admin} />
           <main
             id="main"
             tabIndex={-1}
             className={cn(
               "w-full flex-1 outline-none",
-              bleed ? "flex min-h-0 flex-col px-3 pt-3 md:px-4" : "gutter mx-auto max-w-[1280px] pt-6 pb-28 md:pt-8 md:pb-16"
+              bleed ? "flex flex-col px-3 pt-3 md:px-4" : "gutter mx-auto max-w-[1280px] pt-6 pb-28 md:pt-8 md:pb-16"
             )}
           >
             {children}

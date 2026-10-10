@@ -44,7 +44,7 @@ export interface DirtyForm {
 }
 
 /** How long after the last edit an autosave waits */
-export const AUTOSAVE_DELAY = 1200;
+export const AUTOSAVE_DELAY = 500;
 
 /**
  * Saving for edit screens. By default changes save themselves a moment after the last edit: no

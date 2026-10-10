@@ -16,9 +16,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Glance } from "@/components/dashboard/glance";
 import { LiveFeed } from "@/components/dashboard/live-feed";
 import { QuickActions } from "@/components/dashboard/quick-actions";
+import { SubmissionsCard } from "@/components/leads/form-responses";
 import { useApi } from "@/hooks/use-api";
 import { useCurrentStore } from "@/hooks/use-current-store";
-import { getBalance, getPlan, getProducts, getSummary } from "@/lib/api";
+import { getBalance, getLeads, getPlan, getProducts, getSummary } from "@/lib/api";
 import { formatDate, sourceLabel } from "@/lib/format";
 import type { RangeKey, Store } from "@/lib/types";
 
@@ -32,8 +33,21 @@ type BalanceState = ReturnType<typeof useApi<Awaited<ReturnType<typeof getBalanc
  * The dashboard in three sections you open and close: Getting started (until setup is done),
  * Operations (what needs doing today) and Analytics (how it's going).
  */
+/** When a date range starts */
+function rangeStart(range: RangeKey, now: number) {
+  if (range === "today") {
+    const d = new Date(now);
+    d.setHours(0, 0, 0, 0);
+    return d.getTime();
+  }
+  return now - { "7d": 7, "30d": 30, "90d": 90 }[range] * 86_400_000;
+}
+
 function DashboardSections({ isNew, hasLive, range, setRange, summary, balance, store }: { isNew: boolean; hasLive: boolean; range: RangeKey; setRange: (r: RangeKey) => void; summary: Summary; balance: BalanceState; store: Store | undefined }) {
   const { checklist } = useGettingStarted();
+  // What people sent through the store's forms, bookings and newsletter
+  const leads = useApi(getLeads, [], { live: true });
+  const [now] = useState(() => Date.now());
   // Not rendered until the checklist is known, so the sections open the right way from the start
   if (!checklist) return <Skeleton className="h-64 rounded-card" />;
   const settingUp = !checklist.dismissed && !checklist.complete;
@@ -107,6 +121,7 @@ function DashboardSections({ isNew, hasLive, range, setRange, summary, balance, 
                 <ShareBars rows={(summary.data?.funnel ?? []).map((f) => ({ label: f.label, value: f.value, share: summary.data!.funnel[0].value ? (f.value / summary.data!.funnel[0].value) * 100 : 0 }))} />
               </ChartCard>
             </div>
+            <SubmissionsCard leads={leads.data} since={rangeStart(range, now)} loading={leads.loading} />
           </div>
         </AccordionContent>
       </AccordionItem>

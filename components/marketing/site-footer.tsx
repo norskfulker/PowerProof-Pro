@@ -1,9 +1,13 @@
 import Link from "next/link";
 import { Logo } from "@/components/pp/logo";
+import { CreatorLinks } from "./start-link";
+
+const LINK = "inline-flex min-h-11 min-w-11 items-center text-sm text-foreground/80 hover:text-foreground hover:underline hover:underline-offset-4";
 
 const COLS: [string, [string, string][]][] = [
   ["Product", [["How it works", "/how-it-works"], ["Pricing", "/pricing"]]],
-  ["Creators", [["Log in", "/login"], ["Start free", "/signup"]]],
+  // Filled in on the client: Log in and Start free, or Dashboard for someone signed in
+  ["Creators", []],
   ["Buyers", [["Find my order", "/lookup"], ["Refunds and support", "/lookup#help"]]],
 ];
 
@@ -21,13 +25,17 @@ export function SiteFooter() {
           <nav key={title} aria-label={title}>
             <p className="eyebrow mb-3">{title}</p>
             <ul className="flex flex-col">
-              {links.map(([label, href]) => (
-                <li key={href}>
-                  <Link href={href} className="inline-flex min-h-11 min-w-11 items-center text-sm text-foreground/80 hover:text-foreground hover:underline hover:underline-offset-4">
-                    {label}
-                  </Link>
-                </li>
-              ))}
+              {title === "Creators" ? (
+                <CreatorLinks className={LINK} />
+              ) : (
+                links.map(([label, href]) => (
+                  <li key={href}>
+                    <Link href={href} className={LINK}>
+                      {label}
+                    </Link>
+                  </li>
+                ))
+              )}
             </ul>
           </nav>
         ))}

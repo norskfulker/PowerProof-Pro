@@ -64,6 +64,8 @@ export async function proxy(request: NextRequest) {
   if (!signedIn && (under(path, CREATOR) || under(path, ["/admin"]))) return redirect("/login", true);
   if (signedIn && under(path, ["/admin"]) && !isAdmin) return redirect("/dashboard");
   if (signedIn && under(path, AUTH_PAGES)) return redirect("/dashboard");
+  // A signed-in creator's home is their dashboard, so the landing page (and Back to it) leads there
+  if (signedIn && path === "/") return redirect("/dashboard");
   return response;
 }
 

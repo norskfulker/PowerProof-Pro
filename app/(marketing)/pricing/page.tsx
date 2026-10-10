@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import { StartLink } from "@/components/marketing/start-link";
 import { Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CtaBand } from "@/components/marketing/cta-band";
@@ -76,7 +76,7 @@ export default async function PricingPage() {
             ))}
           </ul>
           <Button asChild size="lg" className="mt-8">
-            <Link href="/signup">Start your free month</Link>
+            <StartLink>Start your free month</StartLink>
           </Button>
         </div>
         <div>
@@ -96,7 +96,7 @@ export default async function PricingPage() {
           <ErrorState title="The plan details didn't load." message="Refresh the page in a moment." />
         )}
         <Button asChild variant="secondary" className="mt-6">
-          <Link href="/signup">Start on Free</Link>
+          <StartLink>Start on Free</StartLink>
         </Button>
       </section>
 

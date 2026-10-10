@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ArrowDown, ArrowUp, ChevronRight, Eye, EyeOff, GripVertical, Megaphone, PanelBottom, PanelTop, Plus } from "lucide-react";
+import { ArrowDown, ArrowUp, ChevronRight, Copy, Eye, EyeOff, GripVertical, Megaphone, PanelBottom, PanelTop, Plus, Trash2 } from "lucide-react";
+import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuSeparator, ContextMenuTrigger } from "@/components/ui/context-menu";
+import { toast } from "sonner";
 import { BLOCK_LABELS } from "@/lib/pages/editor-store";
 import { CHILDREN, findNode, locate, sectionOf, type PageNode } from "@/lib/pages/schema";
 import { cn } from "@/lib/utils";
@@ -43,13 +45,16 @@ function Row({ node, depth, index, count, open, onToggle, drag, drop, startDrag 
   startDrag: (id: string, e: React.PointerEvent) => void;
 }) {
   const selectedId = useEditor((s) => s.selectedId);
-  const { select, moveBy, updateVisibility } = useEditor((s) => s);
+  const { select, moveBy, updateVisibility, duplicate, remove, undo } = useEditor((s) => s);
   const Icon = BLOCK_ICONS[node.type];
   const label = nodeLabel(node);
   const hidden = hiddenEverywhere(node);
   const selected = selectedId === node.id;
 
+  // Right-click a row for its options (and Shift F10 or the menu key from the keyboard)
   return (
+    <ContextMenu onOpenChange={(o) => o && select(node.id)}>
+    <ContextMenuTrigger asChild>
     <div
       data-row-id={node.id}
       className={cn(
@@ -88,6 +93,16 @@ function Row({ node, depth, index, count, open, onToggle, drag, drop, startDrag 
         {hidden ? <EyeOff className="size-3.5" aria-hidden /> : <Eye className="size-3.5" aria-hidden />}
       </IconButton>
     </div>
+    </ContextMenuTrigger>
+    <ContextMenuContent aria-label={`Options for ${label}`}>
+      <ContextMenuItem onSelect={() => duplicate(node.id)}><Copy aria-hidden /> Duplicate</ContextMenuItem>
+      <ContextMenuItem disabled={index === 0} onSelect={() => moveBy(node.id, -1)}><ArrowUp aria-hidden /> Move up</ContextMenuItem>
+      <ContextMenuItem disabled={index === count - 1} onSelect={() => moveBy(node.id, 1)}><ArrowDown aria-hidden /> Move down</ContextMenuItem>
+      <ContextMenuItem onSelect={() => updateVisibility(node.id, { mobile: hidden, desktop: hidden })}>{hidden ? <Eye aria-hidden /> : <EyeOff aria-hidden />} {hidden ? "Show" : "Hide"}</ContextMenuItem>
+      <ContextMenuSeparator />
+      <ContextMenuItem variant="destructive" onSelect={() => { remove(node.id); toast(`${node.type === "section" ? "Section" : "Block"} deleted`, { action: { label: "Undo", onClick: undo } }); }}><Trash2 aria-hidden /> Delete</ContextMenuItem>
+    </ContextMenuContent>
+    </ContextMenu>
   );
 }
 

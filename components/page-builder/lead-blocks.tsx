@@ -30,6 +30,9 @@ function go(href: string) {
 
 const card = "rounded-card border bg-surface p-5 text-foreground md:p-6";
 
+/** The answer key that names the form a submission came from */
+export const FORM_KEY = "Form";
+
 export function LeadFormBlock({ id, props, env }: { id: string; props: BlockProps<"lead_form">; env: LeadEnv }) {
   const [values, setValues] = useState<Record<string, string>>({});
   const [state, setState] = useState<"idle" | "pending" | "done">("idle");
@@ -50,7 +53,8 @@ export function LeadFormBlock({ id, props, env }: { id: string; props: BlockProp
     setState("pending");
     setError(undefined);
     try {
-      await env.onLead?.({ kind: "lead", name: name ? values[name.id] : undefined, email: email ? values[email.id] : undefined, phone: phone ? values[phone.id] : undefined, data: rest });
+      // "Form" names which form on the page it came from, so responses can be shown form by form
+      await env.onLead?.({ kind: "lead", name: name ? values[name.id] : undefined, email: email ? values[email.id] : undefined, phone: phone ? values[phone.id] : undefined, data: { [FORM_KEY]: props.heading.slice(0, 100) || "Form", ...rest } });
       setState("done");
       if (props.redirectHref) go(props.redirectHref);
     } catch (err) {

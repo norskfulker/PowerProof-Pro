@@ -20,6 +20,7 @@ import type { ColorScheme, SchemeColors, SocialLinks, StoreDesign, StoreTheme } 
 import { ColorField, SchemeField } from "./controls";
 import { SITE_PARTS, type SitePart } from "./canvas";
 import { useEditor } from "./editor-context";
+import { SiteLayoutEditor, SiteStylePicker } from "./site-style-panel";
 
 /** The store-wide settings and a setter that records undo, for the panels below */
 function useSite() {
@@ -164,7 +165,19 @@ export function ThemeSettingsPanel({ context, mode }: { context: RenderContext; 
   const { site, updateSite, setDesign, setTheme } = useSite();
   if (!site) return <p className="p-2 text-sm text-muted-foreground">Theme settings aren&apos;t available here.</p>;
   return (
-    <Accordion type="multiple" defaultValue={["brand"]} className="flex flex-col">
+    <Accordion type="multiple" defaultValue={["type"]} className="flex flex-col">
+      <AccordionItem value="type">
+        <AccordionTrigger className="min-h-11">Site template</AccordionTrigger>
+        <AccordionContent>
+          <SiteStylePicker />
+        </AccordionContent>
+      </AccordionItem>
+      <AccordionItem value="layout">
+        <AccordionTrigger className="min-h-11">Layout</AccordionTrigger>
+        <AccordionContent>
+          <SiteLayoutEditor />
+        </AccordionContent>
+      </AccordionItem>
       <AccordionItem value="brand">
         <AccordionTrigger className="min-h-11">Logo, brand colour, fonts and corners</AccordionTrigger>
         <AccordionContent>

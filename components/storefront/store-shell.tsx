@@ -6,6 +6,7 @@ import { SkipLink } from "@/components/pp/app-shell";
 import { StoreFooter } from "@/components/pp/store-footer";
 import { StoreNavbar } from "@/components/pp/store-navbar";
 import { StoreThemeScope } from "@/components/pp/store-theme";
+import { layoutOf } from "@/lib/site-styles";
 import { BuyerStatus } from "@/components/buyer/buyer-states";
 import { useApi } from "@/hooks/use-api";
 import { useTheme } from "@/components/theme/theme-toggle";
@@ -55,6 +56,7 @@ function Chrome({ children }: { children: React.ReactNode }) {
         socials={design.socials}
         showPoweredBy={design.showPoweredBy}
         pages={view.extraPages}
+        layout={layoutOf(design.theme).footer}
         theme={{
           mode,
           onChange: (m) => {

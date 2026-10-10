@@ -1,3 +1,4 @@
+import { styleDoc } from "../site-styles";
 import type { Json } from "../database.types";
 import { pageDocSchema, PAGE_SLUG, type PageDoc, type PageVersion, type StorePageDoc } from "../pages/schema";
 import type { AiBrief, AiEvent } from "../pages/ai";
@@ -256,9 +257,12 @@ export function pageUrl(storeSlug: string, pageSlug: string) {
 export async function createVisualPage(input: { templateId: string; title: string }): Promise<StorePageDoc> {
   const title = input.title.trim();
   if (title.length < 2) throw new ApiError("Give the page a name.", "validation");
-  const [store, products, collections, design] = await Promise.all([getStore(), getProducts(), getCollections(), getStoreDesign()]);
+  const [store, products, collections, design, home] = await Promise.all([getStore(), getProducts(), getCollections(), getStoreDesign(), findHome()]);
+  // The site template being edited (the draft on the home page), else the live one
+  const siteStyle = home?.site?.design.theme.siteStyle ?? design.theme.siteStyle;
+  // Laid out for the store's site template, so a new page matches every other page
   const doc = validate(
-    templateById(input.templateId).build({
+    styleDoc(templateById(input.templateId).build({
       storeName: store.name,
       ownerName: store.ownerName,
       slug: store.slug,
@@ -267,7 +271,7 @@ export async function createVisualPage(input: { templateId: string; title: strin
       brand: store.brandColor,
       accent: "#C9A24F",
       now: Date.now(),
-    })
+    }), siteStyle)
   );
   const page: StorePageDoc = { id: "", title, slug: await uniqueSlug(title), template: input.templateId, draft: doc, updatedAt: new Date().toISOString(), seo: { title: `${title} · ${store.name}`, description: design.seo.description || store.tagline }, versions: [] };
   return insertPage(page, await activeStoreId());
@@ -361,7 +365,7 @@ async function ensureHome(): Promise<StorePageDoc> {
   const squatter = pages.find((p) => p.slug === HOME_PAGE_SLUG);
   if (squatter) await save(squatter, { slug: await uniqueSlug("home-2", squatter.id) });
   const [store, design, products] = await Promise.all([getStore(), getStoreDesign(), getProducts()]);
-  const doc = validate(homeDocFrom(design, store.slug, products.filter((p) => p.status === "published").map((p) => p.id)));
+  const doc = validate(styleDoc(homeDocFrom(design, store.slug, products.filter((p) => p.status === "published").map((p) => p.id)), design.theme.siteStyle));
   const page: StorePageDoc = { id: "", title: "Home page", slug: HOME_PAGE_SLUG, template: HOME_TEMPLATE, draft: doc, updatedAt: new Date().toISOString(), seo: { title: design.seo.title, description: design.seo.description }, versions: [] };
   return insertPage(page, storeId, { sort_order: -1 });
 }

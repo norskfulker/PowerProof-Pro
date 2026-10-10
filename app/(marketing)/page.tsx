@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { StartLink } from "@/components/marketing/start-link";
 import {
   ArrowRight,
   BadgeIndianRupee,
@@ -53,9 +54,9 @@ export default function HomePage() {
           </p>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
             <Button asChild size="lg">
-              <Link href="/signup">
+              <StartLink signedIn={<>Go to dashboard <ArrowRight /></>}>
                 Start free <ArrowRight />
-              </Link>
+              </StartLink>
             </Button>
             <Button asChild size="lg" variant="secondary">
               <Link href="/how-it-works">How it works</Link>

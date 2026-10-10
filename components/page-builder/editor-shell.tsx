@@ -7,7 +7,7 @@ import { ArrowLeft, BookOpenText, Check, CloudOff, ExternalLink, Files, History,
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/pp/confirm-dialog";
 import { useUnsavedGuard } from "@/components/save/unsaved-guard";
-import { Segmented } from "@/components/pp/segmented";
+import { ColorModeToggle, LIGHT_DARK } from "@/components/theme/color-mode-toggle";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectSeparator, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
@@ -49,7 +49,8 @@ const RAIL: { id: EditorPanel; label: string; title: string; icon: LucideIcon; d
 ];
 const DATA_PANELS = new Set(RAIL.filter((r) => r.data).map((r) => r.id));
 
-const AUTOSAVE_MS = 1200;
+/** Drafts save almost as you type: a short pause batches a burst of keystrokes into one save */
+const AUTOSAVE_MS = 400;
 const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
 
 function isTyping(el: EventTarget | Element | null) {
@@ -59,7 +60,7 @@ function isTyping(el: EventTarget | Element | null) {
 
 function SaveIndicator({ state, at, onRetry }: { state: SaveState; at?: string; onRetry: () => void }) {
   return (
-    <p className="flex items-center gap-1.5 text-xs text-muted-foreground" role="status" aria-live="polite">
+    <p className="flex items-center gap-1.5 text-xs whitespace-nowrap text-muted-foreground" role="status" aria-live="polite">
       {state === "saving" && (
         <>
           <Loader2 className="size-3.5 animate-spin" aria-hidden /> Saving…
@@ -84,6 +85,32 @@ function SaveIndicator({ state, at, onRetry }: { state: SaveState; at?: string; 
 
 const editHref = (id: string) => `/store/current/design/pages/${id}/edit`;
 
+/** The app's own top bar, which the editor's bar sits under */
+const APP_BAR = 64;
+
+/**
+ * How a side panel stays in view. The editor scrolls as one page, so a panel never scrolls inside
+ * itself: one that fits on screen stays under the editor's bar; a taller one scrolls with the page
+ * like everything else (never pinned part-way, which feels stuck).
+ */
+function useStickyTop(ref: React.RefObject<HTMLElement | null>, offset: number): React.CSSProperties {
+  const [fits, setFits] = useState(true);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const calc = () => setFits(el.offsetHeight + offset + 16 <= window.innerHeight);
+    calc();
+    const ro = new ResizeObserver(calc);
+    ro.observe(el);
+    window.addEventListener("resize", calc);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", calc);
+    };
+  }, [ref, offset]);
+  return fits ? { position: "sticky", top: offset } : { position: "relative" };
+}
+
 function Inner({ session }: { session: EditorSession }) {
   const { page, pages } = session;
   // The store's own data (About, FAQ, reviews) is edited beside the page, so the preview follows it
@@ -98,10 +125,9 @@ function Inner({ session }: { session: EditorSession }) {
   const canUndo = useEditor((s) => s.past.length > 0);
   const canRedo = useEditor((s) => s.future.length > 0);
   const device = useEditor((s) => s.device);
-  const focusSection = useEditor((s) => s.focusSection);
   const compare = useEditor((s) => s.compare);
   const selectedId = useEditor((s) => s.selectedId);
-  const { undo, redo, setDevice, setFocusSection, setCompare, reset, markSaved } = store.getState();
+  const { undo, redo, setDevice, setCompare, reset, markSaved } = store.getState();
 
   const isHome = page.template === HOME_TEMPLATE;
   // "Build with AI": opened from the top bar, or straight away when a page was created with AI (?ai=1)
@@ -165,6 +191,20 @@ function Inner({ session }: { session: EditorSession }) {
     else if (DATA_PANELS.has(s.panel)) s.openPanel("sections");
   }, [selectedId, size, store]);
   const tab: EditorPanel = size !== "mid" && panel === "edit" ? "sections" : panel;
+  // The editor's bar sticks under the app's; the side panels stick under both
+  const bar = useRef<HTMLElement>(null);
+  const [barHeight, setBarHeight] = useState(56);
+  useEffect(() => {
+    const el = bar.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => setBarHeight(el.offsetHeight));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  const leftPanel = useRef<HTMLDivElement>(null);
+  const rightPanel = useRef<HTMLDivElement>(null);
+  const leftStick = useStickyTop(leftPanel, APP_BAR + barHeight);
+  const rightStick = useStickyTop(rightPanel, APP_BAR + barHeight);
   const wideData = DATA_PANELS.has(tab);
   // The site settings as last saved, so they're only written when they change
   const savedSite = useRef<SiteDraft | undefined>(session.site);
@@ -174,6 +214,8 @@ function Inner({ session }: { session: EditorSession }) {
   const dirty = status !== "published" || siteChanged;
 
   const flush = useCallback(async () => {
+    // One save at a time, in order, so an older save can never land after a newer one
+    if (saving.current) await saving.current;
     const s = store.getState();
     // An AI build isn't saved until it is kept
     if (s.rev === s.savedRev || s.aiBase) return;
@@ -202,6 +244,20 @@ function Inner({ session }: { session: EditorSession }) {
     const t = setTimeout(flush, AUTOSAVE_MS);
     return () => clearTimeout(t);
   }, [rev, savedRev, flush]);
+
+  // Leaving the tab, switching apps or closing it: save what's there straight away
+  useEffect(() => {
+    const now = () => {
+      if (document.visibilityState === "hidden") void flush();
+    };
+    const leave = () => void flush();
+    document.addEventListener("visibilitychange", now);
+    window.addEventListener("pagehide", leave);
+    return () => {
+      document.removeEventListener("visibilitychange", now);
+      window.removeEventListener("pagehide", leave);
+    };
+  }, [flush]);
 
   // In-app links ask before leaving while an autosave is still pending
   const unsaved = useUnsavedGuard();
@@ -368,17 +424,17 @@ function Inner({ session }: { session: EditorSession }) {
   const current = RAIL.find((r) => r.id === tab)!;
 
   return (
-    <div ref={root} className="-mx-3 flex min-h-0 flex-1 flex-col overflow-hidden border-t bg-background md:mx-0 md:rounded-t-card md:border-x">
-      {/* Top bar */}
-      <header className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b bg-surface px-3 py-2 md:px-4">
+    <div ref={root} className="-mx-3 flex flex-1 flex-col border-t bg-background md:mx-0 md:rounded-t-card md:border-x">
+      {/* Top bar: stays in view while the page scrolls */}
+      <header ref={bar} data-editor-bar="" className="sticky top-16 z-20 flex flex-wrap items-center gap-x-3 gap-y-2 border-b bg-surface px-3 py-2 md:rounded-t-card md:px-4">
         <Button asChild variant="ghost" size="icon" aria-label="Leave the editor">
           <Link href="/dashboard">
             <ArrowLeft />
           </Link>
         </Button>
-        <div className="flex min-w-0 flex-[1_1_14rem] flex-col gap-0.5">
+        <div className="flex min-w-0 flex-[1_1_14rem] flex-wrap items-center gap-x-3 gap-y-1">
           <Select value={page.id} onValueChange={goTo}>
-            <SelectTrigger size="sm" className="h-9 w-full max-w-72 border-transparent bg-transparent px-2 font-display text-base font-extrabold hover:border-input" aria-label="Page you're editing">
+            <SelectTrigger size="sm" className="h-9 w-auto max-w-60 min-w-0 border-transparent bg-transparent px-2 font-display text-base font-extrabold hover:border-input" aria-label="Page you're editing">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -395,11 +451,9 @@ function Inner({ session }: { session: EditorSession }) {
               <SelectItem value="manage">Manage pages…</SelectItem>
             </SelectContent>
           </Select>
-          <div className="flex flex-wrap items-center gap-x-3 px-2">
-            <span className={cn("text-xs font-semibold", !dirty ? "text-success" : status === "draft" ? "text-muted-foreground" : "text-warning-ink")}>{statusText}</span>
-            {isHome && !storeLive && <span className="text-xs font-semibold text-muted-foreground">· Store hidden from buyers</span>}
-            <SaveIndicator state={save} at={savedAt} onRetry={flush} />
-          </div>
+          <span className={cn("shrink-0 rounded-full border px-2 py-0.5 text-xs font-semibold whitespace-nowrap", !dirty ? "border-success/40 text-success" : status === "draft" ? "text-muted-foreground" : "border-warning/40 text-warning-ink")}>{statusText}</span>
+          {isHome && !storeLive && <span className="text-xs font-semibold whitespace-nowrap text-muted-foreground">Store hidden from buyers</span>}
+          <SaveIndicator state={save === "saved" && rev !== savedRev && !building ? "saving" : save} at={savedAt} onRetry={flush} />
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Button type="button" variant="secondary" size="sm" onClick={() => setAiOpen(true)} disabled={building} className="border-primary/40 text-primary">
@@ -414,26 +468,7 @@ function Inner({ session }: { session: EditorSession }) {
             </Button>
           </div>
           <DevicePreviewSwitch value={device} onChange={setDevice} className="max-md:hidden" />
-          <Segmented
-            label="Preview as"
-            value={previewAs}
-            onChange={setPreviewAs}
-            options={[
-              { value: "light", label: "Light" },
-              { value: "dark", label: "Dark" },
-            ]}
-            className="max-sm:hidden"
-          />
-          <Segmented
-            label="Preview"
-            value={focusSection ? "section" : "page"}
-            onChange={(v) => setFocusSection(v === "section")}
-            options={[
-              { value: "page", label: "Full page" },
-              { value: "section", label: "This section" },
-            ]}
-            className="max-xl:hidden"
-          />
+          <ColorModeToggle label="Preview as" value={previewAs} onChange={setPreviewAs} options={LIGHT_DARK} iconOnly className="max-sm:hidden" />
           <label className="flex min-h-11 items-center gap-2 text-sm max-2xl:hidden">
             <Switch checked={compare} onCheckedChange={setCompare} aria-label="Before and after" />
             Before and after
@@ -473,9 +508,10 @@ function Inner({ session }: { session: EditorSession }) {
       <AiBuilder open={aiOpen} onOpenChange={setAiOpen} pageId={page.id} template={page.template} isHome={isHome} context={context} flush={flush} />
 
       {/* Body: while AI builds, the page can be looked at (and scrolled) but not changed */}
-      <div className={cn("grid min-h-0 flex-1", size === "narrow" ? "grid-cols-1" : wideData ? "grid-cols-[26rem_minmax(0,1fr)]" : size === "wide" ? "grid-cols-[21rem_minmax(0,1fr)_19rem]" : "grid-cols-[21rem_minmax(0,1fr)]")}>
-        <aside inert={building || undefined} aria-label="Editor panels" className={cn(building && "opacity-60", "min-h-0 border-r bg-surface", size === "narrow" ? "hidden" : "flex")}>
-          <div role="tablist" aria-label="Panels" aria-orientation="vertical" className="flex w-16 shrink-0 flex-col gap-1 overflow-y-auto border-r px-1 py-2">
+      <div className={cn("grid flex-1", size === "narrow" ? "grid-cols-1" : wideData ? "grid-cols-[26rem_minmax(0,1fr)]" : size === "wide" ? "grid-cols-[21rem_minmax(0,1fr)_19rem]" : "grid-cols-[21rem_minmax(0,1fr)]")}>
+        <aside inert={building || undefined} aria-label="Editor panels" className={cn(building && "opacity-60", "border-r bg-surface", size === "narrow" ? "hidden" : "block")}>
+          <div ref={leftPanel} className="flex" style={leftStick}>
+          <div role="tablist" aria-label="Panels" aria-orientation="vertical" className="flex w-16 shrink-0 flex-col gap-1 self-start border-r px-1 py-2">
             {railItems.map(({ id, label, title, icon: Icon }) => {
               const count = id === "reviews" ? counts.reviews : id === "questions" ? counts.questions : undefined;
               return (
@@ -507,21 +543,24 @@ function Inner({ session }: { session: EditorSession }) {
               );
             })}
           </div>
-          <div id="rail-panel" role="tabpanel" aria-labelledby={`rail-${tab}`} className="flex min-h-0 min-w-0 flex-1 flex-col">
+          <div id="rail-panel" role="tabpanel" aria-labelledby={`rail-${tab}`} className="flex min-w-0 flex-1 flex-col">
             <h2 className="px-3 pt-3 pb-2 font-display text-base font-extrabold">{current.title}</h2>
-            <div key={tab} className={cn("min-h-0 flex-1 overflow-y-auto pb-3", tab === "sections" ? "px-2" : "px-3")}>
+            <div key={tab} className={cn("pb-3", tab === "sections" ? "px-2" : "px-3")}>
               {panels[tab]}
             </div>
           </div>
+          </div>
         </aside>
 
-        <div className={cn("min-h-0", size === "narrow" && "pb-[calc(4.5rem+env(safe-area-inset-bottom))]")}>
-          <Canvas context={context} published={published} previewAs={previewAs} onKey={onKey} />
+        <div className={cn("min-w-0", size === "narrow" && "pb-[calc(4.5rem+env(safe-area-inset-bottom))]")}>
+          <Canvas context={context} published={published} previewAs={previewAs} onKey={onKey} address={`${context.store.slug}.powerproof.app${page.slug && !isHome ? `/${page.slug}` : ""}`} className="min-h-full" />
         </div>
 
         {size === "wide" && !wideData && (
-          <aside inert={building || undefined} aria-label="Settings" className={cn("min-h-0 overflow-y-auto border-l bg-surface p-4", building && "opacity-60")}>
-            {panels.edit}
+          <aside inert={building || undefined} aria-label="Settings" className={cn("border-l bg-surface", building && "opacity-60")}>
+            <div ref={rightPanel} className="p-4" style={rightStick}>
+              {panels.edit}
+            </div>
           </aside>
         )}
       </div>

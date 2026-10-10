@@ -11,10 +11,11 @@ import type { RenderContext } from "@/lib/api";
 import { BLOCK_LABELS, type SiteDraft } from "@/lib/pages/editor-store";
 import { CHILDREN, findNode, locate, sectionOf, type PageDoc } from "@/lib/pages/schema";
 import { schemeClass } from "@/lib/store-themes";
+import { layoutOf } from "@/lib/site-styles";
 import { cn } from "@/lib/utils";
 import type { IconWeight } from "@/components/pp/icon-library";
 import { IconPickerDialog } from "./controls";
-import { DEVICE_WIDTH } from "./device-preview-switch";
+import { DeviceFrame, SCREEN_HEIGHT, SCREEN_WIDTH } from "./device-frame";
 import { useEditor } from "./editor-context";
 import { PreviewFrame, useFrameDocument } from "./preview-frame";
 import { PageRenderer } from "./renderer";
@@ -202,7 +203,7 @@ function FrameKeys({ onKey }: { onKey?: (e: KeyboardEvent) => void }) {
   return null;
 }
 
-function Page({ context, site, doc, previewAs, interactive, onKey }: { context: RenderContext; site?: SiteDraft; doc: PageDoc; previewAs?: "light" | "dark"; interactive: boolean; onKey?: (e: KeyboardEvent) => void }) {
+function Page({ context, site, doc, previewAs, interactive, onKey, screen }: { context: RenderContext; site?: SiteDraft; doc: PageDoc; previewAs?: "light" | "dark"; interactive: boolean; onKey?: (e: KeyboardEvent) => void; /** What a "full screen" section fills, in px */ screen: number }) {
   const selectedId = useEditor((s) => s.selectedId);
   const select = useEditor((s) => s.select);
   const updateProps = useEditor((s) => s.updateProps);
@@ -213,15 +214,20 @@ function Page({ context, site, doc, previewAs, interactive, onKey }: { context: 
   const store = { ...context.store, ...(site ? { logo: site.logo } : {}) };
   const announcementOn = !!design?.sections.find((s) => s.id === "announcement")?.enabled;
   const chrome = !!design && !doc.focus;
-  // Whatever is selected (from the sidebar, the picker or the page) comes into view
+  // Whatever is selected (from the sidebar, the picker or the page) comes into view. The frame is
+  // as tall as the page, so it's the editor's window that scrolls.
   useEffect(() => {
     const el = selectedId && interactive ? box.current?.querySelector<HTMLElement>(`[data-node-id="${CSS.escape(selectedId)}"]`) : null;
-    if (!el || !box.current) return;
-    const r = el.getBoundingClientRect();
-    const b = box.current.getBoundingClientRect();
-    // Scroll only the canvas (scrollIntoView would also move the editor around it)
-    const offset = r.height > b.height - 80 ? 72 : (b.height - r.height) / 2;
-    if (r.top < b.top + 60 || r.top > b.bottom - 80) box.current.scrollTo({ top: box.current.scrollTop + r.top - b.top - offset, behavior: "smooth" });
+    const frame = el?.ownerDocument.defaultView?.frameElement as HTMLElement | null | undefined;
+    if (!el || !frame) return;
+    const top = frame.getBoundingClientRect().top + el.getBoundingClientRect().top;
+    const height = el.getBoundingClientRect().height;
+    // The app bar and the editor's own bar sit over the top of the window
+    const covered = (document.querySelector<HTMLElement>("[data-editor-bar]")?.getBoundingClientRect().bottom ?? 64) + 12;
+    const view = window.innerHeight - covered;
+    if (top < covered || top + Math.min(height, view) > window.innerHeight - 24) {
+      window.scrollTo({ top: window.scrollY + top - covered - (height > view - 80 ? 24 : (view - height) / 2), behavior: "smooth" });
+    }
   }, [selectedId, interactive]);
   const docRef = useRef(doc);
   useEffect(() => {
@@ -241,9 +247,9 @@ function Page({ context, site, doc, previewAs, interactive, onKey }: { context: 
   };
 
   return (
-    <StoreThemeScope theme={theme} mode={previewAs} className="h-dvh">
+    <StoreThemeScope theme={theme} mode={previewAs} className="flex flex-1 flex-col" style={{ ["--pp-screen" as string]: `${screen}px` }}>
       <FrameKeys onKey={onKey} />
-      <div ref={box} className="relative h-full overflow-y-auto" onClick={(e) => e.target === e.currentTarget && select(undefined)}>
+      <div ref={box} className="relative flex flex-1 flex-col" onClick={(e) => e.target === e.currentTarget && select(undefined)}>
         {chrome && announcementOn && (
           <SitePartFrame id="@announcement">
             <AnnouncementBar announcement={design.announcement} editing />
@@ -255,10 +261,10 @@ function Page({ context, site, doc, previewAs, interactive, onKey }: { context: 
           </SitePartFrame>
         )}
         {/* The draft theme, so colours on the page follow unpublished changes */}
-        <PageRenderer doc={doc} context={{ ...context, theme }} env={env} />
+        <PageRenderer doc={doc} context={{ ...context, theme }} env={env} className="flex-1" />
         {chrome && (
           <SitePartFrame id="@footer" className={schemeClass(design.footer?.scheme)}>
-            <StoreFooter store={store} socials={design.socials} showPoweredBy={design.showPoweredBy} />
+            <StoreFooter store={store} socials={design.socials} showPoweredBy={design.showPoweredBy} layout={layoutOf(theme).footer} />
           </SitePartFrame>
         )}
         {interactive && <BlockToolbar container={box} />}
@@ -272,7 +278,7 @@ function Page({ context, site, doc, previewAs, interactive, onKey }: { context: 
  * and footer around it exactly as buyers see them. "This section" isolates the selected section;
  * before/after puts the live page beside the draft.
  */
-export function Canvas({ context, published, className, previewAs, onKey }: { context: RenderContext; published?: PageDoc; className?: string; previewAs?: "light" | "dark"; onKey?: (e: KeyboardEvent) => void }) {
+export function Canvas({ context, published, className, previewAs, onKey, address = "" }: { context: RenderContext; published?: PageDoc; className?: string; previewAs?: "light" | "dark"; onKey?: (e: KeyboardEvent) => void; /** Shown in the desktop window's address bar */ address?: string }) {
   const doc = useEditor((s) => s.doc);
   const site = useEditor((s) => s.site);
   const selectedId = useEditor((s) => s.selectedId);
@@ -284,26 +290,24 @@ export function Canvas({ context, published, className, previewAs, onKey }: { co
 
   const section = selectedId && !isSitePart(selectedId) ? sectionOf(doc.blocks, selectedId) : undefined;
   const shown: PageDoc = focusSection && section ? { ...doc, blocks: [section], focus: true } : doc;
-  const width = DEVICE_WIDTH[device];
+  const screen = device === "desktop" ? Math.max(560, Math.min(SCREEN_HEIGHT.desktop, typeof window === "undefined" ? 720 : window.innerHeight - 200)) : SCREEN_HEIGHT[device];
 
   const frame = (d: PageDoc, label: string, interactive: boolean) => (
-    <div className="flex h-full min-w-0 flex-1 flex-col gap-2">
+    <div className="flex min-w-0 flex-1 flex-col gap-2">
       {compare && <p className="eyebrow text-center">{label}</p>}
-      <PreviewFrame
-        title={interactive ? "Page editor canvas" : "Live page"}
-        className="mx-auto block min-h-0 w-full flex-1 rounded-card border bg-background shadow-pop transition-[max-width] duration-300 motion-reduce:transition-none"
-        style={{ maxWidth: width }}
-      >
-        <Page context={context} site={site} doc={d} previewAs={previewAs} interactive={interactive} onKey={interactive ? onKey : undefined} />
-      </PreviewFrame>
+      <DeviceFrame device={device} address={address} dark={previewAs === "dark"}>
+        <PreviewFrame title={interactive ? "Page editor canvas" : "Live page"} className="block w-full border-0 bg-background" style={{ maxWidth: SCREEN_WIDTH[device] }} minHeight={device === "desktop" ? 480 : screen - 76}>
+          <Page context={context} site={site} doc={d} previewAs={previewAs} interactive={interactive} onKey={interactive ? onKey : undefined} screen={screen} />
+        </PreviewFrame>
+      </DeviceFrame>
     </div>
   );
 
   return (
-    <div className={cn("relative flex h-full flex-col bg-surface-sunken p-3 md:p-5", className)} aria-label="Page canvas" role="region">
+    <div className={cn("relative flex flex-col bg-surface-sunken p-3 md:p-6", className)} aria-label="Page canvas" role="region">
       {focusSection && !section && <p className="mb-3 text-center text-sm text-muted-foreground">Select a block to see its section on its own.</p>}
       {compare ? (
-        <div className="flex h-full min-h-0 flex-col gap-6 xl:flex-row">
+        <div className="flex flex-col gap-6 xl:flex-row xl:items-start">
           {published ? frame(published, "Live now", false) : <p className="flex-1 rounded-card border border-dashed p-8 text-center text-sm text-muted-foreground">Not published yet.</p>}
           {frame(shown, "Your draft", true)}
         </div>

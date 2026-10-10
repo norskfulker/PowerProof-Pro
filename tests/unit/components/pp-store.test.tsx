@@ -299,7 +299,7 @@ describe("lead blocks", () => {
     fireEvent.change(screen.getByLabelText("Email"), { target: { value: "ada@example.com" } });
     fireEvent.change(screen.getByLabelText(/What do you need/), { target: { value: "A planner" } });
     fireEvent.click(screen.getByRole("button", { name: "Send it" }));
-    await waitFor(() => expect(onLead).toHaveBeenCalledWith({ kind: "lead", name: "Ada", email: "ada@example.com", phone: undefined, data: { "What do you need?": "A planner" } }));
+    await waitFor(() => expect(onLead).toHaveBeenCalledWith({ kind: "lead", name: "Ada", email: "ada@example.com", phone: undefined, data: { Form: node.props.heading, "What do you need?": "A planner" } }));
     expect(await screen.findByText("Got it, thanks!")).toBeInTheDocument();
   });
 

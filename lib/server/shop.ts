@@ -6,7 +6,7 @@ import { sbAdmin } from "../supabase/admin";
 import type { Money, CurrencyCode } from "../types";
 import { shippingFrom, type ShipTo } from "../shipping";
 import { CheckoutError, priceOrder, type AskedLine, type CouponRow, type ProductRow } from "./checkout";
-import { receiptMail, sendMail, shippedMail } from "./email";
+import { newOrderMail, paymentFailedMail, payoutMail, receiptMail, refundMail, sendMail, shippedMail } from "./email";
 import { createGatewayOrder, GatewayError, razorpayConfig, refundPayment } from "./razorpay";
 
 /**
@@ -149,6 +149,7 @@ export async function createCheckout(input: CheckoutInput): Promise<CheckoutRepl
     const t = await db.rpc("issue_download_token", { p_order: orderId });
     const token = (t.data as string | null) ?? "";
     await mailReceipt(orderId, token).catch((e) => console.error("[mail] COD receipt failed", e instanceof Error ? e.message : e));
+    await mailNewOrder(orderId).catch((e) => console.error("[mail] new-order alert failed", e instanceof Error ? e.message : e));
     return { free: false, cod: true, orderId, token };
   }
 
@@ -219,6 +220,7 @@ export async function completePayment(gatewayOrderId: string, paymentId: string,
   if (!row.out_already_paid) {
     // The code's use is counted by the database when the order becomes paid (orders_coupon_use)
     await mailReceipt(row.out_order_id, token).catch((e) => console.error("[mail] receipt failed", e instanceof Error ? e.message : e));
+    await mailNewOrder(row.out_order_id).catch((e) => console.error("[mail] new-order alert failed", e instanceof Error ? e.message : e));
   }
   return { orderId: row.out_order_id, ref: row.out_ref, token };
 }
@@ -306,4 +308,88 @@ export async function refundOrder(orderId: string, reason: string): Promise<void
   }
   const r = await db.rpc("apply_refund", { p_order: orderId, p_gateway_refund_id: refundId, p_reason: reason });
   if (r.error) throw new CheckoutError("The money was refunded, but we couldn't update the order. Contact support.", 500);
+  await mailRefund(orderId, refundId.startsWith("free_")).catch((e) => console.error("[mail] refund email failed", e instanceof Error ? e.message : e));
+}
+
+/** The store's owner: where creator emails go */
+async function storeOwner(storeId: string) {
+  const db = sbAdmin();
+  const { data: store } = await db.from("stores").select("name, owner_id").eq("id", storeId).single();
+  if (!store) return null;
+  const { data: owner } = await db.from("profiles").select("email, full_name").eq("id", store.owner_id).maybeSingle();
+  return { store, email: owner?.email ?? null, name: owner?.full_name ?? "" };
+}
+
+/** Tells the creator a new order came in (paid, free, or cash on delivery) */
+export async function mailNewOrder(orderId: string) {
+  const db = sbAdmin();
+  const { data: o } = await db.from("orders").select("ref, buyer_name, currency, total_minor, store_id, payment_method, ship_to").eq("id", orderId).single();
+  if (!o) return;
+  const [who, { data: items }] = await Promise.all([storeOwner(o.store_id), db.from("order_items").select("title, line_total_minor, quantity, variant_title").eq("order_id", orderId)]);
+  if (!who?.email) return;
+  const fmt = (n: number) => formatMoney(money(n, o.currency));
+  const mail = newOrderMail({
+    storeName: who.store.name,
+    ownerName: who.name,
+    ref: o.ref,
+    buyerName: o.buyer_name,
+    lines: (items ?? []).map((i) => ({ title: `${i.title}${i.variant_title ? ` (${i.variant_title})` : ""}${i.quantity > 1 ? ` × ${i.quantity}` : ""}`, amount: fmt(Number(i.line_total_minor)) })),
+    total: fmt(Number(o.total_minor)),
+    cod: o.payment_method === "cod",
+    ships: !!o.ship_to,
+    orderUrl: `${siteUrl()}/sales/orders/${orderId}`,
+  });
+  return sendMail({ to: who.email, ...mail });
+}
+
+/** Tells the buyer their payment failed, with a way back to the store to try again */
+export async function mailPaymentFailed(orderId: string, reason?: string) {
+  const db = sbAdmin();
+  const { data: o } = await db.from("orders").select("ref, buyer_name, buyer_email, currency, total_minor, store_id").eq("id", orderId).single();
+  if (!o) return;
+  const { data: store } = await db.from("stores").select("name, slug, support_email").eq("id", o.store_id).single();
+  const mail = paymentFailedMail({
+    storeName: store?.name ?? "the store",
+    buyerName: o.buyer_name,
+    ref: o.ref,
+    total: formatMoney(money(Number(o.total_minor), o.currency)),
+    retryUrl: store ? `${siteUrl()}/s/${store.slug}` : `${siteUrl()}/lookup`,
+    reason: reason?.slice(0, 160),
+    supportEmail: store?.support_email ?? undefined,
+  });
+  return sendMail({ to: String(o.buyer_email), ...mail });
+}
+
+/** Tells the buyer the order was refunded. `cash`: nothing went through the gateway (free or cash on delivery). */
+export async function mailRefund(orderId: string, cash: boolean) {
+  const db = sbAdmin();
+  const { data: o } = await db.from("orders").select("ref, buyer_name, buyer_email, currency, total_minor, store_id, payment_method").eq("id", orderId).single();
+  if (!o || !Number(o.total_minor)) return;
+  const { data: store } = await db.from("stores").select("name, support_email").eq("id", o.store_id).single();
+  const t = await db.rpc("issue_download_token", { p_order: orderId });
+  const mail = refundMail({
+    storeName: store?.name ?? "the store",
+    buyerName: o.buyer_name,
+    ref: o.ref,
+    amount: formatMoney(money(Number(o.total_minor), o.currency)),
+    cash: cash || o.payment_method === "cod",
+    orderUrl: `${siteUrl()}/order/${(t.data as string | null) ?? ""}`,
+    supportEmail: store?.support_email ?? undefined,
+  });
+  return sendMail({ to: String(o.buyer_email), ...mail });
+}
+
+/** Tells the creator a payout reached their account, or came back */
+export async function mailPayout(gatewayPayoutId: string, ok: boolean, reason?: string) {
+  const db = sbAdmin();
+  const { data: p } = await db.from("payouts").select("amount_minor, currency, owner_id, method_id").eq("gateway_payout_id", gatewayPayoutId).maybeSingle();
+  if (!p) return;
+  const [{ data: owner }, { data: method }] = await Promise.all([
+    db.from("profiles").select("email, full_name").eq("id", p.owner_id).maybeSingle(),
+    db.from("payout_methods").select("bank_name, account_last4, upi_masked").eq("id", p.method_id).maybeSingle(),
+  ]);
+  if (!owner?.email) return;
+  const to = method?.account_last4 ? `${method.bank_name ?? "your bank"} account ending ${method.account_last4}` : method?.upi_masked ? `UPI ${method.upi_masked}` : "your payout account";
+  const mail = payoutMail({ ownerName: owner.full_name ?? "", amount: formatMoney(money(Number(p.amount_minor), p.currency)), to, ok, reason, payoutsUrl: `${siteUrl()}/sales/payouts/balance` });
+  return sendMail({ to: owner.email, ...mail });
 }

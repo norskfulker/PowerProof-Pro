@@ -63,11 +63,23 @@ const Anchors = createContext<Set<string>>(new Set());
 /* Scales                                                               */
 /* ------------------------------------------------------------------ */
 
-const PAD = { none: "py-0", sm: "py-6", md: "py-10 @3xl/page:py-14", lg: "py-14 @3xl/page:py-20", xl: "py-20 @3xl/page:py-28" } as const;
-const WIDTH = { narrow: "max-w-2xl", normal: "max-w-4xl", wide: "max-w-6xl", full: "max-w-none" } as const;
-const MIN_H = { auto: "", sm: "min-h-64", md: "min-h-96", lg: "min-h-[36rem]", screen: "min-h-svh" } as const;
+// Spacing, width and heading size scale with the site's layout (--pp-space, --pp-measure, --pp-display; lib/site-styles.ts)
+const PAD = {
+  none: "py-0",
+  sm: "py-[calc(1.5rem*var(--pp-space,1))]",
+  md: "py-[calc(2.5rem*var(--pp-space,1))] @3xl/page:py-[calc(3.5rem*var(--pp-space,1))]",
+  lg: "py-[calc(3.5rem*var(--pp-space,1))] @3xl/page:py-[calc(5rem*var(--pp-space,1))]",
+  xl: "py-[calc(5rem*var(--pp-space,1))] @3xl/page:py-[calc(7rem*var(--pp-space,1))]",
+} as const;
+const WIDTH = { narrow: "max-w-[calc(42rem*var(--pp-measure,1))]", normal: "max-w-[calc(56rem*var(--pp-measure,1))]", wide: "max-w-[calc(72rem*var(--pp-measure,1))]", full: "max-w-none" } as const;
+const MIN_H = { auto: "", sm: "min-h-64", md: "min-h-96", lg: "min-h-[36rem]", screen: "min-h-[var(--pp-screen,100svh)]" } as const;
 const GAP = { sm: "gap-3", md: "gap-5", lg: "gap-8" } as const;
-const HEADING = { sm: "text-xl @3xl/page:text-2xl", md: "text-2xl @3xl/page:text-3xl", lg: "text-[clamp(1.75rem,6cqw,2.75rem)]", xl: "text-[clamp(2.25rem,8cqw,4rem)]" } as const;
+const HEADING = {
+  sm: "text-[length:calc(1.25rem*var(--pp-display,1))] @3xl/page:text-[length:calc(1.5rem*var(--pp-display,1))]",
+  md: "text-[length:calc(1.5rem*var(--pp-display,1))] @3xl/page:text-[length:calc(1.875rem*var(--pp-display,1))]",
+  lg: "text-[length:calc(clamp(1.75rem,6cqw,2.75rem)*var(--pp-display,1))]",
+  xl: "text-[length:calc(clamp(2.25rem,8cqw,4rem)*var(--pp-display,1))]",
+} as const;
 const TEXT = { sm: "text-sm", md: "text-base", lg: "text-lg" } as const;
 const ASPECT = { auto: "", "1:1": "aspect-square", "4:3": "aspect-[4/3]", "16:9": "aspect-video", "3:4": "aspect-[3/4]" } as const;
 const SPACER = { sm: "h-4", md: "h-8", lg: "h-16", xl: "h-24" } as const;
@@ -410,7 +422,7 @@ function HeroBlock({ node }: { node: PageNode<"hero"> }) {
     <Painted node={node} outerClass="" innerClass={cn("grid items-center gap-8", split && p.image ? "grid-cols-1 @3xl/page:grid-cols-2" : "grid-cols-1")}>
         <div className={cn("flex min-w-0 flex-col gap-4", centered ? "items-center text-center" : node.style.align === "right" ? "items-end text-right" : "items-start text-left")}>
           <T node={node} path="eyebrow" value={p.eyebrow} optional as="p" placeholder="Small line above" className="text-sm font-semibold tracking-wide uppercase opacity-80" />
-          <T node={node} path="headline" value={p.headline} as={H} placeholder="Headline" className="font-display text-[clamp(2rem,7cqw,3.75rem)] leading-[1.02] font-extrabold tracking-[-0.03em] [overflow-wrap:anywhere]" />
+          <T node={node} path="headline" value={p.headline} as={H} placeholder="Headline" className="font-display text-[length:calc(clamp(2rem,7cqw,3.75rem)*var(--pp-display,1))] leading-[1.02] font-extrabold tracking-[-0.03em] [overflow-wrap:anywhere]" />
           <T node={node} path="subtext" value={p.subtext} optional as="p" multiline placeholder="A line under the headline" className="max-w-xl text-lg opacity-90 [overflow-wrap:anywhere]" />
           {(p.ctaLabel || p.cta2Label) && (
             <div className={cn("flex flex-wrap gap-3", centered ? "justify-center" : node.style.align === "right" && "justify-end")}>

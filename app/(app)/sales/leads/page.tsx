@@ -2,6 +2,10 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
+import { FormResponses } from "@/components/leads/form-responses";
+import { FORM_KEY } from "@/components/page-builder/lead-blocks";
+import { Segmented } from "@/components/pp/segmented";
 import type { ColumnDef } from "@tanstack/react-table";
 import { toast } from "sonner";
 import { Inbox, Trash2 } from "lucide-react";
@@ -25,6 +29,9 @@ const zoneOf = (l: Lead) => BOOKING_ZONES.find((z) => l.data["Time zone"]?.repla
 /** Everyone who filled in a form, booked a time or joined the newsletter on the store's pages. */
 export default function LeadsPage() {
   const { data, loading, error, reload } = useApi(getLeads, [], { live: true });
+  // Every lead in one list, or form answers as a table per form (?view=responses)
+  const router = useRouter();
+  const view = useSearchParams().get("view") === "responses" ? "responses" : "all";
   const [tab, setTab] = useState<Tab>("all");
   const [toDelete, setToDelete] = useState<Lead[]>();
   const [clearPicked, setClearPicked] = useState<() => void>();
@@ -52,7 +59,7 @@ export default function LeadsPage() {
         cell: ({ row: { original: l } }) => (
           <span className="flex flex-col items-start gap-1">
             <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium">{KIND[l.kind]}</span>
-            {l.pageTitle && <span className="text-xs text-muted-foreground">{l.pageTitle}</span>}
+            {(l.data[FORM_KEY] || l.pageTitle) && <span className="text-xs text-muted-foreground">{[l.data[FORM_KEY], l.pageTitle].filter(Boolean).join(" · ")}</span>}
           </span>
         ),
       },
@@ -64,7 +71,7 @@ export default function LeadsPage() {
         cell: ({ row: { original: l } }) => (
           <span className="flex max-w-md flex-col">
             {l.slotAt && <span className="font-medium">Booked for {when(l.slotAt, zoneOf(l))}{l.minutes ? ` · ${l.minutes} min` : ""}{l.data["Time zone"] ? ` (${l.data["Time zone"]})` : ""}</span>}
-            {Object.entries(l.data).filter(([k]) => k !== "Time zone").map(([k, v]) => <span key={k} className="text-muted-foreground"><span className="font-medium text-foreground">{k}:</span> {v}</span>)}
+            {Object.entries(l.data).filter(([k]) => k !== "Time zone" && k !== FORM_KEY).map(([k, v]) => <span key={k} className="text-muted-foreground"><span className="font-medium text-foreground">{k}:</span> {v}</span>)}
           </span>
         ),
       },
@@ -90,6 +97,17 @@ export default function LeadsPage() {
           </>
         }
       />
+      <Segmented
+        label="Show"
+        value={view}
+        onChange={(v) => router.replace(v === "responses" ? "/sales/leads?view=responses" : "/sales/leads", { scroll: false })}
+        options={[{ value: "all", label: "All leads" }, { value: "responses", label: "Form responses" }]}
+        className="mb-4"
+      />
+      {view === "responses" ? (
+        <FormResponses leads={data} loading={loading} error={error} onRetry={reload} />
+      ) : (
+      <>
       <StatusTabs
         label="Type of lead"
         value={tab}
@@ -141,7 +159,8 @@ export default function LeadsPage() {
             { header: "Phone", value: (l) => l.phone },
             { header: "Booked for", value: (l) => (l.slotAt ? when(l.slotAt, zoneOf(l)) : "") },
             { header: "Page", value: (l) => l.pageTitle },
-            { header: "Answers", value: (l) => Object.entries(l.data).map(([k, v]) => `${k}: ${v}`).join("; ") },
+            { header: "Form", value: (l) => l.data[FORM_KEY] },
+            { header: "Answers", value: (l) => Object.entries(l.data).filter(([k]) => k !== FORM_KEY).map(([k, v]) => `${k}: ${v}`).join("; ") },
             { header: "Received", value: (l) => l.createdAt },
           ],
         }}
@@ -164,6 +183,8 @@ export default function LeadsPage() {
           />
         }
       />
+      </>
+      )}
       <ConfirmDialog
         open={!!toDelete}
         onOpenChange={(o) => { if (!o) { setToDelete(undefined); setClearPicked(undefined); } }}

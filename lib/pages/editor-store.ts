@@ -88,6 +88,8 @@ export interface EditorState {
   reset: (doc: PageDoc, site?: SiteDraft) => void;
   /** Change the store-wide settings (undoable) */
   updateSite: (fn: (s: SiteDraft) => SiteDraft, coalesceKey?: string) => void;
+  /** Change the store-wide settings and re-lay this page out with them, as one undo step */
+  restyle: (fn: (s: SiteDraft) => SiteDraft, docFn: (d: PageDoc) => PageDoc) => void;
   /** Put a ready-made section (from SECTION_PRESETS) at the top level */
   insertSection: (section: PageNode, index?: number) => string | undefined;
   markSaved: (rev: number) => void;
@@ -237,6 +239,11 @@ export function createEditorStore(initial: PageDoc, initialSite?: SiteDraft) {
         const site = get().site;
         if (!site) return;
         commit(get().doc, coalesceKey ? `site:${coalesceKey}` : undefined, undefined, fn(site));
+      },
+      restyle: (fn, docFn) => {
+        const site = get().site;
+        if (!site) return;
+        commit(docFn(get().doc), undefined, undefined, fn(site));
       },
       insertSection: (section, index) => {
         const b = blocks();

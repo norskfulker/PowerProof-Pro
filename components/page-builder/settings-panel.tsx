@@ -257,7 +257,7 @@ function ContentForm({ node, set, context }: { node: PageNode; set: Patch; conte
           {p.source === "manual" && (
             <fieldset className="flex flex-col gap-1">
               <legend className="mb-1 text-sm font-medium">Products ({p.productIds.length})</legend>
-              <div className="max-h-56 overflow-y-auto rounded-control border">
+              <div className="rounded-control border">
                 {context.products.map((prod) => (
                   <label key={prod.id} className="flex min-h-11 cursor-pointer items-center gap-3 border-b px-3 text-sm last:border-b-0">
                     <input type="checkbox" className="size-4 accent-[var(--primary)]" checked={p.productIds.includes(prod.id)} onChange={(e) => set({ productIds: e.target.checked ? [...p.productIds, prod.id] : p.productIds.filter((x) => x !== prod.id) })} />

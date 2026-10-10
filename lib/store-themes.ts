@@ -1,3 +1,4 @@
+import { layoutVars } from "./site-styles";
 import { contrast, liftTo, mixHex, readableOn } from "./color";
 import { FONT_FAMILY, fontFaceCss } from "./fonts";
 import type { ColorScheme, FontPairId, HeroStyle, PaletteId, SchemeColors, SectionContent, SectionId, SectionKind, SectionSetting, StoreTheme } from "./types";
@@ -129,7 +130,7 @@ export function resolveStoreMode(theme: StoreTheme, siteMode: "light" | "dark", 
 
 /** CSS variables a theme sets on the store's root element, in light or dark. */
 export function themeVars(theme: StoreTheme, mode: "light" | "dark" = "light"): Record<string, string> {
-  return { ...paletteVars(theme, mode), ...brandVars(theme, mode), ...CORNERS[theme.corners ?? "soft"] };
+  return { ...paletteVars(theme, mode), ...brandVars(theme, mode), ...CORNERS[theme.corners ?? "soft"], ...layoutVars(theme) };
 }
 
 const CORNERS: Record<NonNullable<StoreTheme["corners"]>, Record<string, string>> = {

@@ -129,6 +129,26 @@ export interface StoreTheme {
   corners?: "sharp" | "soft" | "round";
   /** Named colour schemes sections pick from. Empty uses the five made from the palette. */
   schemes?: ColorScheme[];
+  /** The type of site (lib/site-styles.ts): every page of the store follows it. Empty is Blockwise. */
+  siteStyle?: SiteStyleId;
+  /** Changes to the type's layout, for the whole site. Anything left out follows the type. */
+  layout?: SiteLayout;
+}
+
+export type SiteStyleId = "blocks" | "freeflow" | "informational" | "editorial" | "minimal" | "bold";
+
+/** The whole site's layout */
+export interface SiteLayout {
+  /** How wide content runs */
+  width?: "narrow" | "standard" | "wide" | "full";
+  /** Space above and below sections */
+  spacing?: "compact" | "comfortable" | "airy";
+  /** How big headings are */
+  headings?: "small" | "medium" | "large" | "huge";
+  /** A thin line between sections */
+  dividers?: boolean;
+  /** The footer's arrangement */
+  footer?: "columns" | "centered" | "minimal";
 }
 
 /** The colours of one scheme in one mode. All hex. */

@@ -36,9 +36,35 @@ function syncHead(from: Document, to: Document, copies: Map<Element, Element>) {
 
 const SRC = "<!doctype html><html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'></head><body data-pp-frame></body></html>";
 
-export function PreviewFrame({ title, className, style, children }: { title: string; className?: string; style?: React.CSSProperties; children: React.ReactNode }) {
+/**
+ * `minHeight`: the frame is never shorter (a phone looks like a phone on an empty page). The frame
+ * always grows to the page's full height, so the editor scrolls as one page: nothing scrolls inside it.
+ */
+export function PreviewFrame({ title, className, style, minHeight = 0, children }: { title: string; className?: string; style?: React.CSSProperties; minHeight?: number; children: React.ReactNode }) {
   const ref = useRef<HTMLIFrameElement>(null);
   const [mount, setMount] = useState<HTMLElement | null>(null);
+  const [height, setHeight] = useState<number>();
+
+  // Follow the page's height; observed from the frame's own window, where its layout runs
+  useEffect(() => {
+    // The same element as `mount`, looked up so it can be styled
+    const root = mount ? ref.current?.contentDocument?.getElementById("pp-canvas-root") : null;
+    if (!root) return;
+    root.style.minHeight = `${minHeight}px`;
+    const win = root.ownerDocument.defaultView as (Window & typeof globalThis) | null;
+    if (!win) return;
+    const measure = () => setHeight(Math.ceil(root.getBoundingClientRect().height));
+    const ro = new win.ResizeObserver(measure);
+    ro.observe(root);
+    // Edits to the page also re-measure straight away, without waiting for the next layout pass
+    const mo = new win.MutationObserver(measure);
+    mo.observe(root, { childList: true, subtree: true, characterData: true, attributes: true });
+    measure();
+    return () => {
+      ro.disconnect();
+      mo.disconnect();
+    };
+  }, [mount, minHeight]);
 
   useEffect(() => {
     const frame = ref.current;
@@ -51,8 +77,24 @@ export function PreviewFrame({ title, className, style, children }: { title: str
       const copies = new Map<Element, Element>();
       syncHead(document, doc, copies);
       doc.body.setAttribute("style", "margin:0");
+      // The frame is as tall as the page, so it never scrolls (or bounces) on its own
+      doc.documentElement.style.overflow = "hidden";
+      // The wheel over the page scrolls the editor (the frame itself never scrolls). Handled here
+      // rather than left to the browser, which doesn't always pass it on from a frame.
+      doc.addEventListener(
+        "wheel",
+        (e) => {
+          if (e.ctrlKey) return; // pinch-zoom
+          const unit = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? window.innerHeight : 1;
+          e.preventDefault();
+          window.scrollBy({ left: e.deltaX * unit, top: e.deltaY * unit });
+        },
+        { passive: false }
+      );
       const root = doc.createElement("div");
       root.id = "pp-canvas-root";
+      root.style.display = "flex";
+      root.style.flexDirection = "column";
       doc.body.appendChild(root);
       setMount(root);
       // Styles added later (route chunks, hot reload) follow
@@ -70,7 +112,7 @@ export function PreviewFrame({ title, className, style, children }: { title: str
 
   return (
     <>
-      <iframe ref={ref} title={title} className={className} style={style} srcDoc={SRC} />
+      <iframe ref={ref} title={title} className={className} style={{ ...style, height: height ? Math.max(height, minHeight) : minHeight || undefined }} srcDoc={SRC} scrolling="no" />
       {mount && createPortal(<FrameDoc.Provider value={mount.ownerDocument}>{children}</FrameDoc.Provider>, mount)}
     </>
   );

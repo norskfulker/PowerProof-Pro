@@ -278,7 +278,7 @@ export function TableEditor({ rows, onChange }: { rows: string[][]; onChange: (r
   const norm = rows.map((r) => Array.from({ length: cols }, (_, i) => r[i] ?? ""));
   return (
     <div className="flex flex-col gap-2">
-      <div className="max-h-80 overflow-auto rounded-control border">
+      <div className="overflow-x-auto rounded-control border">
         <table className="w-full text-sm">
           <tbody>
             {norm.map((r, i) => (

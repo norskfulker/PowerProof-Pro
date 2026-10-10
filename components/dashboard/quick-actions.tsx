@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { GuardedLink } from "@/components/plan/plan-context";
-import { ArrowUpRight, Link2, Plus, Wallet } from "lucide-react";
+import { ArrowUpRight, Brush, Link2, Plus, Receipt, ShoppingBag, Wallet, type LucideIcon } from "lucide-react";
 import { copyText } from "@/components/pp/copy-field";
 import { markLinkShared } from "@/lib/api";
 import { SITE_URL } from "@/lib/format";
@@ -11,9 +11,23 @@ import type { Store } from "@/lib/types";
 const tile =
   "flex min-h-24 min-w-0 flex-col justify-between gap-3 rounded-card border bg-surface p-3 text-left sm:p-4 transition-[border-color,transform] duration-150 hover:-translate-y-0.5 hover:border-border-strong";
 
+function Shortcut({ href, icon: Icon, label, tone }: { href: string; icon: LucideIcon; label: string; tone: string }) {
+  return (
+    <Link href={href} className={tile}>
+      <span className="flex items-center justify-between">
+        <span className={`grid size-9 place-items-center rounded-control ${tone}`}>
+          <Icon className="size-4" aria-hidden />
+        </span>
+        <ArrowUpRight className="size-4 text-muted-foreground" aria-hidden />
+      </span>
+      <span className="text-sm font-semibold">{label}</span>
+    </Link>
+  );
+}
+
 export function QuickActions({ store }: { store?: Store }) {
   return (
-    <nav aria-label="Quick actions" className="grid grid-cols-3 gap-3">
+    <nav aria-label="Quick actions" className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
       <GuardedLink kind="products" href="/catalog/products/new" className={tile}>
         <span className="grid size-9 place-items-center rounded-control bg-primary text-primary-foreground">
           <Plus className="size-4" aria-hidden />
@@ -34,15 +48,10 @@ export function QuickActions({ store }: { store?: Store }) {
         </span>
         <span className="text-sm font-semibold">Copy store link</span>
       </button>
-      <Link href="/sales/payouts/balance?withdraw=1" className={tile}>
-        <span className="flex items-center justify-between">
-          <span className="grid size-9 place-items-center rounded-control bg-accent-soft text-accent-ink">
-            <Wallet className="size-4" aria-hidden />
-          </span>
-          <ArrowUpRight className="size-4 text-muted-foreground" aria-hidden />
-        </span>
-        <span className="text-sm font-semibold">Withdraw</span>
-      </Link>
+      <Shortcut href="/sales/orders" icon={Receipt} label="My orders" tone="bg-primary-soft text-primary" />
+      <Shortcut href={`/store/${store?.id ?? "current"}/design/pages/home/edit`} icon={Brush} label="Edit store" tone="bg-primary-soft text-primary" />
+      <Shortcut href="/marketplace" icon={ShoppingBag} label="Marketplace" tone="bg-accent-soft text-accent-ink" />
+      <Shortcut href="/sales/payouts/balance?withdraw=1" icon={Wallet} label="Withdraw" tone="bg-accent-soft text-accent-ink" />
     </nav>
   );
 }

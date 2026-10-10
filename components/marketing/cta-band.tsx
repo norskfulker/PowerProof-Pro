@@ -1,6 +1,6 @@
-import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { StartLink } from "./start-link";
 
 export function CtaBand({
   title = "Your store is three minutes away.",
@@ -17,9 +17,9 @@ export function CtaBand({
           <p className="mt-2 text-primary-foreground/90">{body}</p>
         </div>
         <Button asChild size="lg" variant="brass">
-          <Link href="/signup">
+          <StartLink signedIn={<>Go to dashboard <ArrowRight /></>}>
             Start free <ArrowRight />
-          </Link>
+          </StartLink>
         </Button>
       </div>
     </section>

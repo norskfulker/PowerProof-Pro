@@ -59,7 +59,7 @@ export function AddPageDialog({ open, onOpenChange, beforeLeave }: { open: boole
       <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle className="font-display text-xl">Add page</DialogTitle>
-          <DialogDescription>Pick a starting point. Every block can be changed or removed.</DialogDescription>
+          <DialogDescription>Pick a starting point. It&apos;s laid out in your site template (Theme › Site template), like every other page. Every block can be changed or removed.</DialogDescription>
         </DialogHeader>
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="np-title">Page name</Label>
