@@ -30,9 +30,10 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
+# env files. .env.local is committed ENCRYPTED (dotenvx); the key to read it (.env.keys) never is.
 .env*
 !.env.example
+!.env.local
 
 # cloudflare workers (OpenNext build output, wrangler state, local secrets)
 .open-next

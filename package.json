@@ -3,18 +3,21 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
+    "dev": "dotenvx run -f .env.local --ignore=MISSING_ENV_FILE -- next dev",
+    "build": "dotenvx run -f .env.local --ignore=MISSING_ENV_FILE -- next build",
+    "start": "dotenvx run -f .env.local --ignore=MISSING_ENV_FILE -- next start",
     "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
     "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
     "upload": "opennextjs-cloudflare build && opennextjs-cloudflare upload",
     "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts",
+    "env:set": "dotenvx set -f .env.local",
+    "env:check": "node .githooks/check-env.mjs",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:all": "npm run typecheck && npm run lint && npm run test && npm run build"
+    "test:all": "npm run typecheck && npm run lint && npm run test && npm run build",
+    "prepare": "git config core.hooksPath .githooks || true"
   },
   "dependencies": {
     "@google/genai": "2.24.0",
@@ -46,6 +49,7 @@
     "zustand": "^5.0.15"
   },
   "devDependencies": {
+    "@dotenvx/dotenvx": "2.30.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^24.19.1",
     "@types/react": "^19",

@@ -7,10 +7,18 @@ The app talks to **Supabase only**. There is no demo mode, no mock data layer an
 ## Run it
 
 ```bash
-# make .env.local with NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY and NEXT_PUBLIC_SITE_URL
 npm install
 npm run dev
 ```
+
+### Settings and secrets (`.env.local`, encrypted)
+
+`.env.local` is committed, **encrypted** with [dotenvx](https://dotenvx.com): every value in it reads `encrypted:…`, so the file is safe in the (public) repo. `npm run dev`, `build` and `start` decrypt it on the fly. The one key that decrypts it is in **`.env.keys`**, which is never committed.
+
+- **On a new device:** clone, `npm install`, then create `.env.keys` in the project folder with the line `DOTENV_PRIVATE_KEY_LOCAL=…` (copy it from your password manager or the old device). That's all; `npm run dev` works.
+- **Change or add a value:** `npm run env:set -- NAME "value"` (it's encrypted as it's written). To see a value: `npx dotenvx get NAME -f .env.local`.
+- **Never commit `.env.keys`**, and never edit `.env.local` in plain text. A pre-commit check (`.githooks/check-env.mjs`, switched on by `npm install`) stops a commit that would put a readable secret or the key file in git.
+- Building somewhere else (CI, Cloudflare's build): set `DOTENV_PRIVATE_KEY_LOCAL` as a secret environment variable there.
 
 Open http://localhost:3000. If the Supabase variables are missing the app says so and stops; it never falls back to made-up data.
 
