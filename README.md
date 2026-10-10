@@ -15,7 +15,8 @@ npm run dev
 
 `.env.local` is committed, **encrypted** with [dotenvx](https://dotenvx.com): every value in it reads `encrypted:…`, so the file is safe in the (public) repo. `npm run dev`, `build` and `start` decrypt it on the fly. The one key that decrypts it is in **`.env.keys`**, which is never committed.
 
-- **On a new device:** clone, `npm install`, then create `.env.keys` in the project folder with the line `DOTENV_PRIVATE_KEY_LOCAL=…` (copy it from your password manager or the old device). That's all; `npm run dev` works.
+- **On a new device:** clone, `npm install`, then `npm run env:key` and paste the key (the `DOTENV_PRIVATE_KEY_LOCAL=…` line from your password manager or the old device's `.env.keys`). Then `npm run dev`. Don't make `.env.keys` with PowerShell's `echo … >`: it saves UTF-16, which dotenvx can't read (`npm run dev` repairs such a file by itself now).
+- `npm run dev`, `build` and `start` first check this computer can unlock `.env.local` (`scripts/env.mjs check`), and say what's wrong if not, instead of starting with scrambled settings.
 - **Change or add a value:** `npm run env:set -- NAME "value"` (it's encrypted as it's written). To see a value: `npx dotenvx get NAME -f .env.local`.
 - **Never commit `.env.keys`**, and never edit `.env.local` in plain text. A pre-commit check (`.githooks/check-env.mjs`, switched on by `npm install`) stops a commit that would put a readable secret or the key file in git.
 - Building somewhere else (CI, Cloudflare's build): set `DOTENV_PRIVATE_KEY_LOCAL` as a secret environment variable there.
