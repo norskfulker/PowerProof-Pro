@@ -19,7 +19,7 @@ npm run dev
 - `npm run dev`, `build` and `start` first check this computer can unlock `.env.local` (`scripts/env.mjs check`), and say what's wrong if not, instead of starting with scrambled settings.
 - **Change or add a value:** `npm run env:set -- NAME "value"` (it's encrypted as it's written). To see a value: `npx dotenvx get NAME -f .env.local`.
 - **Never commit `.env.keys`**, and never edit `.env.local` in plain text. A pre-commit check (`.githooks/check-env.mjs`, switched on by `npm install`) stops a commit that would put a readable secret or the key file in git.
-- Building somewhere else (CI, Cloudflare's build): set `DOTENV_PRIVATE_KEY_LOCAL` as a secret environment variable there.
+- Building somewhere else (CI, Cloudflare's build): either set `DOTENV_PRIVATE_KEY_LOCAL` as a secret environment variable there so `.env.local` unlocks, or set the plain values instead — `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_SITE_URL` for the build, server secrets at runtime. The build passes either way and never uses half-unlocked settings.
 
 Open http://localhost:3000. If the Supabase variables are missing the app says so and stops; it never falls back to made-up data.
 

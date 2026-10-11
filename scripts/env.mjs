@@ -15,6 +15,9 @@ import { createInterface } from "node:readline";
 const ENV = ".env.local";
 const KEYS = ".env.keys";
 const NAME = "DOTENV_PRIVATE_KEY_LOCAL";
+/** Settings the build bakes into the client bundle. When these are set here in plain text,
+ *  the app never touches the locked file, so decryption is optional (CI, Cloudflare's build). */
+const PUBLIC_SETTINGS = ["NEXT_PUBLIC_SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_ANON_KEY", "NEXT_PUBLIC_SITE_URL"];
 const require = createRequire(import.meta.url);
 // dotenvx's command line, next to its main file (the package doesn't export the path itself)
 const cli = join(dirname(require.resolve("@dotenvx/dotenvx")), "..", "cli", "dotenvx.js");
@@ -56,6 +59,16 @@ function canDecrypt() {
   }
 }
 
+/** Whether every build setting is set in this computer's environment already, in plain text
+ *  (not an undecrypted `encrypted:…` value leaking in from somewhere). dotenvx never overrides
+ *  these, so the build uses them and the locked file is ignored. */
+function hasPlainSettings() {
+  return PUBLIC_SETTINGS.every((k) => {
+    const v = process.env[k];
+    return !!v && !v.startsWith("encrypted:");
+  });
+}
+
 function help() {
   say(`
   To fix it, give this computer the key (it's the ${NAME}=... line in .env.keys on a computer
@@ -64,6 +77,10 @@ function help() {
       npm run env:key
 
   and paste the key when asked. Don't create .env.keys with ${win ? "PowerShell's echo or >" : "a shell redirect"}: ${win ? "that saves it in a format dotenvx can't read." : "use the command above so it's saved correctly."}
+
+  Building somewhere else (CI, Cloudflare's build): instead of the key, you can set the plain
+  values there — ${PUBLIC_SETTINGS.join(", ")} for the build, server secrets at runtime
+  (wrangler secret put, or the dashboard). The build passes either way.
 `);
 }
 
@@ -78,6 +95,12 @@ function check() {
     }
   }
   if (canDecrypt()) return;
+  // No key here, but the build's own settings are set in plain text (CI, Cloudflare): dotenvx
+  // leaves those alone, so the locked file is never read and the build uses the real values.
+  if (hasPlainSettings()) {
+    say(`\n✓ Using the settings from this computer's environment (${PUBLIC_SETTINGS.join(", ")}); ${ENV} stays locked. Anything the app still needs (server secrets) must come from the environment too.`);
+    return;
+  }
   const envVar = process.env[NAME] || process.env.DOTENV_PRIVATE_KEY;
   say(`\n✗ This computer can't unlock the settings in ${ENV}.`);
   if (envVar) say(`\n  ${process.env[NAME] ? NAME : "DOTENV_PRIVATE_KEY"} is set in this terminal's environment, but it isn't the right key. Remove it${win ? ` (PowerShell: Remove-Item Env:${process.env[NAME] ? NAME : "DOTENV_PRIVATE_KEY"})` : ""}, or set the right one.`);
