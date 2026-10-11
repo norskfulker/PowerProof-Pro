@@ -8,7 +8,7 @@ const data: NavData = {
   locked: new Set(["customDomain"]),
 };
 const tree = resolveNav(CREATOR_NAV, data);
-const storeTree = resolveNav(STORE_NAV, data, ["Store"]);
+const storeTree = resolveNav(STORE_NAV, data, ["My Store"]);
 const walk = (nodes: NavNode[]): NavNode[] => nodes.flatMap((n) => [n, ...(n.children ? walk(n.children) : [])]);
 
 describe("nav config", () => {
@@ -19,8 +19,8 @@ describe("nav config", () => {
       for (const n of all) if (!n.children?.length) expect(n.href, n.id).toBeTruthy();
     }
   });
-  it("keeps the nested groups in business-flow order: Catalog, Sales, then Store", () => {
-    expect(CREATOR_NAV.map((g) => g.label)).toEqual(["Dashboard", "Catalog", "Sales", "Store", "Marketplace", "Tools", "Settings"]);
+  it("keeps the nested groups in business-flow order: Marketplace below Dashboard, Catalog, Sales, then My Store", () => {
+    expect(CREATOR_NAV.map((g) => g.label)).toEqual(["Dashboard", "Marketplace", "Catalog", "Store Data", "My Store", "Tools", "Settings"]);
     expect(ADMIN_NAV.map((g) => g.label)).toEqual(["Overview", "Creators", "Stores", "Products", "Orders", "Money", "Moderation", "System"]);
   });
   it("puts Home, Products, Orders and Settings in the tab bar", () => {
@@ -56,24 +56,26 @@ describe("resolveNav", () => {
     expect(flat.find((n) => n.id === "settings-domain")?.locked).toBe("customDomain");
     expect(flat.find((n) => n.id === "settings-domain")?.href).toBe("/store/store_fx/domain");
   });
-  it("makes Store one plain sidebar item whose sections are tabs, and Store settings sit in Settings without an icon", () => {
+  it("makes My Store one plain sidebar item whose sections are tabs, and Store settings sit in Settings without an icon", () => {
     const store = tree.find((g) => g.id === "store")!;
     expect(store.href).toBe("/store/store_fx/design/pages/home/edit");
     expect(store.children).toBeUndefined();
     expect(storeTree.map((t) => t.label)).toEqual(["Design", "Policies", "Offers", "SEO"]);
   });
-  it("opens Pages, About, FAQ, reviews and questions as panels of the store editor, still found by search with their badges", () => {
+  it("opens Pages and FAQ as panels of the store editor, and About, reviews and questions under Policies, all found by search with their badges", () => {
     const design = storeTree.find((t) => t.id === "design")!;
     const panels = design.children!.filter((c) => c.inEditor);
-    expect(panels.map((c) => c.label)).toEqual(["Pages", "About", "FAQ", "Reviews", "Questions"]);
-    expect(panels.find((c) => c.id === "reviews")).toMatchObject({ href: "/store/store_fx/design/pages/home/edit?panel=reviews", count: 3 });
+    expect(panels.map((c) => c.label)).toEqual(["Pages", "FAQ"]);
+    const policies = storeTree.find((t) => t.id === "policies")!;
+    expect(policies.children!.map((c) => c.label)).toEqual(["Refund", "Terms", "Privacy", "About", "Reviews", "Questions"]);
+    expect(policies.children!.find((c) => c.id === "reviews")).toMatchObject({ href: "/store/store_fx/design/pages/home/edit?panel=reviews", count: 3 });
     expect(navSearch(storeTree, "faq")[0].href).toBe("/store/store_fx/design/pages/home/edit?panel=faq");
     const settings = tree.find((g) => g.id === "settings")!.children!.find((c) => c.id === "settings-store")!;
     expect(settings.href).toBe("/store/store_fx/settings");
     expect(settings.icon).toBeUndefined();
   });
   it("makes groups only open and close: they have no page of their own", () => {
-    for (const id of ["catalog", "sales", "tools", "settings"]) {
+    for (const id of ["catalog", "marketplace", "sales", "tools", "settings"]) {
       const g = tree.find((x) => x.id === id)!;
       expect(g.href, id).toBeUndefined();
       expect(g.children?.length, id).toBeGreaterThan(0);
@@ -86,7 +88,8 @@ describe("resolveNav", () => {
       expect(n.href, id).toBeTruthy();
       expect(n.children, id).toBeUndefined();
     }
-    expect(tree.find((g) => g.id === "catalog")!.children!.map((c) => c.label)).toEqual(["Collections", "Products", "Bundles", "Marketplace deals", "Media library"]);
+    expect(tree.find((g) => g.id === "catalog")!.children!.map((c) => c.label)).toEqual(["Collections", "Products", "Bundles", "Media library"]);
+    expect(tree.find((g) => g.id === "marketplace")!.children!.map((c) => c.label)).toEqual(["Browse", "My deals"]);
     expect(tree.find((g) => g.id === "sales")!.children!.map((c) => c.label)).toEqual(["Orders", "Customers", "Leads", "Payouts"]);
   });
 });
@@ -97,7 +100,7 @@ describe("activeTrail", () => {
     expect(activeTrail(tree, "/catalog/products", "").map((n) => n.label)).toEqual(["Catalog", "Products"]);
   });
   it("covers detail pages with match prefixes", () => {
-    expect(activeTrail(tree, "/sales/orders/ord_1078").map((n) => n.label)).toEqual(["Sales", "Orders"]);
+    expect(activeTrail(tree, "/sales/orders/ord_1078").map((n) => n.label)).toEqual(["Store Data", "Orders"]);
     expect(activeTrail(storeTree, "/store/store_fx/pages/policies/refund").map((n) => n.label)).toEqual(["Policies", "Refund"]);
   });
   it("returns nothing for pages outside the menu", () => {

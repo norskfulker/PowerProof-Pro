@@ -74,6 +74,8 @@ export const layoutSchema = z.object({
   gap: z.enum(["sm", "md", "lg"]).default("md"),
   /** Sections: the background and colour scheme cover the whole width, or only a panel behind the content */
   fill: z.enum(["full", "content"]).default("full"),
+  /** Sections and heroes: where the content sits when the section is taller than it (top, middle, bottom) */
+  valign: z.enum(["start", "center", "end"]).default("center"),
 });
 export type BlockLayout = z.infer<typeof layoutSchema>;
 
@@ -237,7 +239,8 @@ export const CHILDREN = {
   root: ["section", "hero"],
   section: ["columns", ...CONTENT_TYPES],
   columns: ["column"],
-  column: CONTENT_TYPES.filter((t) => t !== "cards"),
+  // Columns sit side by side already: nesting more columns inside one squeezes blocks until they overflow
+  column: CONTENT_TYPES.filter((t) => t !== "cards" && t !== "columns"),
   cards: ["card"],
   card: [],
   hero: [],

@@ -77,7 +77,7 @@ export default function MyDealsPage() {
   return (
     <>
       <PageHeader
-        title="Marketplace deals"
+        title="My deals"
         description="List a product as a deal for buyers to find: a one-time payment or a subscription, with your price next to the original."
         actions={
           <>

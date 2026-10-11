@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { usePlan } from "@/components/plan/plan-context";
+import { SetupJourney } from "@/components/onboarding/setup-journey";
 import { PageHeader } from "@/components/pp/page-header";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useCurrentStore } from "@/hooks/use-current-store";
@@ -23,7 +24,10 @@ export function NewProductForm({ type, wizard = false }: { type: "digital" | "ph
   return (
     <>
       {wizard ? (
-        <PageHeader title="Add your first product" description="Three short steps. You can change anything afterwards." />
+        <>
+          <SetupJourney current={1} />
+          <PageHeader title="Add your first product" description="Three short steps. You can change anything afterwards." />
+        </>
       ) : (
         <PageHeader
           back={{ href: "/catalog/products/new", label: "Digital or physical" }}

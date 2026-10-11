@@ -74,6 +74,8 @@ const PAD = {
 const WIDTH = { narrow: "max-w-[calc(42rem*var(--pp-measure,1))]", normal: "max-w-[calc(56rem*var(--pp-measure,1))]", wide: "max-w-[calc(72rem*var(--pp-measure,1))]", full: "max-w-none" } as const;
 const MIN_H = { auto: "", sm: "min-h-64", md: "min-h-96", lg: "min-h-[36rem]", screen: "min-h-[var(--pp-screen,100svh)]" } as const;
 const GAP = { sm: "gap-3", md: "gap-5", lg: "gap-8" } as const;
+/** Vertical alignment for sections/heroes taller than their content (top, middle, bottom) */
+const VALIGN = { start: "justify-start", center: "justify-center", end: "justify-end" } as const;
 const HEADING = {
   sm: "text-[length:calc(1.25rem*var(--pp-display,1))] @3xl/page:text-[length:calc(1.5rem*var(--pp-display,1))]",
   md: "text-[length:calc(1.5rem*var(--pp-display,1))] @3xl/page:text-[length:calc(1.875rem*var(--pp-display,1))]",
@@ -381,16 +383,16 @@ function Painted({ node, outerClass, innerClass, children }: { node: PageNode; o
   const layer = <BackgroundLayer bg={s.background} overlay={s.overlay} overlayColor={s.overlayColor} />;
   if (!panel) {
     return (
-      <Frame node={node} as="section" className={cn("relative isolate flex flex-col justify-center px-4 @3xl/page:px-8", PAD[node.layout.paddingY], MIN_H[node.layout.minHeight], outerClass)} style={paint}>
+      <Frame node={node} as="section" className={cn("relative isolate flex flex-col px-4 @3xl/page:px-8", PAD[node.layout.paddingY], MIN_H[node.layout.minHeight], VALIGN[node.layout.valign ?? "center"], RADIUS[s.radius], s.radius !== "none" && "overflow-hidden", s.border && "border border-current/15", s.shadow === "soft" && "shadow-pop", outerClass)} style={paint}>
         {layer}
         <div className={cn("mx-auto w-full", WIDTH[node.layout.width], innerClass)}>{children}</div>
       </Frame>
     );
   }
   return (
-    <Frame node={node} bare as="section" className={cn("relative flex flex-col justify-center px-4 @3xl/page:px-8", PAD[node.layout.paddingY === "none" ? "none" : "sm"], outerClass)}>
+    <Frame node={node} bare as="section" className={cn("relative flex flex-col px-4 @3xl/page:px-8", PAD[node.layout.paddingY === "none" ? "none" : "sm"], VALIGN[node.layout.valign ?? "center"], outerClass)}>
       <div
-        className={cn("relative isolate mx-auto flex w-full flex-col justify-center overflow-hidden rounded-card px-5 @3xl/page:px-10", WIDTH[node.layout.width === "full" ? "wide" : node.layout.width], PAD[node.layout.paddingY], MIN_H[node.layout.minHeight], schemeClass(s.scheme), s.border && "border border-current/15", s.shadow === "soft" && "shadow-pop")}
+        className={cn("relative isolate mx-auto flex w-full flex-col overflow-hidden px-5 @3xl/page:px-10", s.radius === "none" ? "rounded-card" : RADIUS[s.radius], WIDTH[node.layout.width === "full" ? "wide" : node.layout.width], PAD[node.layout.paddingY], MIN_H[node.layout.minHeight], VALIGN[node.layout.valign ?? "center"], schemeClass(s.scheme), s.border && "border border-current/15", s.shadow === "soft" && "shadow-pop")}
         style={paint}
       >
         {layer}

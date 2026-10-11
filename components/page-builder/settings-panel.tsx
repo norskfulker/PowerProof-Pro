@@ -587,11 +587,17 @@ export function SettingsPanel({ context, mode = "light" }: { context: RenderCont
         </TabsContent>
         <TabsContent value="style" className="mt-4 flex flex-col gap-4">
           <SchemeField value={node.style.scheme ?? ""} onChange={(scheme) => updateStyle(node.id, { scheme })} theme={theme} mode={mode} />
+          {container ? (
+            <p className="-mt-2 text-xs text-muted-foreground">The section follows the store theme. Blocks inside keep their own colours and corners.</p>
+          ) : (
+            <p className="-mt-2 text-xs text-muted-foreground">Empty follows the section around it. Anything you pick here styles only this block.</p>
+          )}
           {container && (
             <ChoiceField label="Background covers" value={node.layout.fill ?? "full"} onChange={(fill) => updateLayout(node.id, { fill })} options={[{ value: "full", label: "Whole width" }, { value: "content", label: "Content area" }]} />
           )}
           {container && <BackgroundPicker style={node.style} context={context} onChange={(patch, key) => updateStyle(node.id, patch, key)} />}
-          <ChoiceField label="Corners" value={node.style.radius} onChange={(radius) => updateStyle(node.id, { radius })} options={[{ value: "none", label: "Square" }, { value: "sm", label: "S" }, { value: "md", label: "M" }, { value: "lg", label: "L" }]} />
+          <ChoiceField label="Corners" value={node.style.radius} onChange={(radius) => updateStyle(node.id, { radius })} options={[{ value: "none", label: "Default" }, { value: "sm", label: "S" }, { value: "md", label: "M" }, { value: "lg", label: "L" }]} />
+          <p className="-mt-2 text-xs text-muted-foreground">Default keeps the usual shape (rounded panels, square otherwise). S, M and L set it exactly, for this block only.</p>
           <SwitchField label="Border" checked={node.style.border} onChange={(border) => updateStyle(node.id, { border })} />
           <ChoiceField label="Shadow" value={node.style.shadow} onChange={(shadow) => updateStyle(node.id, { shadow })} options={[{ value: "none", label: "None" }, { value: "soft", label: "Soft" }]} />
         </TabsContent>
@@ -606,6 +612,9 @@ export function SettingsPanel({ context, mode = "light" }: { context: RenderCont
               <SelectField label="Width" value={node.layout.width} onChange={(width) => updateLayout(node.id, { width })} options={[{ value: "narrow", label: "Narrow" }, { value: "normal", label: "Normal" }, { value: "wide", label: "Wide" }, { value: "full", label: "Full width" }]} />
               <SelectField label="Space above and below" value={node.layout.paddingY} onChange={(paddingY) => updateLayout(node.id, { paddingY })} options={[{ value: "none", label: "None" }, { value: "sm", label: "Small" }, { value: "md", label: "Medium" }, { value: "lg", label: "Large" }, { value: "xl", label: "Extra large" }]} />
               <SelectField label="Height" value={node.layout.minHeight} onChange={(minHeight) => updateLayout(node.id, { minHeight })} options={[{ value: "auto", label: "Fit content" }, { value: "sm", label: "Short" }, { value: "md", label: "Medium" }, { value: "lg", label: "Tall" }, { value: "screen", label: "Full screen" }]} />
+              {(node.type === "section" || node.type === "hero") && node.layout.minHeight !== "auto" && (
+                <ChoiceField label="Line up vertically" value={node.layout.valign ?? "center"} onChange={(valign) => updateLayout(node.id, { valign })} options={[{ value: "start", label: "Top" }, { value: "center", label: "Middle" }, { value: "end", label: "Bottom" }]} />
+              )}
             </>
           )}
           {(container || node.type === "column" || node.type === "columns") && (

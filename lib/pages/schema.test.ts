@@ -105,6 +105,8 @@ describe("schema rules", () => {
   it("only allows the documented children", () => {
     expect(CHILDREN.root).toEqual(["section", "hero"]);
     expect(CHILDREN.columns).toEqual(["column"]);
+    expect(CHILDREN.column).not.toContain("columns");
+    expect(CHILDREN.column).not.toContain("cards");
     expect(CHILDREN.heading).toEqual([]);
   });
 });

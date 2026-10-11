@@ -3,11 +3,14 @@
 import { useEffect, useRef, useState } from "react";
 import { ArrowDown, ArrowUp, ChevronRight, Copy, Eye, EyeOff, GripVertical, Megaphone, PanelBottom, PanelTop, Plus, Trash2 } from "lucide-react";
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuSeparator, ContextMenuTrigger } from "@/components/ui/context-menu";
+import { Segmented } from "@/components/pp/segmented";
 import { toast } from "sonner";
+import type { RenderContext } from "@/lib/api";
 import { BLOCK_LABELS } from "@/lib/pages/editor-store";
 import { CHILDREN, findNode, locate, sectionOf, type PageNode } from "@/lib/pages/schema";
 import { cn } from "@/lib/utils";
 import { BLOCK_ICONS } from "./add-block-menu";
+import { AiChat } from "./ai-chat";
 import { SITE_PARTS, type SitePart } from "./canvas";
 import { useEditor, useEditorStore } from "./editor-context";
 
@@ -45,11 +48,36 @@ function Row({ node, depth, index, count, open, onToggle, drag, drop, startDrag 
   startDrag: (id: string, e: React.PointerEvent) => void;
 }) {
   const selectedId = useEditor((s) => s.selectedId);
-  const { select, moveBy, updateVisibility, duplicate, remove, undo } = useEditor((s) => s);
+  const { select, moveBy, updateVisibility, updateProps, duplicate, remove, undo, setAdding, insert } = useEditor((s) => s);
   const Icon = BLOCK_ICONS[node.type];
   const label = nodeLabel(node);
   const hidden = hiddenEverywhere(node);
   const selected = selectedId === node.id;
+  const holds = (CHILDREN[node.type]?.length ?? 0) > 0;
+  // Sections carry their own name (only the creator sees it). Rename it right on the row.
+  const renamable = node.type === "section";
+  const [renaming, setRenaming] = useState(false);
+  const rawName = ((node.props as { label?: string }).label ?? "").slice(0, 60);
+  const commitName = (v: string) => {
+    setRenaming(false);
+    const name = v.trim().slice(0, 60);
+    if (name !== rawName) updateProps(node.id, { label: name }, "label");
+    select(node.id);
+  };
+  // A + on the row opens block creation straight away: cards and columns add their item
+  // directly, anything else opens the block picker. No need to expand the row first.
+  const maxed = (node.type === "cards" && node.children.length >= 12) || (node.type === "columns" && node.children.length >= 4);
+  const addInside = () => {
+    if (!open) onToggle?.();
+    select(node.id);
+    if (node.type === "cards") {
+      if (!insert("card", { parentId: node.id, index: node.children.length })) toast.error("That's 12 cards, the most a cards block can have.");
+    } else if (node.type === "columns") {
+      if (!insert("column", { parentId: node.id, index: node.children.length })) toast.error("That's 4 columns, the most a columns block can have.");
+    } else {
+      setAdding({ kind: "block", parentId: node.id });
+    }
+  };
 
   // Right-click a row for its options (and Shift F10 or the menu key from the keyboard)
   return (
@@ -70,7 +98,7 @@ function Row({ node, depth, index, count, open, onToggle, drag, drop, startDrag 
         aria-hidden
         title="Drag to move"
         onPointerDown={(e) => startDrag(node.id, e)}
-        className="grid h-7 w-4 shrink-0 cursor-grab touch-none place-items-center text-muted-foreground opacity-0 group-hover:opacity-100 pointer-coarse:w-6 pointer-coarse:opacity-100"
+        className="grid h-7 w-4 shrink-0 cursor-grab touch-none place-items-center text-muted-foreground pointer-coarse:w-6"
       >
         <GripVertical className="size-3.5" />
       </span>
@@ -83,11 +111,29 @@ function Row({ node, depth, index, count, open, onToggle, drag, drop, startDrag 
       )}
       <button type="button" onClick={() => select(node.id)} aria-current={selected ? "true" : undefined} className="flex min-h-9 min-w-0 flex-1 items-center gap-2 rounded-control px-1 text-left pointer-coarse:min-h-11">
         <Icon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
-        <span className={cn("truncate", hidden && "line-through")}>{label}</span>
+        {renaming ? (
+          <input
+            autoFocus
+            aria-label="Section name"
+            defaultValue={rawName}
+            maxLength={60}
+            placeholder="Name this section"
+            onFocus={(e) => e.target.select()}
+            onBlur={(e) => commitName(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+              else if (e.key === "Escape") setRenaming(false);
+              e.stopPropagation();
+            }}
+            onClick={(e) => e.stopPropagation()}
+            className="h-7 min-w-0 flex-1 rounded-[6px] border border-primary bg-surface px-1.5 text-sm outline-none"
+          />
+        ) : (
+          <span className={cn("truncate", hidden && "line-through")}>{label}</span>
+        )}
       </button>
       <span className="flex items-center opacity-0 group-focus-within:opacity-100 group-hover:opacity-100 pointer-coarse:opacity-100">
-        <IconButton label={`Move ${label} up`} disabled={index === 0} onClick={() => moveBy(node.id, -1)}><ArrowUp className="size-3.5" aria-hidden /></IconButton>
-        <IconButton label={`Move ${label} down`} disabled={index === count - 1} onClick={() => moveBy(node.id, 1)}><ArrowDown className="size-3.5" aria-hidden /></IconButton>
+        {holds && <IconButton label={node.type === "cards" ? `Add a card to ${label}` : node.type === "columns" ? `Add a column to ${label}` : `Add a block to ${label}`} disabled={maxed} onClick={addInside}><Plus className="size-3.5" aria-hidden /></IconButton>}
       </span>
       <IconButton label={hidden ? `Show ${label}` : `Hide ${label}`} onClick={() => updateVisibility(node.id, { mobile: hidden, desktop: hidden })} className={cn(!hidden && "opacity-0 group-focus-within:opacity-100 group-hover:opacity-100 pointer-coarse:opacity-100")}>
         {hidden ? <EyeOff className="size-3.5" aria-hidden /> : <Eye className="size-3.5" aria-hidden />}
@@ -96,6 +142,7 @@ function Row({ node, depth, index, count, open, onToggle, drag, drop, startDrag 
     </ContextMenuTrigger>
     <ContextMenuContent aria-label={`Options for ${label}`}>
       <ContextMenuItem onSelect={() => duplicate(node.id)}><Copy aria-hidden /> Duplicate</ContextMenuItem>
+      {renamable && <ContextMenuItem onSelect={() => { select(node.id); setRenaming(true); }}>Rename</ContextMenuItem>}
       <ContextMenuItem disabled={index === 0} onSelect={() => moveBy(node.id, -1)}><ArrowUp aria-hidden /> Move up</ContextMenuItem>
       <ContextMenuItem disabled={index === count - 1} onSelect={() => moveBy(node.id, 1)}><ArrowDown aria-hidden /> Move down</ContextMenuItem>
       <ContextMenuItem onSelect={() => updateVisibility(node.id, { mobile: hidden, desktop: hidden })}>{hidden ? <Eye aria-hidden /> : <EyeOff aria-hidden />} {hidden ? "Show" : "Hide"}</ContextMenuItem>
@@ -177,10 +224,11 @@ function Group({ title, children }: { title: string; children: React.ReactNode }
 
 /**
  * The page as a tree, like Shopify's: the store's header group, this page's sections with their
- * blocks, and the footer. Drag rows to reorder (or use the arrows), hide with the eye, add sections
- * and blocks where they go.
+ * blocks, and the footer. Drag rows by the grip to reorder, hide with the eye, and add blocks
+ * with the + on a row. The AI chat tab types new sections onto the page. Keyboard and right-click
+ * menus keep move up/down for accessibility.
  */
-export function LayersPanel({ pageTitle = "Page" }: { pageTitle?: string }) {
+export function LayersPanel({ pageTitle = "Page", pageId, isHome, context }: { pageTitle?: string; pageId: string; isHome: boolean; context: RenderContext }) {
   const blocks = useEditor((s) => s.doc.blocks);
   const site = useEditor((s) => s.site);
   const focus = useEditor((s) => !!s.doc.focus);
@@ -247,9 +295,25 @@ export function LayersPanel({ pageTitle = "Page" }: { pageTitle?: string }) {
   }
   const toggle = (id: string) => setManual((m) => ({ ...m, [id]: !expanded.has(id) }));
   const announcement = site?.design.sections.find((s) => s.id === "announcement");
+  // Sections tree or AI chat, side by side in the sidebar. Chat lands new sections after the
+  // selected section, or at the end of the page when nothing is selected.
+  const [view, setView] = useState<"sections" | "ai">("sections");
+  const selectedSection = selectedId && !selectedId.startsWith("@") ? sectionOf(blocks, selectedId) : undefined;
+  const chatIndex = selectedSection ? blocks.indexOf(selectedSection) + 1 : blocks.length;
 
   return (
     <nav aria-label="Sections" className="flex flex-col">
+      <div className="px-2 pt-1 pb-2">
+        <Segmented label="Sections or AI chat" value={view} onChange={setView} options={[{ value: "sections", label: "Sections" }, { value: "ai", label: "AI chat" }]} />
+      </div>
+      {view === "ai" && (
+        <div className="flex flex-col gap-1.5 px-2 pb-2">
+          <AiChat pageId={pageId} isHome={isHome} context={context} insertIndex={chatIndex} />
+          <p className="px-1 text-xs text-muted-foreground">
+            {selectedSection ? <>New sections land after “{nodeLabel(selectedSection)}”.</> : "New sections land at the end of the page."}
+          </p>
+        </div>
+      )}
       {site && !focus && (
         <Group title="Header">
           <SitePartRow

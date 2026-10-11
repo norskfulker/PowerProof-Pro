@@ -1,13 +1,25 @@
 "use client";
 
+import { useCallback, useEffect, useRef } from "react";
 import { ArrowDown, ArrowUp, Plus, Trash2 } from "lucide-react";
+import { MediaUploader } from "@/components/media/media-uploader";
 import { Segmented } from "@/components/pp/segmented";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
-import type { HeaderSettings } from "@/lib/types";
+import type { HeaderSettings, Store } from "@/lib/types";
 import { Field } from "./design-panels";
 import { TargetSelect } from "./target-select";
+
+/** Which frame crops the logo: wide pictures get 16:9, everything else the square tile */
+function detectLogoShape(src: string): Promise<"1:1" | "16:9"> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => resolve(img.naturalWidth / Math.max(1, img.naturalHeight) >= 1.25 ? "16:9" : "1:1");
+    img.onerror = () => resolve("1:1");
+    img.src = src;
+  });
+}
 
 /** A list of rows that can be added, removed and moved up or down */
 function Rows<T extends object>({ items, onChange, render, make, max, min = 0, noun }: { items: T[]; onChange: (items: T[]) => void; render: (item: T, set: (p: Partial<T>) => void, i: number) => React.ReactNode; make: () => T; max: number; min?: number; noun: string }) {
@@ -38,12 +50,38 @@ function Rows<T extends object>({ items, onChange, render, make, max, min = 0, n
   );
 }
 
-/** The store header: logo position, sticky, search and its own menu links */
-export function HeaderEditor({ header, onChange }: { header: HeaderSettings; onChange: (h: HeaderSettings) => void }) {
-  const set = (p: Partial<HeaderSettings>) => onChange({ ...header, ...p });
+/** The store header: logo, logo position, sticky, search and its own menu links */
+export function HeaderEditor({ header, onChange, logo, onLogo }: { header: HeaderSettings; onChange: (h: HeaderSettings) => void; /** The store logo, uploaded to the media library and saved with the draft */ logo: Store["logo"]; onLogo: (logo: Store["logo"]) => void }) {
+  const set = useCallback((p: Partial<HeaderSettings>) => onChange({ ...header, ...p }), [header, onChange]);
   const custom = header.links;
+  // The frame follows the picture: wide images get the 16:9 crop, everything else the square one.
+  const detectedFor = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    if (logo?.src && !header.logoShape && detectedFor.current !== logo.src) {
+      detectedFor.current = logo.src;
+      let alive = true;
+      detectLogoShape(logo.src).then((logoShape) => alive && set({ logoShape }));
+      return () => {
+        alive = false;
+      };
+    }
+  }, [logo?.src, header.logoShape, set]);
+  const setLogo = (m: { src: string; alt: string } | undefined) => {
+    onLogo(m);
+    if (m) void detectLogoShape(m.src).then((logoShape) => set({ logoShape }));
+  };
   return (
     <div className="flex flex-col gap-4">
+      <MediaUploader compact label="Logo (optional)" kinds={["image"]} aspect="1:1" withFocal={false} hint="Any shape works — it's cropped to fit automatically. It lands in your media library. Without one, your store's first letters are used." value={logo ? { ...logo, kind: "image" } : undefined} onChange={(m) => setLogo(m ? { src: m.src, alt: m.alt } : undefined)} />
+      {logo?.src && (
+        <>
+          <p className="-mt-2 text-xs text-muted-foreground">Showing {header.logoShape === "16:9" ? "wide (16:9)" : "square (1:1)"}, cropped from your image.</p>
+          <label className="flex min-h-11 cursor-pointer items-center justify-between gap-3 text-sm">
+            Show the store name beside the logo
+            <Switch checked={header.showName !== false} onCheckedChange={(showName) => set({ showName })} aria-label="Show the store name beside the logo" />
+          </label>
+        </>
+      )}
       <div className="flex flex-col gap-1.5">
         <span className="text-sm font-medium">Logo and menu position</span>
         <Segmented label="Logo and menu position" value={header.align ?? "left"} onChange={(align) => set({ align })} options={[{ value: "left", label: "Left" }, { value: "center", label: "Center" }]} />

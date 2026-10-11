@@ -81,6 +81,7 @@ const HINTS: Partial<Record<BlockType, string>> = {
   product_grid: "Products or a collection",
   highlights: "Icon and a short line",
   newsletter: "Collect emails",
+  marquee: "Ticker: a moving line of words or logos",
   lead_form: "Name, email and answers",
   booking: "Visitors pick a free time",
 };

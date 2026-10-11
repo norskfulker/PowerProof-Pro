@@ -463,12 +463,12 @@ export async function getPublicVisualPageLinks(storeSlug: string): Promise<{ tit
 /* AI page builder                                                      */
 /* ------------------------------------------------------------------ */
 
-/** Whether AI is connected, and today's use of the plan's AI pages */
-export async function getAiPageAllowance(): Promise<{ connected: boolean; used: number; daily: number }> {
+/** Whether AI is connected, today's use of the plan's AI pages, and free messages left (Free only) */
+export async function getAiPageAllowance(): Promise<{ connected: boolean; used: number; daily: number; freeLeft: number | null }> {
   const r = await fetch("/api/ai/page", { cache: "no-store" });
-  const body = (await r.json().catch(() => null)) as { connected?: boolean; used?: number; daily?: number; message?: string } | null;
+  const body = (await r.json().catch(() => null)) as { connected?: boolean; used?: number; daily?: number; freeLeft?: unknown; message?: string } | null;
   if (!r.ok || !body) throw new ApiError(body?.message ?? "Couldn't check your AI allowance.", "network");
-  return { connected: !!body.connected, used: body.used ?? 0, daily: body.daily ?? 0 };
+  return { connected: !!body.connected, used: body.used ?? 0, daily: body.daily ?? 0, freeLeft: typeof body.freeLeft === "number" ? body.freeLeft : null };
 }
 
 /**

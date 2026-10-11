@@ -34,6 +34,9 @@ export const AI_COSTS = {
 export const PRO_PRICE_USD = 20;
 export const PRO_TRIAL_DAYS = 30;
 
+/** Free AI chat messages per creator (lifetime; failed runs don't count). Pro builds 10 pages a day. */
+export const AI_FREE_MESSAGES = 100;
+
 export const PLAN_NAMES: Record<PlanTier, string> = { free: "Free", pro: "Pro" };
 
 export type AllPlanLimits = Record<PlanTier, PlanLimits>;
@@ -51,6 +54,7 @@ export function planComparison(l: AllPlanLimits): { feature: string; free: strin
     { feature: "Your own domain (shop.yourname.in)", free: l.free.customDomain ? "Included, with free SSL" : "yourname.powerproof.store", pro: l.pro.customDomain ? "Included, with free SSL" : "yourname.powerproof.store" },
     { feature: "Team members (besides you)", free: count(l.free.teamSeats), pro: count(l.pro.teamSeats) },
     { feature: "AI image credits each month", free: String(l.free.aiCredits), pro: String(l.pro.aiCredits) },
+    { feature: "AI page builds", free: `${AI_FREE_MESSAGES} free messages`, pro: `${l.pro.aiPagesDaily} a day` },
     { feature: "Deal paths, coupons, bundles", free: "Included", pro: "Included" },
     { feature: "Payouts to your bank: each sale is held 3 hours, then yours to withdraw any time", free: "Included", pro: "Included" },
     { feature: "GST invoices for every order", free: "Included", pro: "Included" },

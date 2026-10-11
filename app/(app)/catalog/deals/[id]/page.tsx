@@ -14,7 +14,7 @@ export default function EditDealPage({ params }: { params: Promise<{ id: string 
   const deal = useApi(() => getMyDeal(id), [id]);
   const products = useApi(() => getProducts(), []);
   const store = useCurrentStore();
-  const header = <PageHeader back={{ href: "/catalog/deals", label: "Marketplace deals" }} title="Edit deal" description="Changes save by themselves." />;
+  const header = <PageHeader back={{ href: "/catalog/deals", label: "My deals" }} title="Edit deal" description="Changes save by themselves." />;
 
   if (deal.error || products.error || store.error) return <>{header}<ErrorState message={deal.error ?? products.error ?? store.error} onRetry={() => { deal.reload(); products.reload(); store.reload(); }} /></>;
   if (!deal.data || !products.data || !store.data) return <>{header}<Skeleton className="h-96 rounded-card" /></>;

@@ -42,14 +42,11 @@ const EDITOR = "/store/{store}/design/pages/home/edit";
 
 export const STORE_NAV: NavNode[] = [
   {
-    // Pages, About and FAQ, reviews and questions are panels of the store editor, beside the pages that show them
+    // Pages and FAQ are panels of the store editor, beside the pages that show them
     id: "design", label: "Design", icon: Brush, need: "design", children: [
       { id: "design-base", label: "Theme editor", href: EDITOR, match: ["/store/{store}/design/pages/", "/store/{store}/design/theme", "/store/{store}/design/sections", "/store/{store}/design/backgrounds", "/store/{store}/design/content"] },
       { id: "design-pages", label: "Pages", href: `${EDITOR}?panel=pages`, inEditor: true },
-      { id: "pages-about", label: "About", href: `${EDITOR}?panel=about`, inEditor: true },
       { id: "pages-faq", label: "FAQ", href: `${EDITOR}?panel=faq`, inEditor: true },
-      { id: "reviews", label: "Reviews", href: `${EDITOR}?panel=reviews`, badge: "reviews_pending", inEditor: true },
-      { id: "questions", label: "Questions", href: `${EDITOR}?panel=questions`, badge: "questions_open", inEditor: true },
     ],
   },
   {
@@ -57,6 +54,10 @@ export const STORE_NAV: NavNode[] = [
       { id: "policy-refund", label: "Refund", href: "/store/{store}/pages/policies/refund" },
       { id: "policy-terms", label: "Terms", href: "/store/{store}/pages/policies/terms" },
       { id: "policy-privacy", label: "Privacy", href: "/store/{store}/pages/policies/privacy" },
+      // Store content, edited in the store editor beside the page
+      { id: "pages-about", label: "About", href: `${EDITOR}?panel=about` },
+      { id: "reviews", label: "Reviews", href: `${EDITOR}?panel=reviews`, badge: "reviews_pending" },
+      { id: "questions", label: "Questions", href: `${EDITOR}?panel=questions`, badge: "questions_open" },
     ],
   },
   {
@@ -78,6 +79,13 @@ export const STORE_NAV: NavNode[] = [
 export const CREATOR_NAV: NavNode[] = [
   // Getting started, operations and analytics are sections of the one dashboard
   { id: "dashboard", label: "Dashboard", href: "/dashboard", icon: LayoutDashboard, match: ["/getting-started"] },
+  // Browse every live deal, plus this store's own listings (moved out of Catalog)
+  {
+    id: "marketplace", label: "Marketplace", icon: ShoppingBag, children: [
+      { id: "marketplace-browse", label: "Browse", href: "/marketplace", icon: ShoppingBag },
+      { id: "deals", label: "My deals", href: "/catalog/deals", icon: Tag, match: ["/catalog/deals/"], need: "marketing" },
+    ],
+  },
   // The business flow, in order: Catalog (Collections, Products), Sales (Orders, Customers, Payouts),
   // then the Store's look and the rest. Store settings live under Settings.
   {
@@ -85,13 +93,12 @@ export const CREATOR_NAV: NavNode[] = [
       { id: "collections", label: "Collections", href: "/catalog/collections", icon: FolderOpen, match: ["/catalog/collections/"], need: "catalog" },
       { id: "products", label: "Products", href: "/catalog/products", icon: Package, badge: "products_all", match: ["/catalog/products/"], need: "catalog" },
       { id: "bundles", label: "Bundles", href: "/catalog/bundles", icon: Box, need: "marketing" },
-      { id: "deals", label: "Marketplace deals", href: "/catalog/deals", icon: Tag, match: ["/catalog/deals/"], need: "marketing" },
       { id: "media", label: "Media library", href: "/catalog/media", icon: Images, need: "catalog" },
       // Bring a store from Shopify, WooCommerce, Amazon, Etsy, Gumroad or a website
     ],
   },
   {
-    id: "sales", label: "Sales", icon: Receipt, children: [
+    id: "sales", label: "Store Data", icon: Receipt, children: [
       { id: "orders", label: "Orders", href: "/sales/orders", icon: Receipt, badge: "orders_disputed", match: ["/sales/orders/"], need: "orders" },
       { id: "customers", label: "Customers", href: "/sales/customers", icon: Users, match: ["/sales/customers/"], need: "orders" },
       { id: "leads", label: "Leads", href: "/sales/leads", icon: Inbox, match: ["/sales/leads/"], need: "orders" },
@@ -99,9 +106,7 @@ export const CREATOR_NAV: NavNode[] = [
     ],
   },
   // Store is one plain item; its sections (Design, Policies, Offers and SEO) are tabs inside it
-  { id: "store", label: "Store", href: EDITOR, icon: Store, match: STORE_MATCH, need: "design" },
-  // Every live deal and offer across stores, with the price and units sold (a public page)
-  { id: "marketplace", label: "Marketplace", href: "/marketplace", icon: ShoppingBag },
+  { id: "store", label: "My Store", href: EDITOR, icon: Store, match: STORE_MATCH, need: "design" },
   {
     id: "tools", label: "Tools", icon: Wrench, need: "design", children: [
       { id: "ai-images", label: "AI image maker", href: "/tools/ai-images", icon: Sparkles },

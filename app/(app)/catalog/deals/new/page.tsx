@@ -19,7 +19,7 @@ export default function NewDealPage() {
   const store = useCurrentStore();
   const products = useApi(() => getProducts(), []);
   const deals = useApi(getMyDeals, []);
-  const header = <PageHeader back={{ href: "/catalog/deals", label: "Marketplace deals" }} title="List a deal" description="Pick a live product, say how it's paid for, and set the original price and yours." />;
+  const header = <PageHeader back={{ href: "/catalog/deals", label: "My deals" }} title="List a deal" description="Pick a live product, say how it's paid for, and set the original price and yours." />;
 
   if (products.error || deals.error || store.error) return <>{header}<ErrorState message={products.error ?? deals.error ?? store.error} onRetry={() => { products.reload(); deals.reload(); store.reload(); }} /></>;
   if (!products.data || !deals.data || !store.data) return <>{header}<Skeleton className="h-96 rounded-card" /></>;

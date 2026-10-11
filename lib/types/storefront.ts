@@ -92,6 +92,10 @@ export interface HeaderSettings {
   links?: { label: string; target: LinkTarget }[];
   /** A colour scheme from the theme (its id); empty keeps the store's own look */
   scheme?: string;
+  /** Logo frame, picked automatically from the picture (wide pictures get 16:9). Default square. */
+  logoShape?: "1:1" | "16:9";
+  /** Show the store name beside the logo. Default on. */
+  showName?: boolean;
 }
 
 export interface FooterSettings {

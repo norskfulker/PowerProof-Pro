@@ -216,7 +216,7 @@ export function ThemeSettingsPanel({ context, mode }: { context: RenderContext; 
 /* The announcement bar, header and footer (right sidebar) ----------------------- */
 
 export function SitePartPanel({ part, context, mode }: { part: SitePart; context: RenderContext; mode: "light" | "dark" }) {
-  const { site, setDesign } = useSite();
+  const { site, setDesign, updateSite } = useSite();
   if (!site) return null;
   const d = site.design;
   const announcement = d.sections.find((s) => s.id === "announcement");
@@ -243,8 +243,8 @@ export function SitePartPanel({ part, context, mode }: { part: SitePart; context
         {part === "@header" && (
           <>
             <SchemeField value={d.header?.scheme ?? ""} onChange={(scheme) => setDesign((x) => ({ ...x, header: { ...x.header, scheme: scheme || undefined } }))} theme={d.theme} mode={mode} noneLabel="Store default" />
-            <HeaderEditor header={d.header ?? {}} onChange={(header) => setDesign((x) => ({ ...x, header }), "header")} />
-            <p className="text-xs text-muted-foreground">Your logo and store name are under Theme settings.</p>
+            <HeaderEditor header={d.header ?? {}} onChange={(header) => setDesign((x) => ({ ...x, header }), "header")} logo={site.logo} onLogo={(logo) => updateSite((s) => ({ ...s, logo }), "logo")} />
+            <p className="text-xs text-muted-foreground">Your store name is under Store settings.</p>
           </>
         )}
         {part === "@footer" && (

@@ -3,21 +3,17 @@
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowLeft, BookOpenText, Check, CloudOff, ExternalLink, Files, History, LayoutList, Loader2, MessagesSquare, MoreHorizontal, Palette, Redo2, Settings2, Sparkles, Star, Undo2, type LucideIcon } from "lucide-react";
+import { Check, CloudOff, ExternalLink, Files, History, LayoutList, Loader2, Palette, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Redo2, Settings2, Sparkles, Undo2, type LucideIcon } from "lucide-react";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/pp/confirm-dialog";
 import { useUnsavedGuard } from "@/components/save/unsaved-guard";
-import { ColorModeToggle, LIGHT_DARK } from "@/components/theme/color-mode-toggle";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectSeparator, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
-import { Switch } from "@/components/ui/switch";
-import { useNav } from "@/components/nav/use-nav";
 import { QuestionsInbox } from "@/components/store-admin/questions-inbox";
 import { ReviewsInbox } from "@/components/store-admin/reviews-inbox";
 import { discardEditorDraft, getPayoutMethods, getProducts, getStoreInfo, pageUrl, publishEditor, saveEditorDraft, type EditorSession, type RenderContext, type VisualPageStatus } from "@/lib/api";
 import { launchChecks, type LaunchIssue } from "@/lib/pages/launch-check";
-import { flattenNav } from "@/lib/nav/model";
 import { EDITOR_PANELS, type EditorPanel, type SiteDraft } from "@/lib/pages/editor-store";
 import type { AboutContent, FaqItem } from "@/lib/types";
 import { HOME_TEMPLATE } from "@/lib/pages/templates";
@@ -37,16 +33,23 @@ import { ThemeSettingsPanel } from "./theme-settings";
 
 type SaveState = "saved" | "saving" | "error";
 
-/** The editor's side panels, in the rail's order. Store data panels are wider and hide the block settings column. */
+/** The editor's side panels, in the rail's order. About, reviews and questions live under the Policies tab and open here as panels. */
 const RAIL: { id: EditorPanel; label: string; title: string; icon: LucideIcon; data?: true }[] = [
   { id: "sections", label: "Sections", title: "Sections", icon: LayoutList },
   { id: "pages", label: "Pages", title: "Pages", icon: Files, data: true },
   { id: "theme", label: "Theme", title: "Theme settings", icon: Palette },
-  { id: "content", label: "About", title: "About and FAQ", icon: BookOpenText, data: true },
-  { id: "reviews", label: "Reviews", title: "Reviews", icon: Star, data: true },
-  { id: "questions", label: "Q&A", title: "Questions", icon: MessagesSquare, data: true },
   { id: "edit", label: "Edit", title: "Edit", icon: Settings2 },
 ];
+/** Titles for panels opened without a rail button (About, Reviews, Questions from the Policies tab) */
+const PANEL_TITLES: Record<EditorPanel, string> = {
+  sections: "Sections",
+  pages: "Pages",
+  theme: "Theme settings",
+  content: "About and FAQ",
+  reviews: "Reviews",
+  questions: "Questions",
+  edit: "Edit",
+};
 const DATA_PANELS = new Set(RAIL.filter((r) => r.data).map((r) => r.id));
 
 /** Drafts save almost as you type: a short pause batches a burst of keystrokes into one save */
@@ -88,29 +91,6 @@ const editHref = (id: string) => `/store/current/design/pages/${id}/edit`;
 /** The app's own top bar, which the editor's bar sits under */
 const APP_BAR = 64;
 
-/**
- * How a side panel stays in view. The editor scrolls as one page, so a panel never scrolls inside
- * itself: one that fits on screen stays under the editor's bar; a taller one scrolls with the page
- * like everything else (never pinned part-way, which feels stuck).
- */
-function useStickyTop(ref: React.RefObject<HTMLElement | null>, offset: number): React.CSSProperties {
-  const [fits, setFits] = useState(true);
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const calc = () => setFits(el.offsetHeight + offset + 16 <= window.innerHeight);
-    calc();
-    const ro = new ResizeObserver(calc);
-    ro.observe(el);
-    window.addEventListener("resize", calc);
-    return () => {
-      ro.disconnect();
-      window.removeEventListener("resize", calc);
-    };
-  }, [ref, offset]);
-  return fits ? { position: "sticky", top: offset } : { position: "relative" };
-}
-
 function Inner({ session }: { session: EditorSession }) {
   const { page, pages } = session;
   // The store's own data (About, FAQ, reviews) is edited beside the page, so the preview follows it
@@ -125,9 +105,8 @@ function Inner({ session }: { session: EditorSession }) {
   const canUndo = useEditor((s) => s.past.length > 0);
   const canRedo = useEditor((s) => s.future.length > 0);
   const device = useEditor((s) => s.device);
-  const compare = useEditor((s) => s.compare);
   const selectedId = useEditor((s) => s.selectedId);
-  const { undo, redo, setDevice, setCompare, reset, markSaved } = store.getState();
+  const { undo, redo, setDevice, reset, markSaved } = store.getState();
 
   const isHome = page.template === HOME_TEMPLATE;
   // "Build with AI": opened from the top bar, or straight away when a page was created with AI (?ai=1)
@@ -135,7 +114,7 @@ function Inner({ session }: { session: EditorSession }) {
   const [aiOpen, setAiOpen] = useState(() => search.get("ai") === "1");
   const building = useEditor((s) => !!s.aiBase);
   // Creators check both themes without changing the store's own default
-  const [previewAs, setPreviewAs] = useState<"light" | "dark">(() => (session.site.design.theme.mode === "dark" ? "dark" : "light"));
+  const [previewAs] = useState<"light" | "dark">(() => (session.site.design.theme.mode === "dark" ? "dark" : "light"));
   const [published, setPublished] = useState(page.published);
   const [status, setStatus] = useState<VisualPageStatus>(page.published ? (same(page.draft, page.published) ? "published" : "changed") : "draft");
   const [liveSite, setLiveSite] = useState<SiteDraft>(session.liveSite);
@@ -147,7 +126,7 @@ function Inner({ session }: { session: EditorSession }) {
   const [issues, setIssues] = useState<LaunchIssue[]>([]);
   const [checkOpen, setCheckOpen] = useState(false);
   const [discardOpen, setDiscardOpen] = useState(false);
-  const [sheet, setSheet] = useState<EditorPanel | "more" | null>(null);
+  const [sheet, setSheet] = useState<EditorPanel | null>(null);
   const panel = useEditor((s) => s.panel);
   const panelAt = useEditor((s) => s.panelAt);
   const { openPanel } = store.getState();
@@ -166,8 +145,6 @@ function Inner({ session }: { session: EditorSession }) {
       }),
     [store]
   );
-  const { storeTabs } = useNav("creator");
-  const counts = Object.fromEntries(flattenNav(storeTabs).filter((n) => n.count).map((n) => [n.id, n.count!]));
   // The editor's own width decides its layout (the app's sidebar sits beside it)
   const root = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState<"wide" | "mid" | "narrow">("wide");
@@ -191,9 +168,22 @@ function Inner({ session }: { session: EditorSession }) {
     else if (DATA_PANELS.has(s.panel)) s.openPanel("sections");
   }, [selectedId, size, store]);
   const tab: EditorPanel = size !== "mid" && panel === "edit" ? "sections" : panel;
+  const wideData = DATA_PANELS.has(tab);
   // The editor's bar sticks under the app's; the side panels stick under both
   const bar = useRef<HTMLElement>(null);
   const [barHeight, setBarHeight] = useState(56);
+  // Either sidebar collapses; the canvas takes the room
+  const [leftOpen, setLeftOpen] = useState(true);
+  const [rightOpen, setRightOpen] = useState(true);
+  const leftShown = size !== "narrow" && leftOpen;
+  const rightShown = size === "wide" && !wideData && rightOpen;
+  const bodyCols =
+    !leftShown && !rightShown ? "grid-cols-1"
+    : leftShown && rightShown ? "grid-cols-[21rem_minmax(0,1fr)_19rem]"
+    : leftShown ? (wideData ? "grid-cols-[26rem_minmax(0,1fr)]" : "grid-cols-[21rem_minmax(0,1fr)]")
+    : "grid-cols-[minmax(0,1fr)_19rem]";
+  // Both sidebars pin under the bars with their own scroll, so they stay in view on long pages
+  const sideStick: React.CSSProperties = { position: "sticky", top: APP_BAR + barHeight, maxHeight: `calc(100dvh - ${APP_BAR + barHeight + 16}px)`, overflowY: "auto" };
   useEffect(() => {
     const el = bar.current;
     if (!el) return;
@@ -201,11 +191,6 @@ function Inner({ session }: { session: EditorSession }) {
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
-  const leftPanel = useRef<HTMLDivElement>(null);
-  const rightPanel = useRef<HTMLDivElement>(null);
-  const leftStick = useStickyTop(leftPanel, APP_BAR + barHeight);
-  const rightStick = useStickyTop(rightPanel, APP_BAR + barHeight);
-  const wideData = DATA_PANELS.has(tab);
   // The site settings as last saved, so they're only written when they change
   const savedSite = useRef<SiteDraft | undefined>(session.site);
   const saving = useRef<Promise<void> | null>(null);
@@ -412,7 +397,7 @@ function Inner({ session }: { session: EditorSession }) {
   const pageTitle = isHome ? "Home page" : page.title;
 
   const panels: Record<EditorPanel, React.ReactNode> = {
-    sections: <LayersPanel pageTitle={pageTitle} />,
+    sections: <LayersPanel pageTitle={pageTitle} pageId={page.id} isHome={isHome} context={context} />,
     pages: <PagesPanel slug={context.store.slug} currentId={page.id} storeLive={storeLive} beforeLeave={flush} />,
     theme: <ThemeSettingsPanel context={context} mode={previewAs} />,
     content: <ContentPanel storeId={context.store.id} slug={context.store.slug} at={panelAt} onAbout={onAbout} onFaq={onFaq} />,
@@ -421,17 +406,17 @@ function Inner({ session }: { session: EditorSession }) {
     edit: <SettingsPanel context={context} mode={previewAs} />,
   };
   const railItems = RAIL.filter((r) => r.id !== "edit" || size === "mid");
-  const current = RAIL.find((r) => r.id === tab)!;
+  const current = RAIL.find((r) => r.id === tab) ?? { id: tab, title: PANEL_TITLES[tab] };
 
   return (
     <div ref={root} className="-mx-3 flex flex-1 flex-col border-t bg-background md:mx-0 md:rounded-t-card md:border-x">
       {/* Top bar: stays in view while the page scrolls */}
       <header ref={bar} data-editor-bar="" className="sticky top-16 z-20 flex flex-wrap items-center gap-x-3 gap-y-2 border-b bg-surface px-3 py-2 md:rounded-t-card md:px-4">
-        <Button asChild variant="ghost" size="icon" aria-label="Leave the editor">
-          <Link href="/dashboard">
-            <ArrowLeft />
-          </Link>
-        </Button>
+        {size !== "narrow" && (
+          <Button type="button" variant="ghost" size="icon" onClick={() => setLeftOpen((o) => !o)} aria-pressed={leftOpen} title={leftOpen ? "Collapse panel" : "Expand panel"} aria-label={leftOpen ? "Collapse panel" : "Expand panel"}>
+            {leftOpen ? <PanelLeftClose /> : <PanelLeftOpen />}
+          </Button>
+        )}
         <div className="flex min-w-0 flex-[1_1_14rem] flex-wrap items-center gap-x-3 gap-y-1">
           <Select value={page.id} onValueChange={goTo}>
             <SelectTrigger size="sm" className="h-9 w-auto max-w-60 min-w-0 border-transparent bg-transparent px-2 font-display text-base font-extrabold hover:border-input" aria-label="Page you're editing">
@@ -455,10 +440,10 @@ function Inner({ session }: { session: EditorSession }) {
           {isHome && !storeLive && <span className="text-xs font-semibold whitespace-nowrap text-muted-foreground">Store hidden from buyers</span>}
           <SaveIndicator state={save === "saved" && rev !== savedRev && !building ? "saving" : save} at={savedAt} onRetry={flush} />
         </div>
+        <div className="flex flex-[1_1_auto] items-center justify-center">
+          <DevicePreviewSwitch value={device} onChange={setDevice} />
+        </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Button type="button" variant="secondary" size="sm" onClick={() => setAiOpen(true)} disabled={building} className="border-primary/40 text-primary">
-            <Sparkles aria-hidden /> <span className="max-sm:sr-only">Build with AI</span>
-          </Button>
           <div role="group" aria-label="History" className="flex gap-1 pointer-coarse:gap-2">
             <Button type="button" variant="ghost" size="icon" onClick={undo} disabled={!canUndo || building} aria-label="Undo (Ctrl Z)">
               <Undo2 />
@@ -467,15 +452,9 @@ function Inner({ session }: { session: EditorSession }) {
               <Redo2 />
             </Button>
           </div>
-          <DevicePreviewSwitch value={device} onChange={setDevice} className="max-md:hidden" />
-          <ColorModeToggle label="Preview as" value={previewAs} onChange={setPreviewAs} options={LIGHT_DARK} iconOnly className="max-sm:hidden" />
-          <label className="flex min-h-11 items-center gap-2 text-sm max-2xl:hidden">
-            <Switch checked={compare} onCheckedChange={setCompare} aria-label="Before and after" />
-            Before and after
-          </label>
-          <Button asChild variant="ghost" size="sm">
-            <Link href={`/store/current/design/pages/${page.id}/versions`}>
-              <History aria-hidden /> <span className="max-sm:sr-only">Versions</span>
+          <Button asChild variant="ghost" size="icon" title="Versions">
+            <Link href={`/store/current/design/pages/${page.id}/versions`} aria-label="Versions">
+              <History aria-hidden />
             </Link>
           </Button>
           {published && (
@@ -490,6 +469,14 @@ function Inner({ session }: { session: EditorSession }) {
               Discard
             </Button>
           )}
+          {size === "wide" && !wideData && (
+            <Button type="button" variant="ghost" size="icon" onClick={() => setRightOpen((o) => !o)} aria-pressed={rightOpen} title={rightOpen ? "Collapse settings" : "Expand settings"} aria-label={rightOpen ? "Collapse settings" : "Expand settings"}>
+              {rightOpen ? <PanelRightClose /> : <PanelRightOpen />}
+            </Button>
+          )}
+          <Button type="button" variant="secondary" size="sm" onClick={() => setAiOpen(true)} disabled={building} className="border-primary/40 text-primary">
+            <Sparkles aria-hidden /> <span className="max-sm:sr-only">Build with AI</span>
+          </Button>
           {!dirty && rev === savedRev && !publishing && (!isHome || storeLive) ? (
             <span className="inline-flex min-h-9 items-center gap-1.5 px-2 text-sm font-medium text-success" role="status">
               <Check className="size-4" aria-hidden /> Live
@@ -508,12 +495,12 @@ function Inner({ session }: { session: EditorSession }) {
       <AiBuilder open={aiOpen} onOpenChange={setAiOpen} pageId={page.id} template={page.template} isHome={isHome} context={context} flush={flush} />
 
       {/* Body: while AI builds, the page can be looked at (and scrolled) but not changed */}
-      <div className={cn("grid flex-1", size === "narrow" ? "grid-cols-1" : wideData ? "grid-cols-[26rem_minmax(0,1fr)]" : size === "wide" ? "grid-cols-[21rem_minmax(0,1fr)_19rem]" : "grid-cols-[21rem_minmax(0,1fr)]")}>
-        <aside inert={building || undefined} aria-label="Editor panels" className={cn(building && "opacity-60", "border-r bg-surface", size === "narrow" ? "hidden" : "block")}>
-          <div ref={leftPanel} className="flex" style={leftStick}>
+      <div className={cn("grid flex-1", bodyCols)}>
+        {leftShown && (
+        <aside inert={building || undefined} aria-label="Editor panels" className={cn(building && "opacity-60", "border-r bg-surface")}>
+          <div className="overscroll-contain flex min-h-0" style={sideStick}>
           <div role="tablist" aria-label="Panels" aria-orientation="vertical" className="flex w-16 shrink-0 flex-col gap-1 self-start border-r px-1 py-2">
             {railItems.map(({ id, label, title, icon: Icon }) => {
-              const count = id === "reviews" ? counts.reviews : id === "questions" ? counts.questions : undefined;
               return (
                 <button
                   key={id}
@@ -532,13 +519,6 @@ function Inner({ session }: { session: EditorSession }) {
                 >
                   <Icon className="size-5" aria-hidden />
                   {label}
-                  {!!count && (
-                    <span className="absolute top-1 right-1 min-w-4 rounded-full bg-primary px-1 text-center font-mono text-[0.625rem] leading-4 text-primary-foreground">
-                      <span className="sr-only">, </span>
-                      {count > 99 ? "99+" : count}
-                      <span className="sr-only"> waiting</span>
-                    </span>
-                  )}
                 </button>
               );
             })}
@@ -551,28 +531,29 @@ function Inner({ session }: { session: EditorSession }) {
           </div>
           </div>
         </aside>
+        )}
 
         <div className={cn("min-w-0", size === "narrow" && "pb-[calc(4.5rem+env(safe-area-inset-bottom))]")}>
-          <Canvas context={context} published={published} previewAs={previewAs} onKey={onKey} address={`${context.store.slug}.powerproof.app${page.slug && !isHome ? `/${page.slug}` : ""}`} className="min-h-full" />
+          <Canvas context={context} previewAs={previewAs} onKey={onKey} address={`${context.store.slug}.powerproof.app${page.slug && !isHome ? `/${page.slug}` : ""}`} className="min-h-full" />
         </div>
 
-        {size === "wide" && !wideData && (
+        {rightShown && (
           <aside inert={building || undefined} aria-label="Settings" className={cn("border-l bg-surface", building && "opacity-60")}>
-            <div ref={rightPanel} className="p-4" style={rightStick}>
+            <div className="overscroll-contain min-h-0 p-4" style={sideStick}>
               {panels.edit}
             </div>
           </aside>
         )}
       </div>
 
-      {/* Phones and tablets: panels as bottom sheets */}
+      {/* Phones: panels as bottom sheets */}
       <nav aria-label="Editor tools" className={cn("fixed inset-x-0 bottom-0 z-30 flex items-center justify-around gap-2 border-t bg-surface px-2 pt-1.5 pb-[max(0.375rem,env(safe-area-inset-bottom))]", size !== "narrow" && "hidden")}>
         {(
           [
             ["sections", "Sections", LayoutList],
+            ["pages", "Pages", Files],
             ["theme", "Theme", Palette],
             ["edit", "Edit", Settings2],
-            ["more", "More", MoreHorizontal],
           ] as const
         ).map(([id, label, Icon]) => (
           <button
@@ -586,28 +567,13 @@ function Inner({ session }: { session: EditorSession }) {
             {label}
           </button>
         ))}
-        <DevicePreviewSwitch value={device} onChange={setDevice} className="md:hidden" />
       </nav>
       <Sheet open={!!sheet} onOpenChange={(o) => !o && setSheet(null)}>
         <SheetContent side="bottom" className="max-h-[80dvh] overflow-y-auto rounded-t-dialog p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
-          <SheetTitle className="font-display text-lg">{sheet === "more" ? "More" : RAIL.find((r) => r.id === sheet)?.title}</SheetTitle>
-          <SheetDescription className="sr-only">{sheet === "more" ? "Pages, About and FAQ, reviews and questions" : "Editor panel"}</SheetDescription>
+          <SheetTitle className="font-display text-lg">{sheet ? PANEL_TITLES[sheet] : ""}</SheetTitle>
+          <SheetDescription className="sr-only">Editor panel</SheetDescription>
           <div className="mt-3">
-            {sheet === "more" ? (
-              <ul className="flex flex-col gap-1">
-                {RAIL.filter((r) => r.data).map(({ id, title, icon: Icon }) => (
-                  <li key={id}>
-                    <button type="button" onClick={() => setSheet(id)} className="flex min-h-12 w-full items-center gap-3 rounded-control px-3 text-left text-sm font-medium hover:bg-muted">
-                      <Icon className="size-5 text-muted-foreground" aria-hidden /> {title}
-                      {id === "reviews" && !!counts.reviews && <span className="ml-auto rounded-full bg-muted px-2 font-mono text-xs">{counts.reviews}</span>}
-                      {id === "questions" && !!counts.questions && <span className="ml-auto rounded-full bg-muted px-2 font-mono text-xs">{counts.questions}</span>}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              sheet && panels[sheet]
-            )}
+            {sheet && panels[sheet]}
           </div>
         </SheetContent>
       </Sheet>

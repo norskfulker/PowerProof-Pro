@@ -2,6 +2,7 @@ import "server-only";
 import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
 import { formatMoney, money } from "@/lib/money";
+import { AI_FREE_MESSAGES } from "@/lib/plans";
 import { aiBriefSchema } from "@/lib/pages/ai";
 import type { AiEvent } from "@/lib/pages/ai";
 import { aiConnected, runAiPage, type AiStoreContext, type AiStoreMedia } from "@/lib/pages/ai-run";
@@ -16,9 +17,10 @@ import type { CurrencyCode } from "@/lib/types";
  *   GEMINI_API_KEY  the Gemini API key (server only); GEMINI_MODEL picks the model
  *                   (default gemini-3.8-flash)
  *
- * Only the page's owner can ask, and each plan has a daily allowance (plan_limits.ai_pages_daily,
- * checked and recorded by start_ai_page). Nothing is saved here: the editor shows the result and
- * the creator keeps it or not.
+ * Only the page's owner can ask. Each message is one run: Free includes 100 free messages
+ * (lifetime, failed runs don't count), and every plan keeps its daily allowance
+ * (plan_limits.ai_pages_daily, checked and recorded by start_ai_page). Nothing is saved here:
+ * the editor shows the result and the creator keeps it or not.
  */
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
@@ -94,6 +96,13 @@ export async function POST(request: Request) {
     pageTitle: page.title,
   };
 
+  // Free includes 100 AI messages, counted as lifetime runs (failed ones don't count).
+  // Uses the existing ai_generations rows, so no new tables.
+  const profile = (await sb.from("profiles").select("plan").eq("id", auth.user.id).maybeSingle()).data;
+  if ((profile?.plan ?? "free") === "free" && (await freeMessagesUsed(sb, auth.user.id)) >= AI_FREE_MESSAGES) {
+    return fail({ ok: false, code: "limit", message: `You've used your ${AI_FREE_MESSAGES} free AI messages. Upgrade to Pro to keep building with AI.` }, 429);
+  }
+
   // Checks the day's allowance and records the run, in one step
   const started = await sb.rpc("start_ai_page", { p_store: storeId, p_prompt: JSON.stringify({ pageId: page.id, ...brief }) });
   if (started.error) {
@@ -163,12 +172,20 @@ function mediaFrom(
   return { media, covers };
 }
 
-/** The day's allowance, for the brief dialog */
+/** The day's allowance, plus free messages left on the Free plan, for the brief dialog */
 export async function GET() {
   const sb = await sbServer();
   const { data: auth } = await sb.auth.getUser();
   if (!auth.user) return fail({ ok: false, code: "signed_out", message: "Log in again to use AI." }, 401);
   const r = await sb.rpc("ai_page_allowance");
   const row = r.data?.[0];
-  return NextResponse.json({ ok: true, connected: aiConnected(), used: row?.used ?? 0, daily: row?.daily ?? 0 }, { headers: { "cache-control": "no-store" } });
+  const profile = (await sb.from("profiles").select("plan").eq("id", auth.user.id).maybeSingle()).data;
+  const free = (profile?.plan ?? "free") === "free" ? Math.max(0, AI_FREE_MESSAGES - (await freeMessagesUsed(sb, auth.user.id))) : null;
+  return NextResponse.json({ ok: true, connected: aiConnected(), used: row?.used ?? 0, daily: row?.daily ?? 0, freeLeft: free }, { headers: { "cache-control": "no-store" } });
+}
+
+/** Lifetime AI runs that count against the free messages (service-role client, RLS bypassed) */
+async function freeMessagesUsed(sb: Awaited<ReturnType<typeof sbServer>>, ownerId: string): Promise<number> {
+  const r = await sb.from("ai_generations").select("id", { count: "exact", head: true }).eq("owner_id", ownerId).eq("kind", "page").neq("status", "failed");
+  return r.count ?? 0;
 }

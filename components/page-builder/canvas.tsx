@@ -278,13 +278,12 @@ function Page({ context, site, doc, previewAs, interactive, onKey, screen }: { c
  * and footer around it exactly as buyers see them. "This section" isolates the selected section;
  * before/after puts the live page beside the draft.
  */
-export function Canvas({ context, published, className, previewAs, onKey, address = "" }: { context: RenderContext; published?: PageDoc; className?: string; previewAs?: "light" | "dark"; onKey?: (e: KeyboardEvent) => void; /** Shown in the desktop window's address bar */ address?: string }) {
+export function Canvas({ context, className, previewAs, onKey, address = "" }: { context: RenderContext; className?: string; previewAs?: "light" | "dark"; onKey?: (e: KeyboardEvent) => void; /** Shown in the desktop window's address bar */ address?: string }) {
   const doc = useEditor((s) => s.doc);
   const site = useEditor((s) => s.site);
   const selectedId = useEditor((s) => s.selectedId);
   const device = useEditor((s) => s.device);
   const focusSection = useEditor((s) => s.focusSection);
-  const compare = useEditor((s) => s.compare);
   // An AI build is shown but can't be changed until it is kept
   const building = useEditor((s) => !!s.aiBase);
 
@@ -292,9 +291,8 @@ export function Canvas({ context, published, className, previewAs, onKey, addres
   const shown: PageDoc = focusSection && section ? { ...doc, blocks: [section], focus: true } : doc;
   const screen = device === "desktop" ? Math.max(560, Math.min(SCREEN_HEIGHT.desktop, typeof window === "undefined" ? 720 : window.innerHeight - 200)) : SCREEN_HEIGHT[device];
 
-  const frame = (d: PageDoc, label: string, interactive: boolean) => (
+  const frame = (d: PageDoc, interactive: boolean) => (
     <div className="flex min-w-0 flex-1 flex-col gap-2">
-      {compare && <p className="eyebrow text-center">{label}</p>}
       <DeviceFrame device={device} address={address} dark={previewAs === "dark"}>
         <PreviewFrame title={interactive ? "Page editor canvas" : "Live page"} className="block w-full border-0 bg-background" style={{ maxWidth: SCREEN_WIDTH[device] }} minHeight={device === "desktop" ? 480 : screen - 76}>
           <Page context={context} site={site} doc={d} previewAs={previewAs} interactive={interactive} onKey={interactive ? onKey : undefined} screen={screen} />
@@ -306,14 +304,7 @@ export function Canvas({ context, published, className, previewAs, onKey, addres
   return (
     <div className={cn("relative flex flex-col bg-surface-sunken p-3 md:p-6", className)} aria-label="Page canvas" role="region">
       {focusSection && !section && <p className="mb-3 text-center text-sm text-muted-foreground">Select a block to see its section on its own.</p>}
-      {compare ? (
-        <div className="flex flex-col gap-6 xl:flex-row xl:items-start">
-          {published ? frame(published, "Live now", false) : <p className="flex-1 rounded-card border border-dashed p-8 text-center text-sm text-muted-foreground">Not published yet.</p>}
-          {frame(shown, "Your draft", true)}
-        </div>
-      ) : (
-        frame(shown, "Your draft", !building)
-      )}
+      {frame(shown, !building)}
     </div>
   );
 }

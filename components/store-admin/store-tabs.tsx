@@ -36,7 +36,7 @@ function Row({ nodes, active, label, small }: { nodes: ResolvedNode[]; active?: 
 }
 
 /**
- * The Store area is one place in the sidebar; what's inside it (Design, Policies, Offers and SEO) is
+ * The My Store area is one place in the sidebar; what's inside it (Design, Policies, Offers and SEO) is
  * a row of tabs here, with a second row for the parts of the open one. Pages, About and FAQ,
  * reviews and questions are panels of the store editor (Design).
  */
@@ -49,7 +49,7 @@ export function StoreTabs() {
   const sub = group?.children?.filter((c) => c.href && !c.inEditor);
   return (
     <div data-slot="store-tabs">
-      <Row nodes={storeTabs} active={group?.id} label="Store" />
+      <Row nodes={storeTabs} active={group?.id} label="My Store" />
       {sub && sub.length > 1 && <Row nodes={sub} active={trail[1]?.id} label={`${group.label} sections`} small />}
     </div>
   );

@@ -155,13 +155,14 @@ export default function DashboardPage() {
   const plan = useApi(getPlan, []);
 
   const isNew = products.data !== undefined && balance.data !== undefined && products.data.every((p) => p.salesCount === 0) && balance.data.available.amount === 0 && balance.data.pending.amount === 0;
+  const hasProducts = (products.data?.length ?? 0) > 0;
   const firstName = store.data?.ownerName.split(" ")[0];
 
   return (
     <>
       <PageHeader
         title={firstName ? `${greeting()}, ${firstName}` : greeting()}
-        description={isNew ? "Your store is live. Get your sales rollin!" : "Here's how today is going."}
+        description={isNew ? (hasProducts ? "Your store is ready. Share your link to get your first sale." : "Your store is set up. Add your first product to start selling.") : "Here's how today is going."}
         actions={
           <>
             {store.data && (
