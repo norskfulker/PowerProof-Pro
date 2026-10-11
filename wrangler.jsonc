@@ -9,13 +9,13 @@
  */
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "powerproof",
+  "name": "powerproof-pro",
   // worker.ts wraps the OpenNext Worker and adds the cron handler
   "main": "worker.ts",
   "compatibility_date": "2026-09-01",
   "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
   "assets": { "directory": ".open-next/assets", "binding": "ASSETS" },
-  "services": [{ "binding": "WORKER_SELF_REFERENCE", "service": "powerproof" }],
+  "services": [{ "binding": "WORKER_SELF_REFERENCE", "service": "powerproof-pro" }],
   "observability": { "enabled": true },
   // Re-check custom domains waiting for DNS (app/api/cron/domains)
   "triggers": { "crons": ["*/10 * * * *"] },
