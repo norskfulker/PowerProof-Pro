@@ -50,7 +50,7 @@ pages → hooks/useApi → lib/api (only door) → lib/api/live/* (Supabase quer
 - Fetching: `hooks/useApi` (loading skeleton + error + retry). Cross-tab refresh via `storage` event.
 - Forms: `hooks/useDirtyForm` (autosave 1.2s, "Saving… / All changes saved", flush on leave) + `useFormSaveBar` for react-hook-form. Save bar: top-right on desktop, above tab bar on mobile. In-app leave asks, refresh/close uses browser warning. New-item sheets keep Add/Create button; edits use save bar.
 - Nav: one config `lib/nav/config.ts` drives sidebar, phone drawer/tabs, breadcrumbs, palette, empty-state links. Counts/locks in `lib/nav/model.ts` via `getNavCounts()`. Routes follow tree: `/store/[id]/…`, `/store/current/…` redirect, old addresses redirect in `next.config.ts`. Sidebar is ARIA tree with roving tabindex.
-- Env: `.env.local` committed encrypted with dotenvx. `scripts/env.mjs check` gates `dev/build/start`. `npm run env:set -- NAME "value"`. `.env.keys` never committed. Build machine needs `DOTENV_PRIVATE_KEY_LOCAL`. `NEXT_PUBLIC_*` baked at build time.
+- Env: `.env.local` is plain text and gitignored (`.env.example` committed as the template). `dev/build/start` are plain Next commands; `build:cf` builds the OpenNext worker output for Cloudflare. `NEXT_PUBLIC_*` baked at build time.
 
 ## 4. Data model (Supabase)
 

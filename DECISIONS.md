@@ -401,9 +401,9 @@ Anything else is new and needs a look before release.
 
 1. **Apex proxying:** does the Cloudflare plan include it? Without it, creators whose DNS host can't put a CNAME on the bare domain must use a subdomain (shop.yourname.in).
 
-## Settings across devices (Oct 2026)
+## Settings across devices (Oct 2026; dotenv dropped Nov 2026)
 
-- **`.env.local` is committed, encrypted with dotenvx** (founder's choice over a names-only template or a private repo). Values are encrypted with the file's public key; only `DOTENV_PRIVATE_KEY_LOCAL` (in the git-ignored `.env.keys`, and this Mac's Keychain) decrypts them. The npm scripts run through `dotenvx run`. A plain `next dev` would see encrypted strings, so always use the npm scripts.
-- **A pre-commit hook of our own** (`.githooks/check-env.mjs`) blocks committing `.env.keys` or any `.env*`/`.dev.vars` value that isn't encrypted. dotenvx's own `precommit` was deprecated in the installed version and let force-added plain files through.
+- **`.env.local` is plain text and never committed** (founder's choice: direct env file, no dotenv tooling). Only `.env.example` (names, no values) is committed; Next.js reads `.env.local` itself, and Cloudflare reads the same names from its dashboard. The old encrypted setup (dotenvx, `.env.keys`) was removed after it blocked Cloudflare builds, which have no way to unlock the file.
+- **A pre-commit hook of our own** (`.githooks/check-env.mjs`) blocks committing any `.env*`/`.dev.vars` value or `.env.keys`. Only `.env.example` with empty values may go in.
 - The secrets were in a commit that GitHub's push protection blocked; that commit was rewritten before anything reached GitHub. Rotating those keys is still advised.
 

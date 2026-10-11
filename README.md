@@ -11,15 +11,14 @@ npm install
 npm run dev
 ```
 
-### Settings and secrets (`.env.local`, encrypted)
+### Settings and secrets (`.env.local`, plain text, never committed)
 
-`.env.local` is committed, **encrypted** with [dotenvx](https://dotenvx.com): every value in it reads `encrypted:…`, so the file is safe in the (public) repo. `npm run dev`, `build` and `start` decrypt it on the fly. The one key that decrypts it is in **`.env.keys`**, which is never committed.
+`.env.local` holds every value in plain text and is **never committed** (see `.gitignore`). `.env.example` lists the names with empty values and *is* committed. Next.js reads `.env.local` itself — no decryption step, no extra tooling.
 
-- **On a new device:** clone, `npm install`, then `npm run env:key` and paste the key (the `DOTENV_PRIVATE_KEY_LOCAL=…` line from your password manager or the old device's `.env.keys`). Then `npm run dev`. Don't make `.env.keys` with PowerShell's `echo … >`: it saves UTF-16, which dotenvx can't read (`npm run dev` repairs such a file by itself now).
-- `npm run dev`, `build` and `start` first check this computer can unlock `.env.local` (`scripts/env.mjs check`), and say what's wrong if not, instead of starting with scrambled settings.
-- **Change or add a value:** `npm run env:set -- NAME "value"` (it's encrypted as it's written). To see a value: `npx dotenvx get NAME -f .env.local`.
-- **Never commit `.env.keys`**, and never edit `.env.local` in plain text. A pre-commit check (`.githooks/check-env.mjs`, switched on by `npm install`) stops a commit that would put a readable secret or the key file in git.
-- Building somewhere else (CI, Cloudflare's build): either set `DOTENV_PRIVATE_KEY_LOCAL` as a secret environment variable there so `.env.local` unlocks, or set the plain values instead — `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_SITE_URL` for the build, server secrets at runtime. The build passes either way and never uses half-unlocked settings.
+- **On a new device:** clone, `npm install`, copy `.env.example` to `.env.local` and fill in the real values (from your password manager or the old device's `.env.local`). Then `npm run dev`.
+- **Change or add a value:** edit `.env.local` directly and restart the dev server.
+- **Never commit `.env.local`, `.dev.vars` or anything with a value in it.** A pre-commit check (`.githooks/check-env.mjs`, switched on by `npm install`) stops a commit that would put a readable secret in git.
+- **Cloudflare:** set the same names in the dashboard (environment variables and secrets) instead of using a file. Set the **build command** to `npm run build:cf` (builds the OpenNext worker output) and keep the deploy command as `npx wrangler deploy`. `NEXT_PUBLIC_*` values are baked in at build time; server secrets are read at runtime.
 
 Open http://localhost:3000. If the Supabase variables are missing the app says so and stops; it never falls back to made-up data.
 
