@@ -34,7 +34,7 @@ export function NewProductForm({ type, wizard = false }: { type: "digital" | "ph
       <ProductForm
         wizard={wizard}
         initial={blankProduct(type, store.data.currency)}
-        submitLabel="Create product"
+        submitLabel="Save as draft"
         onSubmit={async (v) => {
           try {
             const p = await createProduct(toInput(v));

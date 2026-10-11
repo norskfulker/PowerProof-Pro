@@ -198,14 +198,24 @@ export function ProductForm({
         {!wizard && (
           <div className="sticky top-2 z-30 flex flex-col gap-3 lg:col-span-2">
             {mode === "edit" ? (
-              <SaveBar state={bar} className="max-md:static max-md:border md:bg-surface md:shadow-pop" />
+              <div className="flex flex-wrap items-center gap-2">
+                <SaveBar state={bar} className="max-md:static max-md:border md:bg-surface md:shadow-pop" />
+                {status === "draft" && (
+                  <Button type="button" size="sm" onClick={goLive} disabled={pending} title={blockers[0]} data-coach="publish-product" className="ml-auto">
+                    <Rocket aria-hidden /> Make it live
+                  </Button>
+                )}
+              </div>
             ) : (
-              <div className="flex flex-wrap items-center gap-3 rounded-control border bg-surface px-4 py-2 shadow-pop">
+              <div className="flex flex-wrap items-center gap-2 rounded-control border bg-surface px-4 py-2 shadow-pop">
                 <p className="mr-auto text-sm text-muted-foreground" aria-live="polite">{dirty ? "Unsaved changes" : "Nothing entered yet"}</p>
                 <Button type="button" variant="ghost" size="sm" disabled={!dirty || pending} onClick={() => form.reset()}>Discard</Button>
-                <Button type="submit" size="sm" disabled={pending}>
+                <Button type="submit" variant="secondary" size="sm" disabled={pending}>
                   {pending && <Loader2 className="animate-spin" aria-hidden />}
                   {submitLabel}
+                </Button>
+                <Button type="button" size="sm" onClick={goLive} disabled={pending} title={blockers[0]} data-coach="publish-product">
+                  <Rocket aria-hidden /> Create and make it live
                 </Button>
               </div>
             )}
@@ -215,12 +225,7 @@ export function ProductForm({
           <div role="note" className="flex flex-col gap-1 rounded-control border border-warning/40 bg-warning-soft px-4 py-3 text-sm lg:col-span-2">
             <p className="font-semibold">{DRAFT_NOTE}</p>
             {todo.length > 0 && <p className="text-muted-foreground">Still needed: {todo.map((t) => t.label.toLowerCase()).join(", ")}.</p>}
-            <div className="mt-2 flex flex-wrap items-center gap-3">
-              <Button type="button" size="sm" onClick={goLive} disabled={pending} data-coach="publish-product">
-                <Rocket aria-hidden /> {mode === "create" ? "Create and make it live" : "Make it live"}
-              </Button>
-              {blockers.length > 0 && <span className="text-muted-foreground">{blockers[0]}</span>}
-            </div>
+            {blockers.length > 0 && <p className="text-muted-foreground">To go live: {blockers[0].toLowerCase()} Or save it as a draft and finish later.</p>}
           </div>
         )}
         {wizard && (

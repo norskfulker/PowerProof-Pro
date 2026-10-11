@@ -9,7 +9,6 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { SaveBar } from "@/components/save/save-bar";
-import { SettingsTabs } from "@/components/settings/settings-tabs";
 import { SettingsLoading, SettingsSection } from "@/components/settings/settings-section";
 import { useFormSaveBar } from "@/hooks/use-dirty-form";
 import { useCurrentStore } from "@/hooks/use-current-store";
@@ -105,12 +104,9 @@ export default function ProfileSettingsPage() {
   const [prefs, setPrefs] = useState<Record<string, boolean>>({ sale: true, payout: true, refund: true, weekly: false });
   if (!data) return <SettingsLoading error={error} onRetry={reload} />;
   return (
-    <SettingsTabs
-      label="Profile settings"
-      tabs={[
-        { id: "details", label: "Details", content: <ProfileForm store={data} onSaved={setData} /> },
-        { id: "password", label: "Password", content: <PasswordForm /> },
-        { id: "emails", label: "Emails", content: (
+    <div className="flex flex-col gap-6">
+      <ProfileForm store={data} onSaved={setData} />
+      <PasswordForm />
       <SettingsSection title="Email me about" description="Saved as you switch.">
         <ul className="divide-y">
           {PREFS.map(([k, label, body]) => (
@@ -123,8 +119,6 @@ export default function ProfileSettingsPage() {
           ))}
         </ul>
       </SettingsSection>
-        ) },
-      ]}
-    />
+    </div>
   );
 }

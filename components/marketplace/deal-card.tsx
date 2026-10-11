@@ -110,22 +110,27 @@ const lift = "transition-[border-color,transform,box-shadow] duration-200 hover:
  * A marketplace deal: the cover, the seller (with their country and badges), what it is, the
  * original price crossed out next to the deal price, and how it is doing: sold, revenue, rating.
  * The creator's preview uses this same card.
+ *
+ * `href` sends the card somewhere other than its storefront page — the creator's own list links to
+ * the deal's edit screen. `hideSeller` drops the seller row, which is the viewer themselves.
  */
-export function DealCard({ d, preview = false, show }: { d: Deal; preview?: boolean; show?: Show }) {
+export function DealCard({ d, preview = false, show, href, hideSeller = false }: { d: Deal; preview?: boolean; show?: Show; href?: string; hideSeller?: boolean }) {
   const body = (
     <>
       <Cover d={d} className="aspect-[4/3]" />
       <div className="flex flex-1 flex-col gap-3 p-4">
-        <Seller d={d} />
+        {!hideSeller && <Seller d={d} />}
         <div className="flex flex-col gap-1.5">
-          <h2 className="font-sans text-base leading-snug font-semibold tracking-normal [overflow-wrap:anywhere]">{d.title}</h2>
-          <DealBadges d={d} />
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            <h2 className="font-sans text-base leading-snug font-bold tracking-normal [overflow-wrap:anywhere]">{d.title}</h2>
+            <DealBadges d={d} />
+          </div>
           <p className="line-clamp-2 text-sm text-muted-foreground">{d.pitch}</p>
         </div>
         <div className="mt-auto flex flex-col gap-3">
           <Price d={d} show={show} />
           <Stats d={d} show={show} />
-          {ends(d)}
+          {ends(d) ?? <p className="flex items-center gap-1 text-xs text-muted-foreground"><Clock className="size-3.5" aria-hidden /> No end date · runs until paused</p>}
         </div>
       </div>
     </>
@@ -134,7 +139,7 @@ export function DealCard({ d, preview = false, show }: { d: Deal; preview?: bool
     <article className={frame}>{body}</article>
   ) : (
     <article className={cn(frame, lift)}>
-      <Link href={`/s/${d.storeSlug}/${d.productSlug}`} className="flex h-full flex-col focus-visible:outline-2 focus-visible:outline-primary" aria-label={`${d.title} from ${d.storeName}`}>
+      <Link href={href ?? `/s/${d.storeSlug}/${d.productSlug}`} className="flex h-full flex-col focus-visible:outline-2 focus-visible:outline-primary" aria-label={href ? `Edit ${d.title}` : `${d.title} from ${d.storeName}`}>
         {body}
       </Link>
     </article>
@@ -152,8 +157,10 @@ export function SpotlightCard({ d, rank, show }: { d: Deal; rank: number; show?:
         </div>
         <div className="flex flex-1 flex-col gap-3 p-5">
           <Seller d={d} />
-          <h2 className="font-display text-2xl leading-tight [overflow-wrap:anywhere]">{d.title}</h2>
-          <DealBadges d={d} />
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <h2 className="font-display text-2xl leading-tight [overflow-wrap:anywhere]">{d.title}</h2>
+            <DealBadges d={d} />
+          </div>
           <p className="line-clamp-2 text-muted-foreground">{d.pitch}</p>
           <div className="mt-auto flex flex-col gap-3">
             <Price d={d} show={show} big />

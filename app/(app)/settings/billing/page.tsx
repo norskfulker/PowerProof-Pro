@@ -1,6 +1,5 @@
 "use client";
 
-import { SettingsTabs } from "@/components/settings/settings-tabs";
 import { CreditCard, Receipt, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/pp/empty-state";
@@ -21,11 +20,7 @@ export default function BillingPage() {
   const trial = plan.status === "trial";
 
   return (
-    <>
-    <SettingsTabs
-      label="Billing"
-      tabs={[
-        { id: "plan", label: "Plan", content: (
+    <div className="flex flex-col gap-6">
       <SettingsSection title="Plan">
         <div className="flex flex-col gap-6 md:flex-row md:items-start">
           <div className="flex-1">
@@ -49,8 +44,7 @@ export default function BillingPage() {
           )}
         </div>
       </SettingsSection>
-        ) },
-        { id: "usage", label: "Usage and limits", content: (
+
       <SettingsSection
         title="Usage and limits"
         description={planCtx.state?.tier === "free" ? "Free includes one store, up to 10 products and 3 pages. You'll be asked before anything stops." : "Pro has no limits on stores or products."}
@@ -69,16 +63,15 @@ export default function BillingPage() {
           </div>
         </div>
       </SettingsSection>
-        ) },
-        { id: "payment", label: "Payment method", content: (
+
       <SettingsSection title="Payment method" description="Cards are handled by the payment gateway's secure page. PowerProof never sees the number.">
         <div className="flex flex-wrap items-center gap-4">
           <span className="grid size-11 place-items-center rounded-control bg-primary-soft text-primary"><CreditCard className="size-5" aria-hidden /></span>
           <span className="flex-1">
             {plan.cardLast4 ? (
-              <><span className="block font-medium">Card ····{plan.cardLast4}</span><span className="text-sm text-muted-foreground">Charged on the 1st</span></>
+              <><span className="block font-medium">Card ····{plan.cardLast4}</span><span className="block text-sm text-muted-foreground">Charged on the 1st</span></>
             ) : (
-              <><span className="block font-medium">No card yet</span><span className="text-sm text-muted-foreground">Needed when the free month ends</span></>
+              <><span className="block font-medium">No card yet</span><span className="block text-sm text-muted-foreground">Needed when the free month ends</span></>
             )}
           </span>
           <Button variant="secondary" disabled title="Card payments open soon">
@@ -86,15 +79,10 @@ export default function BillingPage() {
           </Button>
         </div>
       </SettingsSection>
-        ) },
-        { id: "invoices", label: "Invoices", content: (
+
       <SettingsSection title="PowerProof invoices" description="Subscription plus platform fees, one invoice a month. GST invoice if you've added your GSTIN.">
         <EmptyState compact icon={Receipt} title="No invoices yet." body="PowerProof invoices appear here once billing is connected and your first month is over." />
       </SettingsSection>
-        ) },
-      ]}
-    />
-
-    </>
+    </div>
   );
 }

@@ -22,6 +22,7 @@ import { useCurrentStore } from "@/hooks/use-current-store";
 import { getBalance, getLeads, getPlan, getProducts, getSummary } from "@/lib/api";
 import { formatDate, sourceLabel } from "@/lib/format";
 import type { RangeKey, Store } from "@/lib/types";
+import { cn } from "@/lib/utils";
 
 const SOURCES = ["Direct", "Search", "Social", "Email", "Other"];
 const FUNNEL = ["Visits", "Viewed a product", "Started checkout", "Paid"];
@@ -55,8 +56,19 @@ function DashboardSections({ isNew, hasLive, range, setRange, summary, balance, 
     <Accordion type="multiple" defaultValue={settingUp ? ["getting-started", "operations"] : ["operations", "analytics"]} className="rounded-card border bg-surface px-5">
       <AccordionItem value="getting-started" id="getting-started">
         <AccordionTrigger className="min-h-14 items-center font-display text-xl">
-          <span className="flex-1">Further steps</span>
-          <span className="shrink-0 font-sans text-sm font-normal text-muted-foreground">{checklist.dismissed ? "Hidden" : checklist.complete ? "All done" : `${checklist.percent}%`}</span>
+          {/* The trigger carries the progress, so the state is readable without opening it */}
+          <span className="flex min-w-0 flex-1 flex-col items-start gap-1.5">
+            <span className="text-xl">Getting started</span>
+            {!checklist.dismissed && (
+              <span className="h-1.5 w-full overflow-hidden rounded-full bg-muted" aria-hidden>
+                <span className={cn("block h-full rounded-full transition-[width] duration-500 motion-reduce:transition-none", checklist.complete ? "bg-success" : "bg-primary")} style={{ width: `${checklist.percent}%` }} />
+              </span>
+            )}
+            <span className="font-sans text-sm font-normal text-muted-foreground">
+              {checklist.dismissed ? "Hidden" : checklist.complete ? "All done" : checklist.next ? `Next: ${checklist.next.title}` : ""}
+            </span>
+          </span>
+          {!checklist.dismissed && !checklist.complete && <span className="shrink-0 font-sans text-sm font-normal text-muted-foreground">{checklist.percent}%</span>}
         </AccordionTrigger>
         <AccordionContent>
           {checklist.dismissed ? <p className="text-sm text-muted-foreground">You&apos;ve hidden the checklist. Everything required was done.</p> : <GettingStartedCard bare />}

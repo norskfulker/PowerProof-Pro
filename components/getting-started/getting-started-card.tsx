@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ArrowRight, ChevronDown, Lock, X } from "lucide-react";
+import { ArrowRight, ChevronDown, Lock, PartyPopper, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { dismissChecklist } from "@/lib/api";
@@ -16,6 +16,54 @@ export function GettingStartedCard({ bare = false }: { /** Inside another box (t
   if (!checklist || checklist.dismissed) return null;
   const next = checklist.next;
   const finished = checklist.steps.filter((s) => s.state === "done" || s.state === "skipped").length;
+
+  const hide = async () => {
+    await dismissChecklist(true);
+    reload();
+    toast("Checklist hidden", { description: "Reopen it any time from the help menu." });
+  };
+
+  // Inside the dashboard accordion the section header already shows the progress, so this leads
+  // with the next step and lists every step straight away — no second disclosure to click through.
+  if (bare) {
+    return (
+      <section aria-labelledby="gs-title" className="flex flex-col gap-4">
+        <h2 id="gs-title" className="sr-only">Getting started</h2>
+        {next ? (
+          <div className="flex flex-wrap items-center gap-3 rounded-card border border-primary/30 bg-primary-soft p-4">
+            <div className="min-w-0 flex-[1_1_14rem]">
+              <p className="eyebrow text-primary">Step {next.n} of {checklist.steps.length} · up next</p>
+              <p className="mt-1 font-display text-lg leading-snug [overflow-wrap:anywhere]">{next.title}</p>
+              <p className="mt-1 text-sm text-muted-foreground">{next.detail ?? next.why}</p>
+              {next.needsUpgrade && (
+                <p className="mt-1.5 flex items-center gap-1 text-xs font-medium text-warning-ink">
+                  <Lock className="size-3.5" aria-hidden /> This needs Pro on your plan.
+                </p>
+              )}
+            </div>
+            <Button asChild size="lg" className="shrink-0">
+              <Link href={next.href}>
+                Next step <ArrowRight aria-hidden />
+              </Link>
+            </Button>
+          </div>
+        ) : (
+          <p className="flex flex-wrap items-center gap-2 rounded-card border border-success/30 bg-success-soft p-4 text-sm font-medium text-success">
+            <PartyPopper className="size-4" aria-hidden /> Everything required is done. The rest is optional — do it whenever.
+          </p>
+        )}
+        <StepList checklist={checklist} />
+        {checklist.complete && (
+          <div className="flex justify-end">
+            <Button variant="ghost" size="sm" onClick={hide}>
+              <X aria-hidden /> Hide the checklist
+            </Button>
+          </div>
+        )}
+      </section>
+    );
+  }
+
   return (
     <section aria-labelledby="gs-title" className={bare ? undefined : "mb-6 rounded-card border border-primary/30 bg-surface p-4 md:p-5"}>
       <div className="flex flex-wrap items-start gap-4">
@@ -28,15 +76,7 @@ export function GettingStartedCard({ bare = false }: { /** Inside another box (t
           </p>
         </div>
         {checklist.complete ? (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={async () => {
-              await dismissChecklist(true);
-              reload();
-              toast("Checklist hidden", { description: "Reopen it any time from the help menu." });
-            }}
-          >
+          <Button variant="ghost" size="sm" onClick={hide}>
             <X aria-hidden /> Hide
           </Button>
         ) : null}
