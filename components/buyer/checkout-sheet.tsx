@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, Lock, Minus, Plus } from "lucide-react";
 import { MoneyText } from "@/components/pp/money-text";
@@ -38,7 +38,7 @@ export const leftOf = (p: StoreProduct, variantId?: string): number | undefined 
 
 /** What the browser needs to open Razorpay's payment window */
 interface RazorpayWindow {
-  Razorpay?: new (o: Record<string, unknown>) => { open: () => void; on: (e: string, cb: (r: { error?: { description?: string } }) => void) => void };
+  Razorpay?: new (o: Record<string, unknown>) => { open: () => void; close: () => void; on: (e: string, cb: (r: { error?: { description?: string } }) => void) => void };
 }
 
 const SCRIPT = "https://checkout.razorpay.com/v1/checkout.js";
@@ -82,6 +82,7 @@ export function CheckoutSheet({ open, onOpenChange, storeId, storeSlug, lines, o
   const [addr, setAddr] = useState({ line1: "", line2: "", city: "", state: "", pincode: "" });
   const [payWith, setPayWith] = useState<"online" | "cod">("online");
   const [busy, setBusy] = useState(false);
+  const razorpayRef = useRef<{ close: () => void } | null>(null);
   const [error, setError] = useState<string>();
   const products = lines.map((l) => l.product);
   const physical = products.some((p) => p.fulfilment === "physical");
@@ -185,8 +186,9 @@ export function CheckoutSheet({ open, onOpenChange, storeId, storeSlug, lines, o
         description: products.length === 1 ? products[0].title : `${products.length} products`,
         prefill: { name: f.name, email: f.email.trim(), contact: `${f.dial}${digits}` },
         theme: { color: "#0F3D33" },
-        modal: { ondismiss: () => setBusy(false) },
+        modal: { escape: true, backdropclose: true, ondismiss: () => { razorpayRef.current = null; setBusy(false); setError(undefined); } },
         handler: async (r: { razorpay_payment_id: string; razorpay_order_id: string; razorpay_signature: string }) => {
+          razorpayRef.current = null;
           const done = await post<{ ok: true; orderId: string; token: string } | { ok: false; message: string }>("/api/checkout/verify", { gatewayOrderId: r.razorpay_order_id, paymentId: r.razorpay_payment_id, signature: r.razorpay_signature });
           if (done.ok) router.push(`/success/${done.orderId}?t=${done.token}`);
           else {
@@ -195,19 +197,30 @@ export function CheckoutSheet({ open, onOpenChange, storeId, storeSlug, lines, o
           }
         },
       });
+      razorpayRef.current = rz;
       rz.on("payment.failed", (r) => {
         setError(r.error?.description ?? "The payment didn't go through. You haven't been charged. Try again or use another method.");
         setBusy(false);
       });
       rz.open();
     } catch (err) {
+      razorpayRef.current = null;
       setError(err instanceof Error ? err.message : "Something went wrong. You haven't been charged.");
       setBusy(false);
     }
   }
 
   return (
-    <Sheet open={open} onOpenChange={(o) => { if (busy) return; if (o) setError(undefined); onOpenChange(o); }}>
+    <Sheet open={open} onOpenChange={(o) => {
+      if (!o && razorpayRef.current) {
+        razorpayRef.current.close();
+        razorpayRef.current = null;
+        setBusy(false);
+      }
+      if (busy && o) return;
+      if (o) setError(undefined);
+      onOpenChange(o);
+    }}>
       <SheetContent className="w-full overflow-y-auto sm:max-w-md">
         <SheetHeader>
           <SheetTitle className="font-display text-2xl">Checkout</SheetTitle>

@@ -3,7 +3,7 @@
 import { Suspense, useState, useSyncExternalStore } from "react";
 import { usePathname } from "next/navigation";
 import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
-import { SidebarProgress } from "@/components/getting-started/getting-started-card";
+import { PlanUsage } from "@/components/plan/plan-usage";
 import { NavTree } from "@/components/nav/nav-tree";
 import { AccessGuard } from "@/components/team/access-guard";
 import { useNav } from "@/components/nav/use-nav";
@@ -34,10 +34,10 @@ function setRail(v: boolean) {
   railListeners.forEach((l) => l());
 }
 
-/** The setup checklist is the owner's: team members don't get it */
-function OwnerProgress() {
-  const role = useCurrentStore().data?.access?.role;
-  return !role || role === "owner" ? <SidebarProgress /> : null;
+function SidebarUpgrade() {
+  const { data: store } = useCurrentStore();
+  if (store?.access?.role && store.access.role !== "owner") return null;
+  return <PlanUsage className="border-0 bg-transparent p-0" />;
 }
 
 export function SkipLink() {
@@ -75,7 +75,7 @@ export function AppShell({ children, variant = "creator" }: { children: React.Re
   const savedRail = useSyncExternalStore((cb) => (railListeners.add(cb), () => railListeners.delete(cb)), readRail, () => false);
   // In the store editor the menu starts as icons, to leave room for the page; it still opens on click
   const [editorRail, setEditorRail] = useState(true);
-  const footer = admin ? undefined : <OwnerProgress />;
+  const footer = admin ? undefined : <SidebarUpgrade />;
   // The store editor uses the full width beside the sidebar; it scrolls as one page like everything else
   const bleed = /\/design\/pages\/[^/]+\/edit$/.test(usePathname() ?? "");
   const rail = bleed ? editorRail : savedRail;

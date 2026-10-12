@@ -119,7 +119,7 @@ describe("theme preference", () => {
     expect(isThemePref("dark")).toBe(true);
     expect(isThemePref("blue")).toBe(false);
   });
-  it("the no-flash script sets data-theme before paint", () => {
+  it("the no-flash script defaults to light but honors an explicit saved preference", () => {
     const run = (stored: string | null, systemDark: boolean) => {
       const store = new Map<string, string>();
       if (stored) store.set("pp:theme", stored);
@@ -131,10 +131,10 @@ describe("theme preference", () => {
       );
       return root.dataset.theme;
     };
-    expect(run(null, true)).toBe("dark");
+    expect(run(null, true)).toBe("light");
     expect(run(null, false)).toBe("light");
     expect(run("light", true)).toBe("light");
     expect(run("dark", false)).toBe("dark");
-    expect(run("nonsense", true)).toBe("dark");
+    expect(run("nonsense", true)).toBe("light");
   });
 });

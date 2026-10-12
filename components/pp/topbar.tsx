@@ -5,7 +5,7 @@ import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { PlanUsage } from "@/components/plan/plan-usage";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Check, ChevronsUpDown, ExternalLink, SunMoon, ListChecks, Loader2, LogOut, Plus, Settings, Shield, Sparkles } from "lucide-react";
 import { useGettingStarted } from "@/components/getting-started/getting-started-provider";
 import { usePlan } from "@/components/plan/plan-context";
@@ -146,6 +146,16 @@ function AccountMenu() {
   const router = useRouter();
   const gs = useGettingStarted();
   const { data: store } = useCurrentStore();
+  const { state: planState } = usePlan();
+  const [isAdmin, setIsAdmin] = useState(false);
+  useEffect(() => {
+    let active = true;
+    fetch("/api/admin/me", { cache: "no-store" })
+      .then((response) => response.ok ? response.json() as Promise<{ isAdmin: boolean }> : { isAdmin: false })
+      .then((result) => { if (active) setIsAdmin(result.isAdmin); })
+      .catch(() => { if (active) setIsAdmin(false); });
+    return () => { active = false; };
+  }, []);
 
   return (
     <DropdownMenu>
@@ -165,12 +175,16 @@ function AccountMenu() {
         <div className="px-2 py-1.5">
           <PlanUsage className="border-0 p-0" />
         </div>
-        <DropdownMenuItem asChild>
-          <Link href="/settings/billing">
-            <Sparkles aria-hidden /> Billing and plan
-          </Link>
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
+        {planState?.tier === "pro" && (
+          <>
+            <DropdownMenuItem asChild>
+              <Link href="/settings/billing">
+                <Sparkles aria-hidden /> Billing and plan
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+          </>
+        )}
         <DropdownMenuItem asChild>
           <Link href="/settings/profile">
             <Settings aria-hidden /> Settings
@@ -179,11 +193,11 @@ function AccountMenu() {
         <DropdownMenuItem onSelect={() => gs.openDrawer()}>
           <ListChecks aria-hidden /> Getting started checklist
         </DropdownMenuItem>
-        <DropdownMenuItem asChild>
+        {isAdmin && <DropdownMenuItem asChild>
           <Link href="/admin">
             <Shield aria-hidden /> Founder admin
           </Link>
-        </DropdownMenuItem>
+        </DropdownMenuItem>}
         <div className="flex items-center justify-between gap-3 px-2 py-1.5">
           <span className="flex items-center gap-2 text-sm"><SunMoon className="size-4" aria-hidden /> Colour mode</span>
           <ThemeToggle iconOnly />

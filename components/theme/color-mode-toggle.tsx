@@ -54,14 +54,14 @@ export function ColorModeToggle<T extends string>({
     <div
       role="radiogroup"
       aria-label={label}
-      className={cn("relative inline-grid rounded-full border bg-muted p-1", className)}
-      style={{ gridTemplateColumns: `repeat(${n}, minmax(2.75rem, 1fr))` }}
+      className={cn("relative inline-grid h-9 items-center rounded-full border bg-muted p-0.5", className)}
+      style={{ gridTemplateColumns: `repeat(${n}, minmax(2rem, 1fr))` }}
     >
       <span
         aria-hidden
         data-slot="color-mode-thumb"
-        className="pointer-events-none absolute inset-y-1 left-1 rounded-full bg-surface shadow-pop transition-transform duration-200 ease-out motion-reduce:transition-none"
-        style={{ width: `calc((100% - 0.5rem) / ${n})`, transform: `translateX(${index * 100}%)` }}
+        className="pointer-events-none absolute inset-y-0.5 left-0.5 rounded-full bg-surface shadow-sm transition-transform duration-200 ease-out motion-reduce:transition-none"
+        style={{ width: `calc((100% - 0.25rem) / ${n})`, transform: `translateX(${index * 100}%)` }}
       />
       {options.map((o, i) => {
         const checked = i === index;
@@ -89,7 +89,7 @@ export function ColorModeToggle<T extends string>({
               e.stopPropagation();
             }}
             className={cn(
-              "relative z-10 inline-flex min-h-11 min-w-11 items-center justify-center gap-1.5 rounded-full px-3 text-sm font-medium whitespace-nowrap transition-colors outline-offset-2 focus-visible:outline-2 focus-visible:outline-primary",
+              "relative z-10 inline-flex min-h-8 min-w-8 items-center justify-center gap-1 rounded-full px-2 text-xs font-medium whitespace-nowrap transition-colors outline-offset-2 focus-visible:outline-2 focus-visible:outline-primary",
               checked ? "text-foreground" : "text-muted-foreground hover:text-foreground"
             )}
           >

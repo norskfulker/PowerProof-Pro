@@ -18,4 +18,4 @@ export function resolveTheme(pref: ThemePref, systemDark: boolean): ThemeMode {
  * dependency-free; it mirrors resolveTheme. Pages that must stay light (emails, invoices) set
  * data-theme="light" on their own wrapper.
  */
-export const NO_FLASH_SCRIPT = `(function(){try{var p=localStorage.getItem("${THEME_KEY}");if(p!=="light"&&p!=="dark")p="system";var d=p==="dark"||(p==="system"&&matchMedia("(prefers-color-scheme: dark)").matches);var r=document.documentElement;r.dataset.theme=d?"dark":"light";r.style.colorScheme=d?"dark":"light"}catch(e){}})();`;
+export const NO_FLASH_SCRIPT = `(function(){try{var p=localStorage.getItem("${THEME_KEY}");var d=p==="dark";var r=document.documentElement;r.dataset.theme=d?"dark":"light";r.style.colorScheme=d?"dark":"light"}catch(e){}})();`;

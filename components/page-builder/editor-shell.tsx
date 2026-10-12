@@ -3,13 +3,14 @@
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Check, CloudOff, ExternalLink, Files, History, LayoutList, Loader2, Palette, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Redo2, Settings2, Sparkles, Undo2, type LucideIcon } from "lucide-react";
+import { Check, CloudOff, ExternalLink, Files, History, EyeOff, LayoutList, Loader2, Palette, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Redo2, Settings2, Sparkles, Undo2, type LucideIcon } from "lucide-react";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/pp/confirm-dialog";
 import { useUnsavedGuard } from "@/components/save/unsaved-guard";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectSeparator, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { QuestionsInbox } from "@/components/store-admin/questions-inbox";
 import { ReviewsInbox } from "@/components/store-admin/reviews-inbox";
 import { discardEditorDraft, getPayoutMethods, getProducts, getStoreInfo, pageUrl, publishEditor, saveEditorDraft, type EditorSession, type RenderContext, type VisualPageStatus } from "@/lib/api";
@@ -175,13 +176,15 @@ function Inner({ session }: { session: EditorSession }) {
   // Either sidebar collapses; the canvas takes the room
   const [leftOpen, setLeftOpen] = useState(true);
   const [rightOpen, setRightOpen] = useState(true);
-  const leftShown = size !== "narrow" && leftOpen;
+  const leftShown = size !== "narrow";
+  const leftExpanded = leftShown && leftOpen;
   const rightShown = size === "wide" && !wideData && rightOpen;
+  const leftWidth = leftExpanded ? (wideData ? "26rem" : "21rem") : "4rem";
   const bodyCols =
-    !leftShown && !rightShown ? "grid-cols-1"
-    : leftShown && rightShown ? "grid-cols-[21rem_minmax(0,1fr)_19rem]"
-    : leftShown ? (wideData ? "grid-cols-[26rem_minmax(0,1fr)]" : "grid-cols-[21rem_minmax(0,1fr)]")
-    : "grid-cols-[minmax(0,1fr)_19rem]";
+    leftShown && rightShown ? `grid-cols-[${leftWidth}_minmax(0,1fr)_19rem]`
+    : leftShown ? `grid-cols-[${leftWidth}_minmax(0,1fr)]`
+    : rightShown ? "grid-cols-[minmax(0,1fr)_19rem]"
+    : "grid-cols-1";
   // Both sidebars pin under the bars with their own scroll, so they stay in view on long pages
   const sideStick: React.CSSProperties = { position: "sticky", top: APP_BAR + barHeight, maxHeight: `calc(100dvh - ${APP_BAR + barHeight + 16}px)`, overflowY: "auto" };
   useEffect(() => {
@@ -412,11 +415,6 @@ function Inner({ session }: { session: EditorSession }) {
     <div ref={root} className="-mx-3 flex flex-1 flex-col border-t bg-background md:mx-0 md:rounded-t-card md:border-x">
       {/* Top bar: stays in view while the page scrolls */}
       <header ref={bar} data-editor-bar="" className="sticky top-16 z-20 flex flex-wrap items-center gap-x-3 gap-y-2 border-b bg-surface px-3 py-2 md:rounded-t-card md:px-4">
-        {size !== "narrow" && (
-          <Button type="button" variant="ghost" size="icon" onClick={() => setLeftOpen((o) => !o)} aria-pressed={leftOpen} title={leftOpen ? "Collapse panel" : "Expand panel"} aria-label={leftOpen ? "Collapse panel" : "Expand panel"}>
-            {leftOpen ? <PanelLeftClose /> : <PanelLeftOpen />}
-          </Button>
-        )}
         <div className="flex min-w-0 flex-[1_1_14rem] flex-wrap items-center gap-x-3 gap-y-1">
           <Select value={page.id} onValueChange={goTo}>
             <SelectTrigger size="sm" className="h-9 w-auto max-w-60 min-w-0 border-transparent bg-transparent px-2 font-display text-base font-extrabold hover:border-input" aria-label="Page you're editing">
@@ -436,8 +434,15 @@ function Inner({ session }: { session: EditorSession }) {
               <SelectItem value="manage">Manage pages…</SelectItem>
             </SelectContent>
           </Select>
-          <span className={cn("shrink-0 rounded-full border px-2 py-0.5 text-xs font-semibold whitespace-nowrap", !dirty ? "border-success/40 text-success" : status === "draft" ? "text-muted-foreground" : "border-warning/40 text-warning-ink")}>{statusText}</span>
-          {isHome && !storeLive && <span className="text-xs font-semibold whitespace-nowrap text-muted-foreground">Store hidden from buyers</span>}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span aria-label={statusText} className={cn("grid size-7 shrink-0 place-items-center rounded-full border", !dirty ? "border-success/40 text-success" : status === "draft" ? "border-border text-muted-foreground" : "border-warning/40 text-warning-ink")}>
+                {status === "draft" ? <Files className="size-3.5" aria-hidden /> : dirty ? <CloudOff className="size-3.5" aria-hidden /> : <Check className="size-3.5" aria-hidden />}
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>{statusText}</TooltipContent>
+          </Tooltip>
+          {isHome && !storeLive && <Tooltip><TooltipTrigger asChild><span aria-label="Store hidden from buyers" className="grid size-7 shrink-0 place-items-center rounded-full border border-warning/40 text-warning-ink"><EyeOff className="size-3.5" aria-hidden /></span></TooltipTrigger><TooltipContent>Store hidden from buyers</TooltipContent></Tooltip>}
           <SaveIndicator state={save === "saved" && rev !== savedRev && !building ? "saving" : save} at={savedAt} onRetry={flush} />
         </div>
         <div className="flex flex-[1_1_auto] items-center justify-center">
@@ -499,7 +504,16 @@ function Inner({ session }: { session: EditorSession }) {
         {leftShown && (
         <aside inert={building || undefined} aria-label="Editor panels" className={cn(building && "opacity-60", "border-r bg-surface")}>
           <div className="overscroll-contain flex min-h-0" style={sideStick}>
-          <div role="tablist" aria-label="Panels" aria-orientation="vertical" className="flex w-16 shrink-0 flex-col gap-1 self-start border-r px-1 py-2">
+          <div className="flex w-16 shrink-0 flex-col items-center gap-1 self-start border-r px-1 py-2">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button type="button" onClick={() => setLeftOpen(false)} aria-label="Collapse sidebar" className="mb-1 grid size-10 place-items-center rounded-full border border-border text-muted-foreground hover:bg-muted hover:text-foreground">
+                  <PanelLeftClose className="size-4" aria-hidden />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="right">Collapse sidebar</TooltipContent>
+            </Tooltip>
+          <div role="tablist" aria-label="Panels" aria-orientation="vertical" className="flex w-full flex-col gap-1">
             {railItems.map(({ id, label, title, icon: Icon }) => {
               return (
                 <button
@@ -523,12 +537,13 @@ function Inner({ session }: { session: EditorSession }) {
               );
             })}
           </div>
-          <div id="rail-panel" role="tabpanel" aria-labelledby={`rail-${tab}`} className="flex min-w-0 flex-1 flex-col">
+          </div>
+          {leftOpen && <div id="rail-panel" role="tabpanel" aria-labelledby={`rail-${tab}`} className="flex min-w-0 flex-1 flex-col">
             <h2 className="px-3 pt-3 pb-2 font-display text-base font-extrabold">{current.title}</h2>
             <div key={tab} className={cn("pb-3", tab === "sections" ? "px-2" : "px-3")}>
               {panels[tab]}
             </div>
-          </div>
+          </div>}
           </div>
         </aside>
         )}
