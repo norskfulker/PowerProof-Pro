@@ -2,10 +2,15 @@
  * PowerProof on Cloudflare Workers, built with the OpenNext adapter (open-next.config.ts).
  * `npm run deploy` builds and deploys; `npm run preview` runs the built Worker locally.
  *
- * Secrets (set each with `npx wrangler secret put NAME`, never in this file):
+ * Secrets (dashboard Secrets tab, or one at a time with `npx wrangler secret put NAME`):
  *   SUPABASE_SERVICE_ROLE_KEY, RAZORPAY_*, RESEND_API_KEY, GEMINI_API_KEY, CRON_SECRET,
  *   CLOUDFLARE_API_TOKEN (custom domains: "SSL and Certificates: Edit" on the zone)
- * NEXT_PUBLIC_* values are baked in at build time, so they come from .env files when building.
+ * Plain settings (dashboard Variables tab): MAIL_FROM. The Cloudflare SaaS settings below are
+ * only for custom domains — leave them unset until that setup; the app treats missing as
+ * "custom domains off" (the Domain page says so instead of breaking).
+ * Keep them OUT of this file: every deploy uploads the vars written here, so an entry here
+ * would overwrite the dashboard value (even with "").
+ * NEXT_PUBLIC_* values are baked in at build time, so they come from the dashboard at build time.
  */
 {
   "$schema": "node_modules/wrangler/config-schema.json",
@@ -18,15 +23,8 @@
   "services": [{ "binding": "WORKER_SELF_REFERENCE", "service": "powerproof-pro" }],
   "observability": { "enabled": true },
   // Re-check custom domains waiting for DNS (app/api/cron/domains)
-  "triggers": { "crons": ["*/10 * * * *"] },
-  "vars": {
-    "MAIL_FROM": "",
-    // Custom domains (Cloudflare for SaaS on your own zone): the zone id and the CNAME creators point to
-    "CLOUDFLARE_ZONE_ID": "",
-    "CLOUDFLARE_CNAME_TARGET": "",
-    // Only if the zone has apex proxying: the addresses bare domains point to, comma separated
-    "CLOUDFLARE_APEX_IPS": ""
-  }
+  "triggers": { "crons": ["*/10 * * * *"] }
+  // (No "vars" here on purpose: dashboard Variables stay as they are across deploys.)
   // Custom domains reach the app through a route that catches every hostname on the zone.
   // Uncomment and set your zone once PowerProof's domain is on Cloudflare:
   // "routes": [{ "pattern": "*/*", "zone_name": "powerproof.store" }]

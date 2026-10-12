@@ -111,7 +111,7 @@ npm run deploy    # build and deploy
 ```
 
 - `NEXT_PUBLIC_*` values are baked in at build time, so build with them in `.env.local` (or the build machine's environment): `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_SITE_URL`.
-- Server secrets go to Cloudflare, one at a time: `npx wrangler secret put SUPABASE_SERVICE_ROLE_KEY` (and the Razorpay keys, `RESEND_API_KEY`, `GEMINI_API_KEY`, `CRON_SECRET`, `CLOUDFLARE_API_TOKEN`). Plain settings (`MAIL_FROM`, `CLOUDFLARE_ZONE_ID`, `CLOUDFLARE_CNAME_TARGET`) can sit in `vars` in `wrangler.jsonc`.
+- Server secrets go to Cloudflare, one at a time: `npx wrangler secret put SUPABASE_SERVICE_ROLE_KEY` (and the Razorpay keys, `RESEND_API_KEY`, `GEMINI_API_KEY`, `CRON_SECRET`, `CLOUDFLARE_API_TOKEN`), or paste them as Secrets in the dashboard. The plain setting `MAIL_FROM` goes in the dashboard as a Variable — never in `vars` in `wrangler.jsonc`, because every deploy would overwrite it (even with empty strings). `CLOUDFLARE_ZONE_ID`, `CLOUDFLARE_CNAME_TARGET` (and `CLOUDFLARE_APEX_IPS` with apex proxying) are only for the custom-domains setup below; leave them unset until then.
 - For `npm run preview`, local secrets go in `.dev.vars` (git-ignored), with `NEXTJS_ENV=development` on its first line.
 
 ### Custom domains on Cloudflare
