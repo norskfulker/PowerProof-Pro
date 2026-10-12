@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { mailConfigured } from "@/lib/server/email";
 import { readRates } from "@/lib/server/fx";
 import { keyMode, payoutConfig, razorpayConfig, verifyKeys } from "@/lib/server/razorpay";
-import { siteUrl } from "@/lib/server/shop";
+import { siteUrl } from "@/lib/site-url";
 import { sbAdmin, serviceKeyConfigured, serviceKeyName } from "@/lib/supabase/admin";
 import { sbServer } from "@/lib/supabase/server";
 

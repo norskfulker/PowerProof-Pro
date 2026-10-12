@@ -228,12 +228,39 @@ describe("offers", () => {
     const b = rule({ kind: "bundle_discount", productIds: ["a", "b"], percent: 20 });
     expect(run(cart("a", "b"), [b]).offers).toEqual([]);
   });
+
+  it("fixed bundle price spreads the total across its items", () => {
+    const b = rule({ kind: "bundle_discount", productIds: ["a", "b"], percent: 20, fixedPrice: fromMajor(1000) });
+    expect(run(cart("a"), [b]).saving.amount).toBe(0);
+    const r = run(cart("a", "b"), [b]);
+    expect(r.saving).toEqual(fromMajor(500));
+    expect(r.total).toEqual(fromMajor(1000));
+    expect(r.lines.map((l) => l.price.amount).reduce((x, y) => x + y, 0)).toBe(100000);
+    expect(r.appliedRuleIds).toEqual([b.id]);
+  });
+
+  it("fixed bundle price ignores floors and never charges more than the sum", () => {
+    const floor = rule({ kind: "bundle_discount", productIds: ["e", "d"], percent: 10, fixedPrice: fromMajor(1000) });
+    const r = run(cart("e", "d"), [floor]);
+    expect(r.total).toEqual(fromMajor(1000));
+    const over = rule({ kind: "bundle_discount", productIds: ["a", "b"], percent: 10, fixedPrice: fromMajor(2000) });
+    expect(run(cart("a", "b"), [over]).saving.amount).toBe(0);
+  });
+
+  it("fixed bundle suggests the missing product", () => {
+    const b = rule({ kind: "bundle_discount", productIds: ["a", "b"], percent: 20, fixedPrice: fromMajor(1000) });
+    const r = run(cart("a"), [b]);
+    expect(r.offers).toHaveLength(1);
+    expect(r.offers[0].addProductIds).toEqual(["b"]);
+    expect(r.offers[0].saving).toEqual(fromMajor(500));
+  });
 });
 
 describe("ruleSummary", () => {
   const t = (id: string) => id.toUpperCase();
   it.each<[DealRuleSpec, RegExp]>([
     [{ kind: "bundle_discount", productIds: ["a", "b"], percent: 20 }, /Buy A \+ B together, save 20%/],
+    [{ kind: "bundle_discount", productIds: ["a", "b"], percent: 33, fixedPrice: fromMajor(1000) }, /Buy A \+ B together for ₹1,000/],
     [{ kind: "tiers", productIds: [], tiers: [{ minItems: 3, percent: 20 }, { minItems: 2, percent: 10 }] }, /2 items 10% off, 3 items 20% off/],
     [{ kind: "spend_threshold", minSpend: fromMajor(2000), percent: 15 }, /Spend ₹2,000, get 15% off/],
     [{ kind: "buy_x_get_cheapest", productIds: [], buy: 3 }, /Buy 3, get the cheapest free/],

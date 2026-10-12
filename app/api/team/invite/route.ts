@@ -2,7 +2,7 @@ import "server-only";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { mailConfigured, sendMail, teamInviteMail } from "@/lib/server/email";
-import { siteUrl } from "@/lib/server/shop";
+import { siteUrl } from "@/lib/site-url";
 import { sbServer } from "@/lib/supabase/server";
 import { ALL_AREAS, areaLabels } from "@/lib/team";
 

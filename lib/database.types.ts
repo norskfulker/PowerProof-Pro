@@ -110,6 +110,145 @@ export type Database = {
         }
         Relationships: []
       }
+      blog_posts: {
+        Row: {
+          author: string
+          body: string
+          cover_alt: string
+          cover_kind: string
+          cover_src: string
+          created_at: string
+          excerpt: string
+          id: string
+          published_at: string | null
+          slug: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          author?: string
+          body?: string
+          cover_alt?: string
+          cover_kind?: string
+          cover_src?: string
+          created_at?: string
+          excerpt?: string
+          id?: string
+          published_at?: string | null
+          slug: string
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          author?: string
+          body?: string
+          cover_alt?: string
+          cover_kind?: string
+          cover_src?: string
+          created_at?: string
+          excerpt?: string
+          id?: string
+          published_at?: string | null
+          slug?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      billing_receipts: {
+        Row: {
+          amount_minor: number
+          created_at: string
+          currency: string
+          id: string
+          period_end: string | null
+          period_start: string | null
+          razorpay_payment_id: string
+          subscription_id: string | null
+          user_id: string
+        }
+        Insert: {
+          amount_minor: number
+          created_at?: string
+          currency?: string
+          id?: string
+          period_end?: string | null
+          period_start?: string | null
+          razorpay_payment_id?: string
+          subscription_id?: string | null
+          user_id: string
+        }
+        Update: {
+          amount_minor?: number
+          created_at?: string
+          currency?: string
+          id?: string
+          period_end?: string | null
+          period_start?: string | null
+          razorpay_payment_id?: string
+          subscription_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_receipts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      billing_subscriptions: {
+        Row: {
+          created_at: string
+          current_end: string | null
+          current_start: string | null
+          id: string
+          razorpay_customer_id: string
+          razorpay_subscription_id: string
+          status: string
+          trial_ends_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          current_end?: string | null
+          current_start?: string | null
+          id?: string
+          razorpay_customer_id?: string
+          razorpay_subscription_id?: string
+          status?: string
+          trial_ends_at?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          current_end?: string | null
+          current_start?: string | null
+          id?: string
+          razorpay_customer_id?: string
+          razorpay_subscription_id?: string
+          status?: string
+          trial_ends_at?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_subscriptions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       collection_items: {
         Row: {
           collection_id: string
@@ -333,6 +472,8 @@ export type Database = {
       deal_rules: {
         Row: {
           active: boolean
+          bundle_price_currency: string | null
+          bundle_price_minor: number | null
           created_at: string
           ends_at: string | null
           id: string
@@ -348,6 +489,8 @@ export type Database = {
         }
         Insert: {
           active?: boolean
+          bundle_price_currency?: string | null
+          bundle_price_minor?: number | null
           created_at?: string
           ends_at?: string | null
           id?: string
@@ -363,6 +506,8 @@ export type Database = {
         }
         Update: {
           active?: boolean
+          bundle_price_currency?: string | null
+          bundle_price_minor?: number | null
           created_at?: string
           ends_at?: string | null
           id?: string
@@ -850,6 +995,7 @@ export type Database = {
           buyer_email: string
           buyer_name: string
           buyer_phone: string
+          buyer_state: string | null
           cod_fee_minor: number
           consent_at: string
           coupon_id: string | null
@@ -886,6 +1032,7 @@ export type Database = {
           buyer_email: string
           buyer_name: string
           buyer_phone: string
+          buyer_state?: string | null
           cod_fee_minor?: number
           consent_at: string
           coupon_id?: string | null
@@ -922,6 +1069,7 @@ export type Database = {
           buyer_email?: string
           buyer_name?: string
           buyer_phone?: string
+          buyer_state?: string | null
           cod_fee_minor?: number
           consent_at?: string
           coupon_id?: string | null
@@ -2283,6 +2431,44 @@ export type Database = {
           target_type: string
         }[]
       }
+      admin_blog_delete: {
+        Args: { p_id: string }
+        Returns: undefined
+      }
+      admin_blog_list: {
+        Args: never
+        Returns: {
+          author: string
+          body: string
+          cover_alt: string
+          cover_kind: string
+          cover_src: string
+          created_at: string
+          excerpt: string
+          id: string
+          published_at: string
+          slug: string
+          status: string
+          title: string
+          updated_at: string
+        }[]
+      }
+      admin_blog_save: {
+        Args: {
+          p_author: string
+          p_body: string
+          p_cover_alt: string
+          p_cover_kind: string
+          p_cover_src: string
+          p_excerpt: string
+          p_id?: string
+          p_published_at?: string
+          p_slug: string
+          p_status: string
+          p_title: string
+        }
+        Returns: string
+      }
       admin_content: {
         Args: { p_status?: string; p_type: string }
         Returns: {
@@ -2612,6 +2798,7 @@ export type Database = {
           p_payment_method?: string
           p_phone: string
           p_ref: string
+          p_buyer_state?: string
           p_ship_to?: Json
           p_shipping?: number
           p_store: string

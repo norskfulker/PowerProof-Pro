@@ -33,7 +33,7 @@ export function EmailLayout({
             {footer}
             <Hr style={{ borderColor: t.border, margin: "12px 0" }} />
             <Text style={{ fontSize: 12, color: t.muted, margin: 0 }}>
-              Sent by <Link href="https://powerproof.store" style={{ color: t.muted, textDecoration: "underline" }}>PowerProof</Link> on behalf of {brand.name}.
+              Sent by <Link href="https://powerproof.app" style={{ color: t.muted, textDecoration: "underline" }}>PowerProof</Link> on behalf of {brand.name}.
             </Text>
           </Section>
         </Container>

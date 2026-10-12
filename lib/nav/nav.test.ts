@@ -21,7 +21,7 @@ describe("nav config", () => {
   });
   it("keeps the nested groups in business-flow order: Marketplace below Dashboard, Catalog, Sales, then My Store", () => {
     expect(CREATOR_NAV.map((g) => g.label)).toEqual(["Dashboard", "Marketplace", "Catalog", "Store Data", "My Store", "Tools", "Settings"]);
-    expect(ADMIN_NAV.map((g) => g.label)).toEqual(["Overview", "Creators", "Stores", "Products", "Orders", "Money", "Moderation", "System"]);
+    expect(ADMIN_NAV.map((g) => g.label)).toEqual(["Overview", "Creators", "Stores", "Products", "Blog", "Orders", "Money", "Moderation", "System"]);
   });
   it("puts Home, Products, Orders and Settings in the tab bar", () => {
     expect(MOBILE_TABS.map((t) => t.label)).toEqual(["Home", "Products", "Orders", "Settings"]);

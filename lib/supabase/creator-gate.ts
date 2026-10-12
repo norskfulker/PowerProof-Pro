@@ -10,7 +10,14 @@ import { sbServer } from "./server";
  */
 async function hasStore(): Promise<boolean> {
   const sb = await sbServer();
-  const { data: auth } = await sb.auth.getUser();
+  const { data: auth, error: authError } = await sb.auth.getUser();
+  // A failed lookup throws instead of redirecting: the proxy checks the session locally while
+  // this call reaches the Auth API, so sending failures to /login could bounce against the
+  // proxy's verdict forever. Signed-out (no error, no user) still goes to /login.
+  if (authError) {
+    console.error(`[creator-gate] getUser failed: ${authError.message}`);
+    throw new Error("We couldn't check your session. Refresh to try again.");
+  }
   if (!auth.user) redirect("/login");
   const { data, error } = await sb.rpc("my_stores");
   if (error) throw new Error("We couldn't check your store. Refresh to try again.");

@@ -27,5 +27,5 @@
   // (No "vars" here on purpose: dashboard Variables stay as they are across deploys.)
   // Custom domains reach the app through a route that catches every hostname on the zone.
   // Uncomment and set your zone once PowerProof's domain is on Cloudflare:
-  // "routes": [{ "pattern": "*/*", "zone_name": "powerproof.store" }]
+  // "routes": [{ "pattern": "*/*", "zone_name": "powerproof.app" }]
 }

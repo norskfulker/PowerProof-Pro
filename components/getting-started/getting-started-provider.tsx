@@ -10,6 +10,8 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
 import { useApi } from "@/hooks/use-api";
 import { dismissChecklist, getChecklist, markCoachSeen, markWelcomed, skipStep, type Checklist, type StepId } from "@/lib/api";
+import type { CoverSpec } from "@/lib/types";
+import { CoverArt } from "@/components/pp/product-cover";
 import { ProgressRing, StepItem } from "./parts";
 
 interface Ctx {
@@ -110,7 +112,17 @@ function CoachMark({ checklist, reload }: { checklist: Checklist; reload: () => 
   );
 }
 
-/** The first-sign-in welcome: the plan in three lines and a button to start. */
+/**
+ * The welcome pictures. Paste your image URLs into `src` (empty keeps the generated art).
+ * One place to update: this list. Captions stay as the short step names.
+ */
+const WELCOME_STEPS: { src: string; alt: string; caption: string; art: CoverSpec }[] = [
+  { src: "", alt: "Set up: verify your email, name your store, add where to get paid", caption: "1. Set up", art: { template: "block", title: "Set up", bg: "#0F3D33", fg: "#F5F6F4", accent: "#C9A24F" } },
+  { src: "", alt: "Add and style: your first product, hero, colours and About", caption: "2. Add and style", art: { template: "split", title: "Style", bg: "#1F322D", fg: "#EAF0ED", accent: "#3AA584" } },
+  { src: "", alt: "Go live: publish, share your link, watch for your first sale", caption: "3. Go live", art: { template: "grid", title: "Go live", bg: "#A9823A", fg: "#FFFDF5", accent: "#0F3D33" } },
+];
+
+/** The first-sign-in welcome: the plan in three pictures and a button to start. */
 function WelcomeDialog({ checklist, onDone }: { checklist: Checklist; onDone: () => void }) {
   const [open, setOpen] = useState(true);
   const close = async () => {
@@ -127,10 +139,20 @@ function WelcomeDialog({ checklist, onDone }: { checklist: Checklist; onDone: ()
           </DialogTitle>
           <DialogDescription>Here&apos;s the plan. It takes about 15 minutes.</DialogDescription>
         </DialogHeader>
-        <ol className="flex flex-col gap-2 text-sm">
-          <li><span className="font-semibold">1. Set up:</span> verify your email, name your store, add where to get paid.</li>
-          <li><span className="font-semibold">2. Add and style:</span> your first product, your hero, colours and About.</li>
-          <li><span className="font-semibold">3. Go live:</span> publish, share your link, and watch for your first sale.</li>
+        <ol className="grid grid-cols-3 gap-2">
+          {WELCOME_STEPS.map((s) => (
+            <li key={s.caption} className="min-w-0">
+              <figure className="flex flex-col gap-1.5">
+                {s.src ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={s.src} alt={s.alt} className="aspect-[4/3] w-full rounded-media object-cover" loading="lazy" />
+                ) : (
+                  <CoverArt cover={s.art} size="sm" label={s.alt} className="aspect-[4/3]" />
+                )}
+                <figcaption className="truncate text-center text-xs font-medium">{s.caption}</figcaption>
+              </figure>
+            </li>
+          ))}
         </ol>
         <p className="text-xs text-muted-foreground">Your checklist stays in the sidebar until you&apos;re done, and remembers where you left off.</p>
         <DialogFooter>

@@ -3,7 +3,7 @@ import type { CurrencyCode, Money } from "./types";
 
 /** Pricing constants shown across the product. Founder can change these in one place. */
 export const PRICING = {
-  monthlyUsd: 2000, // $20.00 in cents
+  monthlyInr: 199900, // ₹1,999.00 in paise
   freeMonths: 1,
   platformFeePct: 3,
   gatewayFeePct: 2,

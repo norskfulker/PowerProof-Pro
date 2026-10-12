@@ -37,8 +37,8 @@ export function verifyHook(raw: string, headers: { id: string | null; timestamp:
   });
 }
 
-/** What /auth/callback passes to verifyOtp for each kind of link */
-const LINK_TYPE: Partial<Record<AuthMailKind, string>> = { signup: "email", magiclink: "email", recovery: "recovery", invite: "invite", email_change: "email_change" };
+/** What /auth/callback passes to verifyOtp for each kind of link (Supabase's own types) */
+const LINK_TYPE: Partial<Record<AuthMailKind, string>> = { signup: "signup", magiclink: "magiclink", recovery: "recovery", invite: "invite", email_change: "email_change" };
 
 /** The link in the email: straight to our /auth/callback (which signs them in), keeping where they were headed */
 export function callbackLink(kind: AuthMailKind, tokenHash: string | undefined, redirectTo: string | undefined, site: string): string | undefined {
@@ -107,7 +107,7 @@ export async function sendHookMails(p: HookPayload, site: string, env: Record<st
   const mails = hookMails(p, site);
   for (const m of mails) {
     const r = await sendMail(m, env);
-    if (!r.sent) throw new Error(r.reason === "not_configured" ? "Email isn't connected (RESEND_API_KEY and MAIL_FROM)." : "The email service didn't accept the message.");
+    if (!r.sent) throw new Error(r.reason === "not_configured" ? "Email isn't connected (RESEND_API_KEY and MAIL_FROM)." : `The email service didn't accept the message.${r.detail ? ` ${r.detail}` : ""}`);
   }
   return mails.length;
 }

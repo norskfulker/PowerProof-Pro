@@ -34,7 +34,8 @@ Small calls made while building the frontend, so the founder can check them in o
 - Money is always `{ amount: integer minor units, currency }`. `MoneyText` and `formatMoney` are the only formatters. INR uses Indian digit grouping (₹1,52,400.00).
 - **The creator's country decides the store's currency** (`stores.country`, `lib/countries.ts`; INR, USD, EUR, GBP, AED, SGD, AUD, CAD). Prices are set in that currency. Both are chosen once at sign-up and locked once there are products (`store_currency_locked`); the database also forces every product into its store's currency.
 - **Prices show in the store's own currency, and buyers can view them in another when rates exist.** Rates live in `fx_rates` (units per US dollar, readable by everyone, writable only by PowerProof staff). With no rates the "Show prices in" picker doesn't appear and nothing is guessed. Conversion is display only: checkout charges the store's currency. No rate source is connected, so the table starts empty.
-- **Fees:** 3% platform plus about 2% gateway, both worked out on the INR price. Subscription is $20/month after a free first month; the calculator shows it in dollars rather than converting it at an invented rate.
+- **Fees:** 3% platform plus about 2% gateway, both worked out on the INR price. The calculator shows the subscription in rupees.
+- **Pro billing is INR-only: ₹1,999/month, card authorised upfront, first charge 30 days later.** `RAZORPAY_PRO_PLAN_ID` holds the Razorpay plan (created once in the dashboard); `/api/billing/subscribe` creates the subscription, Razorpay Checkout authorises the mandate, `/api/billing/verify` + `subscription.authenticated/activated` webhooks flip `profiles.plan` to pro, `subscription.charged` writes a `billing_receipts` row, cancel/end flips back to free. Receipts only. Migration 040.
 - **Settlement:** each sale is held 3 hours (the ledger's `available_at`), then available. Withdrawals call the database's `request_payout`.
 - **Withdrawals:** minimum ₹100.00, no fee. Payout methods: up to 5 bank accounts (in the company's or the director's name; the database checks the name), up to 5 UPI IDs and up to 5 crypto wallets (USDT, USDC, BTC or ETH on the network you pick). What a crypto payout is worth depends on the rate when it is sent, so no rate is shown.
 
@@ -55,7 +56,7 @@ Small calls made while building the frontend, so the founder can check them in o
 - **A product needs a file before it can be published.** The schema enforces this in the editor and in onboarding.
 - **Upload limit shown as 2 GB per file.** Confirm against the storage plan.
 - **Product covers are generated art** (`CoverArt`). Six layouts drawn the same way in HTML and on canvas, so the image maker's PNG export matches what the store shows. Uploaded images are public files in Supabase Storage.
-- **Store URLs** are shown as `powerproof.store/<slug>`; in this app they live at `/s/<slug>`.
+- **Store URLs** are shown as `powerproof.app/<slug>`; in this app they live at `/s/<slug>`.
 
 ## Checkout and payments
 
@@ -66,7 +67,7 @@ Small calls made while building the frontend, so the founder can check them in o
 ## Tax and invoices
 
 - Prices **include** GST by default (switchable in Settings › Tax).
-- Invoice logic in `lib/invoice.ts`: not registered → no GST; buyer outside India → export of services, zero-rated under LUT; buyer in India → IGST, or CGST+SGST when the buyer is in the seller's state. The buyer's state isn't collected yet, so Indian sales default to IGST.
+- Invoice logic in `lib/invoice-view.ts`: not registered → no GST; buyer outside India → export of services, zero-rated under LUT; buyer in India → IGST, or CGST+SGST when the buyer's state is the seller's (digital: the state picked at checkout, `orders.buyer_state`; physical: the delivery state). Still to be confirmed with a CA.
 - Default codes are SAC 9984xx (online content) at 18%. Creators can add HSN codes too.
 - Invoice numbers are `PREFIX-0001` style, sequential per store.
 
@@ -109,7 +110,7 @@ The gateway integration and webhooks, real email sending, `embed.js`, the AI ima
 
 ## What changed from the first build
 
-- **No cart for digital products.** Every product has one Buy now that goes straight to checkout. Cart pieces exist (`components/pp/cart.tsx`: drawer, lines, totals) for physical products later; no digital store renders them. They're shown on `/design`.
+- **No cart for digital products.** Every product has one Buy now that goes straight to checkout. The old physical-product cart drawer was removed (no store rendered it).
 - **No buyer accounts anywhere.** Buyers get back to their files from the receipt email, the success page, or `/lookup`, which emails a fresh link to `/order/[token]`. The old `/download/[orderId]` route now forwards to `/order/[token]`.
 - **Guest checkout requires full name, email and phone** (with a country code picker and per-country length rules). One step. Coupon at checkout only. Pay button always shows the exact total.
 - **Custom domains:** see "Custom domains, finished" below. Stores live at `/s/[store]`, and on their own domain once one is connected.
@@ -230,7 +231,7 @@ The gateway integration and webhooks, real email sending, `embed.js`, the AI ima
 
 ## Plans (6D)
 
-- **Free:** 1 store, 10 products, 3 pages, 10 AI credits a month, $0. **Pro:** no store, product or page limit, 200 AI credits, $20 a month with the first month free. **Both pay the same 3% per sale.**
+- **Free:** 1 store, 10 products, 3 pages, 10 AI credits a month, ₹0. **Pro:** no store, product or page limit, 200 AI credits, ₹1,999 a month with the first month free (card required upfront). **Both pay the same 3% per sale.**
 - Limits are checked in the API (`LimitError`, code `limit`) and before navigating (`GuardedLink`, `plan.guard`). Either way the creator sees the Upgrade dialog, never a disabled button with no explanation.
 - **Over the limit after a downgrade:** nothing is deleted or hidden; only creating more is blocked.
 
@@ -301,7 +302,7 @@ The gateway integration and webhooks, real email sending, `embed.js`, the AI ima
 - `stores.theme` holds the store design; `theme_mode` mirrors its light/dark default. About, FAQ (`{ items, contactNote }`) and policies (`{ text }`) live in `store_pages`; pages nobody has edited show the app's default text.
 - The company address is stored as six lines in `stores.company_address`: address 1, address 2, city, state, PIN code, country.
 - Coupons: percent values are basis points; a code covers the whole store or one product.
-- Deal paths: only **bundle discount** (percent off when every trigger product is in the cart) and **free gift** (unlocked by products, no minimum spend) exist in `deal_rules`. The other kinds say "coming soon". Bundles are bundle-discount deal paths.
+- Deal paths: only **bundle discount** (percent off, or one fixed total in `bundle_price_minor`/`bundle_price_currency` (041), when every trigger product is in the cart) and **free gift** (unlocked by products, no minimum spend) exist in `deal_rules`. The other kinds say "coming soon". Bundles are bundle-discount deal paths; a fixed bundle total ignores price floors and is spread across its lines in proportion.
 - Sales screens (orders, customers, dashboard, analytics) read orders, order lines and the ledger. Visits aren't tracked yet, so visitor, conversion and source figures show nothing instead of estimates.
 - Proceeds are held 3 hours, then withdrawable any time; all copy says so.
 
@@ -317,7 +318,7 @@ Run the security advisors after every database change. These findings are expect
 
 - **RLS enabled, no policy:** `download_tokens`, `webhook_events` (server-only on purpose).
 - **Callable without signing in (SECURITY DEFINER):** `store_is_public`, `product_is_public`, `validate_coupon`, `resolve_domain`.
-- **Callable by signed-in users (SECURITY DEFINER), each checking admin or ownership inside:** `admin_search`, `admin_reveal_buyer_phone`, `ai_credits_remaining`, `request_payout`, `is_store_owner`, `is_product_owner`, plus the four public helpers above.
+- **Callable by signed-in users (SECURITY DEFINER), each checking admin or ownership inside:** `admin_search`, `admin_reveal_buyer_phone`, `ai_credits_remaining`, `request_payout`, `is_store_owner`, `is_product_owner`, `admin_blog_list`, `admin_blog_save`, `admin_blog_delete`, plus the four public helpers above.
 
 Anything else is new and needs a look before release.
 
@@ -338,7 +339,7 @@ Anything else is new and needs a look before release.
 
 - **Who is an admin:** `app_metadata.role = 'admin'` on the Supabase user (set in the dashboard; users can't edit it). It is read from the sign-in token, so a new admin signs out and in once. `proxy.ts` keeps everyone else out of `/admin`, and every database function below checks `is_admin()` again.
 - **Every screen goes through a database function** (`lib/api/admin.ts`): `admin_overview`, `admin_counts`, `admin_creators`, `admin_stores`, `admin_orders`, `admin_payouts`, `admin_refunds`, `admin_disputes`, `admin_content`, `admin_reports`, `admin_deals`, `admin_audit`, `admin_search`. Lists mask buyer emails; a buyer's phone needs a written reason (`admin_reveal_buyer_phone`). Money is shown per currency and never added across currencies.
-- **Every change is audited** (`audit_log`, who, what, which item, why): suspend or lift a store (`admin_set_store_status`; lifting returns the store to the status it had before; a seller can't lift a suspension, enforced by a trigger), hide or show a review or question (`admin_moderate`), close a report (`admin_resolve_report`), verify a deal (`admin_verify_deal`), move a payout (`admin_set_payout`), refund an order (the existing refund route also accepts staff, then logs it).
+- **Every change is audited** (`audit_log`, who, what, which item, why): suspend or lift a store (`admin_set_store_status`; lifting returns the store to the status it had before; a seller can't lift a suspension, enforced by a trigger), hide or show a review or question (`admin_moderate`), close a report (`admin_resolve_report`), verify a deal (`admin_verify_deal`), write or delete a blog post (`admin_blog_save`, `admin_blog_delete`), move a payout (`admin_set_payout`), refund an order (the existing refund route also accepts staff, then logs it).
 - **Payouts are worked by hand.** A seller's request lands in Admin › Money › Payouts; staff send the money from the bank, then mark it paid with the bank reference, or failed with a reason (the amount goes back to the seller through `settle_payout`). Automatic payouts need a payout provider and are not built.
 - **Disputes** (`disputes`) are filled by Razorpay's `payment.dispute.*` webhooks (`record_dispute`) and shown to staff, and to the seller under Sales › Orders › Disputed. Evidence is submitted in the Razorpay dashboard (linked from each row). A lost dispute does not yet change the ledger.
 - Migrations 028 and 029.
@@ -346,6 +347,7 @@ Anything else is new and needs a look before release.
 - **Payouts through RazorpayX.** A seller's bank account is registered with Razorpay when they add it (`/api/payouts/methods`; the full number goes to Razorpay and is never stored, we keep the last four and the fund-account id). Staff press "Send with Razorpay" (`/api/payouts/[id]/send`): the amount goes out in rupees by IMPS/UPI (NEFT above ₹5,00,000), the payout id is the idempotency key, and Razorpay's `payout.*` webhooks close it (`settle_payout_by_gateway`). A payout returned after being marked paid is flagged in the webhook log for a person.
 - **Currency follows the seller's rail** (`lib/payout-plan.ts`): an Indian bank or UPI id is rupees, so a dollar balance is converted at the stored rate (`fx_rates`, refreshed daily from a public feed or by hand). Non-Indian sellers and crypto stay in the by-hand queue with the amount already worked out in their country's currency. Razorpay's Payout API documentation we could find only covers rupee payouts; "global payouts" is a separate product that has to be enabled with Razorpay, so it is not wired.
 - **Admin access is granted outside the app** (Supabase dashboard); the Team page only lists admins.
+- **Platform blog** (Nov 2026): staff write posts in Admin › Blog (`blog_posts`: slug from the title, title, excerpt, safe rich-text body, optional https cover photo/video, draft/published, author, display date). Everyone reads published posts at `/blog`; writes go through `admin_blog_*` (is_admin + audit, migration 039 — apply it in the Supabase SQL editor, then regen `database.types.ts`). Cover uploads stay out on purpose: the shared uploader is store-scoped, so covers are links for now.
 
 
 - **Physical products** (Oct 2026): variants (up to 3 options, 100 combinations, each with its own price, SKU and stock), stock counting, flat-rate shipping by zone (free over an amount), cash on delivery (India, physical-only orders, optional fee and order cap) and GST on shipping at the main item's rate (one composite supply). Stock is taken when an online order is paid or a COD order is placed, never below zero, and given back when a COD order is cancelled or an unsent order is refunded. COD: the creator collects the cash and marks it; the order then gets its invoice and PowerProof's fee is taken from the creator's balance (`adjustment`), returned on refund. Deals work per product on one unit and apply per unit; a free unit (gift, cheapest-free) is one unit. Invoices: shipping is its own line; CGST/SGST when the delivery state is the seller's, IGST otherwise; exports say goods or services. Migrations 034–035. Found on the way: coupon uses were counted twice (trigger and checkout code); the code's count was removed.

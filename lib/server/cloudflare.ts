@@ -7,7 +7,7 @@ import type { DomainIssue } from "../types";
  *
  *   CLOUDFLARE_API_TOKEN   a token with "SSL and Certificates: Edit" on the zone
  *   CLOUDFLARE_ZONE_ID     the zone the custom hostnames live on (PowerProof's domain)
- *   CLOUDFLARE_CNAME_TARGET  where creators point their CNAME, like customers.powerproof.store
+ *   CLOUDFLARE_CNAME_TARGET  where creators point their CNAME, like customers.powerproof.app
  *                          (a proxied record on that zone pointing to the fallback origin)
  *   CLOUDFLARE_APEX_IPS    optional, comma separated: the addresses for bare domains when the zone
  *                          has apex proxying; without it, bare domains need a CNAME at the root

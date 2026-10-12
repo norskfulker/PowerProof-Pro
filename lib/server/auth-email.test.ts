@@ -31,7 +31,8 @@ describe("auth email hook", () => {
     expect(url.pathname).toBe("/auth/callback");
     expect(url.searchParams.get("next")).toBe("/onboarding");
     expect(url.searchParams.get("token_hash")).toBe("hash1");
-    expect(url.searchParams.get("type")).toBe("email");
+    expect(url.searchParams.get("type")).toBe("signup");
+    expect(new URL(callbackLink("magiclink", "hash2", `${SITE}/auth/callback?next=%2Fdashboard`, SITE)!).searchParams.get("type")).toBe("magiclink");
     // Somewhere else is never a destination
     expect(new URL(callbackLink("recovery", "h", "https://evil.example/x", SITE)!).origin).toBe(SITE);
     expect(new URL(callbackLink("recovery", "h", undefined, SITE)!).searchParams.get("next")).toBe("/reset-password");

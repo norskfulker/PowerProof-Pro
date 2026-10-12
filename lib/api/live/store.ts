@@ -3,7 +3,7 @@ import { countryByCode } from "../../countries";
 import { cleanStoreName, slugify, storeNameError } from "../../slug";
 import { normalizeHex } from "../../color";
 import { writeProgress } from "./flags";
-import { PRO_PRICE_USD } from "../../plans";
+import { PRO_PRICE_MINOR } from "../../plans";
 import { money as moneyOf } from "../../money";
 import { type PlanLimits, type PlanTier } from "../../plans";
 import { limitsFromRows } from "../../plan-limits";
@@ -329,7 +329,7 @@ export async function getPlanState(): Promise<PlanState> {
   const [{ count }, { count: pageCount }] = ids.length
     ? await Promise.all([sb().from("products").select("id", { count: "exact", head: true }).in("store_id", ids), sb().from("custom_pages").select("id", { count: "exact", head: true }).in("store_id", ids).neq("slug", "home")])
     : [{ count: 0 }, { count: 0 }];
-  const plan: Plan = { tier, name: tier === "pro" ? "Pro" : "Free", monthly: moneyOf(tier === "pro" ? PRO_PRICE_USD * 100 : 0, "USD"), platformFeePct: (row?.platform_fee_bps ?? 300) / 100, gatewayFeePct: 2, status: "active" };
+  const plan: Plan = { tier, name: tier === "pro" ? "Pro" : "Free", monthly: moneyOf(tier === "pro" ? PRO_PRICE_MINOR : 0, "INR"), platformFeePct: (row?.platform_fee_bps ?? 300) / 100, gatewayFeePct: 2, status: "active" };
   return { plan, tier, limits: lim, usage: { stores: ids.length, products: count ?? 0, pages: pageCount ?? 0 }, joined: !!joined };
 }
 
@@ -341,6 +341,6 @@ export async function canCreate(kind: "stores" | "products" | "pages"): Promise<
 
 export async function setPlanTier(tier: PlanTier): Promise<PlanState> {
   void tier;
-  // profiles.plan can only be changed by PowerProof (billing isn't connected yet)
-  throw new ApiError("Upgrades open soon. Write to support and we'll switch your account to Pro.", "validation");
+  // profiles.plan flips only on the server (subscription webhook / verify route), never from the browser
+  throw new ApiError("Upgrades go through the Pro dialog, which authorises your card with Razorpay.", "validation");
 }

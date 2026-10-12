@@ -6,7 +6,7 @@ import type { DnsProviderId, DomainIssue } from "../types";
  * these helpers are the plain-language parts the screen shows. Nothing here pretends a domain is connected.
  */
 
-export const SUBDOMAIN_ROOT = "powerproof.store";
+export const SUBDOMAIN_ROOT = "powerproof.app";
 
 export interface DnsProvider {
   id: DnsProviderId;

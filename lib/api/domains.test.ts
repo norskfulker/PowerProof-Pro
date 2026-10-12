@@ -8,7 +8,7 @@ describe("hosts", () => {
   it("explains bad input in plain words", () => {
     expect(validateHost("")).toMatch(/Type the domain/);
     expect(validateHost("not a domain")).toMatch(/doesn't look like a domain/);
-    expect(validateHost("my-store.powerproof.store")).toMatch(/free address/);
+    expect(validateHost("my-store.powerproof.app")).toMatch(/free address/);
     expect(validateHost("shop.my-store.in")).toBeUndefined();
   });
   it("detects the DNS host and whether it supports automatic setup", () => {

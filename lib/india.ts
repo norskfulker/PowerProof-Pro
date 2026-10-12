@@ -13,6 +13,22 @@ export const BUSINESS_TYPES = [
   { value: "private_limited", label: "Private limited company", hint: "Registered with the MCA." },
 ] as const;
 
+/** The buyer's state for GST place-of-supply: canonical spelling when it names an Indian state. */
+export const canonicalState = (input: string | null | undefined): string | undefined => {
+  const t = (input ?? "").trim().toLowerCase();
+  if (!t) return undefined;
+  return INDIAN_STATES.find((s) => s.toLowerCase() === t);
+};
+
+/**
+ * The state to store on an order: Indian orders need a known state (CGST+SGST vs IGST);
+ * anywhere else it is meaningless and dropped.
+ */
+export function buyerStateFor(country: string, state: string | null | undefined): string | undefined {
+  if (country !== "IN") return undefined;
+  return canonicalState(state);
+}
+
 /** 15 characters: 2 digit state code, 10 char PAN, entity number, Z, checksum. */
 export const GSTIN_RE = /^\d{2}[A-Z]{5}\d{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/;
 export const PAN_RE = /^[A-Z]{5}\d{4}[A-Z]$/;

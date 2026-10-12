@@ -27,6 +27,7 @@ const body = z.object({
     email: z.string().trim().max(254).email(),
     phone: z.string().trim().min(6).max(30),
     country: z.string().regex(/^[A-Z]{2}$/),
+    buyerState: z.string().trim().max(60).optional(),
     consent: z.literal(true),
   }),
 });

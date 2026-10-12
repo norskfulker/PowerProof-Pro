@@ -1,7 +1,9 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
 import { dealRuleFrom } from "../api/live/map";
+import { buyerStateFor } from "../india";
 import { formatMoney } from "../money";
+import { siteUrl } from "../site-url";
 import { sbAdmin } from "../supabase/admin";
 import type { Money, CurrencyCode } from "../types";
 import { shippingFrom, type ShipTo } from "../shipping";
@@ -13,7 +15,7 @@ import { createGatewayOrder, GatewayError, razorpayConfig, refundPayment } from 
  * Everything that touches money or private files, on the server with the service-role key.
  * Callers (route handlers) have already checked who is asking.
  */
-export const siteUrl = () => (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000").replace(/\/+$/, "");
+export { siteUrl };
 
 /**
  * Where a store's buyers should be sent: its own domain once it's live (order and invoice pages
@@ -39,7 +41,7 @@ export interface CheckoutInput {
   coupon?: string;
   giftChoices?: Record<string, string>;
   bumpProductId?: string;
-  buyer: { name: string; email: string; phone: string; country: string };
+  buyer: { name: string; email: string; phone: string; country: string; buyerState?: string };
   /** Needed when something is shipped */
   shipTo?: ShipTo;
   /** "cod": cash on delivery */
@@ -199,13 +201,19 @@ export async function createCheckout(input: CheckoutInput): Promise<CheckoutRepl
 
 /** The order's details for create_order (the gateway id and payment method are added by the caller) */
 function orderArgs(input: CheckoutInput, storeId: string, ref: string, priced: ReturnType<typeof priceOrder>) {
+  const country = input.shipTo?.country ?? input.buyer.country;
+  // Indian orders carry the buyer's state for CGST+SGST vs IGST: the delivery state when
+  // shipped, the state the buyer picks at checkout otherwise.
+  const state = buyerStateFor(country, input.shipTo?.state ?? input.buyer.buyerState);
+  if (country === "IN" && !state) throw new CheckoutError("Pick your state for the invoice.");
   return {
     p_ref: ref,
     p_store: storeId,
     p_name: input.buyer.name.trim(),
     p_email: input.buyer.email.trim().toLowerCase(),
     p_phone: input.buyer.phone.trim(),
-    p_country: input.shipTo?.country ?? input.buyer.country,
+    p_country: country,
+    p_buyer_state: state ?? undefined,
     p_currency: priced.currency,
     p_subtotal: priced.subtotal,
     p_discount: priced.discount,

@@ -1,6 +1,8 @@
 "use client";
 
+import { useCallback, useEffect, useState } from "react";
 import { CreditCard, Receipt, Sparkles } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/pp/empty-state";
 import { MoneyText } from "@/components/pp/money-text";
@@ -11,10 +13,24 @@ import { SettingsLoading, SettingsSection } from "@/components/settings/settings
 import { useApi } from "@/hooks/use-api";
 import { getPlan } from "@/lib/api";
 import { formatDate } from "@/lib/format";
+import { formatMoney, money } from "@/lib/money";
 
 export default function BillingPage() {
   const { data, error, reload } = useApi(getPlan, [], { live: true });
   const planCtx = usePlan();
+  const [billing, setBilling] = useState<{ tier: string; subscription: { id: string; status: string; trialEndsAt: string | null; currentEnd: string | null } | null; receipts: { id: string; amountMinor: number; currency: string; paymentId: string; createdAt: string }[] } | null>(null);
+  const [cancelling, setCancelling] = useState(false);
+  const loadBilling = useCallback(() => {
+    fetch("/api/billing/status", { cache: "no-store" })
+      .then((r) => r.json())
+      .then((j) => {
+        if (j.ok) setBilling(j);
+      })
+      .catch(() => undefined);
+  }, []);
+  useEffect(() => {
+    loadBilling();
+  }, [loadBilling]);
   if (!data) return <SettingsLoading error={error} onRetry={reload} />;
   const { plan } = data;
   const trial = plan.status === "trial";
@@ -64,24 +80,59 @@ export default function BillingPage() {
         </div>
       </SettingsSection>
 
-      <SettingsSection title="Payment method" description="Cards are handled by the payment gateway's secure page. PowerProof never sees the number.">
+      <SettingsSection title="Payment method" description="Cards are handled by Razorpay's secure page. PowerProof never sees the number.">
         <div className="flex flex-wrap items-center gap-4">
           <span className="grid size-11 place-items-center rounded-control bg-primary-soft text-primary"><CreditCard className="size-5" aria-hidden /></span>
           <span className="flex-1">
-            {plan.cardLast4 ? (
-              <><span className="block font-medium">Card ····{plan.cardLast4}</span><span className="block text-sm text-muted-foreground">Charged on the 1st</span></>
+            {billing?.subscription ? (
+              <><span className="block font-medium">Pro subscription {billing.subscription.status}</span><span className="block text-sm text-muted-foreground">{billing.subscription.trialEndsAt ? `Free trial until ${formatDate(billing.subscription.trialEndsAt)}. ` : ""}₹1,999/month after that. Cancel any time.</span></>
+            ) : planCtx.state?.tier === "pro" ? (
+              <><span className="block font-medium">Pro</span><span className="block text-sm text-muted-foreground">Subscription details are loading.</span></>
             ) : (
-              <><span className="block font-medium">No card yet</span><span className="block text-sm text-muted-foreground">Needed when the free month ends</span></>
+              <><span className="block font-medium">No subscription yet</span><span className="block text-sm text-muted-foreground">Your card is authorised when you upgrade; the first 30 days are free.</span></>
             )}
           </span>
-          <Button variant="secondary" disabled title="Card payments open soon">
-            {plan.cardLast4 ? "Change card" : "Add card (opens soon)"}
-          </Button>
+          {planCtx.state?.tier === "free" ? (
+            <Button variant="secondary" onClick={() => planCtx.upgrade()}>Upgrade to Pro</Button>
+          ) : (
+            <Button
+              variant="secondary"
+              disabled={cancelling || !billing?.subscription}
+              onClick={async () => {
+                setCancelling(true);
+                const res = await fetch("/api/billing/status", { method: "DELETE" }).then((r) => r.json()).catch(() => ({ ok: false, message: "We couldn't reach the server." }));
+                if (res.ok) {
+                  toast.success("Pro cancelled. You're back on Free.");
+                  loadBilling();
+                  reload();
+                } else {
+                  toast.error(res.message ?? "We couldn't cancel that. Try again.");
+                }
+                setCancelling(false);
+              }}
+            >
+              {cancelling ? "Cancelling…" : "Cancel Pro"}
+            </Button>
+          )}
         </div>
       </SettingsSection>
 
-      <SettingsSection title="PowerProof invoices" description="Subscription plus platform fees, one invoice a month. GST invoice if you've added your GSTIN.">
-        <EmptyState compact icon={Receipt} title="No invoices yet." body="PowerProof invoices appear here once billing is connected and your first month is over." />
+      <SettingsSection title="Receipts" description="One receipt per monthly charge. Simple receipts, no GST invoice.">
+        {!billing?.receipts.length ? (
+          <EmptyState compact icon={Receipt} title="No receipts yet." body="Your first receipt appears here after the free trial, when the first ₹1,999 charge goes through." />
+        ) : (
+          <ul className="divide-y rounded-card border">
+            {billing.receipts.map((r) => (
+              <li key={r.id} className="flex items-center justify-between gap-3 px-4 py-3 text-sm">
+                <span>
+                  <span className="block font-medium">{formatMoney(money(r.amountMinor, (r.currency as "INR") || "INR"))}</span>
+                  <span className="block font-mono text-xs text-muted-foreground">{r.paymentId} · {formatDate(r.createdAt)}</span>
+                </span>
+                <span className="text-xs text-muted-foreground">Receipt</span>
+              </li>
+            ))}
+          </ul>
+        )}
       </SettingsSection>
     </div>
   );

@@ -7,7 +7,9 @@ import { handleEvent, type GatewayEvent } from "@/lib/server/razorpay-events";
 /**
  * Razorpay tells us about payments even when the buyer closed the tab. Signed over the raw body;
  * marking an order paid is safe to repeat. Set the webhook (events: payment.captured, order.paid,
- * payment.failed, the payment.dispute.* events for chargebacks, and payout.processed / payout.reversed / payout.rejected for seller payouts) to https://<your site>/api/webhooks/razorpay with RAZORPAY_WEBHOOK_SECRET.
+ * payment.failed, the payment.dispute.* events for chargebacks, payout.processed / payout.reversed /
+ * payout.rejected for seller payouts, and subscription.authenticated / subscription.activated /
+ * subscription.charged / subscription.cancelled for Pro billing) to https://<your site>/api/webhooks/razorpay with RAZORPAY_WEBHOOK_SECRET.
  */
 export const dynamic = "force-dynamic";
 

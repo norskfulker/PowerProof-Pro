@@ -390,7 +390,11 @@ export async function getOffers(): Promise<Offers> {
   const rows = must(await sb().from("coupons").select("*").eq("store_id", await activeStoreId()).order("created_at", { ascending: false }));
   // Bundles are bundle-discount deal paths; timed store-wide sales aren't available yet
   const rules = await getDealRules();
-  const bundles: Bundle[] = rules.flatMap((r) => (r.kind === "bundle_discount" ? [{ id: r.id, name: r.name, productIds: r.productIds, pricing: { kind: "percent" as const, percent: r.percent }, active: r.active }] : []));
+  const bundles: Bundle[] = rules.flatMap((r) =>
+    r.kind === "bundle_discount"
+      ? [{ id: r.id, name: r.name, productIds: r.productIds, pricing: r.fixedPrice ? ({ kind: "price", price: r.fixedPrice } as const) : ({ kind: "percent", percent: r.percent } as const), active: r.active }]
+      : []
+  );
   return { coupons: rows.map(couponFrom), bundles, deals: [] };
 }
 
@@ -429,12 +433,45 @@ export async function deleteCoupon(id: string): Promise<Offers> {
   return getOffers();
 }
 
-/** A bundle is a deal path: every product in it together, percent off each. */
+/** A bundle is a deal path: every product in it together, percent off each or one fixed total. */
 export async function saveBundle(b: Omit<Bundle, "id"> & { id?: string }): Promise<Offers> {
   if (b.name.trim().length < 2) throw new ApiError("Name the bundle.", "validation");
   if (b.productIds.length < 2 || b.productIds.length > 5) throw new ApiError("Bundles have 2 to 5 products.", "validation");
-  if (b.pricing.kind !== "percent") throw new ApiError("A fixed bundle price is coming soon. Set a percent off for now.", "validation");
-  await saveDealRule({ id: b.id, kind: "bundle_discount", name: b.name.trim().slice(0, 60), productIds: b.productIds, percent: b.pricing.percent, active: b.active, stackable: false });
+  if (b.pricing.kind === "percent") {
+    await saveDealRule({ id: b.id, kind: "bundle_discount", name: b.name.trim().slice(0, 60), productIds: b.productIds, percent: b.pricing.percent, active: b.active, stackable: false });
+    return getOffers();
+  }
+  // Fixed total: checked against the store's own currency and the members' combined price
+  const storeId = await activeStoreId();
+  const { data: store } = await sb().from("stores").select("currency_base").eq("id", storeId).single();
+  const cur = (store?.currency_base as string) ?? "INR";
+  const fixed = Math.round(b.pricing.price.amount);
+  if (b.pricing.price.currency !== cur) throw new ApiError(`Set the bundle price in the store's currency (${cur}).`, "validation");
+  if (fixed < 100) throw new ApiError("Set a bundle price of at least 1.00.", "validation");
+  const members = await loadProducts(storeId, b.productIds);
+  if (members.length !== b.productIds.length) throw new ApiError("One of the products no longer exists. Pick again.", "validation");
+  const sum = members.reduce((t, p) => t + p.price.amount, 0);
+  if (fixed >= sum) throw new ApiError("Set a price below what the products cost together.", "validation");
+  const percent = Math.max(1, Math.round((1 - fixed / sum) * 100));
+  const row = {
+    name: b.name.trim().slice(0, 60),
+    active: b.active,
+    starts_at: null,
+    ends_at: null,
+    reward: "percent_off" as const,
+    trigger_product_ids: b.productIds,
+    percent_bps: percent * 100,
+    reward_product_id: null,
+    bundle_price_minor: fixed,
+    bundle_price_currency: cur,
+  };
+  const res = b.id
+    ? await sb().from("deal_rules").update(row).eq("id", b.id).select("*").single()
+    : await sb().from("deal_rules").insert({ ...row, store_id: storeId }).select("*").single();
+  if (res.error) {
+    if (/product/i.test(res.error.message)) throw new ApiError("One of the products no longer exists. Pick again.", "validation");
+    fail(res.error);
+  }
   return getOffers();
 }
 

@@ -8,9 +8,9 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useApi } from "@/hooks/use-api";
-import { ApiError, getPlanLimits, getPlanState, setPlanTier, type PlanState } from "@/lib/api";
+import { ApiError, getPlanLimits, getPlanState, type PlanState } from "@/lib/api";
 import { cn } from "@/lib/utils";
-import { proBenefits, PRO_PRICE_USD, PRO_TRIAL_DAYS, type AllPlanLimits } from "@/lib/plans";
+import { proBenefits, PRO_PRICE_INR, PRO_TRIAL_DAYS, type AllPlanLimits } from "@/lib/plans";
 
 export type LimitKind = "stores" | "products" | "pages" | "aiCredits" | "customDomain";
 
@@ -31,6 +31,30 @@ interface PlanCtx {
 }
 
 const Ctx = createContext<PlanCtx | null>(null);
+
+/** What the browser needs to open Razorpay's subscription authorisation window. */
+interface BillingRazorpayWindow {
+  Razorpay?: new (o: Record<string, unknown>) => { open: () => void; on: (e: string, cb: (r: { error?: { description?: string } }) => void) => void };
+}
+
+const BILLING_SCRIPT = "https://checkout.razorpay.com/v1/checkout.js";
+let billingLoading: Promise<void> | undefined;
+function loadBillingRazorpay(): Promise<void> {
+  const w = window as unknown as BillingRazorpayWindow;
+  if (w.Razorpay) return Promise.resolve();
+  billingLoading ??= new Promise<void>((resolve, reject) => {
+    const s = document.createElement("script");
+    s.src = BILLING_SCRIPT;
+    s.async = true;
+    s.onload = () => resolve();
+    s.onerror = () => {
+      billingLoading = undefined;
+      reject(new Error("The payment window couldn't load. Check your connection and try again."));
+    };
+    document.head.appendChild(s);
+  });
+  return billingLoading;
+}
 
 function reason(kind: LimitKind, l: AllPlanLimits | undefined): string {
   const n = (v: number | null | undefined, one: string, many: string) => (v == null ? many : `${v} ${v === 1 ? one : many}`);
@@ -79,15 +103,46 @@ export function PlanProvider({ children }: { children: React.ReactNode }) {
   async function doUpgrade() {
     setPending(true);
     try {
-      await setPlanTier("pro");
-      reload();
-      setOpen(null);
-      toast.success("You're on Pro", { description: `Your first ${PRO_TRIAL_DAYS} days are free. Add a card any time before then.` });
-      router.refresh();
+      const started = await fetch("/api/billing/subscribe", { method: "POST" }).then((r) => r.json()).catch(() => ({ ok: false, message: "We couldn't reach the server." })) as
+        | { ok: true; keyId: string; subscriptionId: string }
+        | { ok: false; message: string };
+      if (!started.ok) {
+        toast.error(started.message ?? "We couldn't start that. Try again.");
+        return setPending(false);
+      }
+      await loadBillingRazorpay();
+      const Razorpay = (window as unknown as BillingRazorpayWindow).Razorpay!;
+      const rz = new Razorpay({
+        key: started.keyId,
+        subscription_id: started.subscriptionId,
+        name: "PowerProof Pro",
+        description: `₹${PRO_PRICE_INR.toLocaleString("en-IN")}/month, first ${PRO_TRIAL_DAYS} days free`,
+        theme: { color: "#0F3D33" },
+        modal: { ondismiss: () => setPending(false) },
+        handler: async (r: { razorpay_payment_id: string; razorpay_subscription_id: string; razorpay_signature: string }) => {
+          const done = await fetch("/api/billing/verify", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ paymentId: r.razorpay_payment_id, subscriptionId: r.razorpay_subscription_id, signature: r.razorpay_signature }),
+          }).then((x) => x.json()).catch(() => ({ ok: false, message: "We couldn't confirm that." })) as { ok: boolean; message?: string };
+          if (done.ok) {
+            reload();
+            setOpen(null);
+            toast.success("You're on Pro", { description: `Your first ${PRO_TRIAL_DAYS} days are free. Your card is authorised now and charged after the trial.` });
+            router.refresh();
+          } else {
+            toast.error(done.message ?? "We couldn't confirm that authorisation.");
+          }
+          setPending(false);
+        },
+      });
+      rz.on("payment.failed", (r) => {
+        toast.error(r.error?.description ?? "The authorisation didn't go through. You haven't been charged.");
+        setPending(false);
+      });
+      rz.open();
     } catch (e) {
-      // Live: billing isn't connected yet, so this explains how to get Pro
       toast.error(e instanceof Error ? e.message : "We couldn't upgrade you just now.");
-    } finally {
       setPending(false);
     }
   }
@@ -111,7 +166,7 @@ export function PlanProvider({ children }: { children: React.ReactNode }) {
             ))}
           </ul>
           <p className="rounded-control bg-accent-soft px-3 py-2 text-sm">
-            <span className="font-display text-2xl">${PRO_PRICE_USD}</span> a month. <span className="font-semibold">First month free</span>, no card needed to start.
+            <span className="font-display text-2xl">₹{PRO_PRICE_INR.toLocaleString("en-IN")}</span> a month. <span className="font-semibold">First {PRO_TRIAL_DAYS} days free</span>, card authorised now and charged after the trial. Cancel any time.
           </p>
           <DialogFooter>
             <Button variant="secondary" onClick={() => setOpen(null)} disabled={pending}>

@@ -70,7 +70,11 @@ export async function load(slug: string): Promise<Loaded> {
 
   const bundles = must(rules)
     .map(dealRuleFrom)
-    .flatMap((r): Bundle[] => (r.kind === "bundle_discount" ? [{ id: r.id, name: r.name, productIds: r.productIds, pricing: { kind: "percent", percent: r.percent }, active: r.active }] : []))
+    .flatMap((r): Bundle[] =>
+      r.kind === "bundle_discount"
+        ? [{ id: r.id, name: r.name, productIds: r.productIds, pricing: r.fixedPrice ? ({ kind: "price", price: r.fixedPrice } as const) : ({ kind: "percent", percent: r.percent } as const), active: r.active }]
+        : []
+    )
     .filter((b) => b.productIds.every((pid) => byId.has(pid)));
 
   const rates: Rates = {};

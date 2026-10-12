@@ -54,6 +54,8 @@ export interface Order {
   buyerName: string;
   buyerEmail: string;
   buyerPhone?: string;
+  /** Indian orders: the buyer's state (CGST+SGST vs IGST). */
+  buyerState?: string;
   country: string;
   countryCode: string;
   /** What the buyer saw and paid. */

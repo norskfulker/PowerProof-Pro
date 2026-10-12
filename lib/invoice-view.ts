@@ -2,10 +2,10 @@ import type { OrderView } from "./server/order-types";
 
 /**
  * The tax invoice for a paid order, worked out from what was actually charged. Prices include GST.
- * A seller with a GSTIN selling to India charges IGST; for goods shipped within the seller's own
- * state (the delivery address says which), CGST and SGST instead, half each. Shipping goes with the
- * goods (one supply), taxed at the main item's rate. Selling abroad is an export (zero-rated); no
- * GSTIN, no tax. Founder to confirm the treatment with a CA (see DECISIONS.md).
+ * A seller with a GSTIN selling to India charges IGST; in the seller's own state (the buyer's
+ * state for downloads, the delivery address for shipped goods), CGST and SGST instead, half each.
+ * Shipping goes with the goods (one supply), taxed at the main item's rate. Selling abroad is an
+ * export (zero-rated); no GSTIN, no tax. Treatment still to be confirmed with a CA (see DECISIONS.md).
  */
 export interface InvoiceLine {
   title: string;
@@ -29,10 +29,11 @@ export interface InvoiceModel {
 /** The state in the store's company address (kept as six lines: address 1, address 2, city, state, PIN, country) */
 export const sellerState = (address?: string) => (address ?? "").split("\n")[3]?.trim() ?? "";
 
-export function invoiceModel(o: Pick<OrderView, "lines" | "buyerCountry" | "store" | "discount" | "total"> & Partial<Pick<OrderView, "shipping" | "codFee" | "shipTo">>): InvoiceModel {
+export function invoiceModel(o: Pick<OrderView, "lines" | "buyerCountry" | "store" | "discount" | "total"> & Partial<Pick<OrderView, "buyerState" | "shipping" | "codFee" | "shipTo">>): InvoiceModel {
   const registered = !!o.store.gstin;
   const india = (o.shipTo?.country ?? o.buyerCountry) === "IN";
-  const sameState = !!o.shipTo?.state && sellerState(o.store.address).toLowerCase() === o.shipTo.state.toLowerCase();
+  const buyerState = o.shipTo?.state ?? o.buyerState ?? undefined;
+  const sameState = !!buyerState && sellerState(o.store.address).toLowerCase() === buyerState.toLowerCase();
   const kind: InvoiceModel["kind"] = !registered ? "unregistered" : india ? (sameState ? "cgst_sgst" : "igst") : "export";
   const taxed = kind === "igst" || kind === "cgst_sgst";
   const charges = (o.shipping ?? 0) + (o.codFee ?? 0);

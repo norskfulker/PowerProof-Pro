@@ -29,6 +29,11 @@ export function verifyPaymentSignature(orderId: string, paymentId: string, signa
   return !!orderId && !!paymentId && !!signature && safeEqual(hmac(secret, `${orderId}|${paymentId}`), signature);
 }
 
+/** After authorising a subscription, the browser hands back a signature over "payment|subscription". */
+export function verifySubscriptionSignature(paymentId: string, subscriptionId: string, signature: string, secret: string): boolean {
+  return !!paymentId && !!subscriptionId && !!signature && safeEqual(hmac(secret, `${paymentId}|${subscriptionId}`), signature);
+}
+
 /** Webhooks are signed over the raw request body */
 export function verifyWebhookSignature(rawBody: string | Buffer, signature: string, secret: string): boolean {
   return !!signature && safeEqual(hmac(secret, rawBody), signature);
@@ -107,3 +112,64 @@ export async function createPayout(cfg: PayoutConfig, o: { fundAccountId: string
     { "X-Payout-Idempotency": o.reference }
   );
 }
+
+/* Pro subscriptions (INR-only, card upfront) --------------------------------------------------- */
+
+async function get<T>(cfg: RazorpayConfig, path: string): Promise<T> {
+  const res = await fetch(`https://api.razorpay.com/v1${path}`, {
+    headers: { authorization: `Basic ${Buffer.from(`${cfg.keyId}:${cfg.keySecret}`).toString("base64")}` },
+    cache: "no-store",
+    signal: AbortSignal.timeout(15000),
+  });
+  const json = (await res.json().catch(() => ({}))) as { error?: { description?: string } } & T;
+  if (!res.ok) {
+    console.error(`[razorpay] ${path} answered ${res.status}: ${json.error?.description ?? "no detail"}`);
+    throw new GatewayError(json.error?.description ?? "The payment provider didn't accept that.", res.status >= 500 ? 502 : 400);
+  }
+  return json;
+}
+
+export interface RzCustomer {
+  id: string;
+}
+
+export async function createRzCustomer(cfg: RazorpayConfig, o: { name: string; email: string; contact?: string }): Promise<RzCustomer> {
+  return call<RzCustomer>(cfg, "/customers", { name: o.name.slice(0, 50) || "PowerProof creator", email: o.email, contact: o.contact });
+}
+
+export interface RzSubscription {
+  id: string;
+  status: string;
+  short_url?: string;
+  start_at?: number;
+  current_start?: number;
+  current_end?: number;
+}
+
+/**
+ * A Pro subscription: ₹1,999/mo in INR, first charge 30 days out (card authorised now).
+ * total_count 120 = 10 years of monthly cycles; cancel ends it early.
+ */
+export async function createRzSubscription(cfg: RazorpayConfig, o: { planId: string; customerId: string; trialEndsAtUnix: number; notes?: Record<string, string> }): Promise<RzSubscription> {
+  return call<RzSubscription>(cfg, "/subscriptions", {
+    plan_id: o.planId,
+    customer_id: o.customerId,
+    quantity: 1,
+    total_count: 120,
+    start_at: o.trialEndsAtUnix,
+    addons: [],
+    notes: o.notes ?? {},
+  });
+}
+
+export async function fetchRzSubscription(cfg: RazorpayConfig, subscriptionId: string): Promise<RzSubscription> {
+  return get<RzSubscription>(cfg, `/subscriptions/${encodeURIComponent(subscriptionId)}`);
+}
+
+export async function cancelRzSubscription(cfg: RazorpayConfig, subscriptionId: string, atCycleEnd = false): Promise<RzSubscription> {
+  return call<RzSubscription>(cfg, `/subscriptions/${encodeURIComponent(subscriptionId)}/cancel`, { cancel_at_cycle_end: atCycleEnd ? 1 : 0 });
+}
+
+/** The Razorpay plan that bills Pro (created once in the Razorpay dashboard). */
+export const proPlanId = (env: Record<string, string | undefined> = process.env): string | null =>
+  env.RAZORPAY_PRO_PLAN_ID?.trim() || null;

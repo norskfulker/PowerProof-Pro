@@ -3,7 +3,7 @@
  * (for example "PowerProof <orders@yourdomain.com>", on a domain verified with Resend). With no key
  * nothing is sent and the caller is told, so screens never claim an email went out when it didn't.
  */
-export type MailResult = { sent: true } | { sent: false; reason: "not_configured" | "failed" };
+export type MailResult = { sent: true } | { sent: false; reason: "not_configured" | "failed"; detail?: string };
 
 export interface Mail {
   to: string;
@@ -25,8 +25,23 @@ export async function sendMail(mail: Mail, env: Record<string, string | undefine
       signal: AbortSignal.timeout(10000),
     });
     if (!res.ok) {
-      console.error(`[mail] Resend answered ${res.status}`);
-      return { sent: false, reason: "failed" };
+      // Resend says why (bad key, unverified sender…): keep it, so the Supabase hook log names the cause
+      let detail = "";
+      try {
+        const body = (await res.json()) as { message?: unknown; error?: unknown; name?: unknown };
+        const msg = typeof body?.message === "string" ? body.message : typeof body?.error === "string" ? body.error : "";
+        if (msg) detail = `Resend ${res.status}: ${msg}`.slice(0, 200);
+      } catch {
+        try {
+          const text = await res.text();
+          if (text.trim()) detail = `Resend ${res.status}: ${text.trim()}`.slice(0, 200);
+        } catch {
+          /* body unreadable: status below is still useful */
+        }
+      }
+      if (!detail) console.error(`[mail] Resend answered ${res.status}`);
+      else console.error(`[mail] ${detail}`);
+      return { sent: false, reason: "failed", ...(detail ? { detail } : {}) };
     }
     return { sent: true };
   } catch (e) {

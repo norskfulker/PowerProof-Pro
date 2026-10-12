@@ -14,6 +14,8 @@ export interface OrderView {
   buyerName: string;
   buyerEmail: string;
   buyerCountry: string;
+  /** Indian orders: the buyer's state for CGST+SGST vs IGST. Null on older orders and abroad. */
+  buyerState?: string | null;
   currency: string;
   subtotal: number;
   discount: number;

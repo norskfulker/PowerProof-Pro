@@ -66,7 +66,7 @@ export async function deleteSku(id: string): Promise<Sku[]> {
 
 /* Plan --------------------------------------------------------------------- */
 
-/** The creator's plan from their profile. Billing isn't connected, so there are no invoices yet. */
+/** The creator's plan from their profile. Receipts come from /api/billing/status. */
 export async function getPlan(): Promise<{ plan: Plan; invoices: BillingInvoice[] }> {
   const { plan } = await live.getPlanState();
   return { plan, invoices: [] };

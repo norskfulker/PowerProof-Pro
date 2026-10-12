@@ -12,11 +12,11 @@ const MOVED: [from: string, to: string][] = [
   ["/products/:path*", "/catalog/products/:path*"],
   ["/media", "/catalog/media"],
   ["/pages", "/store/current/design/pages"],
-  // The old Design tabs now live under Design › Base design (Advanced)
-  ["/store/:id/design/theme", "/store/:id/design/base"],
-  ["/store/:id/design/sections", "/store/:id/design/base"],
-  ["/store/:id/design/backgrounds", "/store/:id/design/base"],
-  ["/store/:id/design/content", "/store/:id/design/base"],
+  // The old Design tabs now live in the store editor, on the home page.
+  ["/store/:id/design/theme", "/store/:id/design/pages/home/edit"],
+  ["/store/:id/design/sections", "/store/:id/design/pages/home/edit"],
+  ["/store/:id/design/backgrounds", "/store/:id/design/pages/home/edit"],
+  ["/store/:id/design/content", "/store/:id/design/pages/home/edit"],
   ["/store/collections", "/catalog/collections"],
   // Sales
   ["/orders", "/sales/orders"],
@@ -30,8 +30,8 @@ const MOVED: [from: string, to: string][] = [
   ["/images", "/tools/ai-images"],
   ["/integrations", "/tools/integrations"],
   // Store screens, now under the store they belong to
-  ["/store", "/store/current/design/theme"],
-  ["/store/design", "/store/current/design/theme"],
+  ["/store", "/store/current/design/pages/home/edit"],
+  ["/store/design", "/store/current/design/pages/home/edit"],
   ["/store/pages", "/store/current/design/pages"],
   ["/store/pages/:page/versions", "/store/current/design/pages/:page/versions"],
   ["/store/pages/:page/edit", "/store/current/design/pages/:page/edit"],
@@ -49,8 +49,8 @@ const MOVED: [from: string, to: string][] = [
   ["/sales", "/sales/orders"],
   ["/sales/payouts", "/sales/payouts/balance"],
   ["/tools", "/tools/ai-images"],
-  ["/store/:id", "/store/:id/design/theme"],
-  ["/store/:id/design", "/store/:id/design/theme"],
+  ["/store/:id", "/store/:id/design/pages/home/edit"],
+  ["/store/:id/design", "/store/:id/design/pages/home/edit"],
   ["/store/:id/offers", "/store/:id/offers/coupons"],
   ["/store/:id/pages", "/store/:id/pages/home"],
   // Admin

@@ -22,8 +22,7 @@ describe("invoice", () => {
     expect(i.lines.reduce((t, l) => t + l.total, 0)).toBe(72000);
     expect(i.taxable + i.tax).toBe(72000);
   });
-  it("puts shipping on its own line at the main item's rate, and splits CGST/SGST inside the seller's state", () => {
-    const goods = [{ title: "Tee", unit: 50000, discount: 0, total: 100000, gift: false, hsn: "6109", rateBps: 500, quantity: 2, variant: "M", physical: true }];
+  it("puts shipping on its own line at the main item's rate, and splits CGST/SGST inside the seller's state", () => {    const goods = [{ title: "Tee", unit: 50000, discount: 0, total: 100000, gift: false, hsn: "6109", rateBps: 500, quantity: 2, variant: "M", physical: true }];
     const ship = { lines: goods, buyerCountry: "IN", store: { gstin: "27ABCPR1234F1Z5", address: "1 Road\n\nPune\nMaharashtra\n411001\nIndia" }, discount: 0, total: 105000, shipping: 5000, codFee: 0 };
     const other = invoiceModel({ ...ship, shipTo: { name: "A", phone: "1", line1: "x", city: "Delhi", state: "Delhi", pincode: "110001", country: "IN" } });
     expect(other.kind).toBe("igst");
@@ -33,5 +32,12 @@ describe("invoice", () => {
     const same = invoiceModel({ ...ship, shipTo: { name: "A", phone: "1", line1: "x", city: "Pune", state: "Maharashtra", pincode: "411001", country: "IN" } });
     expect(same.kind).toBe("cgst_sgst");
     expect(invoiceModel({ ...ship, buyerCountry: "US", shipTo: { name: "A", phone: "1", line1: "x", city: "NY", pincode: "10001", country: "US" } }).note).toMatch(/Export of goods/);
+  });
+  it("splits CGST/SGST for downloads when the buyer's state is the seller's", () => {
+    const seller = { lines, buyerCountry: "IN", store: { gstin: "27ABCPR1234F1Z5", address: "1 Road\n\nPune\nMaharashtra\n411001\nIndia" }, discount: 0, total: 80000 };
+    expect(invoiceModel(seller).kind).toBe("igst");
+    expect(invoiceModel({ ...seller, buyerState: "Maharashtra" }).kind).toBe("cgst_sgst");
+    expect(invoiceModel({ ...seller, buyerState: "Delhi" }).kind).toBe("igst");
+    expect(invoiceModel({ ...seller, buyerState: "maharashtra" }).kind).toBe("cgst_sgst");
   });
 });

@@ -1,6 +1,7 @@
 /**
  * Plans and limits (Part 6D). The one place to change what Free and Pro include.
- * Both plans pay the same per-sale fees; Pro is $20 a month with the first month free.
+ * Both plans pay the same per-sale fees; Pro is ₹1,999 a month with the first month free.
+ * Billing is INR-only and card-upfront: the trial starts after Razorpay token auth.
  */
 
 export type PlanTier = "free" | "pro";
@@ -31,8 +32,13 @@ export const AI_COSTS = {
   upscale: 1,
 } as const;
 
-export const PRO_PRICE_USD = 20;
+export const PRO_PRICE_INR = 1999;
+export const PRO_PRICE_MINOR = 199900;
 export const PRO_TRIAL_DAYS = 30;
+
+/** When a Pro trial ends (card authorised now, first charge then). Pure and unit-tested. */
+export const trialEndsAt = (from = new Date()): Date =>
+  new Date(from.getTime() + PRO_TRIAL_DAYS * 24 * 60 * 60 * 1000);
 
 /** Free AI chat messages per creator (lifetime; failed runs don't count). Pro builds 10 pages a day. */
 export const AI_FREE_MESSAGES = 100;
@@ -46,12 +52,12 @@ const count = (n: number | null) => (n === null ? "Unlimited" : String(n));
 /** Rows for the Free vs Pro comparison table on /pricing and /settings/billing */
 export function planComparison(l: AllPlanLimits): { feature: string; free: string; pro: string }[] {
   return [
-    { feature: "Price", free: "$0", pro: `$${PRO_PRICE_USD} a month, first month free` },
+    { feature: "Price", free: "₹0", pro: `₹${PRO_PRICE_INR.toLocaleString("en-IN")} a month, first month free` },
     { feature: "Fee per sale", free: "3% (the gateway adds about 2%)", pro: "3% (the gateway adds about 2%)" },
     { feature: "Stores", free: count(l.free.stores), pro: count(l.pro.stores) },
     { feature: "Products", free: count(l.free.products), pro: count(l.pro.products) },
     { feature: "Pages (launch, sale, link in bio)", free: count(l.free.pages), pro: count(l.pro.pages) },
-    { feature: "Your own domain (shop.yourname.in)", free: l.free.customDomain ? "Included, with free SSL" : "yourname.powerproof.store", pro: l.pro.customDomain ? "Included, with free SSL" : "yourname.powerproof.store" },
+    { feature: "Your own domain (shop.yourname.in)", free: l.free.customDomain ? "Included, with free SSL" : "powerproof.app/yourname", pro: l.pro.customDomain ? "Included, with free SSL" : "powerproof.app/yourname" },
     { feature: "Team members (besides you)", free: count(l.free.teamSeats), pro: count(l.pro.teamSeats) },
     { feature: "AI image credits each month", free: String(l.free.aiCredits), pro: String(l.pro.aiCredits) },
     { feature: "AI page builds", free: `${AI_FREE_MESSAGES} free messages`, pro: `${l.pro.aiPagesDaily} a day` },

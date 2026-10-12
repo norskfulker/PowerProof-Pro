@@ -133,7 +133,7 @@ function StoreForm({ store, onSaved }: { store: Store; onSaved: (s: Store) => vo
         </SettingsSection>
       </form>
       <ShippingSettingsSection store={store} onSaved={onSaved} />
-      <SettingsSection title="Address and domain" description="Your free powerproof.store address, and your own domain on Pro.">
+      <SettingsSection title="Address and domain" description="Your free powerproof.app address, and your own domain on Pro.">
         <Button asChild variant="secondary" className="self-start">
           <Link href={`/store/${store.id}/domain`}>
             <Globe aria-hidden /> Manage domain

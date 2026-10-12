@@ -24,6 +24,16 @@ describe("email", () => {
     expect(await sendMail(mail, env)).toEqual({ sent: false, reason: "failed" });
   });
 
+  it("keeps Resend's refusal reason, so the hook log names the cause", async () => {
+    const f = vi.fn().mockResolvedValueOnce({ ok: false, status: 403, json: async () => ({ message: "The domain shop.co is not verified." }) });
+    vi.stubGlobal("fetch", f);
+    expect(await sendMail(mail, { RESEND_API_KEY: "k", MAIL_FROM: "Shop <o@shop.co>" })).toEqual({
+      sent: false,
+      reason: "failed",
+      detail: "Resend 403: The domain shop.co is not verified.",
+    });
+  });
+
   it("never lets a buyer's text become markup", () => {
     expect(esc(`<script>"x"&'y'</script>`)).toBe("&lt;script&gt;&quot;x&quot;&amp;&#39;y&#39;&lt;/script&gt;");
     const m = receiptMail({ storeName: "<b>S</b>", buyerName: "<i>Eve</i>", ref: "R", lines: [{ title: "<img src=x onerror=alert(1)>", amount: "₹1" }], total: "₹1", downloadUrl: "https://x.co/order/t" });

@@ -125,7 +125,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                 <p className="mt-1 text-muted-foreground">Not paid yet</p>
               )}
               <p className="text-sm text-muted-foreground">{o.buyerEmail}</p>
-              <p className="text-sm text-muted-foreground">{[o.countryCode ? countryShort(o.countryCode) : "", o.source ? `came from ${sourceLabel(o.source)}` : ""].filter(Boolean).join(" · ")}</p>
+              <p className="text-sm text-muted-foreground">{[o.countryCode ? countryShort(o.countryCode) : "", o.buyerState ?? "", o.source ? `came from ${sourceLabel(o.source)}` : ""].filter(Boolean).join(" · ")}</p>
             </div>
             <div>
               <p className="eyebrow">Product</p>

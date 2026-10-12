@@ -1,5 +1,6 @@
 import "server-only";
 import { sbAdmin } from "../supabase/admin";
+import { markPro, recordReceipt } from "./billing";
 import { completePayment, mailPaymentFailed, mailPayout } from "./shop";
 
 /**
@@ -9,8 +10,9 @@ import { completePayment, mailPaymentFailed, mailPayout } from "./shop";
 export interface GatewayEvent {
   event: string;
   payload?: {
-    payment?: { entity?: { id?: string; order_id?: string; fee?: number; error_description?: string } };
+    payment?: { entity?: { id?: string; order_id?: string; fee?: number; amount?: number; currency?: string; subscription_id?: string; error_description?: string } };
     order?: { entity?: { id?: string } };
+    subscription?: { entity?: { id?: string; status?: string; customer_id?: string; start_at?: number; current_start?: number; current_end?: number; notes?: { user_id?: string } } };
     dispute?: { entity?: { id?: string; payment_id?: string; amount?: number; currency?: string; reason_code?: string; status?: string; respond_by?: number } };
     payout?: { entity?: { id?: string; status?: string; failure_reason?: string; status_details?: { description?: string } } };
   };
@@ -23,6 +25,31 @@ export async function handleEvent(ev: GatewayEvent): Promise<void> {
   const db = sbAdmin();
   const pay = ev.payload?.payment?.entity;
   const payout = ev.payload?.payout?.entity;
+  const sub = ev.payload?.subscription?.entity;
+
+  if (sub?.id && (ev.event === "subscription.authenticated" || ev.event === "subscription.activated")) {
+    // Pro starts when the mandate is authorised (trial runs 30 days from subscribe).
+    const userId = sub.notes?.user_id ?? (await db.from("billing_subscriptions").select("user_id").eq("razorpay_subscription_id", sub.id).maybeSingle()).data?.user_id;
+    if (!userId) throw new Error(`No creator for subscription ${sub.id}`);
+    await markPro(userId as string, sub.id, sub);
+    return;
+  }
+  if (sub?.id && ev.event === "subscription.charged" && pay?.id) {
+    const userId = (await db.from("billing_subscriptions").select("user_id").eq("razorpay_subscription_id", sub.id).maybeSingle()).data?.user_id as string | undefined;
+    if (!userId) throw new Error(`No creator for subscription ${sub.id}`);
+    await markPro(userId, sub.id, sub);
+    await recordReceipt({ userId, subscriptionId: sub.id, paymentId: pay.id, amountMinor: pay.amount ?? 0, currency: pay.currency ?? "INR", periodStart: sub.current_start ? new Date(sub.current_start * 1000).toISOString() : undefined, periodEnd: sub.current_end ? new Date(sub.current_end * 1000).toISOString() : undefined });
+    return;
+  }
+  if (sub?.id && (ev.event === "subscription.cancelled" || ev.event === "subscription.completed" || ev.event === "subscription.expired" || ev.event === "subscription.paused")) {
+    const { data: row } = await db.from("billing_subscriptions").select("user_id").eq("razorpay_subscription_id", sub.id).maybeSingle();
+    const userId = row?.user_id as string | undefined;
+    if (!userId) throw new Error(`No creator for subscription ${sub.id}`);
+    await db.from("billing_subscriptions").update({ status: ev.event === "subscription.paused" ? "paused" : ev.event === "subscription.completed" ? "completed" : ev.event === "subscription.expired" ? "expired" : "cancelled", updated_at: new Date().toISOString() } as never).eq("razorpay_subscription_id", sub.id);
+    await db.from("profiles").update({ plan: "free" } as never).eq("id", userId);
+    await db.from("audit_log").insert({ actor_id: userId, action: "billing_pro_ended", target_type: "profile", target_id: userId, meta: { subscription: sub.id, reason: ev.event } } as never);
+    return;
+  }
 
   if ((ev.event === "payment.captured" || ev.event === "order.paid") && pay?.id && pay.order_id) {
     await completePayment(pay.order_id, pay.id, pay.fee);

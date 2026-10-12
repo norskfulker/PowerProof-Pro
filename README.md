@@ -91,7 +91,9 @@ Everything below is built; each piece switches on when its keys are set, and say
 | --- | --- | --- |
 | Orders, payments, refunds, downloads | `SUPABASE_SERVICE_ROLE_KEY`, `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET` | In Razorpay add the webhook `https://<site>/api/webhooks/razorpay` (events `payment.captured`, `order.paid`, `payment.failed`, and the `payment.dispute.*` events). Test with Razorpay's test keys first. |
 | Seller payouts (automatic, rupees to Indian accounts) | `RAZORPAYX_ACCOUNT_NUMBER` (plus the Razorpay keys) | Fund the RazorpayX account; add `payout.processed`, `payout.reversed`, `payout.rejected` to the webhook. Sellers must add their bank account again after this is on, so it is registered with Razorpay. |
+| Pro billing (₹1,999/mo, card upfront, 30-day trial) | `RAZORPAY_PRO_PLAN_ID` (plus the Razorpay keys + webhook secret) | In Razorpay create a monthly ₹1,999 INR plan and paste its id; add `subscription.authenticated`, `subscription.activated`, `subscription.charged`, `subscription.cancelled` to the webhook `https://<site>/api/webhooks/razorpay`. Apply migration `040_billing.sql` in the Supabase SQL editor, then regen `database.types.ts`. |
 | Receipt emails (and resending them) | `RESEND_API_KEY`, `MAIL_FROM` | Verify the sending domain in Resend. |
+| Sign-up OTP emails (first-time creators) | `RESEND_API_KEY`, `MAIL_FROM`, `SEND_EMAIL_HOOK_SECRET` (secret) | In Supabase turn on Confirm email (Authentication › Sign In / Up), then set the Send Email hook (Authentication › Hooks) to `https://<site>/api/auth/email-hook` and paste its secret. Supabase Auth creates the account and code; the code goes out through Resend. |
 | Custom domains | `CLOUDFLARE_API_TOKEN` (secret), `CLOUDFLARE_ZONE_ID`, `CLOUDFLARE_CNAME_TARGET`, `CRON_SECRET` (secret); `CLOUDFLARE_APEX_IPS` only with apex proxying | See "Custom domains on Cloudflare" below. Creators on Pro add their domain on Settings › Domain and set the DNS records shown. |
 | Dashboard visits, sources, funnel | nothing | Counted by the storefront itself, cookieless. |
 | Google Analytics, Clarity | nothing | Creators paste their IDs on Store › Analytics tags. |
@@ -116,11 +118,11 @@ npm run deploy    # build and deploy
 
 ### Custom domains on Cloudflare
 
-Creators' domains are Cloudflare for SaaS custom hostnames on PowerProof's own zone. One-time setup, on the zone that holds the site's domain (say `powerproof.store`):
+Creators' domains are Cloudflare for SaaS custom hostnames on PowerProof's own zone. One-time setup, on the zone that holds the site's domain (say `powerproof.app`):
 
 1. **SSL/TLS › Custom Hostnames**: enable Cloudflare for SaaS.
-2. Add a proxied DNS record for the fallback origin, `fallback.powerproof.store AAAA 100::` (the Worker answers, so the address is never used), and set it as the **fallback origin**.
-3. Add a proxied `customers.powerproof.store CNAME fallback.powerproof.store`. That's what creators point their domains at: set `CLOUDFLARE_CNAME_TARGET=customers.powerproof.store`.
+2. Add a proxied DNS record for the fallback origin, `fallback.powerproof.app AAAA 100::` (the Worker answers, so the address is never used), and set it as the **fallback origin**.
+3. Add a proxied `customers.powerproof.app CNAME fallback.powerproof.app`. That's what creators point their domains at: set `CLOUDFLARE_CNAME_TARGET=customers.powerproof.app`.
 4. Route every hostname on the zone to the Worker: uncomment `routes` in `wrangler.jsonc` (`*/*` on the zone).
 5. Make an API token with **SSL and Certificates: Edit** on that zone (`CLOUDFLARE_API_TOKEN`), and set `CLOUDFLARE_ZONE_ID`.
 6. Set `CRON_SECRET` so the 10-minute cron can re-check pending domains.

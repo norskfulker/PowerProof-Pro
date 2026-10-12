@@ -8,8 +8,8 @@ import type { PriceInfo, RatingSummary } from "./storefront";
  * Distinct from store-wide sales (`Deal`), which change a product's list price.
  */
 export type DealRuleSpec =
-  /** All of these products together: percent off each of them */
-  | { kind: "bundle_discount"; productIds: string[]; percent: number }
+  /** All of these products together: percent off each of them, or one fixed total price */
+  | { kind: "bundle_discount"; productIds: string[]; percent: number; fixedPrice?: Money }
   /** Any trigger product (or none = anything) and an optional minimum spend: this product free */
   | { kind: "free_gift"; triggerIds: string[]; minSpend?: Money; giftId: string }
   /** Same as free_gift, but the buyer picks one of several gifts */

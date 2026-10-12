@@ -68,7 +68,7 @@ export async function verifyEmail(code: string, email?: string): Promise<void> {
     /* private mode */
   }
   if (!addr) throw new ApiError("Open the link in the email we sent, or sign up again.", "validation");
-  const { error } = await sb().auth.verifyOtp({ email: addr, token: code, type: "email" });
+  const { error } = await sb().auth.verifyOtp({ email: addr, token: code, type: "signup" });
   if (error) authError(error.message);
   await syncSession();
 }

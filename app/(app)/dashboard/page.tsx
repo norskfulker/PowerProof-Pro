@@ -185,7 +185,7 @@ export default function DashboardPage() {
         <div className="mb-6 flex flex-col gap-3 rounded-card border border-accent/40 bg-accent-soft px-5 py-4 sm:flex-row sm:items-center">
           <Sparkles className="size-5 shrink-0 text-accent-ink" aria-hidden />
           <p className="flex-1 text-sm">
-            <strong>Free month</strong> until {formatDate(plan.data.plan.trialEndsAt)}. Then $20/month. You only pay 3% per sale until then.
+            <strong>Free month</strong> until {formatDate(plan.data.plan.trialEndsAt)}. Then ₹1,999/month. You only pay 3% per sale until then.
           </p>
           <Link href="/settings/billing" className="text-sm font-semibold text-accent-ink underline underline-offset-4">
             See plan

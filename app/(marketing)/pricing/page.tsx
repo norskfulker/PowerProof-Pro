@@ -7,7 +7,7 @@ import { Faq } from "@/components/marketing/faq";
 import { FeeCalculator } from "@/components/marketing/fee-calculator";
 import { PlanComparisonTable } from "@/components/plan/plan-usage";
 import { ErrorState } from "@/components/pp/empty-state";
-import { PRO_PRICE_USD, type AllPlanLimits } from "@/lib/plans";
+import { PRO_PRICE_INR, type AllPlanLimits } from "@/lib/plans";
 import { fetchPlanLimits } from "@/lib/plan-limits";
 
 export const metadata: Metadata = { title: "Pricing" };
@@ -25,7 +25,7 @@ const included = (l: AllPlanLimits) => [
 
 const pricingFaq = (l?: AllPlanLimits): [string, string][] => [
   ...(l ? ([["What can I do on Free?", `Everything, for ${l.free.stores ?? "unlimited"} store${l.free.stores === 1 ? "" : "s"} and ${l.free.products ?? "unlimited"} product${l.free.products === 1 ? "" : "s"}, with ${l.free.aiCredits} AI image credits a month. When you want more, Pro removes the limits.`]] as [string, string][]) : []),
-  ["Is Pro's first month really free?", "Yes. No card to start. The 3% per-sale fee is the same on both plans, so we only earn when you do."],
+  ["Is Pro's first month really free?", "Yes. Add your card to start; the first 30 days aren't charged. The 3% per-sale fee is the same on both plans, so we only earn when you do."],
   ["What's the ~2% gateway fee?", "The payment gateway charges it to move money. It's about 2% for Indian cards and UPI and can be a little higher for international cards."],
   ["Do you charge GST on fees?", "Fees are shown before GST. If GST applies to your account, it appears on your monthly PowerProof invoice."],
   ["Can I cancel?", "Any time, from Settings. Your store stays up until the end of the month you paid for."],
@@ -46,7 +46,7 @@ export default async function PricingPage() {
     <>
       <section className="gutter mx-auto max-w-[1200px] pt-12 md:pt-16">
         <h1 className="mt-3 max-w-3xl text-[2.5rem] sm:text-5xl">Start free. You&apos;ll know what you keep before you sell.</h1>
-        <p className="mt-4 max-w-2xl text-lg text-muted-foreground">Free covers one store, up to 10 products and 3 pages. Pro removes the limits for ${PRO_PRICE_USD} a month. Both pay the same 3% per sale.</p>
+        <p className="mt-4 max-w-2xl text-lg text-muted-foreground">Free covers one store, up to 10 products and 3 pages. Pro removes the limits for ₹{PRO_PRICE_INR.toLocaleString("en-IN")} a month. Both pay the same 3% per sale.</p>
       </section>
 
       <section className="gutter mx-auto mt-10 grid grid-cols-1 max-w-[1200px] gap-6 lg:grid-cols-[380px_minmax(0,1fr)]" aria-label="Plan">
@@ -56,7 +56,7 @@ export default async function PricingPage() {
             <span className="rounded-full bg-accent-soft px-2.5 py-0.5 text-xs font-semibold text-accent-ink">First month free</span>
           </div>
           <p className="mt-6 flex items-baseline gap-2">
-            <span className="font-display text-5xl">${PRO_PRICE_USD}</span>
+            <span className="font-display text-5xl">₹{PRO_PRICE_INR.toLocaleString("en-IN")}</span>
             <span className="text-muted-foreground">/ month</span>
           </p>
           <dl className="mt-6 grid grid-cols-[1fr_auto] gap-y-3 border-y py-5 text-sm">

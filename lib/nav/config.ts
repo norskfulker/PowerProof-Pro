@@ -1,6 +1,6 @@
 import {
   AlertOctagon, Banknote, Box, Brush, FileText, Flag, FolderOpen, Globe, Images, Inbox, LayoutDashboard, MessagesSquare,
-  Package, Plug, Receipt, ScrollText, Search, Settings, Shield, ShoppingBag, Sparkles, Store, Tag, Ticket, Users, Wallet, Wrench, type LucideIcon,
+  Newspaper, Package, Plug, Receipt, ScrollText, Search, Settings, Shield, ShoppingBag, Sparkles, Store, Tag, Ticket, Users, Wallet, Wrench, type LucideIcon,
 } from "lucide-react";
 import type { Need } from "../team";
 
@@ -132,6 +132,7 @@ export const ADMIN_NAV: NavNode[] = [
   { id: "a-creators", label: "Creators", href: "/admin/creators", icon: Users },
   { id: "a-stores", label: "Stores", href: "/admin/stores", icon: Store },
   { id: "a-products", label: "Products", href: "/admin/products", icon: Package },
+  { id: "a-blog", label: "Blog", href: "/admin/blog", icon: Newspaper },
   {
     id: "a-orders", label: "Orders", icon: Receipt, children: [
       { id: "a-orders-all", label: "All", href: "/admin/orders" },

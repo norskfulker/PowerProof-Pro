@@ -53,7 +53,7 @@ function Inner() {
           </div>
         </header>
         <section className="grid grid-cols-2 gap-6 py-6 text-sm">
-          <div><p className="text-xs text-[#6b7b75]">Billed to</p><p className="font-medium">{order.buyerName}</p><p>{order.buyerEmail}</p><p>{order.buyerCountry}</p></div>
+          <div><p className="text-xs text-[#6b7b75]">Billed to</p><p className="font-medium">{order.buyerName}</p><p>{order.buyerEmail}</p><p>{[order.buyerState, order.buyerCountry].filter(Boolean).join(", ")}</p></div>
           <div className="text-right">
             <p className="text-xs text-[#6b7b75]">Order</p>
             <p className="font-mono">{order.ref}</p>

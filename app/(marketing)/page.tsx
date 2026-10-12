@@ -63,7 +63,7 @@ export default function HomePage() {
             </Button>
           </div>
           <p className="mt-4 text-sm text-muted-foreground">
-            First month free, then $20/month. <Link href="/pricing" className="font-medium text-foreground underline underline-offset-4">3% per sale</Link>.
+            First month free, then ₹1,999/month. <Link href="/pricing" className="font-medium text-foreground underline underline-offset-4">3% per sale</Link>.
           </p>
         </div>
       </section>
@@ -125,7 +125,7 @@ export default function HomePage() {
         <div>
           <h2 id="money" className="mt-3 text-3xl md:text-4xl">No setup fee. No tiers. No surprises.</h2>
           <p className="mt-4 max-w-md text-muted-foreground">
-            First month free. Then $20 a month, 3% per sale, and the gateway&apos;s ~2%. That&apos;s the whole list.
+            First month free. Then ₹1,999 a month, 3% per sale, and the gateway&apos;s ~2%. That&apos;s the whole list.
           </p>
           <Button asChild variant="secondary" className="mt-6">
             <Link href="/pricing">

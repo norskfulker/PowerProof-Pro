@@ -52,7 +52,7 @@ export function countryShort(code: string): string {
   return FLAGS[code] ?? code;
 }
 
-export const SITE_URL = "powerproof.store";
+export const SITE_URL = "powerproof.app";
 export function storeUrl(slug: string): string {
   return `${SITE_URL}/${slug}`;
 }

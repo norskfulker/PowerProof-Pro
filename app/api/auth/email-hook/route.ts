@@ -1,13 +1,14 @@
 import "server-only";
 import { NextResponse } from "next/server";
 import { sendHookMails, verifyHook, type HookPayload } from "@/lib/server/auth-email";
-import { siteUrl } from "@/lib/server/shop";
+import { siteUrl } from "@/lib/site-url";
 
 /**
  * Supabase Auth's Send Email hook: account emails (sign-up code, login link, password reset,
  * email change, invite) go out through Resend in PowerProof's design. Turn it on in Supabase under
  * Authentication > Hooks > Send Email (HTTPS) with https://<your site>/api/auth/email-hook, and put
- * the secret it shows in SEND_EMAIL_HOOK_SECRET.
+ * the secret it shows in SEND_EMAIL_HOOK_SECRET. Turn on Confirm email (Authentication > Sign In / Up)
+ * so first-time sign-ups get the 6-digit OTP this hook sends.
  */
 export const dynamic = "force-dynamic";
 

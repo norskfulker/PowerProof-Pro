@@ -78,7 +78,7 @@ async function post<T>(url: string, body: unknown): Promise<T> {
  */
 export function CheckoutSheet({ open, onOpenChange, storeId, storeSlug, lines, onLines, shipping, sellerName }: { open: boolean; onOpenChange: (o: boolean) => void; storeId: string; storeSlug: string; lines: CartLine[]; onLines: (l: CartLine[]) => void; shipping?: ShippingSettings; /** The store's invoice name: who the buyer is buying from */ sellerName?: string }) {
   const router = useRouter();
-  const [f, setF] = useState({ name: "", email: "", dial: "+91", phone: "", country: "IN", coupon: "", consent: false });
+  const [f, setF] = useState({ name: "", email: "", dial: "+91", phone: "", country: "IN", buyerState: "", coupon: "", consent: false });
   const [addr, setAddr] = useState({ line1: "", line2: "", city: "", state: "", pincode: "" });
   const [payWith, setPayWith] = useState<"online" | "cod">("online");
   const [busy, setBusy] = useState(false);
@@ -152,9 +152,10 @@ export function CheckoutSheet({ open, onOpenChange, storeId, storeSlug, lines, o
       if (addr.city.trim().length < 2) return setError("Enter the city.");
       if (f.country === "IN" && !/^[1-9]\d{5}$/.test(addr.pincode.trim())) return setError("Indian PIN codes are 6 digits.");
       if (f.country !== "IN" && addr.pincode.trim().length < 3) return setError("Enter the postal code.");
-      if (f.country === "IN" && !addr.state) return setError("Pick the state.");
+      if (f.country === "IN" && !INDIAN_STATES.includes(addr.state)) return setError("Pick the state.");
       if (blocked) return setError(blocked);
     }
+    if (!physical && f.country === "IN" && !INDIAN_STATES.includes(f.buyerState)) return setError("Pick your state for the invoice.");
     if (!f.consent) return setError("Please accept the terms and refund policy to continue.");
     if (quote?.coupon && !quote.coupon.ok) return setError(`${quote.coupon.message} Fix or clear the code to continue.`);
     setBusy(true);
@@ -165,7 +166,7 @@ export function CheckoutSheet({ open, onOpenChange, storeId, storeSlug, lines, o
         productIds: [...new Set(products.map((p) => p.id))],
         ...(physical ? { lines: askLines, shipTo: { name: f.name.trim(), phone: `${f.dial}${digits}`, ...addr, country: f.country }, paymentMethod: method } : {}),
         coupon: f.coupon.trim() || undefined,
-        buyer: { name: f.name, email: f.email, phone: `${f.dial}${digits}`, country: f.country, consent: true },
+        buyer: { name: f.name, email: f.email, phone: `${f.dial}${digits}`, country: f.country, buyerState: f.country === "IN" && !physical ? f.buyerState : undefined, consent: true },
       });
       if (!reply.ok) {
         setError(reply.message);
@@ -280,6 +281,16 @@ export function CheckoutSheet({ open, onOpenChange, storeId, storeSlug, lines, o
               <SelectContent>{COUNTRIES.map((c) => <SelectItem key={c.code} value={c.code}>{c.name}</SelectItem>)}</SelectContent>
             </Select>
           </div>
+          {!physical && f.country === "IN" && (
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="co-state">State</Label>
+              <Select value={f.buyerState} onValueChange={(buyerState) => setF({ ...f, buyerState })}>
+                <SelectTrigger id="co-state" className="w-full"><SelectValue placeholder="Pick your state" /></SelectTrigger>
+                <SelectContent>{INDIAN_STATES.map((st) => <SelectItem key={st} value={st}>{st}</SelectItem>)}</SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">Needed for a correct GST invoice (CGST+SGST in your state, IGST otherwise).</p>
+            </div>
+          )}
           {physical && (
             <fieldset className="flex flex-col gap-3 rounded-control border p-3">
               <legend className="px-1 text-sm font-semibold">Delivery address</legend>

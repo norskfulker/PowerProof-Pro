@@ -20,6 +20,10 @@ const MESSAGES: [string, string][] = [
   ["payout_action_invalid", "That isn't something a payout can do."],
   ["store_not_found", "That store no longer exists."],
   ["not_found", "That item no longer exists."],
+  ["slug_taken", "That link is taken by another post."],
+  ["title_required", "Give the post a title."],
+  ["slug_invalid", "The link can only hold lowercase letters, numbers and dashes."],
+  ["cover_invalid", "The cover must be an https photo or video link."],
   ["reason required", "Add a reason of at least a few words."],
 ];
 
@@ -361,6 +365,65 @@ export async function getAdminProducts(): Promise<AdminProduct[]> {
 /** Take a product off sale (or put it back). Anything other than putting it live needs a reason, kept in the audit log. */
 export const setProductStatus = (id: string, status: "live" | "draft" | "archived", reason?: string): Promise<void> =>
   liveChange(call<void>("admin_set_product_status", { p_product: id, p_status: status, p_reason: reason ?? null }));
+
+/* Blog ------------------------------------------------------------------------------------------ */
+
+export interface AdminBlogPost {
+  id: string;
+  slug: string;
+  title: string;
+  excerpt: string;
+  body: string;
+  coverSrc: string;
+  coverKind: "image" | "video";
+  coverAlt: string;
+  status: "draft" | "published";
+  author: string;
+  publishedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export async function getAdminBlogPosts(): Promise<AdminBlogPost[]> {
+  const rows = await call<{ id: string; slug: string; title: string; excerpt: string; body: string; cover_src: string; cover_kind: string; cover_alt: string; status: AdminBlogPost["status"]; author: string; published_at: string | null; created_at: string; updated_at: string }[]>("admin_blog_list");
+  return (rows ?? []).map((r) => ({ id: r.id, slug: r.slug, title: r.title, excerpt: r.excerpt ?? "", body: r.body ?? "", coverSrc: r.cover_src ?? "", coverKind: r.cover_kind === "video" ? "video" : "image", coverAlt: r.cover_alt ?? "", status: r.status, author: r.author, publishedAt: r.published_at, createdAt: r.created_at, updatedAt: r.updated_at }));
+}
+
+export interface AdminBlogInput {
+  id?: string;
+  title: string;
+  slug: string;
+  excerpt: string;
+  body: string;
+  coverSrc: string;
+  coverKind: "image" | "video";
+  coverAlt: string;
+  status: "draft" | "published";
+  author: string;
+  /** ISO datetime, or null to leave the date alone */
+  publishedAt: string | null;
+}
+
+/** Creates or updates a post. The slug must be unique; the change is audited. */
+export const saveBlogPost = (v: AdminBlogInput): Promise<string> =>
+  liveChange(
+    call<string>("admin_blog_save", {
+      p_id: v.id ?? null,
+      p_title: v.title,
+      p_slug: v.slug,
+      p_excerpt: v.excerpt,
+      p_body: v.body,
+      p_cover_src: v.coverSrc,
+      p_cover_kind: v.coverKind,
+      p_cover_alt: v.coverAlt,
+      p_status: v.status,
+      p_author: v.author,
+      p_published_at: v.publishedAt,
+    })
+  );
+
+/** Deletes a post entirely. Audited. */
+export const deleteBlogPost = (id: string): Promise<void> => liveChange(call<void>("admin_blog_delete", { p_id: id }));
 
 /* Team and webhooks ---------------------------------------------------------------------------------- */
 

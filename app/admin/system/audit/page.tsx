@@ -25,6 +25,9 @@ const ACTIONS: Record<string, string> = {
   payout_failed: "Marked a payout failed",
   verify_deal: "Verified a marketplace deal",
   unverify_deal: "Removed a deal's verified badge",
+  create_blog_post: "Created a blog post",
+  save_blog_post: "Edited a blog post",
+  delete_blog_post: "Deleted a blog post",
   refund_order: "Refunded an order",
   reveal_buyer_phone: "Looked at a buyer's phone number",
 };

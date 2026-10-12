@@ -108,9 +108,10 @@ export function StepStore({ onDone }: { onDone: () => void }) {
               ) : waiting ? (
                 <Loader2 className="size-3.5 animate-spin text-muted-foreground" aria-label="Making your link" />
               ) : (
-                <span className="text-muted-foreground">It appears here once you type a name.</span>
+                <span className="text-muted-foreground">{SITE_URL}/…</span>
               )}
             </p>
+            <p className="mt-1 text-xs text-muted-foreground">Free forever. Want an address you own, like shop.yourname.in? Connect it later in Settings › Domain.</p>
           </div>
           <FormField
             control={form.control}

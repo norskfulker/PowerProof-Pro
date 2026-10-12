@@ -37,7 +37,8 @@ function SignupForm() {
     setError(undefined);
     try {
       const session = await signup(v.name, v.email, v.password);
-      // Signed straight in (email confirmation off in this project): no code to enter
+      // With email confirmation on (Supabase Auth), there's no session yet: the 6-digit
+      // code from the Resend email (or its link) signs them in on /verify-email
       if (!session.needsVerification) {
         router.push(start);
         return;
@@ -111,7 +112,7 @@ function SignupForm() {
             {pending && <Loader2 className="animate-spin" aria-hidden />}
             Create my store
           </Button>
-          <p className="text-center text-xs text-muted-foreground">First month free, then $20/month and 3% per sale.</p>
+          <p className="text-center text-xs text-muted-foreground">First month free, then ₹1,999/month and 3% per sale.</p>
         </form>
       </Form>
     </AuthCard>

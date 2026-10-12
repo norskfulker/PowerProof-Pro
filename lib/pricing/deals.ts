@@ -9,7 +9,9 @@ import type { DealRule, Money } from "../types";
  *   stackable also combine with each other and with the best non-stackable rule, and the engine
  *   picks whichever combination saves the most.
  * - Percentage discounts never take a product below its price floor. "Free" mechanics (gifts,
- *   cheapest-free) are explicit creator choices and are not limited by the floor.
+ *   cheapest-free) are explicit creator choices and are not limited by the floor. A fixed bundle
+ *   price is also an explicit creator choice: it ignores floors and is spread across its items
+ *   in proportion, so invoices and refunds stay per product.
  * - A gift is free once per order: one free line per gift product, however many rules give it.
  * - Locked lines (the order bump, at its own special price) are never discounted further.
  * - Nothing is ever added for the buyer. The engine only suggests (offers) what to add.
@@ -140,6 +142,24 @@ function giveGift(lines: Work[], giftId: string, catalog: Map<string, DealProduc
   return p.price.amount;
 }
 
+/** One fixed total for every member line, spread in proportion (explicit creator choice: ignores floors). */
+function fixedBundle(rule: Extract<DealRule, { kind: "bundle_discount" }>, lines: Work[], fixedMinor: number, ruleId: string): number {
+  const members = rule.productIds.flatMap((id) => {
+    const line = paidLines(lines).find((l) => l.productId === id && !l.ruleIds.includes(ruleId));
+    return line && !line.locked && !line.free ? [line] : [];
+  });
+  const sum = members.reduce((t, l) => t + l.price.amount, 0);
+  if (members.length === 0 || sum <= fixedMinor) return 0;
+  let assigned = 0;
+  members.forEach((l, i) => {
+    const target = i === members.length - 1 ? fixedMinor - assigned : Math.round((fixedMinor * l.price.amount) / sum);
+    assigned += target;
+    l.price = money(target, l.price.currency);
+    l.ruleIds.push(ruleId);
+  });
+  return sum - fixedMinor;
+}
+
 /** Applies one rule in place. Returns the amount saved (0 = rule didn't apply). */
 function applyRule(rule: DealRule, lines: Work[], catalog: Map<string, DealProduct>, choices: Record<string, string>): number {
   const floor = (id: string) => catalog.get(id)?.floor?.amount;
@@ -149,6 +169,7 @@ function applyRule(rule: DealRule, lines: Work[], catalog: Map<string, DealProdu
   switch (rule.kind) {
     case "bundle_discount": {
       if (rule.productIds.length < 2 || !rule.productIds.every(has)) return 0;
+      if (rule.fixedPrice) return fixedBundle(rule, lines, rule.fixedPrice.amount, rule.id);
       let saved = 0;
       for (const id of rule.productIds) {
         const line = paid.find((l) => l.productId === id && !l.ruleIds.includes(rule.id));
@@ -369,7 +390,7 @@ export function ruleSummary(rule: DealRule, titleOf: (id: string) => string = (i
   const list = (ids: string[]) => (ids.length === 0 ? "anything" : ids.length <= 2 ? ids.map(titleOf).join(" + ") : `${titleOf(ids[0])} and ${ids.length - 1} more`);
   switch (rule.kind) {
     case "bundle_discount":
-      return `Buy ${list(rule.productIds)} together, save ${rule.percent}%`;
+      return rule.fixedPrice ? `Buy ${list(rule.productIds)} together for ${fmt(rule.fixedPrice)}` : `Buy ${list(rule.productIds)} together, save ${rule.percent}%`;
     case "limited_time":
       return `${list(rule.productIds)}: ${rule.percent}% off for a limited time`;
     case "tiers":

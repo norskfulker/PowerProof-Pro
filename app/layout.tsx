@@ -16,6 +16,7 @@ import { LiveSessionSync } from "@/components/auth/live-session-sync";
 import { HydrationMark } from "@/components/pp/hydration-mark";
 import { Toaster } from "@/components/ui/sonner";
 import { NO_FLASH_SCRIPT } from "@/lib/theme";
+import { siteUrl } from "@/lib/site-url";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import "./globals.css";
 
@@ -54,13 +55,36 @@ const notoTelugu = Noto_Sans_Telugu({ subsets: ["telugu"], variable: "--font-not
 const notoKannada = Noto_Sans_Kannada({ subsets: ["kannada"], variable: "--font-noto-kannada", display: "swap", preload: false });
 const INDIC = [notoDeva, notoTamil, notoTelugu, notoKannada].map((f) => f.variable).join(" ");
 
+const SITE_TITLE = "PowerProof — sell digital products in minutes";
+const SITE_DESCRIPTION =
+  "Add a product, share a link, get paid. Instant delivery, invoices and payouts for creators in India selling worldwide.";
+
 export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl()),
   title: {
-    default: "PowerProof — sell digital products in minutes",
+    default: SITE_TITLE,
     template: "%s · PowerProof",
   },
-  description:
-    "Add a product, share a link, get paid. Instant delivery, invoices and payouts for creators in India selling worldwide.",
+  description: SITE_DESCRIPTION,
+  keywords: ["digital products", "sell downloads", "creator store", "Gumroad alternative India", "GST invoices", "Razorpay"],
+  authors: [{ name: "PowerProof" }],
+  creator: "PowerProof",
+  publisher: "PowerProof",
+  robots: { index: true, follow: true },
+  icons: { icon: "/favicon.ico" },
+  openGraph: {
+    type: "website",
+    siteName: "PowerProof",
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
+    url: siteUrl(),
+  },
+  twitter: {
+    card: "summary",
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
+  },
+  alternates: { canonical: siteUrl() },
 };
 
 export const viewport: Viewport = {

@@ -17,6 +17,7 @@ export * from "./deal-rules";
 export * from "./visual-pages";
 export * from "./account";
 export * from "./media";
+export * from "./blog";
 export * from "./getting-started";
 export * from "./preferences";
 export * from "./domains";

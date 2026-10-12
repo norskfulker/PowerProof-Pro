@@ -78,14 +78,14 @@ export function FeeCalculator() {
           <dd className="text-right"><MoneyText value={gross} mono /></dd>
           <dt className="text-muted-foreground">Fees</dt>
           <dd className="text-right"><MoneyText value={{ ...fees, amount: -fees.amount }} mono /></dd>
-          <dt className="text-muted-foreground">Subscription ($20)</dt>
-          <dd className="text-right font-mono text-[0.8125rem]">{firstMonth ? "Free this month" : `$${PRICING.monthlyUsd / 100} / month, billed in USD`}</dd>
+          <dt className="text-muted-foreground">Subscription (₹1,999)</dt>
+          <dd className="text-right font-mono text-[0.8125rem]">{firstMonth ? "Free this month" : `₹${(PRICING.monthlyInr / 100).toLocaleString("en-IN")} / month, billed in INR`}</dd>
         </dl>
         <div className="mt-auto border-t border-dashed border-border-strong pt-4">
           <p className="text-sm font-semibold">You keep each month</p>
           {ready ? <MoneyText value={keep} className="font-display text-[2.5rem] leading-tight text-accent-strong" /> : <p className="font-display text-xl text-muted-foreground">Enter your price and monthly sales.</p>}
           <p className="mt-1 text-xs text-muted-foreground">
-            Before the subscription, which is billed in US dollars. International cards may cost a little more at the gateway.
+            Before the subscription, which is billed in Indian rupees. International cards may cost a little more at the gateway.
           </p>
         </div>
       </div>

@@ -265,6 +265,15 @@ export function dealRuleFrom(row: T["deal_rules"]["Row"]): DealRule {
     createdAt: row.created_at,
   };
   if (row.reward === "free_product") return { ...common, kind: "free_gift", triggerIds: row.trigger_product_ids, giftId: row.reward_product_id! };
+  if (row.bundle_price_minor != null && row.bundle_price_currency) {
+    return {
+      ...common,
+      kind: "bundle_discount",
+      productIds: row.trigger_product_ids,
+      percent: Math.round((row.percent_bps ?? 0) / 100),
+      fixedPrice: money(row.bundle_price_minor, row.bundle_price_currency),
+    };
+  }
   return { ...common, kind: "bundle_discount", productIds: row.trigger_product_ids, percent: Math.round((row.percent_bps ?? 0) / 100) };
 }
 
