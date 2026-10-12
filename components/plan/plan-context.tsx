@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Check, Loader2, Sparkles } from "lucide-react";
@@ -78,15 +78,19 @@ export function PlanProvider({ children }: { children: React.ReactNode }) {
   const { data: limits } = useApi(getPlanLimits, []);
   const [open, setOpen] = useState<LimitKind | "general" | null>(null);
   const [pending, setPending] = useState(false);
+  const [startCheckout, setStartCheckout] = useState(false);
 
-  const upgrade = useCallback((kind?: LimitKind) => setOpen(kind ?? "general"), []);
+  const upgrade = useCallback((kind?: LimitKind) => {
+    setOpen(kind ?? "general");
+    setStartCheckout(true);
+  }, []);
 
   const guard = useCallback(
     (kind: "stores" | "products" | "pages", action: () => void) => {
       if (!data) return action();
       const max = data.limits[kind];
       if (max === null || data.usage[kind] < max) action();
-      else setOpen(kind);
+      else { setOpen(kind); setStartCheckout(true); }
     },
     [data]
   );
@@ -95,13 +99,13 @@ export function PlanProvider({ children }: { children: React.ReactNode }) {
     if (e instanceof ApiError && e.code === "limit") {
       const kind = (e as ApiError & { kind?: LimitKind }).kind ?? "products";
       setOpen(kind);
+      setStartCheckout(true);
       return true;
     }
     return false;
   }, []);
 
-  async function doUpgrade() {
-    setPending(true);
+  const doUpgrade = useCallback(async () => {
     try {
       const started = await fetch("/api/billing/subscribe", { method: "POST" }).then((r) => r.json()).catch(() => ({ ok: false, message: "We couldn't reach the server." })) as
         | { ok: true; keyId: string; subscriptionId: string }
@@ -145,12 +149,20 @@ export function PlanProvider({ children }: { children: React.ReactNode }) {
       toast.error(e instanceof Error ? e.message : "We couldn't upgrade you just now.");
       setPending(false);
     }
-  }
+  }, [reload, router]);
+
+  useEffect(() => {
+    if (!startCheckout || !open || pending) return;
+    setStartCheckout(false);
+    setOpen(null);
+    setPending(true);
+    void doUpgrade();
+  }, [startCheckout, open, pending, doUpgrade]);
 
   return (
     <Ctx.Provider value={{ state: data, limits, reload, upgrade, guard, handleLimitError }}>
       {children}
-      <Dialog open={open !== null} onOpenChange={(o) => !pending && !o && setOpen(null)}>
+      <Dialog open={open !== null && !startCheckout} onOpenChange={(o) => !pending && !o && setOpen(null)}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 font-display text-xl">

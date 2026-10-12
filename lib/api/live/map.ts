@@ -187,8 +187,8 @@ export function designFrom(store: Store, theme: Json, mode: string, about?: Abou
   const base = defaultDesign(store);
   // The brand colour lives in stores.brand_color: it always wins over any copy in the JSON
   const design: StoreDesign = { ...base, ...saved, theme: { ...base.theme, ...saved.theme, mode: (mode as StoreDesign["theme"]["mode"]) ?? "auto", brand: store.brandColor } };
-  // Designs saved before a section existed get it added (off), so it can be switched on
-  // (only the built-in ones: sections the creator added are kept as saved)
+  // Add newly supported starter sections to existing designs, disabled so prior store layouts stay unchanged.
+  // (Only built-in sections are added; sections the creator added are kept as saved.)
   design.sections = [...design.sections, ...DEFAULT_SECTIONS.filter((id) => !design.sections.some((s) => kindOf(s) === id)).map((id) => ({ id, enabled: false }))];
   if (about) design.about = about;
   return design;

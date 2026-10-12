@@ -63,7 +63,7 @@ export const SECTION_META: Record<SectionKind, { name: string; description: stri
   video: { name: "Video", description: "An uploaded video, or a YouTube or Vimeo link.", multiple: true },
 };
 
-export const DEFAULT_SECTIONS: SectionId[] = ["announcement", "hero", "highlights", "collections", "bestsellers", "new", "offers", "reviews", "html", "about", "faq", "newsletter"];
+export const DEFAULT_SECTIONS: SectionId[] = ["hero", "bestsellers", "faq", "newsletter"];
 
 /** The order sections are offered in "Add section" */
 export const ADDABLE_KINDS: SectionKind[] = ["hero", "text", "image", "video", "columns", "table", "marquee", "highlights", "bestsellers", "new", "collections", "offers", "reviews", "faq", "about", "newsletter", "html"];

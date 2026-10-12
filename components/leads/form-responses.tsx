@@ -145,8 +145,8 @@ export function SubmissionsCard({ leads, since, loading }: { leads: Lead[] | und
     <section aria-labelledby="subs-h" className="flex flex-col gap-4 rounded-card border bg-surface p-5">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
-          <h3 id="subs-h" className="font-display text-lg">Form submissions</h3>
-          <p className="text-sm text-muted-foreground">{loading && !leads ? "Loading…" : `${inRange.length} in this period, from forms, bookings, the newsletter and messages.`}</p>
+          <h3 id="subs-h" className="font-display text-lg">Leads and submissions</h3>
+          <p className="text-sm text-muted-foreground">{loading && !leads ? "Loading…" : `${inRange.length} in this period, including forms, bookings, newsletter sign-ups and messages.`}</p>
         </div>
         <Button asChild variant="secondary" size="sm">
           <Link href="/sales/leads?view=responses">All responses <ArrowRight aria-hidden /></Link>

@@ -3,15 +3,13 @@
 import { useState } from "react";
 import Link from "next/link";
 import { GuardedLink } from "@/components/plan/plan-context";
-import { ExternalLink, Plus, Sparkles } from "lucide-react";
+import { ExternalLink, ListChecks, Plus, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Segmented } from "@/components/pp/segmented";
 import { ChartCard, RevenueBars, ShareBars, VisitorsArea } from "@/components/pp/chart-card";
 import { MoneyText } from "@/components/pp/money-text";
 import { PageHeader } from "@/components/pp/page-header";
-import { GettingStartedCard } from "@/components/getting-started/getting-started-card";
 import { useGettingStarted } from "@/components/getting-started/getting-started-provider";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Glance } from "@/components/dashboard/glance";
 import { LiveFeed } from "@/components/dashboard/live-feed";
@@ -45,46 +43,18 @@ function rangeStart(range: RangeKey, now: number) {
 }
 
 function DashboardSections({ isNew, hasLive, range, setRange, summary, balance, store }: { isNew: boolean; hasLive: boolean; range: RangeKey; setRange: (r: RangeKey) => void; summary: Summary; balance: BalanceState; store: Store | undefined }) {
-  const { checklist } = useGettingStarted();
   // What people sent through the store's forms, bookings and newsletter
   const leads = useApi(getLeads, [], { live: true });
   const [now] = useState(() => Date.now());
-  // Not rendered until the checklist is known, so the sections open the right way from the start
-  if (!checklist) return <Skeleton className="h-64 rounded-card" />;
-  const settingUp = !checklist.dismissed && !checklist.complete;
   return (
-    <Accordion type="multiple" defaultValue={settingUp ? ["getting-started", "operations"] : ["operations", "analytics"]} className="rounded-card border bg-surface px-5">
-      <AccordionItem value="getting-started" id="getting-started">
-        <AccordionTrigger className="min-h-14 items-center font-display text-xl">
-          {/* The trigger carries the progress, so the state is readable without opening it */}
-          <span className="flex min-w-0 flex-1 flex-col items-start gap-1.5">
-            <span className="text-xl">Getting started</span>
-            {!checklist.dismissed && (
-              <span className="h-1.5 w-full overflow-hidden rounded-full bg-muted" aria-hidden>
-                <span className={cn("block h-full rounded-full transition-[width] duration-500 motion-reduce:transition-none", checklist.complete ? "bg-success" : "bg-primary")} style={{ width: `${checklist.percent}%` }} />
-              </span>
-            )}
-            <span className="font-sans text-sm font-normal text-muted-foreground">
-              {checklist.dismissed ? "Hidden" : checklist.complete ? "All done" : checklist.next ? `Next: ${checklist.next.title}` : ""}
-            </span>
-          </span>
-          {!checklist.dismissed && !checklist.complete && <span className="shrink-0 font-sans text-sm font-normal text-muted-foreground">{checklist.percent}%</span>}
-        </AccordionTrigger>
-        <AccordionContent>
-          {checklist.dismissed ? <p className="text-sm text-muted-foreground">You&apos;ve hidden the checklist. Everything required was done.</p> : <GettingStartedCard bare />}
-        </AccordionContent>
-      </AccordionItem>
+    <div className="flex flex-col gap-8">
+      <section aria-labelledby="operations-title">
+        <h2 id="operations-title" className="mb-4 font-display text-xl font-bold">Operations</h2>
+        <QuickActions store={store} />
+      </section>
 
-      <AccordionItem value="operations" id="operations">
-        <AccordionTrigger className="min-h-14 font-display text-xl">Operations</AccordionTrigger>
-        <AccordionContent>
-          <QuickActions store={store} />
-        </AccordionContent>
-      </AccordionItem>
-
-      <AccordionItem value="analytics" id="analytics" className="border-b-0">
-        <AccordionTrigger className="min-h-14 font-display text-xl">Analytics</AccordionTrigger>
-        <AccordionContent>
+      <section aria-labelledby="analytics-title">
+        <h2 id="analytics-title" className="mb-4 font-display text-xl font-bold">Analytics</h2>
           <div className="flex flex-col gap-6">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <p className="text-sm text-muted-foreground">{isNew ? "Nothing sold yet. Your numbers appear here." : "Sales, products and visitors for the period you pick."}</p>
@@ -135,9 +105,8 @@ function DashboardSections({ isNew, hasLive, range, setRange, summary, balance, 
             </div>
             <SubmissionsCard leads={leads.data} since={rangeStart(range, now)} loading={leads.loading} />
           </div>
-        </AccordionContent>
-      </AccordionItem>
-    </Accordion>
+      </section>
+    </div>
   );
 }
 
@@ -149,6 +118,7 @@ function greeting() {
 export default function DashboardPage() {
   const [range, setRange] = useState<RangeKey>("today");
   const store = useCurrentStore();
+  const { openDrawer } = useGettingStarted();
   const summary = useApi(() => getSummary(range), [range], { live: true });
   const balance = useApi(getBalance, [], { live: true });
   const products = useApi(() => getProducts(), [], { live: true });
@@ -172,6 +142,9 @@ export default function DashboardPage() {
                 </Link>
               </Button>
             )}
+            <Button type="button" variant="secondary" onClick={openDrawer}>
+              <ListChecks aria-hidden /> Getting started
+            </Button>
             <Button asChild>
               <GuardedLink kind="products" href="/catalog/products/new" data-coach="new-product">
                 <Plus aria-hidden /> Add product

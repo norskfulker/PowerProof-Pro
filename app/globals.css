@@ -1,6 +1,19 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
+/* Razorpay's external checkout must receive pointer input above the open Radix checkout sheet. */
+body[data-payment-provider-open="true"] .razorpay-container,
+body[data-payment-provider-open="true"] iframe.razorpay-checkout-frame,
+body[data-payment-provider-open="true"] iframe[id^="razorpay"] {
+  z-index: 2147483000 !important;
+  pointer-events: auto !important;
+}
+
+body[data-payment-provider-open="true"] [data-slot="sheet-overlay"],
+body[data-payment-provider-open="true"] [data-slot="sheet-content"] {
+  pointer-events: none !important;
+}
+
 /* Dark mode (Part 7A): <html data-theme="dark">, or any wrapper with data-theme for a scoped preview. */
 @custom-variant dark (&:is([data-theme="dark"] *));
 

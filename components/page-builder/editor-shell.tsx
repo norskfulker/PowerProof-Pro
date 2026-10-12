@@ -176,15 +176,13 @@ function Inner({ session }: { session: EditorSession }) {
   // Either sidebar collapses; the canvas takes the room
   const [leftOpen, setLeftOpen] = useState(true);
   const [rightOpen, setRightOpen] = useState(true);
-  const leftShown = size !== "narrow";
-  const leftExpanded = leftShown && leftOpen;
+  const leftShown = size !== "narrow" && leftOpen;
   const rightShown = size === "wide" && !wideData && rightOpen;
-  const leftWidth = leftExpanded ? (wideData ? "26rem" : "21rem") : "4rem";
   const bodyCols =
-    leftShown && rightShown ? `grid-cols-[${leftWidth}_minmax(0,1fr)_19rem]`
-    : leftShown ? `grid-cols-[${leftWidth}_minmax(0,1fr)]`
-    : rightShown ? "grid-cols-[minmax(0,1fr)_19rem]"
-    : "grid-cols-1";
+    !leftShown && !rightShown ? "grid-cols-1"
+    : leftShown && rightShown ? "grid-cols-[21rem_minmax(0,1fr)_19rem]"
+    : leftShown ? (wideData ? "grid-cols-[26rem_minmax(0,1fr)]" : "grid-cols-[21rem_minmax(0,1fr)]")
+    : "grid-cols-[minmax(0,1fr)_19rem]";
   // Both sidebars pin under the bars with their own scroll, so they stay in view on long pages
   const sideStick: React.CSSProperties = { position: "sticky", top: APP_BAR + barHeight, maxHeight: `calc(100dvh - ${APP_BAR + barHeight + 16}px)`, overflowY: "auto" };
   useEffect(() => {
@@ -416,6 +414,7 @@ function Inner({ session }: { session: EditorSession }) {
       {/* Top bar: stays in view while the page scrolls */}
       <header ref={bar} data-editor-bar="" className="sticky top-16 z-20 flex flex-wrap items-center gap-x-3 gap-y-2 border-b bg-surface px-3 py-2 md:rounded-t-card md:px-4">
         <div className="flex min-w-0 flex-[1_1_14rem] flex-wrap items-center gap-x-3 gap-y-1">
+          {size !== "narrow" && <Tooltip><TooltipTrigger asChild><Button type="button" variant="ghost" size="icon" onClick={() => setLeftOpen((o) => !o)} aria-pressed={leftOpen} aria-label={leftOpen ? "Collapse sidebar" : "Expand sidebar"}><PanelLeftClose className={!leftOpen ? "rotate-180" : undefined} /></Button></TooltipTrigger><TooltipContent>{leftOpen ? "Collapse sidebar" : "Expand sidebar"}</TooltipContent></Tooltip>}
           <Select value={page.id} onValueChange={goTo}>
             <SelectTrigger size="sm" className="h-9 w-auto max-w-60 min-w-0 border-transparent bg-transparent px-2 font-display text-base font-extrabold hover:border-input" aria-label="Page you're editing">
               <SelectValue />
@@ -502,17 +501,9 @@ function Inner({ session }: { session: EditorSession }) {
       {/* Body: while AI builds, the page can be looked at (and scrolled) but not changed */}
       <div className={cn("grid flex-1", bodyCols)}>
         {leftShown && (
-        <aside inert={building || undefined} aria-label="Editor panels" className={cn(building && "opacity-60", "border-r bg-surface")}>
+        <aside inert={building || undefined} aria-label="Editor panels" className={cn(building && "opacity-60", "border border-border bg-surface")}>
           <div className="overscroll-contain flex min-h-0" style={sideStick}>
-          <div className="flex w-16 shrink-0 flex-col items-center gap-1 self-start border-r px-1 py-2">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button type="button" onClick={() => setLeftOpen(false)} aria-label="Collapse sidebar" className="mb-1 grid size-10 place-items-center rounded-full border border-border text-muted-foreground hover:bg-muted hover:text-foreground">
-                  <PanelLeftClose className="size-4" aria-hidden />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent side="right">Collapse sidebar</TooltipContent>
-            </Tooltip>
+          <div className="flex w-16 shrink-0 flex-col gap-1 self-start border-r px-1 py-2">
           <div role="tablist" aria-label="Panels" aria-orientation="vertical" className="flex w-full flex-col gap-1">
             {railItems.map(({ id, label, title, icon: Icon }) => {
               return (
@@ -538,22 +529,22 @@ function Inner({ session }: { session: EditorSession }) {
             })}
           </div>
           </div>
-          {leftOpen && <div id="rail-panel" role="tabpanel" aria-labelledby={`rail-${tab}`} className="flex min-w-0 flex-1 flex-col">
+          <div id="rail-panel" role="tabpanel" aria-labelledby={`rail-${tab}`} className="flex min-w-0 flex-1 flex-col">
             <h2 className="px-3 pt-3 pb-2 font-display text-base font-extrabold">{current.title}</h2>
             <div key={tab} className={cn("pb-3", tab === "sections" ? "px-2" : "px-3")}>
               {panels[tab]}
             </div>
-          </div>}
+          </div>
           </div>
         </aside>
         )}
 
         <div className={cn("min-w-0", size === "narrow" && "pb-[calc(4.5rem+env(safe-area-inset-bottom))]")}>
-          <Canvas context={context} previewAs={previewAs} onKey={onKey} address={`${context.store.slug}.powerproof.app${page.slug && !isHome ? `/${page.slug}` : ""}`} className="min-h-full" />
+          <Canvas context={context} previewAs={previewAs} onKey={onKey} address={`https://powerproof.app/s/${context.store.slug}${page.slug && !isHome ? `/p/${page.slug}` : ""}`} className="min-h-full" />
         </div>
 
         {rightShown && (
-          <aside inert={building || undefined} aria-label="Settings" className={cn("border-l bg-surface", building && "opacity-60")}>
+          <aside inert={building || undefined} aria-label="Settings" className={cn("border border-border bg-surface", building && "opacity-60")}>
             <div className="overscroll-contain min-h-0 p-4" style={sideStick}>
               {panels.edit}
             </div>

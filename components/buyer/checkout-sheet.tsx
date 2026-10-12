@@ -186,9 +186,12 @@ export function CheckoutSheet({ open, onOpenChange, storeId, storeSlug, lines, o
         description: products.length === 1 ? products[0].title : `${products.length} products`,
         prefill: { name: f.name, email: f.email.trim(), contact: `${f.dial}${digits}` },
         theme: { color: "#0F3D33" },
-        modal: { escape: true, backdropclose: true, ondismiss: () => { razorpayRef.current = null; setBusy(false); setError(undefined); } },
+        // Razorpay needs to own the top layer while its payment UI is open. Its default modal
+        // focus handling conflicts with the surrounding Radix checkout sheet.
+        modal: { escape: true, backdropclose: true, handleback: true, ondismiss: () => { razorpayRef.current = null; delete document.body.dataset.paymentProviderOpen; setBusy(false); setError(undefined); } },
         handler: async (r: { razorpay_payment_id: string; razorpay_order_id: string; razorpay_signature: string }) => {
           razorpayRef.current = null;
+          delete document.body.dataset.paymentProviderOpen;
           const done = await post<{ ok: true; orderId: string; token: string } | { ok: false; message: string }>("/api/checkout/verify", { gatewayOrderId: r.razorpay_order_id, paymentId: r.razorpay_payment_id, signature: r.razorpay_signature });
           if (done.ok) router.push(`/success/${done.orderId}?t=${done.token}`);
           else {
@@ -198,7 +201,9 @@ export function CheckoutSheet({ open, onOpenChange, storeId, storeSlug, lines, o
         },
       });
       razorpayRef.current = rz;
+      document.body.dataset.paymentProviderOpen = "true";
       rz.on("payment.failed", (r) => {
+        delete document.body.dataset.paymentProviderOpen;
         setError(r.error?.description ?? "The payment didn't go through. You haven't been charged. Try again or use another method.");
         setBusy(false);
       });
@@ -211,10 +216,11 @@ export function CheckoutSheet({ open, onOpenChange, storeId, storeSlug, lines, o
   }
 
   return (
-    <Sheet open={open} onOpenChange={(o) => {
+    <Sheet modal={false} open={open} onOpenChange={(o) => {
       if (!o && razorpayRef.current) {
         razorpayRef.current.close();
         razorpayRef.current = null;
+        delete document.body.dataset.paymentProviderOpen;
         setBusy(false);
       }
       if (busy && o) return;

@@ -23,12 +23,12 @@ export function defaultPages(store: Pick<Store, "name" | "refundDays" | "support
   };
 }
 
-/** The look a new store starts with: every section on, no announcement, no social links. */
+/** The look a new store starts with: product list, FAQ and newsletter. Header/footer are global store chrome. */
 export function defaultDesign(store: Pick<Store, "name" | "tagline" | "ownerName">): StoreDesign {
   const first = store.ownerName.trim().split(" ")[0];
   return {
-    // Custom HTML starts off: there is nothing to show until a file is uploaded
-    sections: DEFAULT_SECTIONS.map((id) => ({ id, enabled: id !== "html" })),
+    // The global store header and footer are rendered separately from page sections.
+    sections: DEFAULT_SECTIONS.map((id) => ({ id, enabled: true })),
     theme: { palette: "emerald", fonts: "modern", heroStyle: "left", mode: "auto" },
     hero: { headline: store.name, subtext: store.tagline, ctaLabel: "Shop now", ctaTarget: "products", imageProductIds: [] },
     announcement: { text: "" },
