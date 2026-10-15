@@ -2147,6 +2147,7 @@ export type Database = {
           cart_reminders: boolean
           company_address: string | null
           country: string
+          first_opened_at: string | null
           created_at: string
           currency_base: string
           gstin: string | null
@@ -2161,6 +2162,7 @@ export type Database = {
           pan: string | null
           refund_days: number
           sells: string
+          setup_mode: string
           shipping: Json
           slug: string
           status: Database["public"]["Enums"]["store_status"]
@@ -2176,6 +2178,7 @@ export type Database = {
           cart_reminders?: boolean
           company_address?: string | null
           country?: string
+          first_opened_at?: string | null
           created_at?: string
           currency_base?: string
           gstin?: string | null
@@ -2190,6 +2193,7 @@ export type Database = {
           pan?: string | null
           refund_days?: number
           sells?: string
+          setup_mode?: string
           shipping?: Json
           slug: string
           status?: Database["public"]["Enums"]["store_status"]
@@ -2205,6 +2209,7 @@ export type Database = {
           cart_reminders?: boolean
           company_address?: string | null
           country?: string
+          first_opened_at?: string | null
           created_at?: string
           currency_base?: string
           gstin?: string | null
@@ -2219,6 +2224,7 @@ export type Database = {
           pan?: string | null
           refund_days?: number
           sells?: string
+          setup_mode?: string
           shipping?: Json
           slug?: string
           status?: Database["public"]["Enums"]["store_status"]

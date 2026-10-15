@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { dismissChecklist } from "@/lib/api";
 import { useGettingStarted, StepList } from "./getting-started-provider";
 import { ProgressRing } from "./parts";
+import { SetupSwitch } from "./setup-switch";
 
 /** Top of the dashboard until setup is done: progress, the next step, and the rest on demand. */
 export function GettingStartedCard({ bare = false }: { /** Inside another box (the dashboard's Getting started section): no border or margin of its own */ bare?: boolean }) {
@@ -52,6 +53,7 @@ export function GettingStartedCard({ bare = false }: { /** Inside another box (t
             <PartyPopper className="size-4" aria-hidden /> Everything required is done. The rest is optional — do it whenever.
           </p>
         )}
+        <SetupSwitch />
         <StepList checklist={checklist} />
         {checklist.complete && (
           <div className="flex justify-end">

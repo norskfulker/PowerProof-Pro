@@ -68,7 +68,10 @@ function useAutosave(pageId: string, initialSite: SiteDraft | undefined) {
   return flush;
 }
 
-function Studio({ session }: { session: EditorSession }) {
+/** What AI Studio asks for on its own right after the store was set up with AI */
+const FIRST_BUILD = "Build my store's home page from my store: its name, tagline, products, About story and FAQ. Make it clear what I sell and who it's for.";
+
+function Studio({ session, autostart }: { session: EditorSession; autostart?: boolean }) {
   const { page, pages, context } = session;
   const router = useRouter();
   const store = useEditorStore();
@@ -102,12 +105,12 @@ function Studio({ session }: { session: EditorSession }) {
   const out = !!allowance && (left === 0 || (allowance.freeLeft !== null && allowance.freeLeft <= 0));
   const blocked = !allowance?.connected || out;
 
-  async function send(want = text.trim()) {
+  async function send(want = text.trim(), as: Mode = mode) {
     if (want.length < 3 || running || blocked) return;
     if (reviewing) await useAiBuild.getState().keep(flush);
     setText("");
     useAiBuild.getState().pushUser(want);
-    const build = mode === "build";
+    const build = as === "build";
     await useAiBuild.getState().start(
       store,
       {
@@ -125,6 +128,15 @@ function Studio({ session }: { session: EditorSession }) {
     );
     setMode("add");
   }
+
+  // Just set up with AI: build the home page once, as soon as the allowance says it may
+  const started = useRef(false);
+  useEffect(() => {
+    if (!autostart || started.current || !allowance || blocked || messages.length > 0 || phase.kind !== "idle" || !isHome) return;
+    started.current = true;
+    router.replace("/store/current/design/studio");
+    void send(FIRST_BUILD, "build");
+  });
 
   const previewHref = `/preview/${page.id}`;
 
@@ -242,10 +254,10 @@ function Studio({ session }: { session: EditorSession }) {
 }
 
 /** AI Studio: chat on one side, the store being built on the other. Saves as a draft, like the editor. */
-export function AiStudio({ session }: { session: EditorSession }) {
+export function AiStudio({ session, autostart }: { session: EditorSession; /** Build the home page straight away (after AI setup) */ autostart?: boolean }) {
   return (
     <EditorProvider initial={session.page.draft} site={session.site}>
-      <Studio session={session} />
+      <Studio session={session} autostart={autostart} />
     </EditorProvider>
   );
 }

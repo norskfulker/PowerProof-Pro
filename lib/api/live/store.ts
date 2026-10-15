@@ -61,7 +61,7 @@ export async function suggestSlug(name: string): Promise<string> {
 }
 
 /** Creates the creator's store: the first onboarding step. Retries once if the link was taken a moment ago. */
-export async function createStore(input: { name: string; brandColor: string; slug: string; country: string }): Promise<{ slug: string }> {
+export async function createStore(input: { name: string; brandColor: string; slug: string; country: string; setupMode?: "ai" | "manual"; tagline?: string; sells?: "digital" | "physical" }): Promise<{ id: string; slug: string }> {
   const nameError = storeNameError(input.name);
   if (nameError) throw new ApiError(nameError, "validation");
   const color = normalizeHex(input.brandColor);
@@ -70,13 +70,29 @@ export async function createStore(input: { name: string; brandColor: string; slu
   const country = countryByCode(input.country);
   const name = cleanStoreName(input.name);
   let slug = input.slug;
+  let id = "";
   for (let attempt = 0; ; attempt++) {
     const r = await sb()
       .from("stores")
-      .insert({ owner_id: user.id, name, slug, country: country.code, currency_base: country.currency, brand_color: color, tagline: `Digital downloads by ${user.name || name}.`, support_email: user.email || null })
+      .insert({
+        owner_id: user.id,
+        name,
+        slug,
+        country: country.code,
+        currency_base: country.currency,
+        brand_color: color,
+        tagline: input.tagline?.trim().slice(0, 140) || `Digital downloads by ${user.name || name}.`,
+        support_email: user.email || null,
+        // Only sent when asked, so creating a store by hand works before migration 048 too
+        ...(input.setupMode ? { setup_mode: input.setupMode } : {}),
+        ...(input.sells === "physical" ? { sells: "physical" } : {}),
+      })
       .select("id")
       .single();
-    if (!r.error) break;
+    if (!r.error) {
+      id = r.data.id;
+      break;
+    }
     if (r.error.code === "23505" && attempt === 0) {
       slug = await suggestSlug(name);
       continue;
@@ -85,7 +101,25 @@ export async function createStore(input: { name: string; brandColor: string; slu
   }
   await syncSession();
   writeProgress({ storeConfirmed: true });
-  return { slug };
+  return { id, slug };
+}
+
+/** How the store is being set up, and whether that can still change (only until it first opens) */
+export async function getSetupMode(storeId?: string): Promise<{ mode: "ai" | "manual"; locked: boolean }> {
+  const id = storeId ?? (await activeStoreId());
+  const r = await sb().from("stores").select("setup_mode, first_opened_at").eq("id", id).single();
+  if (r.error) fail(r.error, { notFound: "Store" });
+  return { mode: r.data.setup_mode === "ai" ? "ai" : "manual", locked: Boolean(r.data.first_opened_at) };
+}
+
+/** Switches between setting the store up with AI and by hand. The database refuses once the store has opened. */
+export async function setSetupMode(mode: "ai" | "manual", storeId?: string): Promise<void> {
+  const id = storeId ?? (await activeStoreId());
+  const r = await sb().from("stores").update({ setup_mode: mode }).eq("id", id).select("id").single();
+  if (r.error) {
+    if (/setup_mode_locked/.test(r.error.message)) throw new ApiError("Your store has opened, so its setup can't be switched any more.", "validation");
+    fail(r.error, { notFound: "Store" });
+  }
 }
 
 export async function updateStore(patch: Partial<Store>): Promise<Store> {
