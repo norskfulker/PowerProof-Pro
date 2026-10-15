@@ -15,6 +15,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { Skeleton } from "@/components/ui/skeleton";
 import { useApi } from "@/hooks/use-api";
 import { createVisualPage, deleteVisualPage, duplicateVisualPage, getVisualPages, type VisualPageSummary } from "@/lib/api";
+import { useSetupMode } from "@/components/store-admin/use-setup-mode";
 import { formatDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
@@ -34,6 +35,8 @@ export function PagesPanel({ slug, currentId, storeLive, beforeLeave }: { slug: 
   const [adding, setAdding] = useState(false);
   const [busy, setBusy] = useState<string>();
   const [toDelete, setToDelete] = useState<VisualPageSummary>();
+  // A store built with AI opens its ready-made pages with the AI brief
+  const setup = useSetupMode();
 
   async function open(id: string) {
     if (id === currentId) return;
@@ -46,7 +49,7 @@ export function PagesPanel({ slug, currentId, storeLive, beforeLeave }: { slug: 
     try {
       const p = await createVisualPage({ templateId: template, title });
       await beforeLeave();
-      router.push(editPageHref(p.id));
+      router.push(editPageHref(p.id, setup.mode === "ai"));
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Couldn't create the page.");
       setBusy(undefined);

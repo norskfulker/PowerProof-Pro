@@ -12,6 +12,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Switch } from "@/components/ui/switch";
 import { createVisualPage, getPageTemplates } from "@/lib/api";
 import { TemplateThumb } from "@/components/page-builder/template-thumb";
+import { useSetupMode } from "./use-setup-mode";
 
 export const editPageHref = (id: string, ai?: boolean) => `/store/current/design/pages/${id}/edit${ai ? "?ai=1" : ""}`;
 
@@ -28,8 +29,9 @@ export const PAGE_STARTERS = [
 ];
 
 /**
- * Makes a page and opens it in the store editor. New pages open with the AI brief by default, so the
- * creator only describes what they want. `beforeLeave` saves the page being edited first.
+ * Makes a page and opens it in the store editor, built with AI (the AI brief opens) or by hand.
+ * It starts on the store's own way; until the store first opens, the way picked here becomes the
+ * store's way. `beforeLeave` saves the page being edited first.
  */
 export function AddPageDialog({ open, onOpenChange, beforeLeave }: { open: boolean; onOpenChange: (o: boolean) => void; beforeLeave?: () => Promise<void> }) {
   const router = useRouter();
@@ -38,13 +40,16 @@ export function AddPageDialog({ open, onOpenChange, beforeLeave }: { open: boole
   const [title, setTitle] = useState("");
   const [titleError, setTitleError] = useState<string>();
   const [busy, setBusy] = useState(false);
-  const [withAi, setWithAi] = useState(true);
+  const setup = useSetupMode();
+  const [picked, setPicked] = useState<boolean>();
+  const withAi = picked ?? setup.mode !== "manual";
 
   async function create() {
     if (title.trim().length < 2) return setTitleError("Give the page a name.");
     setBusy(true);
     try {
       const p = await createVisualPage({ templateId: template, title });
+      await setup.remember(withAi ? "ai" : "manual");
       await beforeLeave?.();
       router.push(editPageHref(p.id, withAi));
       onOpenChange(false);
@@ -92,9 +97,9 @@ export function AddPageDialog({ open, onOpenChange, beforeLeave }: { open: boole
         <label className="flex min-h-11 cursor-pointer items-start justify-between gap-4 rounded-control border bg-primary-soft/50 p-3 text-sm">
           <span className="flex flex-col">
             <span className="flex items-center gap-1.5 font-semibold"><Sparkles className="size-4 text-primary" aria-hidden /> Build it with AI</span>
-            <span className="text-xs text-muted-foreground">Describe the page in a few lines and AI writes every section of this type from your products. You review it before anything goes live.</span>
+            <span className="text-xs text-muted-foreground">Describe the page in a few lines and AI writes every section of this type from your products. You review it before anything goes live.{!setup.open && setup.ready ? " Until your store opens, this also sets how you build your store." : ""}</span>
           </span>
-          <Switch checked={withAi} onCheckedChange={setWithAi} aria-label="Build it with AI" />
+          <Switch checked={withAi} onCheckedChange={setPicked} aria-label="Build it with AI" />
         </label>
         <DialogFooter>
           <Button variant="secondary" onClick={() => onOpenChange(false)} disabled={busy}>

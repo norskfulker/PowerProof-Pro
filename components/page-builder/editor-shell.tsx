@@ -20,6 +20,7 @@ import type { AboutContent, FaqItem } from "@/lib/types";
 import { HOME_TEMPLATE } from "@/lib/pages/templates";
 import { cn } from "@/lib/utils";
 import { AddPicker } from "./add-block-menu";
+import { BuildWaySwitch } from "@/components/store-admin/build-way-switch";
 import { AiBuilder } from "./ai-builder";
 import { Canvas, CanvasIconPicker } from "./canvas";
 import { ContentPanel } from "./content-panel";
@@ -458,6 +459,7 @@ function Inner({ session }: { session: EditorSession }) {
               <SelectItem value="manage">Manage pages…</SelectItem>
             </SelectContent>
           </Select>
+          <BuildWaySwitch current="manual" beforeLeave={flush} />
           {isHome && !storeLive && <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-warning-soft px-2.5 py-1 text-xs font-semibold whitespace-nowrap text-warning-ink"><EyeOff className="size-3.5" aria-hidden /> Hidden from buyers</span>}
           <SaveIndicator state={save === "saved" && rev !== savedRev && !building ? "saving" : save} at={savedAt} onRetry={flush} />
         </div>

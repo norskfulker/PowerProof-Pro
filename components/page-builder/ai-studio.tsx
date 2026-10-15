@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowUp, Brush, Check, Eye, Loader2, RotateCcw, Sparkles, Square, Undo2, X } from "lucide-react";
+import { ArrowUp, Brush, Check, Eye, Loader2, RotateCcw, Square, Undo2, X } from "lucide-react";
 import { toast } from "sonner";
 import { usePlan } from "@/components/plan/plan-context";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,7 @@ import { saveEditorDraft, type EditorSession } from "@/lib/api";
 import { PREVIEW_CHANNEL, type SiteDraft } from "@/lib/pages/editor-store";
 import { HOME_TEMPLATE } from "@/lib/pages/templates";
 import { cn } from "@/lib/utils";
+import { BuildWaySwitch } from "@/components/store-admin/build-way-switch";
 import { aiTypeOf } from "./ai-builder";
 import { allowanceText, useAiBuild } from "./ai-build-store";
 import { preferredLanguage } from "./ai-chat";
@@ -68,7 +69,10 @@ function useAutosave(pageId: string, initialSite: SiteDraft | undefined) {
   return flush;
 }
 
-function Studio({ session }: { session: EditorSession }) {
+/** What AI Studio asks for on its own right after the store was set up with AI */
+const FIRST_BUILD = "Build my store's home page from my store: its name, tagline, products, About story and FAQ. Make it clear what I sell and who it's for.";
+
+function Studio({ session, autostart }: { session: EditorSession; autostart?: boolean }) {
   const { page, pages, context } = session;
   const router = useRouter();
   const store = useEditorStore();
@@ -102,12 +106,12 @@ function Studio({ session }: { session: EditorSession }) {
   const out = !!allowance && (left === 0 || (allowance.freeLeft !== null && allowance.freeLeft <= 0));
   const blocked = !allowance?.connected || out;
 
-  async function send(want = text.trim()) {
+  async function send(want = text.trim(), as: Mode = mode) {
     if (want.length < 3 || running || blocked) return;
     if (reviewing) await useAiBuild.getState().keep(flush);
     setText("");
     useAiBuild.getState().pushUser(want);
-    const build = mode === "build";
+    const build = as === "build";
     await useAiBuild.getState().start(
       store,
       {
@@ -126,13 +130,22 @@ function Studio({ session }: { session: EditorSession }) {
     setMode("add");
   }
 
+  // Just set up with AI: build the home page once, as soon as the allowance says it may
+  const started = useRef(false);
+  useEffect(() => {
+    if (!autostart || started.current || !allowance || blocked || messages.length > 0 || phase.kind !== "idle" || !isHome) return;
+    started.current = true;
+    router.replace("/store/current/design/studio");
+    void send(FIRST_BUILD, "build");
+  });
+
   const previewHref = `/preview/${page.id}`;
 
   return (
     <div className="-mx-3 flex min-h-[calc(100dvh-4rem)] flex-col border-t bg-background md:-mx-0 md:min-h-dvh md:border-t-0">
       {/* Bar */}
       <header className="sticky top-16 z-20 flex flex-wrap items-center gap-2 border-b bg-surface/90 px-3 py-2 backdrop-blur-md md:top-0 md:px-4">
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-primary px-2.5 py-1 text-xs font-semibold text-primary-foreground"><Sparkles className="size-3.5" aria-hidden /> AI Studio</span>
+        <BuildWaySwitch current="ai" beforeLeave={flush} />
         <Select value={page.id} onValueChange={async (id) => { await flush(); router.push(`/store/current/design/studio?page=${id}`); }}>
           <SelectTrigger size="sm" className="w-auto max-w-56 border-transparent bg-transparent font-semibold hover:border-input" aria-label="Page"><SelectValue /></SelectTrigger>
           <SelectContent>
@@ -242,10 +255,10 @@ function Studio({ session }: { session: EditorSession }) {
 }
 
 /** AI Studio: chat on one side, the store being built on the other. Saves as a draft, like the editor. */
-export function AiStudio({ session }: { session: EditorSession }) {
+export function AiStudio({ session, autostart }: { session: EditorSession; /** Build the home page straight away (after AI setup) */ autostart?: boolean }) {
   return (
     <EditorProvider initial={session.page.draft} site={session.site}>
-      <Studio session={session} />
+      <Studio session={session} autostart={autostart} />
     </EditorProvider>
   );
 }

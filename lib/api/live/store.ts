@@ -88,6 +88,24 @@ export async function createStore(input: { name: string; brandColor: string; slu
   return { slug };
 }
 
+/** How the store is being set up, and whether that can still change (only until it first opens) */
+export async function getSetupMode(storeId?: string): Promise<{ mode: "ai" | "manual"; locked: boolean }> {
+  const id = storeId ?? (await activeStoreId());
+  const r = await sb().from("stores").select("setup_mode, first_opened_at").eq("id", id).single();
+  if (r.error) fail(r.error, { notFound: "Store" });
+  return { mode: r.data.setup_mode === "ai" ? "ai" : "manual", locked: Boolean(r.data.first_opened_at) };
+}
+
+/** Switches between setting the store up with AI and by hand. The database refuses once the store has opened. */
+export async function setSetupMode(mode: "ai" | "manual", storeId?: string): Promise<void> {
+  const id = storeId ?? (await activeStoreId());
+  const r = await sb().from("stores").update({ setup_mode: mode }).eq("id", id).select("id").single();
+  if (r.error) {
+    if (/setup_mode_locked/.test(r.error.message)) throw new ApiError("Your store has opened, so its setup can't be switched any more.", "validation");
+    fail(r.error, { notFound: "Store" });
+  }
+}
+
 export async function updateStore(patch: Partial<Store>): Promise<Store> {
   const id = await activeStoreId();
   const row: TablesUpdate<"stores"> = {};
