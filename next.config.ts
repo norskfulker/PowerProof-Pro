@@ -1,4 +1,9 @@
 import type { NextConfig } from "next";
+import { loadWranglerVars } from "./lib/wrangler-vars";
+
+// The plain settings in wrangler.jsonc "vars" reach the build too, so NEXT_PUBLIC_* values are baked
+// in without copying them into the dashboard's build variables (.env.local still wins locally)
+loadWranglerVars();
 
 /**
  * Routes follow the menu (Part 7C): /catalog, /store/[id], /sales, /tools, /settings.

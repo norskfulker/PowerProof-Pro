@@ -14,7 +14,7 @@
  *   2. <target> exists as a proxied, originless record (AAAA 100::) — the Worker is the origin
  *   3. <target> is the zone's fallback origin, and reports its status
  *   4. the zone's own name has a proxied record, so the `*\/*` Worker route (wrangler.jsonc) sees it
- * and prints the settings to add to the Worker.
+ * and prints the settings to add (wrangler.jsonc vars, and the Worker's secrets).
  */
 const token = process.env.CF_SETUP_TOKEN;
 const zoneId = process.env.CLOUDFLARE_ZONE_ID;
@@ -75,9 +75,10 @@ if (apex.some((r) => r.proxied)) ok(`${zone.name} has a proxied record (the Work
 else todo(`${zone.name} has no proxied record. Add the Worker as a custom domain for ${zone.name} (Workers › powerproof-pro › Settings › Domains & Routes), or a proxied AAAA 100:: record.`);
 
 console.log(`
-Add these to the Worker (dashboard › Workers › powerproof-pro › Settings › Variables and Secrets):
-  CLOUDFLARE_ZONE_ID       ${zoneId}
-  CLOUDFLARE_CNAME_TARGET  ${target}
-  CLOUDFLARE_API_TOKEN     (secret) a token with "SSL and Certificates: Edit" on ${zone.name}
-  CRON_SECRET              (secret) any long random string, if it isn't set yet
-Then deploy (npm run deploy) so the */* route in wrangler.jsonc is attached.`);
+Plain settings go in wrangler.jsonc "vars" (committed; applied on every deploy):
+  "CLOUDFLARE_ZONE_ID": "${zoneId}",
+  "CLOUDFLARE_CNAME_TARGET": "${target}"
+Secrets go in the dashboard (Workers › powerproof-pro › Settings › Variables and Secrets, type Secret):
+  CLOUDFLARE_API_TOKEN  a token with "SSL and Certificates: Edit" on ${zone.name}
+  CRON_SECRET           any long random string, if it isn't set yet
+Then deploy so the */* route in wrangler.jsonc is attached.`);

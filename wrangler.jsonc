@@ -2,15 +2,18 @@
  * PowerProof on Cloudflare Workers, built with the OpenNext adapter (open-next.config.ts).
  * `npm run deploy` builds and deploys; `npm run preview` runs the built Worker locally.
  *
- * Secrets (dashboard Secrets tab, or one at a time with `npx wrangler secret put NAME`):
- *   SUPABASE_SERVICE_ROLE_KEY, RAZORPAY_*, RESEND_API_KEY, GEMINI_API_KEY, CRON_SECRET,
- *   CLOUDFLARE_API_TOKEN (custom domains: "SSL and Certificates: Edit" on the zone)
- * Plain settings (dashboard Variables tab): MAIL_FROM. The Cloudflare SaaS settings below are
- * only for custom domains — leave them unset until that setup; the app treats missing as
- * "custom domains off" (the Domain page says so instead of breaking).
- * Keep them OUT of this file: every deploy uploads the vars written here, so an entry here
- * would overwrite the dashboard value (even with ""). "keep_vars" below keeps the dashboard's.
- * NEXT_PUBLIC_* values are baked in at build time, so they come from the dashboard at build time.
+ * Settings live in two places only:
+ *   - "vars" below: every plain (non-secret) setting. Cloudflare applies them on each deploy and
+ *     next.config.ts loads them into the build too (lib/wrangler-vars.ts), so NEXT_PUBLIC_* values
+ *     are baked in without dashboard build variables. Change a value here, commit, push.
+ *     Everything here is public (the repo is public): never put a key or password in "vars".
+ *   - Secrets (dashboard › Settings › Variables and Secrets, type Secret, or
+ *     `npx wrangler secret put NAME`): set once, kept across every deploy.
+ *       SUPABASE_SERVICE_ROLE_KEY, RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET, RAZORPAY_WEBHOOK_SECRET,
+ *       RAZORPAY_PRO_PLAN_ID, RESEND_API_KEY, GEMINI_API_KEY, SEND_EMAIL_HOOK_SECRET, CRON_SECRET,
+ *       CLOUDFLARE_API_TOKEN (custom domains: "SSL and Certificates: Edit" on the zone),
+ *       and GST_LOOKUP_KEY / INTEGRATIONS_KEY when used
+ * Local dev reads .env.local, whose values win over "vars".
  */
 {
   "$schema": "node_modules/wrangler/config-schema.json",
@@ -25,8 +28,18 @@
   // Every 10 minutes: re-check custom domains waiting for DNS (app/api/cron/domains) and remind
   // buyers who left checkout (app/api/cron/abandoned)
   "triggers": { "crons": ["*/10 * * * *"] },
-  // No "vars" here on purpose, and keep_vars so a deploy (from the CLI or a Git build) leaves the
-  // dashboard's plain-text Variables alone; without it every deploy deletes them (secrets survive)
+  // Plain settings (see the top of this file). The anon key is public by design: RLS guards the data
+  "vars": {
+    "NEXT_PUBLIC_SITE_URL": "https://powerproof.app",
+    "NEXT_PUBLIC_SUPABASE_URL": "https://grkimwkfyfzlivjgtrfg.supabase.co",
+    "NEXT_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdya2ltd2tmeWZ6bGl2amd0cmZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEyNzcyMDMsImV4cCI6MjEwNjg1MzIwM30.81Lfq70O7nF8--VHGqtvsw11aGDsOaTCgoz0iiFH6dc",
+    "MAIL_FROM": "amaze@powerproof.app",
+    "GEMINI_MODEL": "gemini-3.8-flash",
+    "GST_LOOKUP_KEY_HEADER": "x-api-key",
+    "CLOUDFLARE_ZONE_ID": "e0c049246ce7c7c86c98169c7aab7482",
+    "CLOUDFLARE_CNAME_TARGET": "customers.powerproof.app"
+  },
+  // A plain Variable added in the dashboard isn't deleted by the next deploy (one here wins over it)
   "keep_vars": true,
   // Creators' domains reach the app through this route, which catches every hostname on the zone
   // (Cloudflare for SaaS custom hostnames included). One-time zone setup: scripts/setup-custom-domains.mjs
