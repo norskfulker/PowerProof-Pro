@@ -40,8 +40,10 @@
     "CLOUDFLARE_CNAME_TARGET": "customers.powerproof.app"
   },
   // A plain Variable added in the dashboard isn't deleted by the next deploy (one here wins over it)
-  "keep_vars": true,
-  // Creators' domains reach the app through this route, which catches every hostname on the zone
-  // (Cloudflare for SaaS custom hostnames included). One-time zone setup: scripts/setup-custom-domains.mjs
-  "routes": [{ "pattern": "*/*", "zone_name": "powerproof.app" }]
+  "keep_vars": true
+  // No "routes" here on purpose. Creators' domains reach the app through a "*/*" route on the
+  // powerproof.app zone, added once in the dashboard (Workers › powerproof-pro › Settings ›
+  // Domains & Routes › Add › Route). A deploy only replaces routes when this file lists some, and
+  // the Git build's token isn't allowed to set zone routes, so listing it here failed every deploy.
+  // One-time zone setup for custom domains: scripts/setup-custom-domains.mjs
 }

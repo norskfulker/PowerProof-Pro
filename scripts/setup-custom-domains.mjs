@@ -13,7 +13,7 @@
  *   1. Cloudflare for SaaS answers on the zone (custom hostnames can be listed)
  *   2. <target> exists as a proxied, originless record (AAAA 100::) — the Worker is the origin
  *   3. <target> is the zone's fallback origin, and reports its status
- *   4. the zone's own name has a proxied record, so the `*\/*` Worker route (wrangler.jsonc) sees it
+ *   4. the zone's own name has a proxied record, so the `*\/*` Worker route (added in the dashboard) sees it
  * and prints the settings to add (wrangler.jsonc vars, and the Worker's secrets).
  */
 const token = process.env.CF_SETUP_TOKEN;
@@ -81,4 +81,4 @@ Plain settings go in wrangler.jsonc "vars" (committed; applied on every deploy):
 Secrets go in the dashboard (Workers › powerproof-pro › Settings › Variables and Secrets, type Secret):
   CLOUDFLARE_API_TOKEN  a token with "SSL and Certificates: Edit" on ${zone.name}
   CRON_SECRET           any long random string, if it isn't set yet
-Then deploy so the */* route in wrangler.jsonc is attached.`);
+Then add the Worker route once: Workers › powerproof-pro › Settings › Domains & Routes › Add › Route,\n  route */* on zone ${zone.name}, failure mode Fail closed.`);
