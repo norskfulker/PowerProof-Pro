@@ -1,12 +1,17 @@
-import { OnboardingFlow } from "@/components/onboarding/onboarding-flow";
-import { requireSetupOpen } from "@/lib/supabase/creator-gate";
+"use client";
 
-/**
- * Setting up a store: with AI or by hand. Open to creators without a store, and to an owner whose
- * only store hasn't opened yet (so they can switch). ?mode=ai or ?mode=manual starts on that setup.
- */
-export default async function OnboardingPage({ searchParams }: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
-  const existing = await requireSetupOpen();
-  const mode = (await searchParams).mode;
-  return <OnboardingFlow existing={existing} initial={mode === "ai" || mode === "manual" ? mode : undefined} />;
+import { useRouter } from "next/navigation";
+import { SetupJourney } from "@/components/onboarding/setup-journey";
+import { StepStore } from "@/components/onboarding/step-store";
+
+/** The only onboarding step: a name and a country. Then straight to the first product. */
+export default function OnboardingPage() {
+  const router = useRouter();
+  // The (app) layout checks on the server that the store now exists
+  return (
+    <div className="flex flex-col gap-6">
+      <SetupJourney current={0} />
+      <StepStore onDone={() => router.replace("/catalog/products/new")} />
+    </div>
+  );
 }

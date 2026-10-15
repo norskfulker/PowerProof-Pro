@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Check, Info, Loader2, Plus, RotateCcw, Trash2, X } from "lucide-react";
+import { Check, Info, Loader2, Plus, RotateCcw, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { FormError } from "@/components/auth/auth-card";
 import { usePlan } from "@/components/plan/plan-context";
@@ -12,15 +12,13 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { createStoreFromDraft, type AiStoreDraft, type AiStoreProduct } from "@/lib/api";
-import { currencyFor } from "@/lib/countries";
+import { buildStoreFromDraft, type AiStoreDraft, type AiStoreProduct } from "@/lib/api";
 import { formatMoney, money } from "@/lib/money";
 import { SITE_URL } from "@/lib/format";
 import { PALETTES } from "@/lib/palettes";
 import { cleanStoreName, STORE_NAME_MAX, storeNameError } from "@/lib/slug";
-import type { SetupStore } from "@/lib/supabase/creator-gate";
+import type { Store } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { useStoreLink } from "./use-store-link";
 
 type Row = AiStoreProduct & { include: boolean; key: number };
 
@@ -31,22 +29,20 @@ type Row = AiStoreProduct & { include: boolean; key: number };
 export function AiReview({
   draft,
   warnings,
-  country,
   link,
-  existing,
+  store,
   onRedo,
 }: {
   draft: AiStoreDraft;
   warnings: string[];
-  country: string;
   link?: string;
-  existing: SetupStore | null;
+  store: Store;
   onRedo: () => void;
 }) {
   const router = useRouter();
   const plan = usePlan();
-  const currency = currencyFor(country);
-  const [name, setName] = useState(existing?.name ?? draft.names[0]);
+  const currency = store.currency;
+  const [name, setName] = useState(store.name);
   const [tagline, setTagline] = useState(draft.tagline);
   const [palette, setPalette] = useState(draft.palette);
   const [sells, setSells] = useState(draft.sells);
@@ -55,27 +51,24 @@ export function AiReview({
   const [rows, setRows] = useState<Row[]>(() => draft.products.map((p, key) => ({ ...p, include: true, key })));
   const [error, setError] = useState<string>();
   const [step, setStep] = useState<string>();
-  const link_ = useStoreLink(name, !existing);
 
   const included = rows.filter((r) => r.include);
   const missingPrice = included.filter((r) => r.price === undefined);
   const suggested = rows.filter((r) => r.include && r.price === undefined && r.suggestedPrice);
   const nameError = storeNameError(cleanStoreName(name));
-  const ready = !nameError && (existing ? true : link_.ready) && !step;
+  const ready = !nameError && !step;
   const patch = (key: number, p: Partial<Row>) => setRows((rs) => rs.map((r) => (r.key === key ? { ...r, ...p } : r)));
 
   async function create() {
     setError(undefined);
     if (nameError) return setError(nameError);
     if (missingPrice.length) return setError(`Add a price for ${missingPrice.length === 1 ? `"${missingPrice[0].title}"` : `${missingPrice.length} products`}, or untick ${missingPrice.length === 1 ? "it" : "them"}.`);
-    if (!existing && !link_.current?.slug) return;
     setStep("Creating your store");
     try {
-      const r = await createStoreFromDraft(
+      const r = await buildStoreFromDraft(
         {
+          storeId: store.id,
           name: cleanStoreName(name),
-          slug: existing?.slug ?? link_.current!.slug!,
-          country,
           tagline,
           palette,
           sells,
@@ -83,7 +76,6 @@ export function AiReview({
           faq,
           products: included.map((p) => ({ title: p.title, description: p.description, kind: p.kind, collection: p.collection, price: p.price!, sourceUrl: p.sourceUrl })),
           link,
-          existingStoreId: existing?.id,
         },
         setStep
       );
@@ -101,8 +93,8 @@ export function AiReview({
     <section aria-labelledby="ai-review-title" className="rounded-dialog border bg-surface">
       <div className="flex flex-col gap-8 p-6 sm:p-8">
         <div className="flex flex-col gap-2">
-          <h1 id="ai-review-title" className="text-[1.75rem]">Check your store</h1>
-          <p className="text-muted-foreground">AI drafted this from what you told it. Change anything, then create your store. Nothing is saved until you do.</p>
+          <h2 id="ai-review-title" className="font-display text-2xl">Check your store</h2>
+          <p className="text-muted-foreground">AI drafted this from what you told it. Change anything, then build your store. Nothing is saved until you do.</p>
         </div>
 
         {(warnings.length > 0 || draft.notes.length > 0) && (
@@ -116,9 +108,9 @@ export function AiReview({
         {/* Name and link */}
         <fieldset className="flex flex-col gap-3">
           <legend className="mb-3 text-lg font-semibold">Name</legend>
-          {!existing && draft.names.length > 1 && (
-            <div role="radiogroup" aria-label="Names AI suggested" className="flex flex-wrap gap-2">
-              {draft.names.map((n) => (
+          {draft.names.length > 0 && (
+            <div role="radiogroup" aria-label="Your name, or one AI suggested" className="flex flex-wrap gap-2">
+              {[...new Set([store.name, ...draft.names])].map((n) => (
                 <button key={n} type="button" role="radio" aria-checked={name === n} onClick={() => setName(n)} className={cn("inline-flex min-h-9 items-center gap-1.5 rounded-full border px-3 text-sm pointer-coarse:min-h-11", name === n ? "border-primary bg-primary-soft/50 font-medium" : "hover:border-primary")}>
                   {name === n && <Check className="size-3.5" aria-hidden />} {n}
                 </button>
@@ -128,26 +120,7 @@ export function AiReview({
           <Label htmlFor="ai-name" className="sr-only">Store name</Label>
           <Input id="ai-name" maxLength={STORE_NAME_MAX + 10} value={name} onChange={(e) => setName(e.target.value)} aria-invalid={!!nameError} />
           {nameError && <p className="text-sm text-danger">{nameError}</p>}
-          <div aria-live="polite" className="rounded-control border bg-surface-sunken px-3 py-2">
-            <p className="text-xs text-muted-foreground">Your store link</p>
-            <p className="flex min-h-6 items-center gap-1.5 font-mono text-[0.8125rem] break-all">
-              {existing ? (
-                <span>{SITE_URL}/{existing.slug}</span>
-              ) : link_.current?.slug ? (
-                <>
-                  <span className="min-w-0">{SITE_URL}/{link_.current.slug}</span>
-                  {link_.current.available === undefined ? <Loader2 className="size-3.5 shrink-0 animate-spin" aria-label="Checking" /> : link_.current.available ? <Check className="size-3.5 shrink-0 text-success" aria-label="Available" /> : <X className="size-3.5 shrink-0 text-danger" aria-label="Taken" />}
-                </>
-              ) : link_.current?.failed ? (
-                <span className="text-danger">We couldn&apos;t make a link just now. Change the name slightly or try again.</span>
-              ) : link_.waiting ? (
-                <Loader2 className="size-3.5 animate-spin text-muted-foreground" aria-label="Making your link" />
-              ) : (
-                <span className="text-muted-foreground">{SITE_URL}/…</span>
-              )}
-            </p>
-            {existing && <p className="mt-1 text-xs text-muted-foreground">Your link stays the same.</p>}
-          </div>
+          <p className="font-mono text-[0.8125rem] text-muted-foreground break-all">{SITE_URL}/{store.slug} <span className="font-sans">· your link stays the same</span></p>
           <div className="flex flex-col gap-2">
             <Label htmlFor="ai-tagline">Tagline</Label>
             <Input id="ai-tagline" maxLength={140} value={tagline} onChange={(e) => setTagline(e.target.value)} />
@@ -250,7 +223,7 @@ export function AiReview({
         {step && <p className="text-sm text-muted-foreground sm:ml-auto">{step}…</p>}
         <Button type="button" className={step ? "" : "sm:ml-auto"} onClick={() => void create()} disabled={!ready}>
           {step && <Loader2 className="animate-spin" aria-hidden />}
-          {existing ? "Update my store" : "Create my store"}
+          Build my store
         </Button>
       </div>
     </section>

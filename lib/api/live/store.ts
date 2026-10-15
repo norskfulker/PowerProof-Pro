@@ -61,7 +61,7 @@ export async function suggestSlug(name: string): Promise<string> {
 }
 
 /** Creates the creator's store: the first onboarding step. Retries once if the link was taken a moment ago. */
-export async function createStore(input: { name: string; brandColor: string; slug: string; country: string; setupMode?: "ai" | "manual"; tagline?: string; sells?: "digital" | "physical" }): Promise<{ id: string; slug: string }> {
+export async function createStore(input: { name: string; brandColor: string; slug: string; country: string }): Promise<{ slug: string }> {
   const nameError = storeNameError(input.name);
   if (nameError) throw new ApiError(nameError, "validation");
   const color = normalizeHex(input.brandColor);
@@ -70,29 +70,13 @@ export async function createStore(input: { name: string; brandColor: string; slu
   const country = countryByCode(input.country);
   const name = cleanStoreName(input.name);
   let slug = input.slug;
-  let id = "";
   for (let attempt = 0; ; attempt++) {
     const r = await sb()
       .from("stores")
-      .insert({
-        owner_id: user.id,
-        name,
-        slug,
-        country: country.code,
-        currency_base: country.currency,
-        brand_color: color,
-        tagline: input.tagline?.trim().slice(0, 140) || `Digital downloads by ${user.name || name}.`,
-        support_email: user.email || null,
-        // Only sent when asked, so creating a store by hand works before migration 048 too
-        ...(input.setupMode ? { setup_mode: input.setupMode } : {}),
-        ...(input.sells === "physical" ? { sells: "physical" } : {}),
-      })
+      .insert({ owner_id: user.id, name, slug, country: country.code, currency_base: country.currency, brand_color: color, tagline: `Digital downloads by ${user.name || name}.`, support_email: user.email || null })
       .select("id")
       .single();
-    if (!r.error) {
-      id = r.data.id;
-      break;
-    }
+    if (!r.error) break;
     if (r.error.code === "23505" && attempt === 0) {
       slug = await suggestSlug(name);
       continue;
@@ -101,7 +85,7 @@ export async function createStore(input: { name: string; brandColor: string; slu
   }
   await syncSession();
   writeProgress({ storeConfirmed: true });
-  return { id, slug };
+  return { slug };
 }
 
 /** How the store is being set up, and whether that can still change (only until it first opens) */

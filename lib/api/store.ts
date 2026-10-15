@@ -12,7 +12,7 @@ export const updateStore = (patch: Partial<Store>): Promise<Store> => liveChange
 /** Debounced in the UI. */
 export const checkSlug = (slug: string): Promise<{ available: boolean }> => live.checkSlug(slug);
 export const suggestSlug = (name: string): Promise<string> => live.suggestSlug(name);
-export const createStore = (input: Parameters<typeof live.createStore>[0]): Promise<{ id: string; slug: string }> => live.createStore(input);
+export const createStore = (input: { name: string; brandColor: string; slug: string; country: string }): Promise<{ slug: string }> => live.createStore(input);
 export const getSetupMode = (storeId?: string): Promise<{ mode: "ai" | "manual"; locked: boolean }> => live.getSetupMode(storeId);
 export const setSetupMode = (mode: "ai" | "manual", storeId?: string): Promise<void> => liveChange(live.setSetupMode(mode, storeId));
 export const getCompany = (): Promise<Company> => live.getCompany();

@@ -1,4 +1,3 @@
-import { currencyFor } from "../countries";
 import { money } from "../money";
 import { paletteByName, type AiStoreDraft, type AiStoreRequest, type AiStoreResponse } from "../onboarding/ai-store";
 import { initialsOf } from "../slug";
@@ -7,12 +6,13 @@ import type { ProductInput, ProductKind } from "../types";
 import { updateStorePage } from "./account";
 import { ApiError } from "./client";
 import { createProduct } from "./products";
-import { createStore, getStore, setSetupMode, updateStore } from "./store";
+import { getStore, setSetupMode, updateStore } from "./store";
 import { saveCollection } from "./store-admin";
 
 /**
- * Setting a store up with AI (onboarding). The server drafts it; the creator reviews it; then it is
- * created here with the usual calls, so plan limits and every database check apply as they do by hand.
+ * Building a store with AI (My Store › Create with AI, before the store first opens). The server
+ * drafts it; the creator reviews it; then it is filled in here with the usual calls, so plan limits
+ * and every database check apply as they do by hand.
  */
 
 export type { AiStoreDraft, AiStoreProduct, AiStoreRequest } from "../onboarding/ai-store";
@@ -36,9 +36,9 @@ export interface ReviewedProduct {
 }
 
 export interface AiStoreChoices {
+  /** The store being built (its link never changes) */
+  storeId: string;
   name: string;
-  slug: string;
-  country: string;
   tagline: string;
   palette: string;
   sells: "digital" | "physical";
@@ -47,28 +47,25 @@ export interface AiStoreChoices {
   products: ReviewedProduct[];
   /** The link products came from, to record what the creator confirmed */
   link?: string;
-  /** The store already made by hand during this setup, when switching to AI before it opens */
-  existingStoreId?: string;
 }
 
 /**
- * Creates (or, when switching from the manual setup, fills in) the store from the reviewed draft.
- * Every product starts as a draft: a digital product needs its file before it can go live. Keeps
- * going past a product that fails, and says which ones didn't save.
+ * Fills the store in from the reviewed draft: name, tagline, colour, About, FAQ, products and
+ * collections, and marks it as built with AI. Every product starts as a draft: a digital product
+ * needs its file before it can go live. Keeps going past a product that fails, and says which didn't save.
  */
-export async function createStoreFromDraft(c: AiStoreChoices, onStep?: (text: string) => void): Promise<{ storeId: string; failed: string[] }> {
+export async function buildStoreFromDraft(c: AiStoreChoices, onStep?: (text: string) => void): Promise<{ storeId: string; failed: string[] }> {
   const color = paletteByName(c.palette).bg;
-  onStep?.("Creating your store");
-  let storeId: string;
-  if (c.existingStoreId) {
-    storeId = c.existingStoreId;
-    await setSetupMode("ai", storeId);
-    await updateStore({ name: c.name, tagline: c.tagline, brandColor: color, sells: c.sells });
-  } else {
-    storeId = (await createStore({ name: c.name, slug: c.slug, country: c.country, brandColor: color, setupMode: "ai", tagline: c.tagline, sells: c.sells })).id;
-  }
-  const store = await getStore();
-  const currency = currencyFor(c.country);
+  const storeId = c.storeId;
+  onStep?.("Updating your store");
+  // Before the store opens this records AI as its way; after, the database keeps the first choice
+  await setSetupMode("ai", storeId).catch(() => undefined);
+  const before = await getStore();
+  await updateStore({ name: c.name, tagline: c.tagline, brandColor: color });
+  // The database refuses switching digital/physical while live products of the other kind exist
+  const sells = c.sells !== before.sells ? await updateStore({ sells: c.sells }).then(() => c.sells, () => before.sells) : before.sells;
+  const store = before;
+  const currency = store.currency;
 
   onStep?.("Writing your About page and FAQ");
   if (c.about.story.trim()) {
@@ -82,12 +79,12 @@ export async function createStoreFromDraft(c: AiStoreChoices, onStep?: (text: st
   const made: { id: string; collection: string }[] = [];
   for (const [i, p] of c.products.entries()) {
     onStep?.(`Adding products (${i + 1} of ${c.products.length})`);
-    const digital = c.sells === "digital";
+    const digital = sells === "digital";
     const input: ProductInput = {
       title: p.title,
       description: p.description,
       kind: digital ? p.kind : "other",
-      fulfilment: c.sells,
+      fulfilment: sells,
       price: money(p.price, currency),
       images: [],
       files: [],
