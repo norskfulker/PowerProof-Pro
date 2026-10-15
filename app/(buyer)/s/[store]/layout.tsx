@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { getStorefront } from "@/lib/api/live/storefront";
 import { siteUrl } from "@/lib/site-url";
+import { primaryDomain } from "@/lib/domain-routing";
+import { SUPABASE_ANON_KEY, SUPABASE_URL } from "@/lib/supabase/env";
 import { StoreShell } from "@/components/storefront/store-shell";
 
 /** Each store gets its own title, description, canonical address and share card. */
@@ -10,7 +12,9 @@ export async function generateMetadata({ params }: { params: Promise<{ store: st
     const view = await getStorefront(slug);
     const s = view.store;
     const description = (s.tagline || `${s.name} — digital products with instant delivery.`).slice(0, 160);
-    const url = `${siteUrl()}/s/${s.slug}`;
+    // A store on its own live domain (set as primary) is canonical there, not on the free address
+    const domain = await primaryDomain(s.slug, SUPABASE_URL, SUPABASE_ANON_KEY).catch(() => null);
+    const url = domain ? `https://${domain}` : `${siteUrl()}/s/${s.slug}`;
     const image = s.logo?.src.startsWith("https://") ? s.logo.src : undefined;
     return {
       title: s.name,

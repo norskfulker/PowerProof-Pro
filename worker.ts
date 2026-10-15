@@ -21,8 +21,19 @@ interface NextHandler {
 }
 const next = handler as NextHandler;
 
+/**
+ * Certificate checks for creators' domains. The `*\/*` route sends every request on the zone here,
+ * including the certificate authority's requests that Cloudflare answers at its edge; those are
+ * passed straight through (Cloudflare's own guidance), or the certificate is never issued or renewed.
+ * Not on workers.dev or local hosts, where there's no edge behind the Worker to answer them.
+ */
+const DCV = /^\/\.well-known\/(acme-challenge|pki-validation|cf-custom-hostname-challenge)\//;
+const passThrough = (url: URL) => DCV.test(url.pathname) && !/(^|\.)(workers\.dev|localhost)$|^127\.0\.0\.1$|^\[::1\]$/.test(url.hostname);
+
 const worker = {
-  fetch: next.fetch,
+  fetch(req: Request, env: Env, ctx: Ctx) {
+    return passThrough(new URL(req.url)) ? fetch(req) : next.fetch(req, env, ctx);
+  },
   async scheduled(_event: unknown, env: Env, ctx: Ctx) {
     if (!env.CRON_SECRET) return console.warn("[cron] CRON_SECRET isn't set, so custom domains aren't re-checked and checkout reminders aren't sent");
     // Each job is the app's own route, run with the same code and settings as everything else

@@ -24,9 +24,9 @@
   "observability": { "enabled": true },
   // Every 10 minutes: re-check custom domains waiting for DNS (app/api/cron/domains) and remind
   // buyers who left checkout (app/api/cron/abandoned)
-  "triggers": { "crons": ["*/10 * * * *"] }
+  "triggers": { "crons": ["*/10 * * * *"] },
   // (No "vars" here on purpose: dashboard Variables stay as they are across deploys.)
-  // Custom domains reach the app through a route that catches every hostname on the zone.
-  // Uncomment and set your zone once PowerProof's domain is on Cloudflare:
-  // "routes": [{ "pattern": "*/*", "zone_name": "powerproof.app" }]
+  // Creators' domains reach the app through this route, which catches every hostname on the zone
+  // (Cloudflare for SaaS custom hostnames included). One-time zone setup: scripts/setup-custom-domains.mjs
+  "routes": [{ "pattern": "*/*", "zone_name": "powerproof.app" }]
 }
