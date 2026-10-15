@@ -9,7 +9,7 @@
  * only for custom domains — leave them unset until that setup; the app treats missing as
  * "custom domains off" (the Domain page says so instead of breaking).
  * Keep them OUT of this file: every deploy uploads the vars written here, so an entry here
- * would overwrite the dashboard value (even with "").
+ * would overwrite the dashboard value (even with ""). "keep_vars" below keeps the dashboard's.
  * NEXT_PUBLIC_* values are baked in at build time, so they come from the dashboard at build time.
  */
 {
@@ -25,7 +25,9 @@
   // Every 10 minutes: re-check custom domains waiting for DNS (app/api/cron/domains) and remind
   // buyers who left checkout (app/api/cron/abandoned)
   "triggers": { "crons": ["*/10 * * * *"] },
-  // (No "vars" here on purpose: dashboard Variables stay as they are across deploys.)
+  // No "vars" here on purpose, and keep_vars so a deploy (from the CLI or a Git build) leaves the
+  // dashboard's plain-text Variables alone; without it every deploy deletes them (secrets survive)
+  "keep_vars": true,
   // Creators' domains reach the app through this route, which catches every hostname on the zone
   // (Cloudflare for SaaS custom hostnames included). One-time zone setup: scripts/setup-custom-domains.mjs
   "routes": [{ "pattern": "*/*", "zone_name": "powerproof.app" }]
