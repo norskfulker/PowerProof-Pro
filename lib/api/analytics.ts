@@ -1,3 +1,4 @@
+import { analyze, type AnalyticsDetail, type ItemRow } from "../analytics-detail";
 import { money } from "../money";
 import { sb } from "../supabase/browser";
 import type { CurrencyCode, RangeKey, SeriesPoint, Summary } from "../types";
@@ -115,4 +116,44 @@ export async function getSummary(range: RangeKey): Promise<Summary> {
     visit(periodStart(days * 2), periodStart(days)),
   ]);
   return summarize(must(daily) as DailyRow[], must(products) as ProductSalesRow[], range, now, cur, vNow && vBefore ? { now: vNow, before: vBefore } : undefined);
+}
+
+/**
+ * The Analytics page: orders created in the period and their lines, plus who had bought before,
+ * worked out by analyze() (lib/analytics-detail.ts). Reads up to 5,000 orders a period.
+ */
+export async function getAnalyticsDetail(range: RangeKey): Promise<AnalyticsDetail & { currency: CurrencyCode }> {
+  const storeId = await activeStoreId();
+  const client = sb();
+  const store = must(await client.from("stores").select("currency_base").eq("id", storeId).single());
+  const cur = currency(store.currency_base);
+  const now = Date.now();
+  const start = new Date(dayMs(istDay(now)) - IST - (RANGE_DAYS[range] - 1) * DAY).toISOString();
+  const [orders, earlier] = await Promise.all([
+    client.from("orders").select("id, status, payment_method, total_minor, discount_minor, shipping_minor, buyer_email, buyer_country, created_at, paid_at, shipped_at, fulfilment_status, reminded_at").eq("store_id", storeId).eq("currency", cur).gte("created_at", start).order("created_at").limit(5000),
+    client.from("orders").select("buyer_email").eq("store_id", storeId).in("status", ["paid", "refunded"]).lt("created_at", start).limit(10000),
+  ]);
+  const rows = must(orders);
+  // The buyer's state is in the creators' view of orders (for GST); read it for the same orders
+  // In batches, so a busy period doesn't make one huge request
+  const ids = rows.map((o) => o.id);
+  const batches = Array.from({ length: Math.ceil(ids.length / 150) }, (_, i) => ids.slice(i * 150, i * 150 + 150));
+  const parts = await Promise.all(
+    batches.map(async (b) => {
+      const [st, it] = await Promise.all([
+        client.from("creator_orders").select("id, buyer_state").in("id", b),
+        client.from("order_items").select("order_id, product_id, title, quantity, line_total_minor").in("order_id", b),
+      ]);
+      return { states: must(st) as { id: string; buyer_state: string | null }[], items: must(it) as ItemRow[] };
+    })
+  );
+  const stateOf = new Map(parts.flatMap((p) => p.states).map((s) => [s.id, s.buyer_state]));
+  const items = parts.flatMap((p) => p.items);
+  const detail = analyze(
+    rows.map((o) => ({ ...o, buyer_email: String(o.buyer_email), total_minor: Number(o.total_minor), discount_minor: Number(o.discount_minor), shipping_minor: Number(o.shipping_minor), buyer_state: stateOf.get(o.id) ?? null })),
+    items.map((i) => ({ ...i, quantity: Number(i.quantity), line_total_minor: Number(i.line_total_minor) })),
+    new Set((must(earlier) as { buyer_email: string }[]).map((e) => String(e.buyer_email).toLowerCase())),
+    now
+  );
+  return { ...detail, currency: cur };
 }

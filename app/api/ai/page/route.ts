@@ -8,6 +8,7 @@ import type { AiEvent } from "@/lib/pages/ai";
 import { aiConnected, runAiPage, type AiStoreContext, type AiStoreMedia } from "@/lib/pages/ai-run";
 import { designFrom, storeFrom } from "@/lib/api/live/map";
 import { sbServer } from "@/lib/supabase/server";
+import { ownAiFor } from "@/lib/server/integrations";
 import type { CurrencyCode } from "@/lib/types";
 
 /**
@@ -37,12 +38,14 @@ export async function POST(request: Request) {
   const parsed = aiBriefSchema.safeParse(body?.brief);
   if (!parsed.success || typeof body?.pageId !== "string") return fail({ ok: false, code: "invalid", message: parsed.success ? "Which page?" : parsed.error.issues[0].message }, 400);
   const brief = parsed.data;
-  if (!aiConnected()) return fail({ ok: false, code: "not_connected", message: "AI page building isn't connected yet." }, 501);
 
   // The page is readable to its owner only (row level security), so this also checks ownership
   const page = (await sb.from("custom_pages").select("id, store_id, title, layout").eq("id", body.pageId).maybeSingle()).data;
   if (!page) return fail({ ok: false, code: "not_found", message: "That page isn't here any more." }, 404);
   const storeId = page.store_id;
+  // A Pro store may bring its own AI provider: it runs on their key, without PowerProof's allowances
+  const own = await ownAiFor(storeId, brief.studio ? "builder" : "pages");
+  if (!aiConnected(own)) return fail({ ok: false, code: "not_connected", message: "AI page building isn't connected yet." }, 501);
 
   const bucket = sb.storage.from("store-media");
   const [storeRow, products, collections, items, reviews, infoPages, draft, library, aiLibrary] = await Promise.all([
@@ -99,12 +102,12 @@ export async function POST(request: Request) {
   // Free includes 100 AI messages, counted as lifetime runs (failed ones don't count).
   // Uses the existing ai_generations rows, so no new tables.
   const profile = (await sb.from("profiles").select("plan").eq("id", auth.user.id).maybeSingle()).data;
-  if ((profile?.plan ?? "free") === "free" && (await freeMessagesUsed(sb, auth.user.id)) >= AI_FREE_MESSAGES) {
+  if (!own && (profile?.plan ?? "free") === "free" && (await freeMessagesUsed(sb, auth.user.id)) >= AI_FREE_MESSAGES) {
     return fail({ ok: false, code: "limit", message: `You've used your ${AI_FREE_MESSAGES} free AI messages. Upgrade to Pro to keep building with AI.` }, 429);
   }
 
-  // Checks the day's allowance and records the run, in one step
-  const started = await sb.rpc("start_ai_page", { p_store: storeId, p_prompt: JSON.stringify({ pageId: page.id, ...brief }) });
+  // Checks the day's allowance and records the run, in one step (the store's own AI has no allowance)
+  const started = own ? { data: null, error: null } : await sb.rpc("start_ai_page", { p_store: storeId, p_prompt: JSON.stringify({ pageId: page.id, ...brief }) });
   if (started.error) {
     if (/ai_daily_limit/.test(started.error.message)) return fail({ ok: false, code: "limit", message: "You've used today's AI pages. Your allowance resets at midnight (India time)." }, 429);
     console.error("[ai/page] start failed", started.error.code, started.error.message);
@@ -122,9 +125,9 @@ export async function POST(request: Request) {
           /* the editor went away */
         }
       };
-      const result = await runAiPage({ brief, store: context, existingSections: brief.mode === "append" ? draftSections.length : 0, runId, emit, signal: request.signal });
+      const result = await runAiPage({ own, brief, store: context, existingSections: brief.mode === "append" ? draftSections.length : 0, runId, emit, signal: request.signal });
       // A run that made nothing doesn't use up the day's allowance
-      await sb.rpc("finish_ai_page", { p_id: started.data, p_status: result.ok ? "done" : "failed" });
+      if (started.data) await sb.rpc("finish_ai_page", { p_id: started.data, p_status: result.ok ? "done" : "failed" });
       controller.close();
     },
   });
@@ -173,10 +176,16 @@ function mediaFrom(
 }
 
 /** The day's allowance, plus free messages left on the Free plan, for the brief dialog */
-export async function GET() {
+export async function GET(request: Request) {
   const sb = await sbServer();
   const { data: auth } = await sb.auth.getUser();
   if (!auth.user) return fail({ ok: false, code: "signed_out", message: "Log in again to use AI." }, 401);
+  // A store on its own AI has no allowance to show
+  const storeId = new URL(request.url).searchParams.get("storeId");
+  if (storeId && /^[0-9a-f-]{36}$/i.test(storeId) && (await sb.rpc("store_can", { p_store: storeId, p_area: "design" })).data === true) {
+    const own = await ownAiFor(storeId, "pages");
+    if (own) return NextResponse.json({ ok: true, connected: true, used: 0, daily: 1_000_000, freeLeft: null, own: own.model }, { headers: { "cache-control": "no-store" } });
+  }
   const r = await sb.rpc("ai_page_allowance");
   const row = r.data?.[0];
   const profile = (await sb.from("profiles").select("plan").eq("id", auth.user.id).maybeSingle()).data;

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { AlertTriangle, Copy, Plus, RotateCcw, Trash2 } from "lucide-react";
+import { AlertTriangle, Copy, Plus, RotateCcw, Trash2, Wand2 } from "lucide-react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -163,8 +163,17 @@ function SocialFields() {
 /** Everything that applies to the whole store, in one place: brand, schemes, type, buttons, mode, logo, socials, checkout */
 export function ThemeSettingsPanel({ context, mode }: { context: RenderContext; mode: "light" | "dark" }) {
   const { site, updateSite, setDesign, setTheme } = useSite();
+  const setCopyLook = useEditor((s) => s.setCopyLook);
   if (!site) return <p className="p-2 text-sm text-muted-foreground">Theme settings aren&apos;t available here.</p>;
   return (
+    <>
+    <button type="button" onClick={() => setCopyLook(true)} className="mb-2 flex w-full items-center gap-3 rounded-control border border-dashed p-3 text-left hover:border-primary hover:bg-primary-soft/40">
+      <span className="grid size-9 shrink-0 place-items-center rounded-control bg-primary-soft text-primary" aria-hidden><Wand2 className="size-4" /></span>
+      <span className="flex flex-col">
+        <span className="text-sm font-semibold">Copy a store&apos;s look</span>
+        <span className="text-xs text-muted-foreground">Paste any Shopify or website address: its colours, fonts and sections.</span>
+      </span>
+    </button>
     <Accordion type="multiple" defaultValue={["type"]} className="flex flex-col">
       <AccordionItem value="type">
         <AccordionTrigger className="min-h-11">Site template</AccordionTrigger>
@@ -210,6 +219,7 @@ export function ThemeSettingsPanel({ context, mode }: { context: RenderContext; 
         </AccordionContent>
       </AccordionItem>
     </Accordion>
+    </>
   );
 }
 

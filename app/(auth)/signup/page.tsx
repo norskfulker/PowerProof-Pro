@@ -11,8 +11,9 @@ import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { AuthCard, FormError } from "@/components/auth/auth-card";
+import { GoogleAccountNotice } from "@/components/auth/google-account-notice";
 import { GoogleSignIn } from "@/components/auth/google-button";
-import { signup } from "@/lib/api";
+import { ApiError, emailUsesGoogle, signup } from "@/lib/api";
 
 const schema = z.object({
   name: z.string().trim().min(2, "Tell us what to call you."),
@@ -31,6 +32,8 @@ function SignupForm() {
   const next = rawNext && rawNext.startsWith("/") && !rawNext.startsWith("//") ? rawNext : undefined;
   const start = next ?? (template ? `/onboarding?template=${template}` : "/onboarding");
   const [error, setError] = useState<string>();
+  // The email already has an account that signs in with Google
+  const [google, setGoogle] = useState<string>();
   const form = useForm<Values>({ resolver: zodResolver(schema), defaultValues: { name: "", email: params.get("email") ?? "", password: "" }, mode: "onTouched" });
 
   async function onSubmit(v: Values) {
@@ -48,12 +51,15 @@ function SignupForm() {
       if (next) q.set("next", next);
       router.push(`/verify-email?${q}`);
     } catch (e) {
+      if (e instanceof ApiError && e.code === "conflict" && (await emailUsesGoogle(v.email))) return setGoogle(v.email.trim());
       setError(e instanceof Error ? e.message : "Something went wrong.");
     }
   }
 
   const pending = form.formState.isSubmitting;
   const pw = useWatch({ control: form.control, name: "password" });
+
+  if (google) return <GoogleAccountNotice email={google} next={start} onBack={() => setGoogle(undefined)} />;
 
   return (
     <AuthCard

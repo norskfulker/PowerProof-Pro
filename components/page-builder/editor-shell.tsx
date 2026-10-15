@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Check, CloudOff, ExternalLink, Files, History, EyeOff, LayoutList, Loader2, Palette, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Redo2, Settings2, Sparkles, Undo2, type LucideIcon } from "lucide-react";
+import { Check, CloudOff, ExternalLink, Eye, Files, History, EyeOff, LayoutList, Loader2, Palette, PanelLeftClose, PanelRightClose, PanelRightOpen, Redo2, Settings2, Sparkles, Undo2, type LucideIcon } from "lucide-react";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/pp/confirm-dialog";
 import { useUnsavedGuard } from "@/components/save/unsaved-guard";
@@ -15,7 +15,7 @@ import { QuestionsInbox } from "@/components/store-admin/questions-inbox";
 import { ReviewsInbox } from "@/components/store-admin/reviews-inbox";
 import { discardEditorDraft, getPayoutMethods, getProducts, getStoreInfo, pageUrl, publishEditor, saveEditorDraft, type EditorSession, type RenderContext, type VisualPageStatus } from "@/lib/api";
 import { launchChecks, type LaunchIssue } from "@/lib/pages/launch-check";
-import { EDITOR_PANELS, type EditorPanel, type SiteDraft } from "@/lib/pages/editor-store";
+import { EDITOR_PANELS, PREVIEW_CHANNEL, type EditorPanel, type SiteDraft } from "@/lib/pages/editor-store";
 import type { AboutContent, FaqItem } from "@/lib/types";
 import { HOME_TEMPLATE } from "@/lib/pages/templates";
 import { cn } from "@/lib/utils";
@@ -23,6 +23,7 @@ import { AddPicker } from "./add-block-menu";
 import { AiBuilder } from "./ai-builder";
 import { Canvas, CanvasIconPicker } from "./canvas";
 import { ContentPanel } from "./content-panel";
+import { CopyLookDialog } from "./copy-look-dialog";
 import { DevicePreviewSwitch } from "./device-preview-switch";
 import { EditorProvider, useEditor, useEditorStore } from "./editor-context";
 import { LaunchCheckDialog } from "./launch-check-dialog";
@@ -90,7 +91,8 @@ function SaveIndicator({ state, at, onRetry }: { state: SaveState; at?: string; 
 const editHref = (id: string) => `/store/current/design/pages/${id}/edit`;
 
 /** The app's own top bar, which the editor's bar sits under */
-const APP_BAR = 64;
+/** The app's bar above the editor: shown on phones only (the editor's own bar replaces it on desktop) */
+const appBar = () => (typeof window !== "undefined" && window.matchMedia("(min-width: 768px)").matches ? 0 : 64);
 
 function Inner({ session }: { session: EditorSession }) {
   const { page, pages } = session;
@@ -134,9 +136,14 @@ function Inner({ session }: { session: EditorSession }) {
   // Old addresses (Reviews, Questions, About, FAQ, Pages) open their panel here: ?panel=reviews
   useEffect(() => {
     const want = search.get("panel");
+    // From My Store's "Copy a store": the theme panel, with the copy dialog open
+    if (search.get("copy") === "1") {
+      openPanel("theme");
+      store.getState().setCopyLook(true);
+    }
     if (want === "about" || want === "faq") openPanel("content", want);
     else if (want && (EDITOR_PANELS as readonly string[]).includes(want)) openPanel(want as EditorPanel);
-  }, [search, openPanel]);
+  }, [search, openPanel, store]);
   // On phones panels are sheets: one opened from elsewhere (a link, a settings button) shows as one
   const narrow = useRef(false);
   useEffect(
@@ -184,7 +191,15 @@ function Inner({ session }: { session: EditorSession }) {
     : leftShown ? (wideData ? "grid-cols-[26rem_minmax(0,1fr)]" : "grid-cols-[21rem_minmax(0,1fr)]")
     : "grid-cols-[minmax(0,1fr)_19rem]";
   // Both sidebars pin under the bars with their own scroll, so they stay in view on long pages
-  const sideStick: React.CSSProperties = { position: "sticky", top: APP_BAR + barHeight, maxHeight: `calc(100dvh - ${APP_BAR + barHeight + 16}px)`, overflowY: "auto" };
+  const [above, setAbove] = useState(64);
+  useEffect(() => {
+    const m = window.matchMedia("(min-width: 768px)");
+    const on = () => setAbove(appBar());
+    on();
+    m.addEventListener("change", on);
+    return () => m.removeEventListener("change", on);
+  }, []);
+  const sideStick: React.CSSProperties = { position: "sticky", top: above + barHeight, maxHeight: `calc(100dvh - ${above + barHeight}px)`, overflowY: "auto" };
   useEffect(() => {
     const el = bar.current;
     if (!el) return;
@@ -215,6 +230,12 @@ function Inner({ session }: { session: EditorSession }) {
         setSavedAt(r.updatedAt);
         setStatus(r.status);
         setSave("saved");
+        // Open preview tabs pick up the new draft
+        if (typeof BroadcastChannel !== "undefined") {
+          const ch = new BroadcastChannel(PREVIEW_CHANNEL);
+          ch.postMessage(page.id);
+          ch.close();
+        }
       })
       .catch((e) => {
         setSave("error");
@@ -394,7 +415,11 @@ function Inner({ session }: { session: EditorSession }) {
   }
 
   const livePath = pageUrl(context.store.slug, page.slug);
-  const statusText = status === "draft" ? (isHome ? "Not published yet" : "Not published") : dirty ? "Unpublished changes" : "Live";
+  // Opened straight from the click (so it isn't blocked as a pop-up); pending changes save and the tab follows
+  function openPreview() {
+    window.open(`/preview/${page.id}`, `pp-preview-${page.id}`);
+    void flush();
+  }
   const pageTitle = isHome ? "Home page" : page.title;
 
   const panels: Record<EditorPanel, React.ReactNode> = {
@@ -410,13 +435,13 @@ function Inner({ session }: { session: EditorSession }) {
   const current = RAIL.find((r) => r.id === tab) ?? { id: tab, title: PANEL_TITLES[tab] };
 
   return (
-    <div ref={root} className="-mx-3 flex flex-1 flex-col border-t bg-background md:mx-0 md:rounded-t-card md:border-x">
+    <div ref={root} className="-mx-3 flex flex-1 flex-col border-t bg-background md:mx-0 md:border-t-0">
       {/* Top bar: stays in view while the page scrolls */}
-      <header ref={bar} data-editor-bar="" className="sticky top-16 z-20 flex flex-wrap items-center gap-x-3 gap-y-2 border-b bg-surface px-3 py-2 md:rounded-t-card md:px-4">
-        <div className="flex min-w-0 flex-[1_1_14rem] flex-wrap items-center gap-x-3 gap-y-1">
+      <header ref={bar} data-editor-bar="" className="sticky top-16 z-20 flex h-auto min-h-14 flex-wrap items-center gap-x-3 gap-y-2 border-b bg-surface/90 px-3 py-2 backdrop-blur-md md:top-0 md:px-4">
+        <div className="flex min-w-0 flex-[1_1_14rem] items-center gap-x-3 gap-y-1 overflow-hidden">
           {size !== "narrow" && <Tooltip><TooltipTrigger asChild><Button type="button" variant="ghost" size="icon" onClick={() => setLeftOpen((o) => !o)} aria-pressed={leftOpen} aria-label={leftOpen ? "Collapse sidebar" : "Expand sidebar"}><PanelLeftClose className={!leftOpen ? "rotate-180" : undefined} /></Button></TooltipTrigger><TooltipContent>{leftOpen ? "Collapse sidebar" : "Expand sidebar"}</TooltipContent></Tooltip>}
           <Select value={page.id} onValueChange={goTo}>
-            <SelectTrigger size="sm" className="h-9 w-auto max-w-60 min-w-0 border-transparent bg-transparent px-2 font-display text-base font-extrabold hover:border-input" aria-label="Page you're editing">
+            <SelectTrigger size="sm" className="h-9 w-auto max-w-60 min-w-0 border-transparent bg-transparent px-2 font-display text-base font-bold hover:border-input" aria-label="Page you're editing">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -433,38 +458,35 @@ function Inner({ session }: { session: EditorSession }) {
               <SelectItem value="manage">Manage pages…</SelectItem>
             </SelectContent>
           </Select>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <span aria-label={statusText} className={cn("grid size-7 shrink-0 place-items-center rounded-full border", !dirty ? "border-success/40 text-success" : status === "draft" ? "border-border text-muted-foreground" : "border-warning/40 text-warning-ink")}>
-                {status === "draft" ? <Files className="size-3.5" aria-hidden /> : dirty ? <CloudOff className="size-3.5" aria-hidden /> : <Check className="size-3.5" aria-hidden />}
-              </span>
-            </TooltipTrigger>
-            <TooltipContent>{statusText}</TooltipContent>
-          </Tooltip>
-          {isHome && !storeLive && <Tooltip><TooltipTrigger asChild><span aria-label="Store hidden from buyers" className="grid size-7 shrink-0 place-items-center rounded-full border border-warning/40 text-warning-ink"><EyeOff className="size-3.5" aria-hidden /></span></TooltipTrigger><TooltipContent>Store hidden from buyers</TooltipContent></Tooltip>}
+          {isHome && !storeLive && <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-warning-soft px-2.5 py-1 text-xs font-semibold whitespace-nowrap text-warning-ink"><EyeOff className="size-3.5" aria-hidden /> Hidden from buyers</span>}
           <SaveIndicator state={save === "saved" && rev !== savedRev && !building ? "saving" : save} at={savedAt} onRetry={flush} />
         </div>
         <div className="flex flex-[1_1_auto] items-center justify-center">
           <DevicePreviewSwitch value={device} onChange={setDevice} />
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <div role="group" aria-label="History" className="flex gap-1 pointer-coarse:gap-2">
-            <Button type="button" variant="ghost" size="icon" onClick={undo} disabled={!canUndo || building} aria-label="Undo (Ctrl Z)">
+          {/* Undo, redo and versions as one quiet group */}
+          <div role="group" aria-label="History" className="flex items-center rounded-control border bg-surface-sunken p-0.5 pointer-coarse:gap-1">
+            <Button type="button" variant="ghost" size="icon-sm" onClick={undo} disabled={!canUndo || building} aria-label="Undo (Ctrl Z)" title="Undo">
               <Undo2 />
             </Button>
-            <Button type="button" variant="ghost" size="icon" onClick={redo} disabled={!canRedo || building} aria-label="Redo (Ctrl Shift Z)">
+            <Button type="button" variant="ghost" size="icon-sm" onClick={redo} disabled={!canRedo || building} aria-label="Redo (Ctrl Shift Z)" title="Redo">
               <Redo2 />
             </Button>
+            <Button asChild variant="ghost" size="icon-sm" title="Versions">
+              <Link href={`/store/current/design/pages/${page.id}/versions`} aria-label="Versions">
+                <History aria-hidden />
+              </Link>
+            </Button>
           </div>
-          <Button asChild variant="ghost" size="icon" title="Versions">
-            <Link href={`/store/current/design/pages/${page.id}/versions`} aria-label="Versions">
-              <History aria-hidden />
-            </Link>
+          {/* The draft, full size in a new tab; it follows every save */}
+          <Button type="button" variant="secondary" size="sm" onClick={openPreview} title="Preview your draft in a new tab">
+            <Eye aria-hidden /> <span className="max-sm:sr-only">Preview</span>
           </Button>
           {published && (
-            <Button asChild variant="ghost" size="sm" className="max-md:hidden">
-              <a href={livePath} target="_blank" rel="noopener noreferrer">
-                <ExternalLink aria-hidden /> View live
+            <Button asChild variant="ghost" size="icon-sm" className="max-md:hidden" title="View live">
+              <a href={livePath} target="_blank" rel="noopener noreferrer" aria-label="View live">
+                <ExternalLink aria-hidden />
               </a>
             </Button>
           )}
@@ -478,7 +500,8 @@ function Inner({ session }: { session: EditorSession }) {
               {rightOpen ? <PanelRightClose /> : <PanelRightOpen />}
             </Button>
           )}
-          <Button type="button" variant="secondary" size="sm" onClick={() => setAiOpen(true)} disabled={building} className="border-primary/40 text-primary">
+          <span aria-hidden className="mx-1 h-6 w-px bg-border max-sm:hidden" />
+          <Button type="button" variant="ghost" size="sm" onClick={() => setAiOpen(true)} disabled={building} className="text-primary">
             <Sparkles aria-hidden /> <span className="max-sm:sr-only">Build with AI</span>
           </Button>
           {!dirty && rev === savedRev && !publishing && (!isHome || storeLive) ? (
@@ -501,37 +524,35 @@ function Inner({ session }: { session: EditorSession }) {
       {/* Body: while AI builds, the page can be looked at (and scrolled) but not changed */}
       <div className={cn("grid flex-1", bodyCols)}>
         {leftShown && (
-        <aside inert={building || undefined} aria-label="Editor panels" className={cn(building && "opacity-60", "border border-border bg-surface")}>
-          <div className="overscroll-contain flex min-h-0" style={sideStick}>
-          <div className="flex w-16 shrink-0 flex-col gap-1 self-start border-r px-1 py-2">
-          <div role="tablist" aria-label="Panels" aria-orientation="vertical" className="flex w-full flex-col gap-1">
-            {railItems.map(({ id, label, title, icon: Icon }) => {
-              return (
-                <button
-                  key={id}
-                  type="button"
-                  role="tab"
-                  id={`rail-${id}`}
-                  aria-selected={tab === id}
-                  aria-controls="rail-panel"
-                  title={title}
-                  onClick={() => openPanel(id)}
-                  disabled={id === "edit" && !selectedId}
-                  className={cn(
-                    "relative flex min-h-14 flex-col items-center justify-center gap-1 rounded-control text-[0.6875rem] leading-none font-medium text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-40",
-                    tab === id && "bg-primary-soft text-primary hover:bg-primary-soft hover:text-primary"
-                  )}
-                >
-                  <Icon className="size-5" aria-hidden />
-                  {label}
-                </button>
-              );
-            })}
-          </div>
+        <aside inert={building || undefined} aria-label="Editor panels" className={cn(building && "opacity-60", "border-r bg-surface")}>
+          <div className="overscroll-contain flex min-h-0 flex-col" style={sideStick}>
+          {/* Sections, Pages and Theme as tabs across the top of the panel */}
+          <div role="tablist" aria-label="Panels" className="sticky top-0 z-10 flex gap-1 border-b bg-surface/95 px-2 backdrop-blur">
+            {railItems.map(({ id, label, title, icon: Icon }) => (
+              <button
+                key={id}
+                type="button"
+                role="tab"
+                id={`rail-${id}`}
+                aria-selected={tab === id}
+                aria-controls="rail-panel"
+                title={title}
+                onClick={() => openPanel(id)}
+                disabled={id === "edit" && !selectedId}
+                className={cn(
+                  "-mb-px inline-flex min-h-11 flex-1 items-center justify-center gap-1.5 border-b-2 px-2 text-sm font-semibold whitespace-nowrap transition-colors disabled:opacity-40",
+                  tab === id ? "border-primary text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <Icon className="size-4" aria-hidden />
+                {label}
+              </button>
+            ))}
           </div>
           <div id="rail-panel" role="tabpanel" aria-labelledby={`rail-${tab}`} className="flex min-w-0 flex-1 flex-col">
-            <h2 className="px-3 pt-3 pb-2 font-display text-base font-extrabold">{current.title}</h2>
-            <div key={tab} className={cn("pb-3", tab === "sections" ? "px-2" : "px-3")}>
+            {/* Panels opened from elsewhere (About, Reviews, Questions) name themselves */}
+            {!railItems.some((r) => r.id === tab) && <h2 className="px-3 pt-4 pb-2 text-sm font-semibold">{current.title}</h2>}
+            <div key={tab} className={cn("py-3", tab === "sections" ? "px-2" : "px-3")}>
               {panels[tab]}
             </div>
           </div>
@@ -544,7 +565,7 @@ function Inner({ session }: { session: EditorSession }) {
         </div>
 
         {rightShown && (
-          <aside inert={building || undefined} aria-label="Settings" className={cn("border border-border bg-surface", building && "opacity-60")}>
+          <aside inert={building || undefined} aria-label="Settings" className={cn("border-l bg-surface", building && "opacity-60")}>
             <div className="overscroll-contain min-h-0 p-4" style={sideStick}>
               {panels.edit}
             </div>
@@ -586,6 +607,7 @@ function Inner({ session }: { session: EditorSession }) {
 
       <AddPicker context={context} />
       <CanvasIconPicker />
+      <CopyLookDialog context={context} />
       <LinkPrompt context={context} pages={pages} pageId={page.id} onLeave={flush} />
 
       <ConfirmDialog

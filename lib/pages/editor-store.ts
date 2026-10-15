@@ -33,6 +33,9 @@ interface Snapshot {
 
 export type Device = "mobile" | "tablet" | "desktop";
 
+/** The editor tells open preview tabs (BroadcastChannel) that a draft was saved: the message is the page id */
+export const PREVIEW_CHANNEL = "pp-draft-preview";
+
 export const EDITOR_PANELS = ["sections", "pages", "theme", "content", "reviews", "questions", "edit"] as const;
 export type EditorPanel = (typeof EDITOR_PANELS)[number];
 
@@ -72,6 +75,9 @@ export interface EditorState {
   /** A link clicked in the header or footer: offer to go and edit where it leads */
   linkPrompt?: { href: string; label: string };
   setLinkPrompt: (p: EditorState["linkPrompt"]) => void;
+  /** The "Copy a store's look" dialog */
+  copyLook?: boolean;
+  setCopyLook: (open: boolean) => void;
   /** The editor's side panel: the page's sections, the store's pages, theme, About and FAQ, reviews, questions */
   panel: EditorPanel;
   /** Opens a panel; `at` scrolls to a part of it (like "faq") */
@@ -207,6 +213,7 @@ export function createEditorStore(initial: PageDoc, initialSite?: SiteDraft) {
       setAdding: (adding) => set({ adding }),
       setIconPick: (iconPick) => set({ iconPick }),
       setLinkPrompt: (linkPrompt) => set({ linkPrompt }),
+      setCopyLook: (copyLook) => set({ copyLook }),
       panel: "sections",
       openPanel: (panel, panelAt) => set({ panel, panelAt }),
       beginAi: () => set({ aiBase: snap(), selectedId: undefined, lastKey: undefined }),

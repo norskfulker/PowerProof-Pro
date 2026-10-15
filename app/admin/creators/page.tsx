@@ -81,7 +81,7 @@ export default function Page() {
   return (
     <>
       <title>Creators · PowerProof admin</title>
-      <PageHeader title="Creators" description="Everyone who sells on PowerProof. Open one to see their stores." />
+      <PageHeader title="Creators" />
       <Suspense>
         <Creators />
       </Suspense>

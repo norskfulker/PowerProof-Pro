@@ -48,7 +48,7 @@ export function StoreFooter({
     const few: [string, string][] = [["Shop", `${base}/products`], ["About", `${base}/about`], ["Contact", `${base}/contact`], ["Terms", `${base}/policies/terms`], ["Privacy", `${base}/policies/privacy`]];
     return (
       <footer className="border-t bg-surface">
-        <div className="mx-auto flex max-w-[1200px] flex-col gap-3 px-4 py-6 text-xs text-muted-foreground md:flex-row md:flex-wrap md:items-center md:justify-between md:px-6">
+        <div className="mx-auto flex max-w-[calc(72rem*var(--pp-measure,1))] flex-col gap-3 px-4 py-6 text-xs text-muted-foreground md:flex-row md:flex-wrap md:items-center md:justify-between md:px-6">
           <nav aria-label="Footer">
             <ul className="flex flex-wrap gap-x-4">
               {few.map(([label, href]) => <li key={href}><Link href={href} className="inline-flex min-h-11 items-center text-sm text-foreground/80 hover:text-foreground hover:underline">{label}</Link></li>)}
@@ -74,14 +74,14 @@ export function StoreFooter({
           </nav>
           {social.length > 0 && <ul className="flex flex-wrap justify-center gap-x-4">{socialLinks}</ul>}
         </div>
-        <div className="mx-auto flex max-w-[1200px] flex-col items-center gap-2 border-t px-4 py-5 text-center text-xs text-muted-foreground md:px-6">{bottom}</div>
+        <div className="mx-auto flex max-w-[calc(72rem*var(--pp-measure,1))] flex-col items-center gap-2 border-t px-4 py-5 text-center text-xs text-muted-foreground md:px-6">{bottom}</div>
       </footer>
     );
   }
 
   return (
     <footer className="border-t bg-surface">
-      <div className="mx-auto grid max-w-[1200px] grid-cols-1 gap-8 px-4 py-12 md:grid-cols-[1.4fr_repeat(3,1fr)] md:px-6 [&>*]:min-w-0">
+      <div className="mx-auto grid max-w-[calc(72rem*var(--pp-measure,1))] grid-cols-1 gap-8 px-4 py-12 md:grid-cols-[1.4fr_repeat(3,1fr)] md:px-6 [&>*]:min-w-0">
         <div>
           <StoreLogo store={store} />
           <p className="mt-3 max-w-xs text-sm text-muted-foreground">{store.tagline}</p>
@@ -98,7 +98,7 @@ export function StoreFooter({
           </nav>
         ))}
       </div>
-      <div className="mx-auto flex max-w-[1200px] flex-col gap-2 border-t px-4 py-5 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between md:px-6">
+      <div className="mx-auto flex max-w-[calc(72rem*var(--pp-measure,1))] flex-col gap-2 border-t px-4 py-5 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between md:px-6">
         {bottom}
       </div>
     </footer>

@@ -153,7 +153,7 @@ export function StoreInfoEditor({ storeId, page }: { storeId: string; page: "ref
   const { data, error, reload, setData } = useApi(() => getStoreInfo(storeId), [storeId]);
   return (
     <>
-      <PageHeader title="Policies" description="Each store has its own. Nothing here is shared with your other stores." />
+      <PageHeader title="Policies" />
       <p className="-mt-2 mb-6 text-sm text-muted-foreground">
         Your About page and FAQ are edited in the{" "}
         <Link href={pageHref(storeId, "about")} className="font-medium text-primary underline underline-offset-4">store editor</Link>, beside the page that shows them.

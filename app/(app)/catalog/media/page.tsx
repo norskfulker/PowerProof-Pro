@@ -141,7 +141,6 @@ export default function MediaPage() {
       <title>Media · PowerProof</title>
       <PageHeader
         title="Media"
-        description="Every image, GIF and video you've uploaded or made with AI for this store."
         actions={
           <>
             <Button asChild variant="secondary"><Link href="/tools/ai-images"><Sparkles aria-hidden /> Create with AI</Link></Button>

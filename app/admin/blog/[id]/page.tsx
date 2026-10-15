@@ -52,7 +52,7 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
   return (
     <>
       <title>{`${found.title} · Blog · PowerProof admin`}</title>
-      <PageHeader back={{ href: "/admin/blog", label: "Blog" }} title={found.title} description="Everything here saves straight onto /blog." />
+      <PageHeader back={{ href: "/admin/blog", label: "Blog" }} title={found.title} />
       <BlogForm key={found.id + found.updatedAt} initial={initial} postId={found.id} takenTitle={found.slug} />
     </>
   );

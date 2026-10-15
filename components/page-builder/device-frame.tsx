@@ -9,19 +9,16 @@ export const SCREEN_WIDTH: Record<Device, number | undefined> = { desktop: undef
 export const SCREEN_HEIGHT: Record<Device, number> = { desktop: 720, tablet: 1180, mobile: 844 };
 
 /**
- * The page on a device, drawn the way it would really look: a Mac browser window on desktop, an
- * iPad and an iPhone. The screen clips the page to the device's rounded corners. The device grows
+ * The page on a device: a plain framed window on desktop (just the address on top), an iPad and
+ * an iPhone. The screen clips the page to the device's rounded corners. The device grows
  * with the page (nothing scrolls inside it); the editor scrolls as one page instead.
  */
 export function DeviceFrame({ device, address, dark, children }: { device: Device; address: string; dark?: boolean; children: React.ReactNode }) {
   if (device === "desktop") {
     return (
-      <div className="mx-auto w-full overflow-hidden rounded-[12px] border border-black/10 bg-background shadow-[0_24px_60px_-20px_rgb(0_0_0/0.35)] dark:border-white/10">
-        <div className="relative flex h-10 items-center gap-2 border-b bg-[#ECECEC] px-4 dark:bg-[#2A2A2A]" aria-hidden>
-          <span className="size-3 rounded-full bg-[#FF5F57]" />
-          <span className="size-3 rounded-full bg-[#FEBC2E]" />
-          <span className="size-3 rounded-full bg-[#28C840]" />
-          <span className="absolute inset-x-0 mx-auto flex h-6 w-[min(28rem,60%)] items-center justify-center truncate rounded-md bg-white/80 px-3 font-mono text-[0.6875rem] text-black/60 dark:bg-black/30 dark:text-white/60">{address}</span>
+      <div className="mx-auto w-full overflow-hidden rounded-[14px] border bg-background shadow-deep">
+        <div className="flex h-8 items-center justify-center border-b bg-surface px-4" aria-hidden>
+          <span className="truncate text-[0.6875rem] font-medium text-muted-foreground">{address.replace(/^https:\/\//, "")}</span>
         </div>
         {children}
       </div>

@@ -211,7 +211,6 @@ export default function OrdersPage() {
     <>
       <PageHeader
         title="Orders"
-        description="Every sale, refund and attempt. Amounts show what the buyer paid, with the rupee settlement underneath."
         actions={
           <Button asChild variant="secondary"><Link href={navHref("dashboard")}>Get your store link</Link></Button>
         }

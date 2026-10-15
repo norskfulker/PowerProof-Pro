@@ -57,7 +57,7 @@ export default function Page() {
   return (
     <>
       <title>Audit log · PowerProof admin</title>
-      <PageHeader title="Audit log" description="Who revealed or changed what. Entries are added by the system whenever staff change something." />
+      <PageHeader title="Audit log" />
       <DataTable
         label="Audit log"
         columns={columns}

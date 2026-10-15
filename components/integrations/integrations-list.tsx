@@ -14,7 +14,7 @@ import { getStoreDesign, updateStoreDesign } from "@/lib/api";
 import { cleanTags, clarityError, ga4Error } from "@/lib/analytics-tags";
 
 /** Google Analytics and Microsoft Clarity IDs for this store. Shared by Tools and Store › Analytics tags. */
-export function IntegrationsList({ title = "Integrations", description = "Paste one ID and we add the tracking code to every page of your store. No code to touch." }: { title?: string; description?: string }) {
+export function IntegrationsList({ title = "Integrations" }: { title?: string }) {
   const design = useApi(getStoreDesign, []);
   const [draft, setDraft] = useState<{ ga4Id: string; clarityId: string }>();
   const saved = useMemo(() => ({ ga4Id: design.data?.analytics?.ga4Id ?? "", clarityId: design.data?.analytics?.clarityId ?? "" }), [design.data]);
@@ -37,12 +37,12 @@ export function IntegrationsList({ title = "Integrations", description = "Paste 
     savedMessage: "Analytics saved",
   });
 
-  if (design.error) return <><PageHeader title={title} description={description} /><ErrorState message={design.error} onRetry={design.reload} /></>;
-  if (!design.data) return <><PageHeader title={title} description={description} /><Skeleton className="h-64 rounded-card" /></>;
+  if (design.error) return <><PageHeader title={title} /><ErrorState message={design.error} onRetry={design.reload} /></>;
+  if (!design.data) return <><PageHeader title={title} /><Skeleton className="h-64 rounded-card" /></>;
 
   return (
     <>
-      <PageHeader title={title} description={description} actions={<SaveBar state={bar} />} />
+      <PageHeader title={title} actions={<SaveBar state={bar} />} />
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <section aria-labelledby="ga-h" className="flex flex-col gap-3 rounded-card border bg-surface p-5 md:p-6">
           <h2 id="ga-h" className="flex items-center gap-2 font-sans text-base font-semibold tracking-normal"><BarChart3 className="size-5 text-primary" aria-hidden /> Google Analytics 4</h2>

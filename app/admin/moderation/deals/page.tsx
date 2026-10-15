@@ -85,7 +85,7 @@ export default function Page() {
   return (
     <>
       <title>Marketplace deals · PowerProof admin</title>
-      <PageHeader title="Marketplace deals" description="Deals creators list in the marketplace. A verified badge tells buyers staff checked the seller and the offer. Check the original price is real before you verify." />
+      <PageHeader title="Marketplace deals" />
       <StatusTabs
         label="Deal status"
         value={tab}

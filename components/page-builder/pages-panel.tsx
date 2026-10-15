@@ -9,6 +9,7 @@ import { ConfirmDialog } from "@/components/pp/confirm-dialog";
 import { ErrorState } from "@/components/pp/empty-state";
 import { StatusPill } from "@/components/pp/status-pill";
 import { AddPageDialog, editPageHref, PAGE_STARTERS } from "@/components/store-admin/add-page-dialog";
+import { TemplateThumb } from "./template-thumb";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -112,16 +113,21 @@ export function PagesPanel({ slug, currentId, storeLive, beforeLeave }: { slug: 
       {starters.length > 0 && (
         <section aria-labelledby="pp-starters" className="flex flex-col gap-2">
           <h3 id="pp-starters" className="eyebrow">Ready to make</h3>
-          <ul className="flex flex-col gap-2">
+          {/* Each ready-made page as a gradient card: one tap makes it */}
+          <ul className="grid grid-cols-2 gap-2">
             {starters.map((s) => (
-              <li key={s.template} className="flex items-start gap-3 rounded-control border border-dashed bg-surface p-3">
-                <span className="flex min-w-0 flex-1 flex-col">
-                  <span className="text-sm font-semibold">{s.title}</span>
-                  <span className="text-xs text-muted-foreground">{s.body}</span>
-                </span>
-                <Button type="button" variant="secondary" size="sm" disabled={!!busy} onClick={() => start(s.template, s.title)} aria-label={`Create a ${s.title.toLowerCase()}`}>
-                  Create
-                </Button>
+              <li key={s.template}>
+                <button
+                  type="button"
+                  disabled={!!busy}
+                  onClick={() => start(s.template, s.title)}
+                  aria-label={`Create a ${s.title.toLowerCase()}`}
+                  title={s.body}
+                  className="group flex w-full flex-col gap-1.5 rounded-control border bg-surface p-1.5 text-left shadow-card transition-[transform,box-shadow] duration-200 hover:-translate-y-0.5 hover:shadow-lift disabled:opacity-60"
+                >
+                  <TemplateThumb template={s.template} className="p-2.5" />
+                  <span className="px-1 pb-0.5 text-xs font-semibold">{busy === s.template ? "Creating…" : s.title}</span>
+                </button>
               </li>
             ))}
           </ul>

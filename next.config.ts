@@ -24,8 +24,11 @@ const MOVED: [from: string, to: string][] = [
   ["/customers", "/sales/customers"],
   ["/customers/:path*", "/sales/customers/:path*"],
   ["/payouts", "/sales/payouts/balance"],
-  ["/analytics", "/dashboard"],
-  ["/sales/analytics", "/dashboard"],
+  ["/sales/analytics", "/analytics"],
+  // Deals are listed and edited on the Marketplace page itself
+  ["/catalog/deals", "/marketplace?tab=mine"],
+  ["/catalog/deals/new", "/marketplace?tab=mine&new=1"],
+  ["/catalog/deals/:id", "/marketplace?tab=mine&deal=:id"],
   // Tools
   ["/images", "/tools/ai-images"],
   ["/integrations", "/tools/integrations"],

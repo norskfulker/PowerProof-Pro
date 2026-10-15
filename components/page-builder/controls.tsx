@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ICON_GROUPS, StoreIcon, type IconWeight } from "@/components/pp/icon-library";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { fieldLabel, Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
@@ -66,9 +66,9 @@ export function SelectField<T extends string>({ label, value, onChange, options 
 export function SwitchField({ label, checked, onChange, hint }: { label: string; checked: boolean; onChange: (v: boolean) => void; hint?: string }) {
   const id = useId();
   return (
-    <div className="flex min-h-11 items-start justify-between gap-4">
-      <label htmlFor={id} className="flex cursor-pointer flex-col">
-        <span className="text-sm font-medium">{label}</span>
+    <div className="flex min-h-9 items-center justify-between gap-4 pointer-coarse:min-h-11">
+      <label htmlFor={id} className="flex cursor-pointer flex-col gap-0.5">
+        <span className={fieldLabel}>{label}</span>
         {hint && <span className="text-xs text-muted-foreground">{hint}</span>}
       </label>
       <Switch id={id} checked={checked} onCheckedChange={onChange} />
@@ -79,7 +79,7 @@ export function SwitchField({ label, checked, onChange, hint }: { label: string;
 export function ChoiceField<T extends string>({ label, value, onChange, options }: { label: string; value: T; onChange: (v: T) => void; options: { value: T; label: string }[] }) {
   return (
     <div className="flex flex-col gap-1.5">
-      <span className="text-sm font-medium" aria-hidden>
+      <span className={fieldLabel} aria-hidden>
         {label}
       </span>
       <Segmented label={label} value={value} onChange={onChange} options={options} className="self-start" />
@@ -100,7 +100,7 @@ export function ColorField({ label, value, onChange, swatches: own }: { label: s
   const custom = !swatches.includes(current);
   return (
     <fieldset className="flex flex-col gap-1.5">
-      <legend className="mb-1 text-sm font-medium">{label}</legend>
+      <legend className={cn("mb-1", fieldLabel)}>{label}</legend>
       <div className="flex flex-wrap gap-2" role="radiogroup" aria-label={label}>
         {swatches.map((c) => (
           <button
@@ -222,7 +222,7 @@ export function BackgroundPicker({ style, onChange, context }: { style: BlockSty
       {media && (
         <>
           <fieldset className="grid grid-cols-2 gap-3">
-            <legend className="mb-1 text-sm font-medium">Focal point</legend>
+            <legend className={cn("mb-1", fieldLabel)}>Focal point</legend>
             <RangeField label="Across" value={bg.focal.x} min={0} max={100} step={5} suffix="%" onChange={(x) => onChange({ background: { ...bg, focal: { ...bg.focal, x } } }, "fx")} />
             <RangeField label="Down" value={bg.focal.y} min={0} max={100} step={5} suffix="%" onChange={(y) => onChange({ background: { ...bg, focal: { ...bg.focal, y } } }, "fy")} />
           </fieldset>
@@ -263,7 +263,7 @@ export function RangeField({ label, value, onChange, min, max, step, suffix = ""
           {suffix}
         </span>
       </div>
-      <input id={id} type="range" min={min} max={max} step={step} value={value} onChange={(e) => onChange(Number(e.target.value))} className="h-11 w-full accent-[var(--primary)]" />
+      <input id={id} type="range" min={min} max={max} step={step} value={value} onChange={(e) => onChange(Number(e.target.value))} className="h-6 w-full accent-[var(--primary)] pointer-coarse:h-11" />
     </div>
   );
 }
@@ -285,7 +285,7 @@ export function TableEditor({ rows, onChange }: { rows: string[][]; onChange: (r
               <tr key={i} className="border-b last:border-b-0">
                 {r.map((c, j) => (
                   <td key={j} className="p-1">
-                    <Input aria-label={`Row ${i + 1}, column ${j + 1}`} value={c} className="h-11 min-w-24" onChange={(e) => onChange(norm.map((rr, ii) => (ii === i ? rr.map((cc, jj) => (jj === j ? e.target.value : cc)) : rr)), `cell-${i}-${j}`)} />
+                    <Input aria-label={`Row ${i + 1}, column ${j + 1}`} value={c} className="min-w-24" onChange={(e) => onChange(norm.map((rr, ii) => (ii === i ? rr.map((cc, jj) => (jj === j ? e.target.value : cc)) : rr)), `cell-${i}-${j}`)} />
                   </td>
                 ))}
                 <td className="w-12 p-1">
@@ -372,7 +372,7 @@ export function SchemeField({ label = "Colour scheme", value, onChange, theme, m
   const schemes = schemesOf(theme);
   return (
     <fieldset className="flex flex-col gap-1.5">
-      <legend className="mb-1 text-sm font-medium">{label}</legend>
+      <legend className={cn("mb-1", fieldLabel)}>{label}</legend>
       <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label={label}>
         <button type="button" role="radio" aria-checked={!value} onClick={() => onChange("")} className={cn("flex min-h-14 flex-col items-center justify-center gap-1 rounded-control border border-dashed p-1.5 text-center text-[0.6875rem] leading-tight", !value ? "border-primary ring-2 ring-primary" : "hover:border-border-strong")}>
           {noneLabel}
@@ -453,9 +453,9 @@ export function IconField({ label = "Icon", value, onChange, weight, allowNone }
   const [open, setOpen] = useState(false);
   return (
     <div className="flex flex-col gap-1.5">
-      <span className="text-sm font-medium">{label}</span>
+      <span className={fieldLabel}>{label}</span>
       <div className="flex items-center gap-2">
-        <button type="button" onClick={() => setOpen(true)} className="flex min-h-11 flex-1 items-center gap-3 rounded-control border bg-surface px-3 text-left text-sm hover:border-primary">
+        <button type="button" onClick={() => setOpen(true)} className="flex min-h-9 flex-1 items-center gap-2.5 rounded-control border bg-surface px-3 text-left text-sm hover:border-primary pointer-coarse:min-h-11">
           {value ? <StoreIcon name={value} weight={weight} className="size-5 text-primary" /> : <span className="size-5 rounded-full border border-dashed" aria-hidden />}
           <span className="flex-1 truncate">{value ? value.replace(/([a-z])([A-Z])/g, "$1 $2") : "No icon"}</span>
           <span className="font-medium text-primary">Change</span>

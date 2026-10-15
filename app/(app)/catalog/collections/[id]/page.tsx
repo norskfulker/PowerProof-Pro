@@ -28,7 +28,6 @@ export default function CollectionPage({ params }: { params: Promise<{ id: strin
       <title>{`${col.name} · PowerProof`}</title>
       <PageHeader
         title={col.name}
-        description={`${products.length} product${products.length === 1 ? "" : "s"}`}
         actions={
           <Button asChild variant="secondary">
             <Link href="/catalog/collections"><Pencil aria-hidden /> Edit in Collections</Link>

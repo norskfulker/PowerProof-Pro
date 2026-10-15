@@ -15,7 +15,7 @@ import { collectionFrom, currency, dealRuleFrom, designFrom, pagesFrom, productF
  */
 
 /** Columns an anonymous visitor may read (owner, GSTIN and PAN are never among them). The invoice name is shown at checkout. */
-const STORE_COLS = "id, name, slug, country, tagline, logo_url, status, theme, theme_mode, currency_base, brand_color, support_email, refund_days, created_at, shipping, invoice_name, legal_name";
+const STORE_COLS = "id, name, slug, country, tagline, logo_url, status, theme, theme_mode, currency_base, brand_color, support_email, refund_days, created_at, shipping, invoice_name, legal_name, sells";
 const PRODUCT_COLS = "id, store_id, title, slug, description, status, currency, price_minor, min_price_minor, compare_at_price_minor, cover_bg, sku, hsn_sac, tax_rate_bps, product_type, fulfilment, source_url, created_at, updated_at, options, track_stock, stock, weight_grams";
 const REVIEW_COLS = "id, store_id, product_id, reviewer_name, rating, title, body, photos, status, creator_reply, replied_at, created_at, pinned";
 const QUESTION_COLS = "id, store_id, product_id, asker_name, body, answer, answered_at, status, created_at";
@@ -34,7 +34,8 @@ export async function load(slug: string): Promise<Loaded> {
   const storeRow = must(await client.from("stores").select(STORE_COLS).eq("slug", slug).maybeSingle(), { notFound: "Store" });
   const id = storeRow.id;
   const [productRows, collRows, rules, pageRows, customPages, reviewRows, questionRows, fx] = await Promise.all([
-    client.from("products").select(PRODUCT_COLS).eq("store_id", id).eq("status", "live").order("created_at", { ascending: false }),
+    // Only the kind the store sells (a leftover of the other kind isn't for sale)
+    client.from("products").select(PRODUCT_COLS).eq("store_id", id).eq("status", "live").eq("fulfilment", storeRow.sells).order("created_at", { ascending: false }),
     client.from("collections").select("*").eq("store_id", id).order("sort_order"),
     client.from("deal_rules").select("*").eq("store_id", id),
     client.from("store_pages").select("kind, content, edited").eq("store_id", id),

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { signInWithGoogle } from "@/lib/api";
 
 /** Google's "G", drawn in its brand colours as Google's sign-in guidelines ask. */
-function GoogleMark() {
+export function GoogleMark() {
   return (
     <svg viewBox="0 0 24 24" className="size-[18px]" aria-hidden>
       <path fill="#4285F4" d="M23.5 12.27c0-.85-.08-1.67-.22-2.45H12v4.64h6.45a5.52 5.52 0 0 1-2.39 3.62v3h3.87c2.26-2.09 3.57-5.17 3.57-8.81Z" />

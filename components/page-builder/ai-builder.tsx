@@ -70,11 +70,11 @@ export function AiBuilder({ open, onOpenChange, pageId, template, isHome, contex
     if (!open) return;
     let live = true;
     queueMicrotask(() => live && setBrief((b) => ({ ...b, language: b.language === "English" ? preferredLanguage(browserLanguage()) : b.language })));
-    void useAiBuild.getState().refreshAllowance();
+    void useAiBuild.getState().refreshAllowance(context.store.id);
     return () => {
       live = false;
     };
-  }, [open]);
+  }, [open, context.store.id]);
 
   const left = allowance ? Math.max(0, allowance.daily - allowance.used) : undefined;
   const set = (p: Partial<AiBrief>) => setBrief((b) => ({ ...b, ...p }));

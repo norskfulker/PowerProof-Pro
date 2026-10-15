@@ -110,54 +110,6 @@ export type Database = {
         }
         Relationships: []
       }
-      blog_posts: {
-        Row: {
-          author: string
-          body: string
-          cover_alt: string
-          cover_kind: string
-          cover_src: string
-          created_at: string
-          excerpt: string
-          id: string
-          published_at: string | null
-          slug: string
-          status: string
-          title: string
-          updated_at: string
-        }
-        Insert: {
-          author?: string
-          body?: string
-          cover_alt?: string
-          cover_kind?: string
-          cover_src?: string
-          created_at?: string
-          excerpt?: string
-          id?: string
-          published_at?: string | null
-          slug: string
-          status?: string
-          title: string
-          updated_at?: string
-        }
-        Update: {
-          author?: string
-          body?: string
-          cover_alt?: string
-          cover_kind?: string
-          cover_src?: string
-          created_at?: string
-          excerpt?: string
-          id?: string
-          published_at?: string | null
-          slug?: string
-          status?: string
-          title?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
       billing_receipts: {
         Row: {
           amount_minor: number
@@ -193,6 +145,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "billing_receipts_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "billing_subscriptions"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "billing_receipts_user_id_fkey"
             columns: ["user_id"]
@@ -243,11 +202,59 @@ export type Database = {
           {
             foreignKeyName: "billing_subscriptions_user_id_fkey"
             columns: ["user_id"]
-            isOneToOne: true
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
+      }
+      blog_posts: {
+        Row: {
+          author: string
+          body: string
+          cover_alt: string
+          cover_kind: string
+          cover_src: string
+          created_at: string
+          excerpt: string
+          id: string
+          published_at: string | null
+          slug: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          author?: string
+          body?: string
+          cover_alt?: string
+          cover_kind?: string
+          cover_src?: string
+          created_at?: string
+          excerpt?: string
+          id?: string
+          published_at?: string | null
+          slug: string
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          author?: string
+          body?: string
+          cover_alt?: string
+          cover_kind?: string
+          cover_src?: string
+          created_at?: string
+          excerpt?: string
+          id?: string
+          published_at?: string | null
+          slug?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       collection_items: {
         Row: {
@@ -908,6 +915,53 @@ export type Database = {
           },
         ]
       }
+      notifications: {
+        Row: {
+          area: string
+          body: string | null
+          created_at: string
+          dedupe: string | null
+          href: string | null
+          id: string
+          kind: string
+          read_at: string | null
+          store_id: string
+          title: string
+        }
+        Insert: {
+          area?: string
+          body?: string | null
+          created_at?: string
+          dedupe?: string | null
+          href?: string | null
+          id?: string
+          kind: string
+          read_at?: string | null
+          store_id: string
+          title: string
+        }
+        Update: {
+          area?: string
+          body?: string | null
+          created_at?: string
+          dedupe?: string | null
+          href?: string | null
+          id?: string
+          kind?: string
+          read_at?: string | null
+          store_id?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       order_items: {
         Row: {
           discount_minor: number
@@ -1014,6 +1068,7 @@ export type Database = {
           paid_at: string | null
           payment_method: string
           ref: string
+          reminded_at: string | null
           ship_to: Json | null
           shipped_at: string | null
           shipping_minor: number
@@ -1051,6 +1106,7 @@ export type Database = {
           paid_at?: string | null
           payment_method?: string
           ref?: string
+          reminded_at?: string | null
           ship_to?: Json | null
           shipped_at?: string | null
           shipping_minor?: number
@@ -1088,6 +1144,7 @@ export type Database = {
           paid_at?: string | null
           payment_method?: string
           ref?: string
+          reminded_at?: string | null
           ship_to?: Json | null
           shipped_at?: string | null
           shipping_minor?: number
@@ -1527,6 +1584,7 @@ export type Database = {
           full_name: string | null
           id: string
           last_seen_at: string | null
+          notify: Json
           onboarding: Json
           plan: Database["public"]["Enums"]["plan_tier"]
           updated_at: string
@@ -1539,6 +1597,7 @@ export type Database = {
           full_name?: string | null
           id: string
           last_seen_at?: string | null
+          notify?: Json
           onboarding?: Json
           plan?: Database["public"]["Enums"]["plan_tier"]
           updated_at?: string
@@ -1551,6 +1610,7 @@ export type Database = {
           full_name?: string | null
           id?: string
           last_seen_at?: string | null
+          notify?: Json
           onboarding?: Json
           plan?: Database["public"]["Enums"]["plan_tier"]
           updated_at?: string
@@ -1789,6 +1849,100 @@ export type Database = {
           },
         ]
       }
+      store_claims: {
+        Row: {
+          accepted_at: string | null
+          accepted_by: string | null
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          invited_by: string | null
+          keep_previous: boolean
+          kind: string
+          note: string | null
+          status: string
+          store_id: string
+          token_hash: string | null
+        }
+        Insert: {
+          accepted_at?: string | null
+          accepted_by?: string | null
+          created_at?: string
+          email: string
+          expires_at?: string
+          id?: string
+          invited_by?: string | null
+          keep_previous?: boolean
+          kind: string
+          note?: string | null
+          status?: string
+          store_id: string
+          token_hash?: string | null
+        }
+        Update: {
+          accepted_at?: string | null
+          accepted_by?: string | null
+          created_at?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          invited_by?: string | null
+          keep_previous?: boolean
+          kind?: string
+          note?: string | null
+          status?: string
+          store_id?: string
+          token_hash?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_claims_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      store_integrations: {
+        Row: {
+          config: Json
+          enabled: boolean
+          kind: string
+          provider: string
+          secret_enc: string | null
+          store_id: string
+          updated_at: string
+        }
+        Insert: {
+          config?: Json
+          enabled?: boolean
+          kind: string
+          provider: string
+          secret_enc?: string | null
+          store_id: string
+          updated_at?: string
+        }
+        Update: {
+          config?: Json
+          enabled?: boolean
+          kind?: string
+          provider?: string
+          secret_enc?: string | null
+          store_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_integrations_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       store_events: {
         Row: {
           created_at: string
@@ -1990,6 +2144,7 @@ export type Database = {
         Row: {
           brand_color: string | null
           business_type: string | null
+          cart_reminders: boolean
           company_address: string | null
           country: string
           created_at: string
@@ -2005,6 +2160,7 @@ export type Database = {
           owner_id: string
           pan: string | null
           refund_days: number
+          sells: string
           shipping: Json
           slug: string
           status: Database["public"]["Enums"]["store_status"]
@@ -2017,6 +2173,7 @@ export type Database = {
         Insert: {
           brand_color?: string | null
           business_type?: string | null
+          cart_reminders?: boolean
           company_address?: string | null
           country?: string
           created_at?: string
@@ -2032,6 +2189,7 @@ export type Database = {
           owner_id: string
           pan?: string | null
           refund_days?: number
+          sells?: string
           shipping?: Json
           slug: string
           status?: Database["public"]["Enums"]["store_status"]
@@ -2044,6 +2202,7 @@ export type Database = {
         Update: {
           brand_color?: string | null
           business_type?: string | null
+          cart_reminders?: boolean
           company_address?: string | null
           country?: string
           created_at?: string
@@ -2059,6 +2218,7 @@ export type Database = {
           owner_id?: string
           pan?: string | null
           refund_days?: number
+          sells?: string
           shipping?: Json
           slug?: string
           status?: Database["public"]["Enums"]["store_status"]
@@ -2199,6 +2359,7 @@ export type Database = {
           buyer_country: string | null
           buyer_email: string | null
           buyer_name: string | null
+          buyer_state: string | null
           cod_fee_minor: number | null
           created_at: string | null
           currency: string | null
@@ -2226,6 +2387,7 @@ export type Database = {
           buyer_country?: string | null
           buyer_email?: string | null
           buyer_name?: string | null
+          buyer_state?: string | null
           cod_fee_minor?: number | null
           created_at?: string | null
           currency?: string | null
@@ -2253,6 +2415,7 @@ export type Database = {
           buyer_country?: string | null
           buyer_email?: string | null
           buyer_name?: string | null
+          buyer_state?: string | null
           cod_fee_minor?: number | null
           created_at?: string | null
           currency?: string | null
@@ -2431,10 +2594,7 @@ export type Database = {
           target_type: string
         }[]
       }
-      admin_blog_delete: {
-        Args: { p_id: string }
-        Returns: undefined
-      }
+      admin_blog_delete: { Args: { p_id: string }; Returns: undefined }
       admin_blog_list: {
         Args: never
         Returns: {
@@ -2461,8 +2621,8 @@ export type Database = {
           p_cover_kind: string
           p_cover_src: string
           p_excerpt: string
-          p_id?: string
-          p_published_at?: string
+          p_id: string
+          p_published_at: string
           p_slug: string
           p_status: string
           p_title: string
@@ -2736,6 +2896,23 @@ export type Database = {
         Args: { p_from: string; p_store: string; p_to: string }
         Returns: Json
       }
+      auth_methods: {
+        Args: { p_email: string }
+        Returns: {
+          out_exists: boolean
+          out_google: boolean
+          out_password: boolean
+        }[]
+      }
+      apply_direct_payment: {
+        Args: { p_gateway_order_id: string; p_gateway_payment_id: string }
+        Returns: {
+          out_already_paid: boolean
+          out_order_id: string
+          out_ref: string
+          out_token: string
+        }[]
+      }
       apply_payment: {
         Args: {
           p_gateway_fee_minor?: number
@@ -2785,6 +2962,7 @@ export type Database = {
       }
       create_order: {
         Args: {
+          p_buyer_state?: string
           p_cod_fee?: number
           p_country: string
           p_coupon: string
@@ -2798,7 +2976,6 @@ export type Database = {
           p_payment_method?: string
           p_phone: string
           p_ref: string
-          p_buyer_state?: string
           p_ship_to?: Json
           p_shipping?: number
           p_store: string
@@ -2864,6 +3041,10 @@ export type Database = {
           verified: boolean
         }[]
       }
+      money_text: {
+        Args: { p_currency: string; p_minor: number }
+        Returns: string
+      }
       my_stores: {
         Args: never
         Returns: {
@@ -2878,6 +3059,23 @@ export type Database = {
         }[]
       }
       next_invoice_no: { Args: never; Returns: string }
+      notification_visible: {
+        Args: { p_area: string; p_store: string }
+        Returns: boolean
+      }
+      notifications_read_all: { Args: { p_store: string }; Returns: undefined }
+      notify: {
+        Args: {
+          p_area: string
+          p_body: string
+          p_dedupe: string
+          p_href: string
+          p_kind: string
+          p_store: string
+          p_title: string
+        }
+        Returns: undefined
+      }
       order_for_token: { Args: { p_token: string }; Returns: string }
       payout_name_tokens: { Args: { p: string }; Returns: string[] }
       primary_domain: { Args: { p_slug: string }; Returns: string }
@@ -2946,6 +3144,19 @@ export type Database = {
         Args: { p_bucket: string; p_store: string }
         Returns: boolean
       }
+      store_claim_accept: { Args: { p_token: string }; Returns: string }
+      store_claim_blocker: { Args: { p_store: string }; Returns: string }
+      store_claim_cancel: { Args: { p_claim: string }; Returns: undefined }
+      store_claim_create: {
+        Args: {
+          p_email: string
+          p_keep_previous?: boolean
+          p_note?: string
+          p_store: string
+        }
+        Returns: Json
+      }
+      store_claim_info: { Args: { p_token: string }; Returns: Json }
       store_is_public: { Args: { p_store: string }; Returns: boolean }
       store_slug_available: { Args: { p_slug: string }; Returns: boolean }
       submit_lead: {

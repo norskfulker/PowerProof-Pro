@@ -137,7 +137,6 @@ export default function CollectionsPage() {
     <>
       <PageHeader
         title="Collections"
-        description="Group products so buyers can browse. Each one gets a tile on your store and its own page."
         actions={<Button onClick={() => open(newDraft())}><Plus aria-hidden /> New collection</Button>}
       />
       <DataTable

@@ -9,7 +9,7 @@ export const TEAM_AREAS = [
   { id: "orders", label: "Orders and customers", body: "Orders, shipping, refunds, customers, leads, reviews and questions" },
   { id: "design", label: "Store design", body: "The store editor, pages, policies, SEO, analytics tags and the domain" },
   { id: "marketing", label: "Offers", body: "Coupons, bundles, deal paths and marketplace deals" },
-  { id: "analytics", label: "Analytics", body: "Sales figures and visitor numbers on the dashboard" },
+  { id: "analytics", label: "Analytics", body: "Sales figures, buyers and visitor numbers on the Analytics page" },
   { id: "business", label: "Business details", body: "Store settings, company, invoice name and tax" },
 ] as const;
 
@@ -54,7 +54,8 @@ export function needForPath(path: string): Need {
     if (rest.startsWith("/settings")) return "business";
     return "design";
   }
-  if (p.startsWith("/catalog/deals") || p.startsWith("/catalog/bundles")) return "marketing";
+  if (p.startsWith("/catalog/bundles")) return "marketing";
+  if (p.startsWith("/analytics")) return "analytics";
   if (p.startsWith("/catalog")) return "catalog";
   if (p.startsWith("/sales/payouts")) return "owner";
   if (p.startsWith("/sales")) return "orders";

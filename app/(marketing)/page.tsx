@@ -16,12 +16,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { CtaBand } from "@/components/marketing/cta-band";
 import { Faq } from "@/components/marketing/faq";
-
-const WAYS = [
-  { icon: FileUp, title: "Upload a file", body: "Drop a PDF, ZIP or video. Name it, price it, done." },
-  { icon: LayoutTemplate, title: "Make the store yours", body: "Pick colours, write your story and arrange the sections. No code." },
-  { icon: Share2, title: "Share your link", body: "Put your store link in your bio, your newsletter, your WhatsApp status." },
-];
+import { HeroVisual } from "@/components/marketing/hero-visual";
+import { GlassIcon } from "@/components/pp/glass-icon";
+import { PRO_PRICE_INR } from "@/lib/plans";
 
 const AFTER = [
   { icon: BadgeIndianRupee, title: "Buyer pays", body: "UPI, cards or netbanking." },
@@ -40,7 +37,8 @@ const INDIA = [
 export default function HomePage() {
   return (
     <>
-      <section className="gutter mx-auto grid grid-cols-1 max-w-[1200px] items-center gap-14 pt-10 pb-16 md:pt-16 lg:gap-10">
+      <div aria-hidden className="grain bg-mesh-dawn pointer-events-none absolute inset-x-0 top-0 -z-10 h-[46rem] [mask-image:linear-gradient(to_bottom,black_55%,transparent)]" />
+      <section className="gutter relative mx-auto grid max-w-[1200px] grid-cols-1 items-center gap-14 pt-10 pb-20 md:pt-16 lg:grid-cols-[1.05fr_1fr] lg:gap-16 lg:pb-28">
         <div>
           <h1 className="mt-4 text-[2.75rem] leading-[1.02] sm:text-5xl lg:text-[4rem]">
             Add a product.
@@ -66,21 +64,41 @@ export default function HomePage() {
             First month free, then ₹1,999/month. <Link href="/pricing" className="font-medium text-foreground underline underline-offset-4">3% per sale</Link>.
           </p>
         </div>
+        <HeroVisual />
       </section>
 
       <section className="gutter mx-auto max-w-[1200px]" aria-labelledby="ways">
-        <h2 id="ways" className="mt-3 max-w-xl text-3xl md:text-4xl">Three steps to put something up for sale.</h2>
-        <ul className="mt-8 grid grid-cols-1 gap-4 md:grid-cols-3">
-          {WAYS.map((w, i) => (
-            <li key={w.title} className="rounded-card border bg-surface p-6">
-              <div className="flex items-center justify-between">
-                <span className="grid size-11 place-items-center rounded-control bg-primary-soft text-primary">
-                  <w.icon className="size-5" aria-hidden />
-                </span>
-                <span className="font-mono text-xs text-muted-foreground">0{i + 1}</span>
+        <h2 id="ways" className="max-w-2xl text-3xl md:text-[2.75rem]">Everything a store needs. Nothing you have to set up.</h2>
+        {/* A bento: the three steps, the parts India needs, and the free month */}
+        <ul className="mt-10 grid grid-cols-1 gap-4 md:grid-cols-6 md:auto-rows-[minmax(13rem,auto)]">
+          <li className="grain bg-mesh-forest flex flex-col justify-between rounded-card p-7 shadow-deep md:col-span-3 md:row-span-2">
+            <GlassIcon icon={FileUp} tone="mint" size="xl" />
+            <div>
+              <p className="text-xs font-semibold tracking-[0.06em] text-white/70 uppercase">Step 1</p>
+              <h3 className="mt-2 text-3xl text-white md:text-4xl">Upload a file. Name it. Price it.</h3>
+              <p className="mt-3 max-w-md text-white/80">Drop a PDF, ZIP or video, or add something you ship. It&apos;s live in about a minute, with a page that sells it.</p>
+            </div>
+          </li>
+          {[
+            { icon: LayoutTemplate, tone: "coral" as const, step: "Step 2", title: "Make the store yours", body: "Pick colours, write your story and arrange the sections. No code." },
+            { icon: Share2, tone: "sky" as const, step: "Step 3", title: "Share your link", body: "In your bio, your newsletter, your WhatsApp status." },
+          ].map((w) => (
+            <li key={w.title} className="flex flex-col justify-between gap-6 rounded-card border bg-surface p-6 shadow-card md:col-span-3">
+              <GlassIcon icon={w.icon} tone={w.tone} size="lg" />
+              <div>
+                <p className="eyebrow">{w.step}</p>
+                <h3 className="mt-1.5 text-xl">{w.title}</h3>
+                <p className="mt-1 text-muted-foreground">{w.body}</p>
               </div>
-              <h3 className="mt-5 text-xl">{w.title}</h3>
-              <p className="mt-2 text-muted-foreground">{w.body}</p>
+            </li>
+          ))}
+          {INDIA.map((f, i) => (
+            <li key={f.title} className="flex flex-col justify-between gap-6 rounded-card border bg-surface p-6 shadow-card md:col-span-2">
+              <GlassIcon icon={f.icon} tone={(["amber", "emerald", "lime"] as const)[i]} size="lg" />
+              <div>
+                <h3 className="text-xl">{f.title}</h3>
+                <p className="mt-1 text-muted-foreground">{f.body}</p>
+              </div>
             </li>
           ))}
         </ul>
@@ -108,24 +126,12 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="gutter mx-auto mt-24 max-w-[1200px]" aria-labelledby="india">
-        <h2 id="india" className="mt-3 max-w-2xl text-3xl md:text-4xl">The boring parts, already done properly.</h2>
-        <ul className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {INDIA.map((f) => (
-            <li key={f.title} className="rounded-card border bg-surface p-6">
-              <f.icon className="size-5 text-primary" aria-hidden />
-              <h3 className="mt-4 font-sans text-lg font-semibold tracking-normal">{f.title}</h3>
-              <p className="mt-1 text-sm text-muted-foreground">{f.body}</p>
-            </li>
-          ))}
-        </ul>
-      </section>
 
       <section className="gutter mx-auto mt-24 grid grid-cols-1 max-w-[1200px] items-center gap-10 lg:grid-cols-2" aria-labelledby="money">
         <div>
           <h2 id="money" className="mt-3 text-3xl md:text-4xl">No setup fee. No tiers. No surprises.</h2>
           <p className="mt-4 max-w-md text-muted-foreground">
-            First month free. Then ₹1,999 a month, 3% per sale, and the gateway&apos;s ~2%. That&apos;s the whole list.
+            First month free. Then ₹{PRO_PRICE_INR.toLocaleString("en-IN")} a month, 3% per sale, and the gateway&apos;s ~2%. That&apos;s the whole list.
           </p>
           <Button asChild variant="secondary" className="mt-6">
             <Link href="/pricing">
@@ -133,6 +139,21 @@ export default function HomePage() {
             </Link>
           </Button>
         </div>
+        {/* The whole price list, from lib/plans.ts */}
+        <dl className="divide-y rounded-card border bg-surface">
+          {[
+            ["Setting up", "₹0"],
+            ["First month", "Free"],
+            ["After that", `₹${PRO_PRICE_INR.toLocaleString("en-IN")} a month`],
+            ["Per sale", "3%"],
+            ["Payment gateway", "~2%, charged by the gateway"],
+          ].map(([k, v]) => (
+            <div key={k} className="flex items-baseline justify-between gap-4 px-6 py-4">
+              <dt className="text-muted-foreground">{k}</dt>
+              <dd className="font-display text-xl">{v}</dd>
+            </div>
+          ))}
+        </dl>
       </section>
 
       <section className="gutter mx-auto mt-24 max-w-[820px]" aria-labelledby="faq">

@@ -17,7 +17,7 @@ export function MobilePayBar({ total, pending, savings, preview }: { total: Mone
       <div className="mx-auto flex max-w-xl items-center gap-3">
         <div className="min-w-0 flex-1">
           <p className="text-xs text-muted-foreground">Total</p>
-          <p className="truncate font-display text-lg font-extrabold tabular" aria-live="polite">
+          <p className="truncate font-display text-lg font-bold tabular" aria-live="polite">
             <MoneyText value={total} />
           </p>
           {/* Always takes its line, so the bar (and the Pay button) never changes height */}

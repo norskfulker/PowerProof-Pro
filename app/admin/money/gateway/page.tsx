@@ -57,7 +57,7 @@ export default function GatewayPage() {
     return () => clearTimeout(t);
   }, [load]);
 
-  const header = <PageHeader title="Payment gateway" description="Whether this site can take real payments, and what is still missing." />;
+  const header = <PageHeader title="Payment gateway" />;
   if (!s) return <>{header}<Loader2 className="size-5 animate-spin text-muted-foreground" aria-label="Loading" /></>;
   if (!s.ok) return <>{header}<p role="alert" className="text-sm font-medium text-danger">{s.message}</p></>;
 

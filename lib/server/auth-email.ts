@@ -78,7 +78,9 @@ export function hookMails(p: HookPayload, site: string): Mail[] {
 
   if (action in AUTH_KINDS) {
     const kind = action as AuthMailKind;
-    return [{ to: email, ...authMail({ kind, email, code: d.token, url: callbackLink(kind, d.token_hash, d.redirect_to, site) }) }];
+    // A reset asked for from login's "add a password" (Google accounts) reads as linking, not a reset
+    const bind = kind === "recovery" && /bind(=|%3D)1/.test(d.redirect_to ?? "");
+    return [{ to: email, ...authMail({ kind: bind ? "bind" : kind, email, code: d.token, url: callbackLink(kind, d.token_hash, d.redirect_to, site) }) }];
   }
 
   // Security notices (password or email changed, sign-in methods, two-step login)

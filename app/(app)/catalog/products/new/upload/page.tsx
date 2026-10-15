@@ -16,9 +16,9 @@ function NewProduct() {
   const router = useRouter();
   const type = useSearchParams().get("type");
   const known = type === "digital" || type === "physical";
-  // The kind is the first choice. Without one, send people back to make it.
+  // Old links without a kind go back to the start. The kind itself is the store's (Store settings).
   useEffect(() => {
     if (!known) router.replace("/catalog/products/new");
   }, [known, router]);
-  return known ? <NewProductForm type={type} /> : null;
+  return known ? <NewProductForm /> : null;
 }

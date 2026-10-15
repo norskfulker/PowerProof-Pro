@@ -74,7 +74,7 @@ export default function Page() {
   return (
     <>
       <title>Review moderation · PowerProof admin</title>
-      <PageHeader title="Review moderation" description="Hide or keep reviews and questions on any store." />
+      <PageHeader title="Review moderation" />
       <Segmented
         label="What to moderate"
         value={kind}

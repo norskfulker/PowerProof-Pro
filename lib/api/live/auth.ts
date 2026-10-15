@@ -11,6 +11,8 @@ const PENDING = "pp:pending-email";
 
 function authError(message: string): never {
   const m = message.toLowerCase();
+  // The Send Email hook failed (not set up on this deployment, or the mail service is down)
+  if (m.includes("due to hook") || m.includes("sending") && m.includes("email")) throw new ApiError("We couldn't send the email just now. Try again in a few minutes, or continue with Google.");
   if (m.includes("invalid login")) throw new ApiError("That email and password don't match. Try again or use a login link.", "validation");
   if (m.includes("not confirmed")) throw new ApiError("Confirm your email first. We've sent you a code.", "validation");
   if (m.includes("already registered") || m.includes("already been registered")) throw new ApiError("There's already an account with this email. Log in instead.", "conflict");
@@ -89,6 +91,45 @@ export async function requestPasswordReset(email: string): Promise<void> {
   if (!email.includes("@")) throw new ApiError("Enter a valid email.", "validation");
   const { error } = await sb().auth.resetPasswordForEmail(email.trim(), { redirectTo: callback("/reset-password") });
   if (error && /rate limit|security purposes/i.test(error.message)) authError(error.message);
+}
+
+/**
+ * Whether this email belongs to an account that signs in with Google and has no password yet,
+ * so login can offer Google or adding a password to that same account. False when unsure.
+ */
+export async function emailUsesGoogle(email: string): Promise<boolean> {
+  if (!email.includes("@")) return false;
+  try {
+    const r = await fetch("/api/auth/methods", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ email: email.trim() }) });
+    return r.ok && ((await r.json()) as { google?: boolean }).google === true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Links an email and password to the account that already uses Google: a verified link to that
+ * inbox signs them into the same account, and they choose a password there.
+ */
+export async function sendPasswordLink(email: string): Promise<void> {
+  if (!email.includes("@")) throw new ApiError("Enter a valid email.", "validation");
+  const { error } = await sb().auth.resetPasswordForEmail(email.trim(), { redirectTo: callback("/reset-password?bind=1") });
+  if (error) authError(error.message);
+}
+
+/** Signed in: changes the password after checking the current one, or adds a first one (Google accounts) */
+export async function changePassword(next: string, current?: string): Promise<void> {
+  if (next.length < 8) throw new ApiError("Use at least 8 characters. A short sentence works well.", "validation");
+  const client = sb();
+  const { data } = await client.auth.getUser();
+  const email = data.user?.email;
+  if (!email) throw new ApiError("Log in again to change your password.", "validation");
+  if (current !== undefined) {
+    const check = await client.auth.signInWithPassword({ email, password: current });
+    if (check.error) throw new ApiError("Your current password isn't right.", "validation");
+  }
+  const { error } = await client.auth.updateUser({ password: next });
+  if (error) authError(error.message);
 }
 
 export async function updatePassword(password: string): Promise<void> {

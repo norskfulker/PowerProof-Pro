@@ -28,7 +28,7 @@ export function ContentPanel({ storeId, slug, at, onAbout, onFaq }: { storeId: s
       <p className="text-sm text-muted-foreground">Used by the About and FAQ sections on any page, and by your store&apos;s own About and FAQ pages. Saved as you type, live straight away.</p>
       <section aria-labelledby="cp-about" className="flex flex-col gap-3">
         <div className="flex items-center justify-between gap-2">
-          <h3 id="cp-about" className="font-display text-base font-extrabold">About you</h3>
+          <h3 id="cp-about" className="font-display text-base font-bold">About you</h3>
           <Link href={`/s/${slug}/about`} target="_blank" className="inline-flex min-h-9 items-center gap-1 text-xs font-medium text-primary underline-offset-4 hover:underline">
             <ExternalLink className="size-3.5" aria-hidden /> View page
           </Link>
@@ -37,7 +37,7 @@ export function ContentPanel({ storeId, slug, at, onAbout, onFaq }: { storeId: s
       </section>
       <section ref={faq} aria-labelledby="cp-faq" className="flex scroll-mt-3 flex-col gap-3 border-t pt-5">
         <div className="flex items-center justify-between gap-2">
-          <h3 id="cp-faq" className="font-display text-base font-extrabold">FAQ</h3>
+          <h3 id="cp-faq" className="font-display text-base font-bold">FAQ</h3>
           <Link href={`/s/${slug}/faq`} target="_blank" className="inline-flex min-h-9 items-center gap-1 text-xs font-medium text-primary underline-offset-4 hover:underline">
             <ExternalLink className="size-3.5" aria-hidden /> View page
           </Link>

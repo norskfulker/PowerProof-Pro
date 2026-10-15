@@ -26,21 +26,25 @@ body[data-payment-provider-open="true"] [data-slot="sheet-content"] {
 [data-theme="light"] {
   color-scheme: light;
   /* Surfaces */
-  --background: #f5f6f4; /* porcelain */
+  /* Which faces the type utilities use; store themes swap these two (lib/store-themes.ts) */
+  --font-heading: var(--font-inter);
+  --font-ui: var(--font-inter);
+
+  --background: #f7f7f5; /* paper */
   --surface: #ffffff;
-  --surface-sunken: #eef0ec;
-  --foreground: #0c1f1b; /* ink */
-  --muted: #eef0ec;
-  --muted-foreground: #5b6b66;
-  --border: #e3e6e1;
-  --border-strong: #c9d0cb;
-  --input: #85918b; /* 3:1 against white and porcelain for form boundaries */
+  --surface-sunken: #f2f3f0;
+  --foreground: #0b100e; /* ink */
+  --muted: #f0f1ee;
+  --muted-foreground: #5c6560;
+  --border: #e6e7e3;
+  --border-strong: #d2d5cf;
+  --input: #868c88; /* 3:1 against white and paper for form boundaries */
 
   /* Brand */
-  --primary: #0f3d33; /* emerald */
-  --primary-hover: #14503f;
-  --primary-foreground: #f5f6f4;
-  --primary-soft: #e3ece8;
+  --primary: #0b5c45; /* emerald */
+  --primary-hover: #094d3a;
+  --primary-foreground: #ffffff;
+  --primary-soft: #e4f1ea;
   --accent: #c9a24f; /* brass */
   --accent-strong: #a9823a;
   --accent-ink: #7a5c20; /* brass for small text, AA on porcelain */
@@ -60,11 +64,15 @@ body[data-payment-provider-open="true"] [data-slot="sheet-content"] {
   --info-soft: #e5eef2;
 
   /* Admin shell */
-  --sidebar-admin: #0a2b24;
+  --sidebar-admin: #0e1412;
   --sidebar-admin-foreground: #f5f6f4;
 
   /* Charts */
-  --chart-1: #0f3d33;
+  --chart-1: #0b5c45;
+  /* Trend lines (validated together: lightness band, chroma, CVD and contrast on the surface) */
+  --chart-revenue: #0f8a63;
+  --chart-orders: #c2770e;
+  --chart-visitors: #1f86c7;
   --chart-2: #c9a24f;
   --chart-3: #4f8a78;
   --chart-4: #1d5c7a;
@@ -74,18 +82,46 @@ body[data-payment-provider-open="true"] [data-slot="sheet-content"] {
   --dur-fast: 150ms;
   --dur-base: 200ms;
   --shadow-pop: 0 12px 32px -12px rgb(12 31 27 / 0.22), 0 2px 6px rgb(12 31 27 / 0.06);
+  /* Resting depth: buttons and cards sit just above the page */
+  --pp-shadow-xs: 0 1px 2px rgb(11 16 14 / 0.1), 0 2px 6px -2px rgb(11 16 14 / 0.12), inset 0 1px 0 rgb(255 255 255 / 0.16);
+  /* Depth comes from stacked shadows: a contact line, a near soft one and a far wide one */
+  --pp-shadow-card: 0 0 0 1px rgb(11 16 14 / 0.015), 0 1px 1px rgb(11 16 14 / 0.03), 0 2px 4px -1px rgb(11 16 14 / 0.04), 0 8px 16px -8px rgb(11 16 14 / 0.07);
+  --pp-shadow-lift: 0 1px 1px rgb(11 16 14 / 0.04), 0 4px 8px -2px rgb(11 16 14 / 0.06), 0 16px 32px -12px rgb(11 16 14 / 0.16), 0 36px 64px -28px rgb(11 16 14 / 0.18);
+  --pp-shadow-deep: 0 2px 2px rgb(11 16 14 / 0.04), 0 8px 16px -4px rgb(11 16 14 / 0.08), 0 24px 48px -16px rgb(11 16 14 / 0.22), 0 56px 96px -40px rgb(11 16 14 / 0.25);
+
+  /*
+   * Gradients: layered "mesh" washes in sunny, natural tones (amber, peach, mint, emerald, sky),
+   * always under a fine grain (.grain) so they read as print, not as a flat digital glow.
+   * --mesh-dawn is light (dark text on it); --mesh-forest is deep (white text on it).
+   */
+  --mesh-dawn:
+    radial-gradient(60% 70% at 8% 10%, #ffe2a8 0%, transparent 60%),
+    radial-gradient(55% 60% at 92% 6%, #ffc3a6 0%, transparent 60%),
+    radial-gradient(60% 70% at 85% 95%, #b7f0d2 0%, transparent 60%),
+    radial-gradient(55% 60% at 10% 92%, #c7e8fb 0%, transparent 60%),
+    linear-gradient(135deg, #fff8ee 0%, #f2fbf6 100%);
+  --mesh-forest:
+    radial-gradient(70% 80% at 0% 0%, #12805f 0%, transparent 60%),
+    radial-gradient(60% 70% at 100% 0%, #1f9d6b 0%, transparent 58%),
+    radial-gradient(55% 60% at 100% 100%, rgb(240 170 72 / 0.55) 0%, transparent 60%),
+    radial-gradient(60% 70% at 0% 100%, #0d6e73 0%, transparent 60%),
+    linear-gradient(160deg, #0a4d3a 0%, #073528 100%);
+  --mesh-brass:
+    radial-gradient(70% 80% at 0% 0%, #fff1cf 0%, transparent 62%),
+    radial-gradient(60% 70% at 100% 100%, #ffd9b8 0%, transparent 60%),
+    linear-gradient(140deg, #fff8ea 0%, #fdeedd 100%);
   --media-dim: 1;
 
   /* Always-dark panels (code editor, video placeholders) and the dialog scrim */
-  --inverse: #0c1f1b;
-  --inverse-foreground: #f5f6f4;
-  --scrim: rgb(12 31 27 / 0.4);
+  --inverse: #0b100e;
+  --inverse-foreground: #f7f7f5;
+  --scrim: rgb(11 16 14 / 0.45);
 
   /* Toasts: ink on light pages */
-  --toast-bg: #0c1f1b;
-  --toast-fg: #f5f6f4;
-  --toast-muted: #b9c4c0;
-  --toast-border: #0c1f1b;
+  --toast-bg: #0b100e;
+  --toast-fg: #f7f7f5;
+  --toast-muted: #b7bdb9;
+  --toast-border: #0b100e;
 }
 
 /* Dark theme (Part 7A). Same tokens, dark values. Every pair is checked for AA in
@@ -93,21 +129,21 @@ body[data-payment-provider-open="true"] [data-slot="sheet-content"] {
 :root[data-theme="dark"],
 [data-theme="dark"] {
   color-scheme: dark;
-  --background: #0a1412;
-  --surface: #101d1a;
-  --surface-sunken: #0d1816;
-  --foreground: #eaf0ed;
-  --muted: #16261f;
-  --muted-foreground: #93a39d;
-  --border: #1f322d;
-  --border-strong: #2e4740;
-  --input: #5e726b;
+  --background: #0b0d0c;
+  --surface: #131615;
+  --surface-sunken: #0f1211;
+  --foreground: #f1f3f2;
+  --muted: #1a1e1c;
+  --muted-foreground: #9aa29e;
+  --border: #232826;
+  --border-strong: #333a37;
+  --input: #646d69;
 
   /* Emerald lifted so it reads as text on dark surfaces and buttons stay legible */
-  --primary: #3aa584;
-  --primary-hover: #45b590;
-  --primary-foreground: #06100d;
-  --primary-soft: #12302a;
+  --primary: #3cc492;
+  --primary-hover: #52d0a1;
+  --primary-foreground: #04110c;
+  --primary-soft: #10291f;
   --accent: #c9a24f;
   --accent-strong: #d8b465;
   --accent-ink: #d9b45e;
@@ -125,10 +161,13 @@ body[data-payment-provider-open="true"] [data-slot="sheet-content"] {
   --info: #5fb0d6;
   --info-soft: #1b3234;
 
-  --sidebar-admin: #071310;
+  --sidebar-admin: #090b0a;
   --sidebar-admin-foreground: #eaf0ed;
 
-  --chart-1: #3aa584;
+  --chart-1: #3cc492;
+  --chart-revenue: #28a878;
+  --chart-orders: #bd7f24;
+  --chart-visitors: #4f9bdc;
   --chart-2: #c9a24f;
   --chart-3: #7fc4ad;
   --chart-4: #5fb0d6;
@@ -136,6 +175,21 @@ body[data-payment-provider-open="true"] [data-slot="sheet-content"] {
 
   /* Shadows become borders in dark */
   --shadow-pop: 0 0 0 1px var(--border-strong);
+  --pp-shadow-xs: inset 0 1px 0 rgb(255 255 255 / 0.08), 0 2px 6px -2px rgb(0 0 0 / 0.6);
+  /* A faint top highlight keeps dark cards crisp; deep black shadows give them height */
+  --pp-shadow-card: inset 0 1px 0 rgb(255 255 255 / 0.045), 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 20px -10px rgb(0 0 0 / 0.6);
+  --pp-shadow-lift: inset 0 1px 0 rgb(255 255 255 / 0.07), 0 2px 4px rgb(0 0 0 / 0.5), 0 20px 40px -16px rgb(0 0 0 / 0.75);
+  --pp-shadow-deep: inset 0 1px 0 rgb(255 255 255 / 0.08), 0 4px 8px rgb(0 0 0 / 0.5), 0 32px 64px -24px rgb(0 0 0 / 0.8);
+  --mesh-dawn:
+    radial-gradient(60% 70% at 8% 10%, rgb(240 170 72 / 0.22) 0%, transparent 60%),
+    radial-gradient(55% 60% at 92% 6%, rgb(255 140 110 / 0.16) 0%, transparent 60%),
+    radial-gradient(60% 70% at 85% 95%, rgb(60 196 146 / 0.2) 0%, transparent 60%),
+    radial-gradient(55% 60% at 10% 92%, rgb(90 180 230 / 0.16) 0%, transparent 60%),
+    linear-gradient(135deg, #15181a 0%, #121614 100%);
+  --mesh-brass:
+    radial-gradient(70% 80% at 0% 0%, rgb(240 190 90 / 0.22) 0%, transparent 62%),
+    radial-gradient(60% 70% at 100% 100%, rgb(255 150 110 / 0.14) 0%, transparent 60%),
+    linear-gradient(140deg, #1a1915 0%, #161513 100%);
   --media-dim: 0.88;
 
   --inverse: #050c0a;
@@ -143,10 +197,10 @@ body[data-payment-provider-open="true"] [data-slot="sheet-content"] {
   --scrim: rgb(0 0 0 / 0.6);
 
   /* Toasts: a raised surface on dark pages */
-  --toast-bg: #1a2c27;
-  --toast-fg: #eaf0ed;
-  --toast-muted: #a9b8b2;
-  --toast-border: #2e4740;
+  --toast-bg: #1c201e;
+  --toast-fg: #f1f3f2;
+  --toast-muted: #a9b0ac;
+  --toast-border: #333a37;
 }
 
 @theme inline {
@@ -200,8 +254,8 @@ body[data-payment-provider-open="true"] [data-slot="sheet-content"] {
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
 
-  --font-display: var(--font-bricolage), var(--font-noto-deva), var(--font-noto-tamil), var(--font-noto-telugu), var(--font-noto-kannada), ui-sans-serif, system-ui, sans-serif;
-  --font-sans: var(--font-hanken), var(--font-noto-deva), var(--font-noto-tamil), var(--font-noto-telugu), var(--font-noto-kannada), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-heading), var(--font-noto-deva), var(--font-noto-tamil), var(--font-noto-telugu), var(--font-noto-kannada), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-ui), var(--font-noto-deva), var(--font-noto-tamil), var(--font-noto-telugu), var(--font-noto-kannada), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-plex-mono), ui-monospace, monospace;
 
 
@@ -229,12 +283,16 @@ body[data-payment-provider-open="true"] [data-slot="sheet-content"] {
 /* Shape, depth and motion tokens (emitted as CSS variables by Tailwind) */
 @theme {
   --radius-control: 10px;
-  --radius-card: 16px;
-  --radius-dialog: 20px;
-  --radius-media: 12px;
+  --radius-card: 14px;
+  --radius-dialog: 18px;
+  --radius-media: 10px;
   --radius-sm: 6px;
   --radius-xs: 4px;
   --shadow-pop: 0 12px 32px -12px rgb(12 31 27 / 0.22), 0 2px 6px rgb(12 31 27 / 0.06);
+  --shadow-xs: var(--pp-shadow-xs);
+  --shadow-card: var(--pp-shadow-card);
+  --shadow-lift: var(--pp-shadow-lift);
+  --shadow-deep: var(--pp-shadow-deep);
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
@@ -253,14 +311,43 @@ body[data-payment-provider-open="true"] [data-slot="sheet-content"] {
     line-height: 1.5;
     -webkit-font-smoothing: antialiased;
   }
+  body {
+    font-optical-sizing: auto;
+    font-feature-settings: "cv11", "ss01";
+  }
+  /* Headings in Inter Display (the optical-size cut at 32); faces without that axis ignore it */
   h1,
   h2,
   h3,
   .font-display {
     font-family: var(--font-display);
-    font-weight: 800;
-    letter-spacing: -0.02em;
+    font-weight: 700;
+    font-variation-settings: "opsz" 32;
+    letter-spacing: -0.028em;
     line-height: 1.1;
+  }
+  h1 {
+    letter-spacing: -0.034em;
+  }
+  /*
+   * Heading levels inside the creator app and admin console: the page title (h1) is the display
+   * face; card, panel and form-section titles (h2, h3) are the body face in semibold, so a page
+   * reads title → sections → content instead of every heading shouting. A heading that should
+   * stay display says so with font-display (Dashboard's section titles do).
+   */
+  [data-surface="app"] :where(h2, h3) {
+    font-family: var(--font-sans);
+    font-weight: 600;
+    font-variation-settings: normal;
+    letter-spacing: -0.012em;
+    line-height: 1.3;
+  }
+  [data-surface="app"] :where(h2, h3).font-display {
+    font-family: var(--font-display);
+    font-weight: 650;
+    font-variation-settings: "opsz" 32;
+    letter-spacing: -0.024em;
+    line-height: 1.15;
   }
   :focus-visible {
     outline: 2px solid var(--ring, var(--primary));
@@ -298,17 +385,88 @@ body[data-payment-provider-open="true"] [data-slot="sheet-content"] {
 
 /* Components layer so text-* utilities can recolour it (e.g. on the dark admin sidebar) */
 @layer components {
+  /* Cards rest just above the page in light mode (a border alone in dark). Dashed boxes are
+     placeholders and stay flat. */
+  .rounded-card.border.bg-surface:not(.border-dashed),
+  .rounded-card.border.bg-card:not(.border-dashed) {
+    box-shadow: var(--pp-shadow-card);
+  }
+  :is(a, button).rounded-card.border.bg-surface {
+    transition: transform var(--dur-base) var(--ease-out), box-shadow var(--dur-base) var(--ease-out), border-color var(--dur-base) var(--ease-out);
+  }
+  :is(a, button).rounded-card.border.bg-surface:hover {
+    box-shadow: var(--pp-shadow-lift);
+  }
   .eyebrow {
-    font-family: var(--font-mono);
+    font-family: var(--font-sans);
     font-size: 0.6875rem;
+    font-weight: 600;
     line-height: 1.4;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.06em;
     text-transform: uppercase;
     color: var(--muted-foreground);
   }
 }
 
 @layer utilities {
+  .bg-mesh-dawn { background: var(--mesh-dawn); }
+  .bg-mesh-forest { background: var(--mesh-forest); color: #fff; }
+  .bg-mesh-brass { background: var(--mesh-brass); }
+  /* Film grain over a gradient (or anything): what keeps it from looking generated */
+  /* Zero specificity for position, so absolute/fixed/sticky utilities still win */
+  :where(.grain) { position: relative; }
+  .grain { isolation: isolate; }
+  .grain::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    border-radius: inherit;
+    opacity: 0.22;
+    mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .55 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  /*
+   * Glass icons: a frosted pane over a coloured blob (--gi → --gi2), lit from where the pointer is
+   * (--light-x/--light-y on <html>, set by GlassLight). Without a pointer the light sits top-left.
+   */
+  .glass-icon {
+    position: relative;
+    isolation: isolate;
+    display: inline-grid;
+    place-items: center;
+    flex-shrink: 0;
+    border-radius: 30%;
+    color: color-mix(in oklab, var(--gi) 55%, #06120d);
+  }
+  .glass-icon::before {
+    content: "";
+    position: absolute;
+    z-index: -2;
+    inset: 14% 4% -6% 18%;
+    border-radius: 34%;
+    background: linear-gradient(140deg, var(--gi) 0%, var(--gi2) 100%);
+    box-shadow: 0 8px 18px -6px color-mix(in oklab, var(--gi2) 70%, transparent);
+  }
+  .glass-icon::after {
+    content: "";
+    position: absolute;
+    z-index: -1;
+    inset: 0;
+    border-radius: inherit;
+    background:
+      radial-gradient(120% 120% at calc(var(--light-x, 0.2) * 100%) calc(var(--light-y, 0.1) * 100%), rgb(255 255 255 / 0.75) 0%, rgb(255 255 255 / 0.2) 45%, rgb(255 255 255 / 0.08) 100%);
+    -webkit-backdrop-filter: blur(8px) saturate(1.6);
+    backdrop-filter: blur(8px) saturate(1.6);
+    box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.6), inset 0 1px 0 rgb(255 255 255 / 0.9), 0 1px 2px rgb(11 16 14 / 0.08);
+  }
+  :is([data-theme="dark"]) .glass-icon { color: #fff; }
+  :is([data-theme="dark"]) .glass-icon::after {
+    background:
+      radial-gradient(120% 120% at calc(var(--light-x, 0.2) * 100%) calc(var(--light-y, 0.1) * 100%), rgb(255 255 255 / 0.28) 0%, rgb(255 255 255 / 0.08) 45%, rgb(255 255 255 / 0.03) 100%);
+    box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.16), inset 0 1px 0 rgb(255 255 255 / 0.3), 0 2px 6px rgb(0 0 0 / 0.4);
+  }
   .tabular {
     font-variant-numeric: tabular-nums;
   }
@@ -370,3 +528,15 @@ body[data-payment-provider-open="true"] [data-slot="sheet-content"] {
 .pp-editable:hover { outline-color: color-mix(in oklab, currentColor 45%, transparent); }
 .pp-editable:focus { outline: 2px solid var(--ring); }
 .pp-editable:empty::before { content: attr(data-placeholder); opacity: 0.5; }
+
+/* Living previews (page templates, site types): small, slow and off under reduced motion */
+@keyframes pp-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+@keyframes pp-nudge { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(3px); } }
+@keyframes pp-sheen { from { transform: translateX(-120%) skewX(-12deg); } to { transform: translateX(220%) skewX(-12deg); } }
+/* Paused previews rest on the first frame, so every animation starts at the element's normal state */
+@keyframes pp-settle { 0%, 100% { transform: none; opacity: 1; } 50% { transform: translateY(-1.5px); opacity: 0.75; } }
+.pp-float { animation: pp-float 3.2s ease-in-out infinite; }
+.pp-nudge { display: inline-block; animation: pp-nudge 1.6s ease-in-out infinite; }
+/* Only while the card is hovered or chosen, so a grid of previews isn't all moving at once */
+.pp-live .pp-on-hover { animation-play-state: paused !important; }
+.pp-live:is(:hover, :focus-visible, [aria-checked="true"]) .pp-on-hover { animation-play-state: running !important; }

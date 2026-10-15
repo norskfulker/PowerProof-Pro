@@ -28,7 +28,7 @@ export function Logo({
       {!compact && (
         <span
           className={cn(
-            "font-display text-[1.25rem] leading-none font-extrabold tracking-[-0.03em] whitespace-nowrap",
+            "font-display text-[1.25rem] leading-none font-bold tracking-[-0.03em] whitespace-nowrap",
             inverted ? "text-sidebar-admin-foreground" : "text-foreground"
           )}
         >

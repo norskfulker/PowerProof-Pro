@@ -6,7 +6,7 @@ import type { Focal, TileBackground } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 /** An uploaded image or https URL with a focal point; a quiet placeholder if the file is missing. */
-export function MediaImg({ src, alt, focal, className, fit = "cover", decorative }: { src: string; alt: string; focal?: Focal; className?: string; fit?: "cover" | "contain"; decorative?: boolean }) {
+export function MediaImg({ src, alt, focal, className, fit = "cover", decorative }: { src: string; alt: string; focal?: Focal; className?: string; fit?: "cover" | "contain" | "fill"; decorative?: boolean }) {
   const { url, missing, loading } = useMediaUrl(src);
   if (missing || !src) {
     return (
@@ -17,7 +17,7 @@ export function MediaImg({ src, alt, focal, className, fit = "cover", decorative
   }
   if (loading || !url) return <div className={cn("animate-pulse bg-muted", className)} aria-hidden />;
   // eslint-disable-next-line @next/next/no-img-element
-  return <img src={url} alt={decorative ? "" : alt} loading="lazy" className={cn("dim-media h-full w-full", fit === "cover" ? "object-cover" : "object-contain", className)} style={focal ? { objectPosition: `${focal.x}% ${focal.y}%` } : undefined} />;
+  return <img src={url} alt={decorative ? "" : alt} loading="lazy" className={cn("dim-media h-full w-full", fit === "cover" ? "object-cover" : fit === "fill" ? "object-fill" : "object-contain", className)} style={focal ? { objectPosition: `${focal.x}% ${focal.y}%` } : undefined} />;
 }
 
 /** Looping, muted background video. Phones and reduced-motion users see the poster instead. */

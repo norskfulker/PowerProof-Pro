@@ -11,7 +11,7 @@ import { missingEnv, SUPABASE_ANON_KEY, SUPABASE_URL } from "./lib/supabase/env"
  * every query; this only decides which screens to show.
  */
 
-const CREATOR = ["/dashboard", "/getting-started", "/catalog", "/store", "/sales", "/marketplace", "/tools", "/settings", "/onboarding"];
+const CREATOR = ["/dashboard", "/analytics", "/getting-started", "/catalog", "/store", "/sales", "/marketplace", "/tools", "/settings", "/onboarding", "/preview"];
 const AUTH_PAGES = ["/login", "/signup"];
 
 const under = (path: string, roots: string[]) => roots.some((r) => path === r || path.startsWith(`${r}/`));

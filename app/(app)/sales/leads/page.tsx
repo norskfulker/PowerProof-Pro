@@ -90,7 +90,6 @@ export default function LeadsPage() {
     <>
       <PageHeader
         title="Leads"
-        description="People who filled in a form, booked a time, joined your newsletter or wrote to your store."
         actions={
           <>
             <Button asChild variant="secondary"><Link href="/store/current/design/pages/home/edit?panel=pages">Make a page</Link></Button>

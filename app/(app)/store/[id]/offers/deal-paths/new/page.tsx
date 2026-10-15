@@ -12,7 +12,7 @@ export default function NewDealPathPage() {
   return (
     <>
       <title>New deal path · PowerProof</title>
-      <PageHeader title="New deal path" back={{ href: "/store/current/offers/deal-paths", label: "Deal paths" }} description="Reward buyers for adding to their order. You'll see exactly what they see as you build it." />
+      <PageHeader title="New deal path" back={{ href: "/store/current/offers/deal-paths", label: "Deal paths" }} />
       {error ? (
         <ErrorState message={error} onRetry={reload} />
       ) : !data ? (

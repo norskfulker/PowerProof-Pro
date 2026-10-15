@@ -64,7 +64,8 @@ type Reply =
   | { ok: false; message: string }
   | { ok: true; free: true; orderId: string; token: string }
   | { ok: true; free: false; cod: true; orderId: string; token: string }
-  | { ok: true; free: false; cod?: undefined; orderId: string; keyId: string; gatewayOrderId: string; amount: number; currency: string; storeName: string };
+  | { ok: true; free: false; cod?: undefined; redirect: string; orderId: string }
+  | { ok: true; free: false; cod?: undefined; redirect?: undefined; orderId: string; keyId: string; gatewayOrderId: string; amount: number; currency: string; storeName: string };
 
 async function post<T>(url: string, body: unknown): Promise<T> {
   const res = await fetch(url, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
@@ -175,6 +176,11 @@ export function CheckoutSheet({ open, onOpenChange, storeId, storeSlug, lines, o
       }
       gtagEvent("begin_checkout", { currency: cur, value: total / 100, items: products.map((p) => ({ item_id: p.id, item_name: p.title, price: p.info.price.amount / 100 })) });
       if (reply.free || reply.cod) return router.push(`/success/${reply.orderId}?t=${reply.token}`);
+      // The store's own gateway (Stripe, custom): pay on its page, then come back to the order
+      if (reply.redirect !== undefined) {
+        window.location.assign(reply.redirect);
+        return;
+      }
       await loadRazorpay();
       const Razorpay = (window as unknown as RazorpayWindow).Razorpay!;
       const rz = new Razorpay({

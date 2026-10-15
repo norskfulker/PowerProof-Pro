@@ -94,7 +94,6 @@ export default function DealPathsPage() {
       <PageHeader
         title="Deal paths"
         back={{ href: "/store/current/offers/coupons", label: "Offers" }}
-        description="Little rewards at checkout: buy two and save, a free gift over a spend, the cheapest one free. Buyers always get the best price automatically."
         actions={
           <Button asChild>
             <Link href="/store/current/offers/deal-paths/new">

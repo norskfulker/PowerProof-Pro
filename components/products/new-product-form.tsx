@@ -12,27 +12,28 @@ import { ProductForm } from "./product-form";
 import { blankProduct, toInput } from "./to-values";
 
 /**
- * A new product of the kind picked. With `wizard` (someone's first product) it is three short
- * steps and the kind is picked inside them; otherwise it is the full form.
+ * A new product of the kind the store sells (digital, or physical once physical shipping is on).
+ * With `wizard` (someone's first product) it is three short steps; otherwise it is the full form.
  */
-export function NewProductForm({ type, wizard = false }: { type: "digital" | "physical"; wizard?: boolean }) {
+export function NewProductForm({ wizard = false }: { wizard?: boolean }) {
   const router = useRouter();
   const plan = usePlan();
   const store = useCurrentStore();
   // Prices are set in the store's currency: wait for it so the form starts in the right one
   if (!store.data) return <Skeleton className="h-96 rounded-card" />;
+  // A store sells one kind, set by physical shipping in Store settings
+  const type = store.data.sells;
   return (
     <>
       {wizard ? (
         <>
           <SetupJourney current={1} />
-          <PageHeader title="Add your first product" description="Three short steps. You can change anything afterwards." />
+          <PageHeader title="Add your first product" />
         </>
       ) : (
         <PageHeader
-          back={{ href: "/catalog/products/new", label: "Digital or physical" }}
+          back={{ href: "/catalog/products/new", label: "Add a product" }}
           title={type === "physical" ? "New physical product" : "New digital product"}
-          description={type === "physical" ? "Add a name, a price and the collection it belongs to. Everything else is optional." : "Add the file, a name and a price. Everything else is optional."}
         />
       )}
       <ProductForm

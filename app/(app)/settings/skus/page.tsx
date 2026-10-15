@@ -14,7 +14,9 @@ import { DataTable } from "@/components/pp/data-table";
 import { EmptyState } from "@/components/pp/empty-state";
 import { SaveBar } from "@/components/save/save-bar";
 import { useUnsavedGuard } from "@/components/save/unsaved-guard";
-import { SettingsSection } from "@/components/settings/settings-section";
+import { SettingsLoading, SettingsSection } from "@/components/settings/settings-section";
+import { PhysicalShippingOff } from "@/components/store-admin/shipping-settings";
+import { useCurrentStore } from "@/hooks/use-current-store";
 import { useApi } from "@/hooks/use-api";
 import { useDirtyForm } from "@/hooks/use-dirty-form";
 import { deleteSku, getProducts, getSkus, getTaxCodes, saveSku } from "@/lib/api";
@@ -22,7 +24,21 @@ import type { Sku } from "@/lib/types";
 
 type Draft = { id?: string; code: string; productId?: string; taxCode: string; note?: string };
 
+/** SKUs belong to physical products, so they appear once physical shipping is on */
 export default function SkusPage() {
+  const store = useCurrentStore();
+  if (!store.data) return <SettingsLoading error={store.error} onRetry={store.reload} />;
+  if (store.data.sells !== "physical") {
+    return (
+      <SettingsSection title="SKUs" description="Stock-keeping codes for the things you ship.">
+        <PhysicalShippingOff storeId={store.data.id} what="SKUs" />
+      </SettingsSection>
+    );
+  }
+  return <SkuManager />;
+}
+
+function SkuManager() {
   const skus = useApi(getSkus, []);
   const products = useApi(() => getProducts(), []);
   const codes = useApi(getTaxCodes, []);

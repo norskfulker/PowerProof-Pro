@@ -92,8 +92,13 @@ export interface HeaderSettings {
   links?: { label: string; target: LinkTarget }[];
   /** A colour scheme from the theme (its id); empty keeps the store's own look */
   scheme?: string;
-  /** Logo frame, picked automatically from the picture (wide pictures get 16:9). Default square. */
-  logoShape?: "1:1" | "16:9";
+  /** Logo frame, picked automatically from the picture (wide pictures get 16:9). "auto" keeps the
+   * picture's own proportions (the frame extends to its width). Default square. */
+  logoShape?: "1:1" | "16:9" | "auto";
+  /** How the picture sits in its frame: crop to fill it, fit inside it, or stretch to it. Default cover. */
+  logoFit?: "cover" | "contain" | "fill";
+  /** Logo height in the bar. Default medium. */
+  logoSize?: "sm" | "md" | "lg";
   /** Show the store name beside the logo. Default on. */
   showName?: boolean;
 }
@@ -104,7 +109,7 @@ export interface FooterSettings {
 }
 
 export type PaletteId = "emerald" | "midnight" | "plum" | "terracotta" | "ocean" | "graphite";
-export type FontPairId = "modern" | "editorial" | "clean";
+export type FontPairId = "modern" | "expressive" | "editorial" | "clean";
 export type HeroStyle = "left" | "centered" | "full";
 
 /** The store's own font file, uploaded to its media folder */

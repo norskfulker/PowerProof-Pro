@@ -6,10 +6,24 @@ import { MediaUploader } from "@/components/media/media-uploader";
 import { Segmented } from "@/components/pp/segmented";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { fieldLabel } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import type { HeaderSettings, Store } from "@/lib/types";
 import { Field } from "./design-panels";
 import { TargetSelect } from "./target-select";
+
+const FIT_HINT = { cover: "Fills the frame; the edges may be cropped.", contain: "The whole picture shows inside the frame.", fill: "Stretched to the frame's exact shape." } as const;
+
+/** A labelled row of choices */
+function Choice<T extends string>({ label, value, onChange, options, hint }: { label: string; value: T; onChange: (v: T) => void; options: { value: T; label: string }[]; hint?: string }) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <span className={fieldLabel} aria-hidden>{label}</span>
+      <Segmented label={label} value={value} onChange={onChange} options={options} className="self-start" />
+      {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
+    </div>
+  );
+}
 
 /** Which frame crops the logo: wide pictures get 16:9, everything else the square tile */
 function detectLogoShape(src: string): Promise<"1:1" | "16:9"> {
@@ -68,31 +82,33 @@ export function HeaderEditor({ header, onChange, logo, onLogo }: { header: Heade
   }, [logo?.src, header.logoShape, set]);
   const setLogo = (m: { src: string; alt: string } | undefined) => {
     onLogo(m);
-    if (m) void detectLogoShape(m.src).then((logoShape) => set({ logoShape }));
+    // A picked "Original" frame stays; otherwise the frame follows the new picture
+    if (m && header.logoShape !== "auto") void detectLogoShape(m.src).then((logoShape) => set({ logoShape }));
   };
   return (
-    <div className="flex flex-col gap-4">
-      <MediaUploader compact label="Logo (optional)" kinds={["image"]} aspect="1:1" withFocal={false} hint="Any shape works — it's cropped to fit automatically. It lands in your media library. Without one, your store's first letters are used." value={logo ? { ...logo, kind: "image" } : undefined} onChange={(m) => setLogo(m ? { src: m.src, alt: m.alt } : undefined)} />
+    <div className="flex flex-col gap-3.5">
+      <MediaUploader compact label="Logo (optional)" kinds={["image"]} aspect="1:1" withAlt={false} withFocal={false} hint="Any shape works. It lands in your media library. Without one, your store's first letters are used." value={logo ? { ...logo, kind: "image" } : undefined} onChange={(m) => setLogo(m ? { src: m.src, alt: m.alt } : undefined)} />
       {logo?.src && (
-        <>
-          <p className="-mt-2 text-xs text-muted-foreground">Showing {header.logoShape === "16:9" ? "wide (16:9)" : "square (1:1)"}, cropped from your image.</p>
-          <label className="flex min-h-11 cursor-pointer items-center justify-between gap-3 text-sm">
-            Show the store name beside the logo
+        <div className="flex flex-col gap-3 rounded-control border bg-surface-sunken p-3">
+          <Choice label="Frame" value={header.logoShape ?? "1:1"} onChange={(logoShape) => set({ logoShape })} options={[{ value: "1:1", label: "Square" }, { value: "16:9", label: "Wide" }, { value: "auto", label: "Original" }]} hint={header.logoShape === "auto" ? "Keeps your picture's own shape; the frame extends to its width." : undefined} />
+          {header.logoShape !== "auto" && (
+            <Choice label="Picture in the frame" value={header.logoFit ?? "cover"} onChange={(logoFit) => set({ logoFit })} options={[{ value: "cover", label: "Fill" }, { value: "contain", label: "Fit" }, { value: "fill", label: "Stretch" }]} hint={FIT_HINT[header.logoFit ?? "cover"]} />
+          )}
+          <Choice label="Size" value={header.logoSize ?? "md"} onChange={(logoSize) => set({ logoSize })} options={[{ value: "sm", label: "Small" }, { value: "md", label: "Medium" }, { value: "lg", label: "Large" }]} />
+          <label className="flex min-h-9 cursor-pointer items-center justify-between gap-3 pointer-coarse:min-h-11">
+            <span className={fieldLabel}>Show the store name beside the logo</span>
             <Switch checked={header.showName !== false} onCheckedChange={(showName) => set({ showName })} aria-label="Show the store name beside the logo" />
           </label>
-        </>
+        </div>
       )}
-      <div className="flex flex-col gap-1.5">
-        <span className="text-sm font-medium">Logo and menu position</span>
-        <Segmented label="Logo and menu position" value={header.align ?? "left"} onChange={(align) => set({ align })} options={[{ value: "left", label: "Left" }, { value: "center", label: "Center" }]} />
-      </div>
-      <label className="flex min-h-11 cursor-pointer items-center justify-between gap-3 text-sm">Stay at the top while scrolling<Switch checked={header.sticky !== false} onCheckedChange={(sticky) => set({ sticky })} aria-label="Stay at the top while scrolling" /></label>
-      <label className="flex min-h-11 cursor-pointer items-center justify-between gap-3 text-sm">Show the search box<Switch checked={header.search !== false} onCheckedChange={(search) => set({ search })} aria-label="Show the search box" /></label>
-      <label className="flex min-h-11 cursor-pointer items-center justify-between gap-3 text-sm">
-        Choose my own menu links
+      <Choice label="Logo and menu position" value={header.align ?? "left"} onChange={(align) => set({ align })} options={[{ value: "left", label: "Left" }, { value: "center", label: "Center" }]} />
+      <label className="flex min-h-9 cursor-pointer items-center justify-between gap-3 pointer-coarse:min-h-11"><span className={fieldLabel}>Stay at the top while scrolling</span><Switch checked={header.sticky !== false} onCheckedChange={(sticky) => set({ sticky })} aria-label="Stay at the top while scrolling" /></label>
+      <label className="flex min-h-9 cursor-pointer items-center justify-between gap-3 pointer-coarse:min-h-11"><span className={fieldLabel}>Show the search box</span><Switch checked={header.search !== false} onCheckedChange={(search) => set({ search })} aria-label="Show the search box" /></label>
+      <label className="flex min-h-9 cursor-pointer items-center justify-between gap-3 pointer-coarse:min-h-11">
+        <span className={fieldLabel}>Choose my own menu links</span>
         <Switch checked={!!custom} onCheckedChange={(on) => set({ links: on ? [{ label: "All products", target: "products" }, { label: "Contact", target: "page:contact" }] : undefined })} aria-label="Choose my own menu links" />
       </label>
-      {!custom && <p className="text-sm text-muted-foreground">Showing All products, your first four collections and Contact.</p>}
+      {!custom && <p className="-mt-2 text-xs text-muted-foreground">Showing All products, your first four collections and Contact.</p>}
       {custom && (
         <Rows<{ label: string; target: string }>
           noun="Link"

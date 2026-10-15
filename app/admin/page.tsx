@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { AlertOctagon, Banknote, ChevronRight, Flag, ShieldCheck, Webhook } from "lucide-react";
-import { ChartCard, VisitorsArea } from "@/components/pp/chart-card";
+import { ChartCard, TrendChart } from "@/components/pp/chart-card";
 import { ErrorState } from "@/components/pp/empty-state";
 import { MoneyList } from "@/components/pp/money-text";
 import { PageHeader } from "@/components/pp/page-header";
@@ -46,7 +46,7 @@ function LiveStrip() {
       <dl className="grid grid-cols-3 gap-3">
         {items.map((i) => (
           <div key={i.label} className="rounded-control bg-surface-sunken px-4 py-3">
-            <dd className="font-display text-2xl font-extrabold tabular md:text-3xl">{i.n == null ? "—" : formatNumber(i.n)}</dd>
+            <dd className="font-display text-2xl font-bold tabular md:text-3xl">{i.n == null ? "—" : formatNumber(i.n)}</dd>
             <dt className="text-xs text-muted-foreground md:text-sm">{i.label}</dt>
           </div>
         ))}
@@ -112,8 +112,8 @@ export default function Page() {
     : [];
 
   const chart = (key: "payments" | "signups" | "activeCreators" | "visitors", name: string, title: string, description: string, none: string) => (
-    <ChartCard title={title} description={description} height={200} loading={busy} empty={!o?.series.some((d) => d[key])} emptyText={none} emptyChart={<VisitorsArea height={200} name={name} data={(o?.series ?? []).map((d) => ({ label: shortDay(d.day), visitors: 0 }))} />}>
-      <VisitorsArea height={200} name={name} data={(o?.series ?? []).map((d) => ({ label: shortDay(d.day), visitors: d[key] }))} />
+    <ChartCard title={title} description={description} height={200} loading={busy} empty={!o?.series.some((d) => d[key])} emptyText={none} emptyChart={<TrendChart height={200} name={name} tone="visitors" data={(o?.series ?? []).map((d) => ({ label: shortDay(d.day), value: 0 }))} />}>
+      <TrendChart height={200} name={name} tone="visitors" data={(o?.series ?? []).map((d) => ({ label: shortDay(d.day), value: d[key] }))} />
     </ChartCard>
   );
 
@@ -122,7 +122,6 @@ export default function Page() {
       <title>Overview · PowerProof admin</title>
       <PageHeader
         title="Overview"
-        description="How the platform is doing, and what needs a person."
         actions={<Segmented label="Time range" value={`${range}d`} onChange={(v) => setRange(Number.parseInt(v, 10) as Range)} options={RANGES.map((r) => ({ value: `${r}d`, label: `${r} days` }))} />}
       />
       {error && !o ? (
@@ -191,7 +190,7 @@ export default function Page() {
                       <q.icon className="size-5" aria-hidden />
                     </span>
                     <span className="min-w-0 flex-1">
-                      <span className="block font-display text-2xl leading-none font-extrabold tabular">{formatNumber(q.n)}</span>
+                      <span className="block font-display text-2xl leading-none font-bold tabular">{formatNumber(q.n)}</span>
                       <span className="block text-sm text-muted-foreground">{q.label}</span>
                     </span>
                     <ChevronRight className="size-4 shrink-0 text-muted-foreground" aria-hidden />

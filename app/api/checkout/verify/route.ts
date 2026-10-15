@@ -4,6 +4,8 @@ import { z } from "zod";
 import { CheckoutError } from "@/lib/server/checkout";
 import { razorpayConfig, verifyPaymentSignature } from "@/lib/server/razorpay";
 import { completePayment } from "@/lib/server/shop";
+import { directGatewayFor, ownRazorpayPaid } from "@/lib/server/gateways";
+import { sbAdmin } from "@/lib/supabase/admin";
 
 /** After the buyer pays, the browser brings back Razorpay's signed proof. Only a valid proof marks an order paid. */
 export const dynamic = "force-dynamic";
@@ -13,12 +15,20 @@ const fail = (message: string, status: number) => NextResponse.json({ ok: false,
 
 export async function POST(request: Request) {
   const parsed = body.safeParse(await request.json().catch(() => null));
-  const cfg = razorpayConfig();
-  if (!parsed.success || !cfg) return fail("We couldn't confirm that payment.", 400);
+  if (!parsed.success) return fail("We couldn't confirm that payment.", 400);
   const { gatewayOrderId, paymentId, signature } = parsed.data;
-  if (!verifyPaymentSignature(gatewayOrderId, paymentId, signature, cfg.keySecret)) return fail("We couldn't confirm that payment.", 400);
+  // Paid into the store's own Razorpay account: checked with that account's secret
+  const { data: order } = await sbAdmin().from("orders").select("store_id, gateway").eq("gateway_order_id", gatewayOrderId).maybeSingle();
+  const direct = order?.gateway === "own_razorpay";
+  if (direct) {
+    const gw = await directGatewayFor(order.store_id);
+    if (!gw || gw.provider !== "own_razorpay" || !ownRazorpayPaid(gw, gatewayOrderId, paymentId, signature)) return fail("We couldn't confirm that payment.", 400);
+  } else {
+    const cfg = razorpayConfig();
+    if (!cfg || !verifyPaymentSignature(gatewayOrderId, paymentId, signature, cfg.keySecret)) return fail("We couldn't confirm that payment.", 400);
+  }
   try {
-    const done = await completePayment(gatewayOrderId, paymentId);
+    const done = await completePayment(gatewayOrderId, paymentId, undefined, direct);
     return NextResponse.json({ ok: true, orderId: done.orderId, token: done.token }, { headers: { "cache-control": "no-store" } });
   } catch (e) {
     if (e instanceof CheckoutError) return fail(e.message, e.status);

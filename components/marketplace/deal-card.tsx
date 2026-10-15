@@ -49,7 +49,7 @@ function Cover({ d, className }: { d: Deal; className?: string }) {
       {/* eslint-disable-next-line @next/next/no-img-element */}
       {d.cover ? <img src={d.cover} alt="" loading="lazy" className="size-full object-cover transition-transform duration-500 group-hover:scale-105" /> : <span className="grid size-full place-items-end p-4 font-display text-2xl leading-tight text-white [overflow-wrap:anywhere]">{d.title}</span>}
       <span aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/35 to-transparent" />
-      <span className="absolute top-3 left-3 rounded-full bg-accent px-3 py-1 text-sm font-extrabold text-accent-foreground shadow-sm">{d.percentOff}% off</span>
+      <span className="absolute top-3 left-3 rounded-full bg-accent px-3 py-1 text-sm font-bold text-accent-foreground shadow-sm">{d.percentOff}% off</span>
       <span className="absolute top-3 right-3 rounded-full bg-surface/95 px-2.5 py-1 text-xs font-semibold text-foreground shadow-sm">{d.billing === "subscription" ? "Subscription" : "One-time"}</span>
     </div>
   );

@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import {
   Bricolage_Grotesque,
+  Inter,
   Fraunces,
   Hanken_Grotesk,
   IBM_Plex_Mono,
@@ -14,25 +15,25 @@ import {
 import { ThemeSync } from "@/components/theme/theme-toggle";
 import { LiveSessionSync } from "@/components/auth/live-session-sync";
 import { HydrationMark } from "@/components/pp/hydration-mark";
+import { GlassLight } from "@/components/pp/glass-light";
 import { Toaster } from "@/components/ui/sonner";
 import { NO_FLASH_SCRIPT } from "@/lib/theme";
 import { siteUrl } from "@/lib/site-url";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import "./globals.css";
 
-const bricolage = Bricolage_Grotesque({
+// The type of the whole product: Inter for text, and its display cut (the "opsz" axis at 32) for
+// headings. One variable file covers every weight and both cuts.
+const inter = Inter({
   subsets: ["latin"],
-  weight: ["800"],
-  variable: "--font-bricolage",
+  axes: ["opsz"],
+  variable: "--font-inter",
   display: "swap",
 });
 
-const hanken = Hanken_Grotesk({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-  variable: "--font-hanken",
-  display: "swap",
-});
+// The "Expressive" store font pair (the previous house style). Only stores that pick it use it.
+const bricolage = Bricolage_Grotesque({ subsets: ["latin"], weight: ["800"], variable: "--font-bricolage", display: "swap", preload: false });
+const hanken = Hanken_Grotesk({ subsets: ["latin"], weight: ["400", "500", "600", "700"], variable: "--font-hanken", display: "swap", preload: false });
 
 const plexMono = IBM_Plex_Mono({
   subsets: ["latin"],
@@ -96,7 +97,7 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     // The inline script sets data-theme before first paint, so React must not complain that it differs
-    <html lang="en" suppressHydrationWarning className={`${bricolage.variable} ${hanken.variable} ${plexMono.variable} ${fraunces.variable} ${spaceGrotesk.variable} ${plexSans.variable} ${INDIC}`}>
+    <html lang="en" suppressHydrationWarning className={`${inter.variable} ${bricolage.variable} ${hanken.variable} ${plexMono.variable} ${fraunces.variable} ${spaceGrotesk.variable} ${plexSans.variable} ${INDIC}`}>
       <head>
         {/* Light, dark or system, applied before anything paints (no flash) */}
         <script dangerouslySetInnerHTML={{ __html: NO_FLASH_SCRIPT }} />
@@ -104,6 +105,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <body>
         <ThemeSync />
         <LiveSessionSync />
+        <GlassLight />
         <HydrationMark />
         <TooltipProvider delayDuration={200}>{children}</TooltipProvider>
         <Toaster position="bottom-center" />

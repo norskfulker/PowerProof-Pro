@@ -301,7 +301,7 @@ export function GlobalSearch({ scope }: { scope: SearchScope }) {
 
               {hasQuery && !error && data && data.total === 0 && pages.length === 0 && !loading && (
                 <div className="px-3 py-10 text-center">
-                  <p className="font-display text-lg font-extrabold">No results for “{query}”</p>
+                  <p className="font-display text-lg font-bold">No results for “{query}”</p>
                   <p className="mt-1 text-sm text-muted-foreground">{types.length ? "Try removing a filter, or " : ""}Check the spelling, or search by order number, email or phone.</p>
                 </div>
               )}

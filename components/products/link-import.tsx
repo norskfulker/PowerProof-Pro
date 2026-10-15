@@ -18,13 +18,14 @@ import type { CurrencyCode, ProductInput } from "@/lib/types";
 import { uid } from "@/lib/uid";
 
 /** A product read from a link, as a draft here. Prices are already in the store's currency. */
-function toDraft(p: ImportedProduct, currency: CurrencyCode, images: string[], video?: string): ProductInput {
+function toDraft(p: ImportedProduct, currency: CurrencyCode, sells: "digital" | "physical", images: string[], video?: string): ProductInput {
   const m = (n: number) => money(n, currency);
   return {
     title: p.title,
     description: p.description,
     kind: "other",
-    fulfilment: p.fulfilment,
+    // The store sells one kind, so that's what it arrives as
+    fulfilment: sells,
     price: m(p.price),
     compareAt: p.compareAt && p.compareAt > p.price ? m(p.compareAt) : undefined,
     images: images.map((src, i) => ({ id: uid("img"), alt: p.images[i]?.alt || p.title, src })),
@@ -32,8 +33,8 @@ function toDraft(p: ImportedProduct, currency: CurrencyCode, images: string[], v
     files: [],
     sku: "",
     // Goods use the creator's own HSN code (added later); downloads the usual software code
-    taxCode: p.fulfilment === "digital" ? "998433" : "",
-    taxRate: p.fulfilment === "digital" ? 18 : undefined,
+    taxCode: sells === "digital" ? "998433" : "",
+    taxRate: sells === "digital" ? 18 : undefined,
     status: "draft",
     sourceUrl: p.sourceUrl,
   };
@@ -91,7 +92,7 @@ export function LinkImportDialog({ open, onOpenChange, onDone }: { open: boolean
         const files = [...p.images.map((x) => x.src), ...(p.video ? [p.video.src] : [])];
         const copied = files.length ? await copyImages(s.id, files) : {};
         const images = p.images.map((x) => copied[x.src]).filter((x): x is string => !!x);
-        let input = toDraft(p, s.currency, images, p.video ? (copied[p.video.src] ?? undefined) : undefined);
+        let input = toDraft(p, s.currency, s.sells, images, p.video ? (copied[p.video.src] ?? undefined) : undefined);
         let product;
         try {
           product = await createProduct(input);

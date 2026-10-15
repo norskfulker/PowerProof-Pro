@@ -10,6 +10,8 @@ import { SettingsLoading, SettingsSection } from "@/components/settings/settings
 import { useFormSaveBar } from "@/hooks/use-dirty-form";
 import { TaxCodes } from "@/components/settings/tax-codes";
 import { useApi } from "@/hooks/use-api";
+import { useCurrentStore } from "@/hooks/use-current-store";
+import { PhysicalShippingOff } from "@/components/store-admin/shipping-settings";
 import { deleteTaxCode, getInvoiceSettings, getTaxCodes, saveTaxCode, updateInvoiceSettings } from "@/lib/api";
 import type { InvoiceSettings } from "@/lib/types";
 
@@ -62,11 +64,17 @@ function InvoiceForm({ settings }: { settings: InvoiceSettings }) {
 export default function TaxSettingsPage() {
   const codes = useApi(getTaxCodes, []);
   const invoice = useApi(getInvoiceSettings, []);
-  if (!codes.data || !invoice.data) return <SettingsLoading error={codes.error ?? invoice.error} onRetry={() => { codes.reload(); invoice.reload(); }} />;
+  const store = useCurrentStore();
+  if (!codes.data || !invoice.data || !store.data) return <SettingsLoading error={codes.error ?? invoice.error ?? store.error} onRetry={() => { codes.reload(); invoice.reload(); store.reload(); }} />;
   return (
     <div className="flex flex-col gap-6">
       <SettingsSection title="HSN and SAC codes" description="Each product carries one code and its GST rate; that decides the GST line on the invoice. Use a listed code or add your own.">
-        <TaxCodes codes={codes.data} onAdd={async (c) => codes.setData(await saveTaxCode(c))} onDelete={async (id) => codes.setData(await deleteTaxCode(id))} />
+        {/* Codes are set per product only for physical goods; digital products use the standard software code */}
+        {store.data.sells === "physical" ? (
+          <TaxCodes codes={codes.data} onAdd={async (c) => codes.setData(await saveTaxCode(c))} onDelete={async (id) => codes.setData(await deleteTaxCode(id))} />
+        ) : (
+          <PhysicalShippingOff storeId={store.data.id} what="HSN and SAC codes" />
+        )}
       </SettingsSection>
       <InvoiceForm settings={invoice.data} />
     </div>

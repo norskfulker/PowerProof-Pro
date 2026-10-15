@@ -4,7 +4,7 @@ import { createContext, useContext, useState } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import { ArrowLeft, ArrowRight, Check, FileUp, Loader2, Package, Rocket } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, Loader2, Rocket } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
@@ -125,13 +125,6 @@ export function ProductForm({
   const physical = useWatch({ control: form.control, name: "fulfilment" }) === "physical";
   const [step, setStep] = useState(0);
   const [coverTab, setCoverTab] = useState<"image" | "color">(initial.images.length === 0 && initial.tileBackground?.kind === "color" ? "color" : "image");
-  // Digital and physical differ in the tax code (services/software vs goods) and in what's required
-  const chooseType = (f: "digital" | "physical") => {
-    if (f === form.getValues("fulfilment")) return;
-    form.setValue("fulfilment", f, { shouldDirty: true });
-    form.setValue("taxCode", f === "physical" ? "" : "998433", { shouldDirty: true });
-    form.setValue("taxRate", f === "physical" ? undefined : 18, { shouldDirty: true });
-  };
   const images = useWatch({ control: form.control, name: "images" });
   const status = useWatch({ control: form.control, name: "status" });
   const files = useWatch({ control: form.control, name: "files" });
@@ -243,27 +236,8 @@ export function ProductForm({
         )}
         <div className={wizard ? "contents" : "flex flex-col gap-6"}>
           <Panel title="Details" at={0}>
-            {wizard ? (
-              <fieldset className="flex flex-col gap-2">
-                <legend className="mb-1 text-sm font-medium">What are you selling?</legend>
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  {([["digital", "Digital product", "A file buyers download.", FileUp], ["physical", "Physical product", "Something you ship.", Package]] as const).map(([value, label, hint, Icon]) => (
-                    <button
-                      key={value}
-                      type="button"
-                      aria-pressed={(physical ? "physical" : "digital") === value}
-                      onClick={() => chooseType(value)}
-                      className={(physical ? "physical" : "digital") === value ? "flex min-h-16 items-center gap-3 rounded-control border-2 border-primary bg-primary-soft p-3 text-left" : "flex min-h-16 items-center gap-3 rounded-control border p-3 text-left hover:border-primary"}
-                    >
-                      <Icon className="size-5 shrink-0 text-primary" aria-hidden />
-                      <span><span className="block font-semibold">{label}</span><span className="block text-sm text-muted-foreground">{hint}</span></span>
-                    </button>
-                  ))}
-                </div>
-              </fieldset>
-            ) : (
-              <p className="inline-flex w-fit items-center gap-2 rounded-full bg-primary-soft px-3 py-1 text-xs font-semibold text-primary">{physical ? "Physical product" : "Digital product"}</p>
-            )}
+            {/* The kind is the store's (physical shipping in Store settings), not chosen per product */}
+            <p className="inline-flex w-fit items-center gap-2 rounded-full bg-primary-soft px-3 py-1 text-xs font-semibold text-primary">{physical ? "Physical product" : "Digital product"}</p>
             <FormField
               control={form.control}
               name="title"
@@ -468,6 +442,8 @@ export function ProductForm({
                 )}
               />
             )}
+            {/* SKUs and HSN/SAC codes come with physical shipping; digital products use the standard software code */}
+            {physical && (<>
             <FormField
               control={form.control}
               name="sku"
@@ -531,6 +507,7 @@ export function ProductForm({
                 </FormItem>
               )}
             />
+            </>)}
           </Panel>
           <Panel title={physical ? "Collection (required)" : "Add to collection"} at={physical ? 1 : undefined} description={physical ? "Physical products live in a collection so buyers can find them. Pick one, or make one here." : "Optional. Collections just help organize products; you can sell without one."}>
             <Controller

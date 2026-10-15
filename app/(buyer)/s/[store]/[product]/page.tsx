@@ -80,12 +80,12 @@ export default function ProductPage({ params }: { params: Promise<{ store: strin
 
       <div className="mx-auto mt-8 flex max-w-[860px] flex-col gap-14">
         <section id="description" aria-labelledby="h-desc" className="scroll-mt-32">
-          <h2 id="h-desc" className="mb-4 text-2xl">Description</h2>
+          <h2 id="h-desc" className="pp-subhead mb-4 text-xl font-semibold tracking-[-0.02em]">Description</h2>
           <p className="text-lg leading-relaxed whitespace-pre-line text-foreground/90">{product.description}</p>
         </section>
 
         {product.files.length > 0 && <section id="included" aria-labelledby="h-inc" className="scroll-mt-32">
-          <h2 id="h-inc" className="mb-4 text-2xl">What&apos;s included</h2>
+          <h2 id="h-inc" className="pp-subhead mb-4 text-xl font-semibold tracking-[-0.02em]">What&apos;s included</h2>
           <ul className="divide-y rounded-card border bg-surface">
             {product.files.map((f) => (
               <li key={f.id} className="flex items-center gap-3 px-4 py-3">
@@ -100,7 +100,7 @@ export default function ProductPage({ params }: { params: Promise<{ store: strin
         </section>}
 
         <section id="preview" aria-labelledby="h-prev" className="scroll-mt-32">
-          <h2 id="h-prev" className="mb-4 text-2xl">Preview</h2>
+          <h2 id="h-prev" className="pp-subhead mb-4 text-xl font-semibold tracking-[-0.02em]">Preview</h2>
           {product.images.length > 1 ? (
             <ul className="grid grid-cols-2 gap-3 md:grid-cols-3">
               {product.images.slice(1).map((img) => <li key={img.id}><ProductImageView image={img} size="sm" /></li>)}
@@ -111,17 +111,17 @@ export default function ProductPage({ params }: { params: Promise<{ store: strin
         </section>
 
         <section id="reviews" aria-labelledby="h-rev" className="scroll-mt-32">
-          <h2 id="h-rev" className="mb-4 text-2xl">Reviews</h2>
+          <h2 id="h-rev" className="pp-subhead mb-4 text-xl font-semibold tracking-[-0.02em]">Reviews</h2>
           <ProductReviews reviews={reviews} creatorName={creator.split(" ")[0]} />
         </section>
 
         <section id="questions" aria-labelledby="h-q" className="scroll-mt-32">
-          <h2 id="h-q" className="mb-4 text-2xl">Questions</h2>
+          <h2 id="h-q" className="pp-subhead mb-4 text-xl font-semibold tracking-[-0.02em]">Questions</h2>
           <ProductQuestions key={product.id} slug={slug} productId={product.id} initial={questions} />
         </section>
 
         <section id="refunds" aria-labelledby="h-ref" className="scroll-mt-32">
-          <h2 id="h-ref" className="mb-4 text-2xl">Refund policy</h2>
+          <h2 id="h-ref" className="pp-subhead mb-4 text-xl font-semibold tracking-[-0.02em]">Refund policy</h2>
           <p className="leading-relaxed text-foreground/85">{view.pages.refund}</p>
         </section>
       </div>

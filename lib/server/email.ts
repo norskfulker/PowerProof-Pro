@@ -124,18 +124,21 @@ export function shippedMail(o: { storeName: string; buyerName: string; ref: stri
 /* Account emails (Supabase Auth hands these to /api/auth/email-hook) ------------------------ */
 
 export type AuthMailKind = "signup" | "magiclink" | "recovery" | "email_change" | "invite" | "reauthentication";
+/** Mail-only kind: a password-reset link sent to link a password to a Google account */
+type AuthCopyKind = AuthMailKind | "bind";
 
-const AUTH_COPY: Record<AuthMailKind, { subject: string; title: string; intro: string; cta: string }> = {
+const AUTH_COPY: Record<AuthCopyKind, { subject: string; title: string; intro: string; cta: string }> = {
   signup: { subject: "Confirm your email for PowerProof", title: "Confirm your email", intro: "Welcome to PowerProof. Enter this code on the sign-up screen, or tap the button, to confirm it's you.", cta: "Confirm email" },
   magiclink: { subject: "Your PowerProof login link", title: "Here's your login link", intro: "Tap below and you're in. No password needed.", cta: "Log in to PowerProof" },
   recovery: { subject: "Reset your PowerProof password", title: "Set a new password", intro: "Tap below to choose a new password.", cta: "Reset password" },
   email_change: { subject: "Confirm your new email for PowerProof", title: "Confirm your new email", intro: "You asked to change the email on your PowerProof account to this address. Confirm it to finish.", cta: "Confirm new email" },
   invite: { subject: "You're invited to PowerProof", title: "You're invited", intro: "You've been added to a team on PowerProof. Accept to set up your login.", cta: "Accept invite" },
   reauthentication: { subject: "Your PowerProof security code", title: "Confirm it's you", intro: "Enter this code to finish what you started.", cta: "" },
+  bind: { subject: "Add a password to your PowerProof account", title: "Log in with your email too", intro: "This email already signs in to PowerProof with Google. Tap below to choose a password for the same account. Google keeps working as well.", cta: "Choose a password" },
 };
 
 /** Sign-up confirmation, login link, password reset, email change and invite: a 6-digit code and a link that do the same */
-export function authMail(o: { kind: AuthMailKind; email: string; url?: string; code?: string }): Omit<Mail, "to"> {
+export function authMail(o: { kind: AuthCopyKind; email: string; url?: string; code?: string }): Omit<Mail, "to"> {
   const c = AUTH_COPY[o.kind];
   const code = o.code ? `<p style="margin:16px 0;font-family:'IBM Plex Mono',monospace;font-size:28px;letter-spacing:0.3em;font-weight:700">${esc(o.code)}</p>` : "";
   return {
@@ -221,5 +224,37 @@ export function teamInviteMail(o: { storeName: string; inviterName: string; role
       OWN
     ),
     text: `${o.inviterName} invited you to the ${o.storeName} store on PowerProof ${what}.\n\nAccept: ${o.acceptUrl}\n\nLog in or sign up with ${o.email} to accept. The link works for 7 days.`,
+  };
+}
+
+/* Buyer: started checkout and didn't pay ------------------------------------------------- */
+
+/** One reminder, sent once, with a link back to what they picked */
+export function cartReminderMail(o: { storeName: string; buyerName: string; lines: { title: string; amount: string }[]; total: string; url: string; supportEmail?: string }): Omit<Mail, "to"> {
+  const first = o.buyerName.split(" ")[0] || "there";
+  return {
+    subject: `You left something at ${o.storeName}`,
+    replyTo: o.supportEmail,
+    html: shell(
+      "Still thinking it over?",
+      `<p>Hi ${esc(first)}, you started checking out at ${esc(o.storeName)} but didn't finish. It's still there for you:</p>${table(o.lines, { label: "Total", amount: o.total })}${button(o.url, "Pick up where you left off")}${muted("No money was taken. This is the only reminder we'll send about it. Questions? Reply to this email.")}`
+    ),
+    text: `Still thinking it over?\n\nHi ${first}, you started checking out at ${o.storeName} but didn't finish.\n${o.lines.map((l) => `${l.title}  ${l.amount}`).join("\n")}\nTotal ${o.total}\n\nPick up where you left off: ${o.url}\n\nNo money was taken. This is the only reminder we'll send about it.`,
+  };
+}
+
+/** A store is being handed to someone: a transfer from its owner, or a store PowerProof built for them */
+export function storeClaimMail(o: { storeName: string; from: string; kind: "transfer" | "claim"; note?: string; acceptUrl: string; email: string }): Omit<Mail, "to"> {
+  const intro = o.kind === "claim"
+    ? `PowerProof set up the ${o.storeName} store for you. It's ready to take over: your products, pages and design are in it.`
+    : `${o.from} wants to hand the ${o.storeName} store on PowerProof over to you. You'd become its owner: products, pages, orders, customers and its address move with it.`;
+  return {
+    subject: o.kind === "claim" ? `Your store ${o.storeName} is ready to claim` : `${o.from} is transferring ${o.storeName} to you`,
+    html: shell(
+      o.kind === "claim" ? `Claim ${o.storeName}` : `Take over ${o.storeName}`,
+      `<p>${esc(intro)}</p>${o.note ? `<p style="font-size:14px;border-left:3px solid #dfe5e1;padding-left:12px">${esc(o.note)}</p>` : ""}${button(o.acceptUrl, o.kind === "claim" ? "Claim your store" : "Accept the store")}${muted(`Log in or sign up with <strong>${esc(o.email)}</strong> to accept. The link works for 14 days and only once. You'll add your own business and payout details after. Not expecting this? Ignore it and nothing changes.`)}`,
+      OWN
+    ),
+    text: `${intro}\n${o.note ? `\n${o.note}\n` : ""}\nAccept: ${o.acceptUrl}\n\nLog in or sign up with ${o.email} to accept. The link works for 14 days and only once.`,
   };
 }

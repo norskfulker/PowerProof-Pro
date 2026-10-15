@@ -19,3 +19,9 @@ export const requestPasswordReset = live.requestPasswordReset;
 /** Sets a new password after following a reset link (the link signs the creator in). */
 export const updatePassword = live.updatePassword;
 export const logout = live.logout;
+/** Does this email sign in with Google and have no password yet? (login offers to add one) */
+export const emailUsesGoogle = live.emailUsesGoogle;
+/** Emails a link that adds a password to the Google account with this email */
+export const sendPasswordLink = live.sendPasswordLink;
+/** Signed in: change the password (with the current one), or add a first one */
+export const changePassword = live.changePassword;

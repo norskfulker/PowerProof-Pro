@@ -47,7 +47,7 @@ export function CoverArt({ cover, className, size = "md", label }: { cover: Cove
         {subtitle && size !== "sm" && (
           <span className="font-mono text-[clamp(0.5rem,2.6cqw,0.625rem)] tracking-[0.1em] uppercase">{subtitle}</span>
         )}
-        <span className={cn("line-clamp-4 leading-[1.05] font-extrabold tracking-[-0.02em]", titleSize, size === "sm" && "line-clamp-3")}>{title}</span>
+        <span className={cn("line-clamp-4 leading-[1.05] font-bold tracking-[-0.02em]", titleSize, size === "sm" && "line-clamp-3")}>{title}</span>
         {template === "block" && <span className="mt-1 h-1 w-10 rounded-full" style={{ background: accent }} />}
       </div>}
     </div>

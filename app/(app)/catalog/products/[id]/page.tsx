@@ -10,7 +10,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ConfirmDialog } from "@/components/pp/confirm-dialog";
 import { CopyField } from "@/components/pp/copy-field";
 import { ErrorState } from "@/components/pp/empty-state";
-import { MoneyText } from "@/components/pp/money-text";
 import { PageHeader } from "@/components/pp/page-header";
 import { StatusPill } from "@/components/pp/status-pill";
 import { ProductForm } from "@/components/products/product-form";
@@ -58,12 +57,6 @@ export default function ProductEditorPage({ params }: { params: Promise<{ id: st
       <PageHeader
         back={{ href: "/catalog/products", label: "Products" }}
         title={<span className="flex flex-wrap items-center gap-3">{p.title} <StatusPill status={p.status} /></span>}
-        description={
-          <>
-            {p.salesCount} sold · <MoneyText value={p.revenue} /> earned ·{" "}
-            <Link href={`/sales/orders?product=${p.id}`} className="font-medium text-foreground underline underline-offset-4">See orders</Link>
-          </>
-        }
         actions={
           p.status === "published" && store.data ? (
             <Button asChild variant="secondary">

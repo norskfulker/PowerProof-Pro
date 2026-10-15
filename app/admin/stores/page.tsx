@@ -4,7 +4,7 @@ import { Suspense, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import type { ColumnDef } from "@tanstack/react-table";
-import { Download, ExternalLink, Store as StoreIcon } from "lucide-react";
+import { Download, ExternalLink, KeyRound, Store as StoreIcon } from "lucide-react";
 import { toast } from "sonner";
 import { ConfirmDialog, ReasonDialog } from "@/components/pp/confirm-dialog";
 import { DataTable } from "@/components/pp/data-table";
@@ -13,6 +13,8 @@ import { MoneyText } from "@/components/pp/money-text";
 import { PageHeader } from "@/components/pp/page-header";
 import { StatusPill } from "@/components/pp/status-pill";
 import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { StoreHandover } from "@/components/team/store-handover";
 import { useApi } from "@/hooks/use-api";
 import { getAdminStores, setStoreSuspended, type AdminStore } from "@/lib/api";
 import { downloadCsv } from "@/lib/csv";
@@ -24,6 +26,7 @@ function Stores() {
   const { data, loading, error, reload } = useApi(() => getAdminStores(), [], { live: true });
   const [suspend, setSuspend] = useState<AdminStore>();
   const [restore, setRestore] = useState<AdminStore>();
+  const [handover, setHandover] = useState<AdminStore>();
 
   const columns = useMemo<ColumnDef<AdminStore, unknown>[]>(
     () => [
@@ -64,12 +67,16 @@ function Stores() {
         id: "actions",
         header: () => <span className="sr-only">Actions</span>,
         meta: { align: "right" },
-        cell: ({ row }) =>
-          row.original.status === "suspended" ? (
-            <Button size="sm" variant="secondary" onClick={() => setRestore(row.original)}>Lift suspension</Button>
-          ) : (
-            <Button size="sm" variant="secondary" onClick={() => setSuspend(row.original)}>Suspend</Button>
-          ),
+        cell: ({ row }) => (
+          <span className="flex justify-end gap-2">
+            <Button size="sm" variant="ghost" onClick={() => setHandover(row.original)}><KeyRound aria-hidden /> Send to owner</Button>
+            {row.original.status === "suspended" ? (
+              <Button size="sm" variant="secondary" onClick={() => setRestore(row.original)}>Lift suspension</Button>
+            ) : (
+              <Button size="sm" variant="secondary" onClick={() => setSuspend(row.original)}>Suspend</Button>
+            )}
+          </span>
+        ),
       },
     ],
     []
@@ -94,6 +101,15 @@ function Stores() {
         filters={[{ columnId: "status", label: "Statuses", options: [{ value: "published", label: "Live" }, { value: "draft", label: "Draft" }, { value: "suspended", label: "Suspended" }] }]}
         empty={<EmptyState icon={StoreIcon} title="No stores yet." body="Stores show up here as soon as a creator opens one." />}
       />
+      <Sheet open={!!handover} onOpenChange={(o) => !o && setHandover(undefined)}>
+        <SheetContent className="w-full overflow-y-auto sm:max-w-md">
+          <SheetHeader>
+            <SheetTitle>Send {handover?.name} to its owner</SheetTitle>
+            <SheetDescription>For a store PowerProof built for a brand, or from an outside shop&apos;s products. They get a claim link; when they accept, the store is theirs and the current owner ({handover?.ownerEmail}) loses access.</SheetDescription>
+          </SheetHeader>
+          {handover && <div className="px-4 pb-6"><StoreHandover storeId={handover.id} storeName={handover.name} mode="claim" /></div>}
+        </SheetContent>
+      </Sheet>
       <ReasonDialog
         open={!!suspend}
         onOpenChange={(o) => !o && setSuspend(undefined)}
@@ -126,7 +142,7 @@ export default function Page() {
   return (
     <>
       <title>Stores · PowerProof admin</title>
-      <PageHeader title="Stores" description="Every store on the platform. Suspending one takes it offline and is written to the audit log." />
+      <PageHeader title="Stores" />
       <Suspense>
         <Stores />
       </Suspense>

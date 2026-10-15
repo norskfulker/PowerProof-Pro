@@ -1,6 +1,7 @@
 import { kindOf, targetHref } from "../store-themes";
 import type { SectionSetting, StoreDesign } from "../types";
 import { makeNode as n, type Background, type NodeOverrides, type PageDoc, type PageNode } from "./schema";
+import { artFor } from "./template-art";
 
 /** What a template needs to know about the store. Product ids must exist in the store. */
 export interface TemplateContext {
@@ -26,6 +27,12 @@ const first = (ctx: Pick<TemplateContext, "products">, i = 0) => ctx.products[Ma
 /** A product cover as media, or nothing when the store has no products yet */
 const cover = (ctx: Pick<TemplateContext, "products">, i = 0) => (first(ctx, i) ? `product:${first(ctx, i)}` : "");
 
+/** A ready-made page's first section starts on its own gradient (lib/pages/template-art.ts), with white text */
+const art = (id: string) => {
+  const a = artFor(id);
+  return { background: { kind: "gradient" as const, from: a.from, to: a.to, angle: a.angle }, tone: "light" as const };
+};
+
 export const PAGE_TEMPLATES: PageTemplateDef[] = [
   {
     id: "launch",
@@ -33,7 +40,7 @@ export const PAGE_TEMPLATES: PageTemplateDef[] = [
     description: "One product, front and centre, with proof and a clear buy button.",
     build: (ctx) =>
       doc(
-        n("hero", { eyebrow: "New", headline: ctx.products[0]?.title ?? "Your new product", subtext: "Everything you need to get started this week, in one download.", ctaLabel: "Get it now", ctaHref: `/s/${ctx.slug}/products`, image: cover(ctx), imageAlt: `${ctx.products[0]?.title ?? "Product"} cover`, layout: "split" }, { style: { background: { kind: "solid", color: "#F5F6F4" }, tone: "dark", align: "left", overlay: 0 }, layout: { paddingY: "lg", width: "wide", minHeight: "md", gap: "md" } }),
+        n("hero", { eyebrow: "New", headline: ctx.products[0]?.title ?? "Your new product", subtext: "Everything you need to get started this week, in one download.", ctaLabel: "Get it now", ctaHref: `/s/${ctx.slug}/products`, image: cover(ctx), imageAlt: `${ctx.products[0]?.title ?? "Product"} cover`, layout: "split" }, { style: { ...art("launch"), align: "left", overlay: 0 }, layout: { paddingY: "lg", width: "wide", minHeight: "md", gap: "md" } }),
         n("section", { label: "What you get" }, { children: [n("heading", { text: "What you get", level: 2, size: "md" }), n("highlights", { items: [{ title: "Ready to use", body: "Open it and go." }, { title: "Lifetime updates", body: "Free, forever." }, { title: "Works everywhere", body: "Phone, tablet, laptop." }, { title: "Support", body: "Real replies from me." }] })] }),
         n("section", { label: "Buy" }, { layout: { paddingY: "lg", width: "narrow", minHeight: "auto", gap: "md" }, children: [n("product_card", { productId: first(ctx), showBuy: true })] }),
         n("section", { label: "Questions" }, { children: [n("heading", { text: "Questions", level: 2, size: "md" }), n("faq", { items: [{ q: "How do I get it?", a: "A download link appears right after you pay, and we email it too." }, { q: "Can I get a refund?", a: "Yes. Write within 7 days if it isn't right for you." }] })] })
@@ -46,7 +53,7 @@ export const PAGE_TEMPLATES: PageTemplateDef[] = [
     build: (ctx) =>
       doc(
         n("section", { label: "Sale banner" }, {
-          style: { background: { kind: "gradient", from: ctx.accent, to: "#A9823A", angle: 120 }, tone: "dark", align: "center", overlay: 0 },
+          style: { ...art("sale"), align: "center", overlay: 0 },
           layout: { paddingY: "xl", width: "normal", minHeight: "auto", gap: "md" },
           children: [
             n("heading", { text: "The festive sale is on", level: 1, size: "xl" }),
@@ -65,7 +72,7 @@ export const PAGE_TEMPLATES: PageTemplateDef[] = [
     build: (ctx) =>
       doc(
         n("section", { label: "Profile" }, {
-          style: { background: { kind: "solid", color: ctx.brand }, tone: "light", align: "center", overlay: 0 },
+          style: { ...art("bio"), align: "center", overlay: 0 },
           layout: { paddingY: "lg", width: "narrow", minHeight: "auto", gap: "sm" },
           children: [n("heading", { text: ctx.storeName, level: 1, size: "lg" }), n("text", { text: `Made by ${ctx.ownerName}. Tap anything below.` })],
         }),
@@ -88,7 +95,7 @@ export const PAGE_TEMPLATES: PageTemplateDef[] = [
     description: "Offer something free for a name and email. Everyone who signs up lands in Sales › Leads.",
     build: (ctx) =>
       doc(
-        n("hero", { headline: "Get the free starter guide", subtext: `A short, practical guide from ${ctx.storeName}. Tell us where to send it.`, layout: "centered" }, { style: { background: { kind: "solid", color: "#F5F6F4" }, tone: "dark", align: "center", overlay: 0 }, layout: { paddingY: "lg", width: "wide", minHeight: "auto", gap: "md" } }),
+        n("hero", { headline: "Get the free starter guide", subtext: `A short, practical guide from ${ctx.storeName}. Tell us where to send it.`, layout: "centered" }, { style: { ...art("lead"), align: "center", overlay: 0 }, layout: { paddingY: "lg", width: "wide", minHeight: "auto", gap: "md" } }),
         n("section", { label: "Sign up" }, { layout: { paddingY: "lg", width: "narrow", minHeight: "auto", gap: "md" }, children: [n("lead_form", { heading: "Where should we send it?", body: "No spam. One email, then occasional updates.", buttonLabel: "Send me the guide", successMessage: "Thanks! Check your inbox in a minute." })] }),
         n("section", { label: "Why" }, { children: [n("highlights", { items: [{ title: "Short", body: "Read it in ten minutes." }, { title: "Practical", body: "Things you can use today." }, { title: "Free", body: "Always." }] })] })
       ),
@@ -100,7 +107,7 @@ export const PAGE_TEMPLATES: PageTemplateDef[] = [
     build: () => ({
       ...doc(
         n("section", { label: "Squeeze" }, {
-          style: { background: { kind: "none" }, tone: "auto", align: "center", overlay: 0 },
+          style: { ...art("squeeze"), align: "center", overlay: 0 },
           layout: { paddingY: "xl", width: "narrow", minHeight: "screen", gap: "md" },
           children: [
             n("heading", { text: "Learn the one thing that doubles your results", level: 1, size: "xl" }),
@@ -119,7 +126,7 @@ export const PAGE_TEMPLATES: PageTemplateDef[] = [
     description: "An instant calendar: visitors pick a free time and leave their details.",
     build: (ctx) =>
       doc(
-        n("section", { label: "Intro" }, { style: { background: { kind: "none" }, tone: "auto", align: "center", overlay: 0 }, layout: { paddingY: "lg", width: "narrow", minHeight: "auto", gap: "sm" }, children: [n("heading", { text: `Talk to ${ctx.ownerName}`, level: 1, size: "lg" }), n("text", { text: "A short call to see how I can help. Pick a time that works for you." })] }),
+        n("section", { label: "Intro" }, { style: { ...art("booking"), align: "center", overlay: 0 }, layout: { paddingY: "lg", width: "narrow", minHeight: "auto", gap: "sm" }, children: [n("heading", { text: `Talk to ${ctx.ownerName}`, level: 1, size: "lg" }), n("text", { text: "A short call to see how I can help. Pick a time that works for you." })] }),
         n("section", { label: "Calendar" }, { layout: { paddingY: "md", width: "narrow", minHeight: "auto", gap: "md" }, children: [n("booking", { heading: "Pick a day and time", durationMin: 30 })] }),
         n("section", { label: "Questions" }, { layout: { paddingY: "md", width: "narrow", minHeight: "auto", gap: "md" }, children: [n("faq", { items: [{ q: "What happens on the call?", a: "We talk through what you need and whether I can help. No pressure." }, { q: "Can I change the time?", a: "Yes. Reply to the confirmation email and we'll move it." }] })] })
       ),
@@ -130,7 +137,7 @@ export const PAGE_TEMPLATES: PageTemplateDef[] = [
     description: "Warm people up with a short pitch, then send them on to the product with one button.",
     build: (ctx) =>
       doc(
-        n("hero", { eyebrow: "", headline: "Here's why people choose this", subtext: "Three reasons, then you can decide.", ctaLabel: "Continue to the offer", ctaHref: `/s/${ctx.slug}/products`, image: cover(ctx), imageAlt: "", layout: "split" }, { style: { background: { kind: "solid", color: "#F5F6F4" }, tone: "dark", align: "left", overlay: 0 }, layout: { paddingY: "lg", width: "wide", minHeight: "md", gap: "md" } }),
+        n("hero", { eyebrow: "", headline: "Here's why people choose this", subtext: "Three reasons, then you can decide.", ctaLabel: "Continue to the offer", ctaHref: `/s/${ctx.slug}/products`, image: cover(ctx), imageAlt: "", layout: "split" }, { style: { ...art("clickthrough"), align: "left", overlay: 0 }, layout: { paddingY: "lg", width: "wide", minHeight: "md", gap: "md" } }),
         n("section", { label: "Reasons" }, { children: [n("highlights", { items: [{ title: "Saves time", body: "Everything in one place." }, { title: "Easy to start", body: "Open it and go." }, { title: "Backed by a refund", body: "If it isn't right, tell us." }] })] }),
         n("section", { label: "Go" }, { style: { background: { kind: "none" }, tone: "auto", align: "center", overlay: 0 }, layout: { paddingY: "lg", width: "narrow", minHeight: "auto", gap: "md" }, children: [n("button", { label: "Continue to the offer", href: `/s/${ctx.slug}/products`, variant: "brass", size: "lg" })] })
       ),

@@ -105,7 +105,6 @@ function PayoutsInner({ section }: { section: Section }) {
     <>
       <PageHeader
         title="Payouts"
-        description="Each sale is held for 3 hours, then it's yours to withdraw any time, any amount from ₹100.00."
         actions={
           <Button onClick={openWithdraw} disabled={!balance.data || balance.data.available.amount < 10000}>
             <ArrowUpRight aria-hidden /> Withdraw

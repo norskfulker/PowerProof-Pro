@@ -115,10 +115,11 @@ export function siteStyleCss(theme: Pick<StoreTheme, "siteStyle" | "layout">): s
   const rules: string[] = [];
   // A thin line between stacked sections
   if (l.dividers) rules.push(`${sections}+section[id^="section-"]{border-top:1px solid color-mix(in oklab, currentColor 12%, transparent)}`);
-  if (style === "freeflow") rules.push(`${root} :is(h1,h2){letter-spacing:-0.045em;line-height:0.98}`, `${sections}{text-align:left}`);
-  if (style === "editorial") rules.push(`${root} :is(h1,h2,h3){letter-spacing:-0.01em;font-weight:700}`, `${root} p{line-height:1.7}`);
+  // Sub-headings inside a page (a product's Description, Reviews…) keep their own quieter style
+  if (style === "freeflow") rules.push(`${root} :is(h1,h2):not(.pp-subhead){letter-spacing:-0.045em;line-height:0.98}`, `${sections}{text-align:left}`);
+  if (style === "editorial") rules.push(`${root} :is(h1,h2,h3):not(.pp-subhead){letter-spacing:-0.01em;font-weight:700}`, `${root} p{line-height:1.7}`);
   if (style === "informational") rules.push(`${root} :is(h1,h2,h3){letter-spacing:-0.01em}`, `${root} p{line-height:1.65}`);
-  if (style === "bold") rules.push(`${root} :is(h1,h2){text-transform:uppercase;letter-spacing:-0.01em}`);
+  if (style === "bold") rules.push(`${root} :is(h1,h2):not(.pp-subhead){text-transform:uppercase;letter-spacing:-0.01em}`);
   if (style === "minimal") rules.push(`${root} :is(h1,h2,h3){font-weight:600;letter-spacing:-0.01em}`);
   return rules.join("");
 }

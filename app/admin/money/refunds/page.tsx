@@ -29,7 +29,7 @@ export default function Page() {
   return (
     <>
       <title>Refunds · PowerProof admin</title>
-      <PageHeader title="Refunds" description="Every refund across stores. To refund an order, find it under Orders." />
+      <PageHeader title="Refunds" />
       <DataTable
         label="Refunds"
         columns={columns}

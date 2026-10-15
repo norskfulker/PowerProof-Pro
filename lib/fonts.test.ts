@@ -37,7 +37,7 @@ describe("custom fonts", () => {
   });
   it("replaces the headings and/or text font in the theme", () => {
     const vars = (t: StoreTheme) => themeVars(t, "light") as Record<string, string>;
-    expect(vars(theme())["--font-display"]).toContain("var(--font-bricolage)");
+    expect(vars(theme())["--font-display"]).toContain("var(--font-inter)");
     expect(vars(theme(font("both")))["--font-display"]).toContain("PPCustomFont");
     expect(vars(theme(font("both")))["--font-sans"]).toContain("PPCustomFont");
     expect(vars(theme(font("headings")))["--font-display"]).toContain("PPCustomFont");

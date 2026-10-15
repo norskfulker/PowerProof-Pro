@@ -13,8 +13,7 @@ import { StatCard } from "@/components/pp/stat-card";
 import { StatusPill } from "@/components/pp/status-pill";
 import { useApi } from "@/hooks/use-api";
 import { getCustomer } from "@/lib/api";
-import { countryShort, formatDate, initials } from "@/lib/format";
-import { CURRENCIES } from "@/lib/money";
+import { formatDate, initials } from "@/lib/format";
 
 export default function CustomerDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -49,7 +48,6 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
             {c.name}
           </span>
         }
-        description={`${c.email} · ${countryShort(c.countryCode)} · pays in ${CURRENCIES[c.currency].name}s`}
         actions={
           <Button asChild variant="secondary">
             <a href={`mailto:${c.email}`}><Mail aria-hidden /> Email</a>

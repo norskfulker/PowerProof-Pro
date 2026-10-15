@@ -13,7 +13,9 @@ export function useNav(area: "creator" | "admin"): { tree: ResolvedNode[]; store
   const plan = usePlan();
   const { data } = useApi(() => getNavCounts(area), [area], { live: true });
   // Team members see only the parts of the store they work on
-  const access = useCurrentStore().data?.access;
+  const store = useCurrentStore().data;
+  const access = store?.access;
+  const physical = store?.sells === "physical";
   // Until the plan loads, nothing is locked (the server still refuses what the plan doesn't allow)
   const domainOk = plan.state?.limits.customDomain ?? true;
   const { tree, storeTabs } = useMemo(() => {
@@ -22,12 +24,13 @@ export function useNav(area: "creator" | "admin"): { tree: ResolvedNode[]; store
       counts: data?.counts ?? {},
       locked: new Set(domainOk ? [] : (["customDomain"] as const)),
       access: area === "admin" ? undefined : access,
+      physical,
     };
     return {
       tree: resolveNav(area === "admin" ? ADMIN_NAV : CREATOR_NAV, nav),
       // The Store area's tabs: not in the sidebar, but shown across the top of the Store pages and found by search
       storeTabs: area === "admin" ? [] : resolveNav(STORE_NAV, nav, ["My Store"]),
     };
-  }, [area, data, domainOk, access]);
+  }, [area, data, domainOk, access, physical]);
   return { tree, storeTabs };
 }

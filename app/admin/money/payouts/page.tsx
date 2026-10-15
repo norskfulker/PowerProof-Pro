@@ -154,7 +154,7 @@ export default function Page() {
   return (
     <>
       <title>Payout queue · PowerProof admin</title>
-      <PageHeader title="Payout queue" description="Withdrawals waiting to be sent." />
+      <PageHeader title="Payout queue" />
       <div className="mb-5 flex gap-3 rounded-card border bg-info-soft px-4 py-3 text-sm">
         <Info className="mt-0.5 size-4 shrink-0 text-info" aria-hidden />
         <p>

@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -22,12 +22,22 @@ const schema = z
 
 /** The reset link signs the creator in and lands here to choose a new password. */
 export default function ResetPasswordPage() {
+  return (
+    <Suspense>
+      <ResetPassword />
+    </Suspense>
+  );
+}
+
+/** ?bind=1: from "Add a password to this account" (an account that signs in with Google) */
+function ResetPassword() {
+  const bind = useSearchParams().get("bind") === "1";
   const router = useRouter();
   const [error, setError] = useState<string>();
   const form = useForm<z.infer<typeof schema>>({ resolver: zodResolver(schema), defaultValues: { password: "", confirm: "" }, mode: "onTouched" });
 
   return (
-    <AuthCard title="Choose a new password" description="You'll use it next time you log in.">
+    <AuthCard title={bind ? "Choose a password" : "Choose a new password"} description={bind ? "Your email is now linked. Pick a password and you can log in with it or with Google, whichever is handy." : "You'll use it next time you log in."}>
       <Form {...form}>
         <form
           noValidate
@@ -35,7 +45,7 @@ export default function ResetPasswordPage() {
             setError(undefined);
             try {
               await updatePassword(password);
-              toast.success("Password updated");
+              toast.success(bind ? "Password added" : "Password updated", bind ? { description: "Log in with your email and password, or with Google." } : undefined);
               router.push("/dashboard");
             } catch (e) {
               setError(e instanceof Error ? e.message : "Something went wrong.");

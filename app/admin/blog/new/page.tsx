@@ -9,7 +9,7 @@ export default function Page() {
   return (
     <>
       <title>New post · Blog · PowerProof admin</title>
-      <PageHeader back={{ href: "/admin/blog", label: "Blog" }} title="New post" description="Write it, preview it, then publish when it's ready." />
+      <PageHeader back={{ href: "/admin/blog", label: "Blog" }} title="New post" />
       <BlogForm initial={{ ...BLANK_BLOG, publishedAt: blogDateInput(new Date().toISOString()) }} />
     </>
   );

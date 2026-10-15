@@ -39,7 +39,7 @@ function BundleCard({ b, products, onEdit, onDelete, fresh }: { b: Bundle; produ
     <li id={`bundle-${b.id}`} className={cn("flex scroll-mt-24 flex-col gap-3 rounded-card border bg-surface p-4 transition-shadow", fresh && "border-primary ring-2 ring-primary/30")}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="font-display text-lg font-extrabold [overflow-wrap:anywhere]">{b.name}</p>
+          <p className="font-display text-lg font-bold [overflow-wrap:anywhere]">{b.name}</p>
           <p className="mt-0.5 truncate text-sm text-muted-foreground">{b.productIds.length} products · {b.pricing.kind === "percent" ? `${b.pricing.percent}% off combined` : "Set price"}</p>
         </div>
         <StatusPill status={b.active ? "active" : "paused"} label={b.active ? "Active" : "Paused"} tone={b.active ? "success" : "neutral"} />
@@ -61,7 +61,7 @@ function BundleCard({ b, products, onEdit, onDelete, fresh }: { b: Bundle; produ
       <p className="flex flex-wrap items-baseline gap-2">
         <MoneyText value={t.price} className="font-display text-2xl" />
         <MoneyText value={t.full} className="text-sm text-muted-foreground line-through" />
-        {t.percentOff > 0 && <span className="rounded-full bg-accent px-2 py-0.5 text-xs font-extrabold text-accent-foreground">{t.percentOff}% off</span>}
+        {t.percentOff > 0 && <span className="rounded-full bg-accent px-2 py-0.5 text-xs font-bold text-accent-foreground">{t.percentOff}% off</span>}
       </p>
       <div className="mt-auto flex gap-2">
         <Button variant="secondary" size="sm" onClick={onEdit}><Pencil aria-hidden /> Edit</Button>
@@ -160,7 +160,6 @@ export function OffersManager({ section, storeId, tabs = true }: { section: Offe
     <>
       <PageHeader
         title={TITLES[section][0]}
-        description={TITLES[section][1]}
         actions={
           <>
             {section === "coupons" && <Button onClick={() => start(newCoupon())}><Plus aria-hidden /> New coupon</Button>}

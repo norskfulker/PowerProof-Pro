@@ -48,7 +48,6 @@ export function ReviewsInbox({ compact, onChange }: { compact?: boolean; onChang
       ) : (
         <PageHeader
           title="Reviews"
-          description="Only verified buyers can review. You can reply, pin up to 3 and hide spam. You can't change stars or words; that's what makes them worth reading."
           actions={
             <Button asChild variant="secondary"><Link href="/dashboard">Get your store link</Link></Button>
           }

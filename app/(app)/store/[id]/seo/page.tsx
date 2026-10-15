@@ -44,7 +44,6 @@ export default function StoreSeoPage() {
     <>
       <PageHeader
         title="Search and social"
-        description="How your store looks in Google and when someone shares the link."
         actions={
 <Button asChild variant="ghost"><Link href="/store/current/domain">Custom domain</Link></Button>}
       />

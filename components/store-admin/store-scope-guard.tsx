@@ -9,7 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { getActiveStoreId, getOwnedStores, switchStore } from "@/lib/api";
 
 /** Store-scoped pages render once the store in the URL is the active one. */
-export function StoreScopeGuard({ storeId, children, badge = true }: { storeId: string; children: React.ReactNode; badge?: boolean }) {
+export function StoreScopeGuard({ storeId, children, badge = false }: { storeId: string; children: React.ReactNode; badge?: boolean }) {
   const router = useRouter();
   const pathname = usePathname();
   const search = useSearchParams();
@@ -56,8 +56,8 @@ export function StoreScopeGuard({ storeId, children, badge = true }: { storeId: 
   return (
     <>
       {badge && !editing && <StoreBadge />}
-      {/* Store settings and Domain belong to Settings; everything else in the Store area has tabs */}
-      {!pathname.endsWith("/settings") && !pathname.endsWith("/domain") && <StoreTabs />}
+      {/* Settings › Store (General, Policies, Offers, SEO) has tabs; the designer and Domain don't */}
+      {/\/store\/[^/]+\/(settings|pages|offers|seo|analytics-tags)(\/|$)/.test(pathname) && <StoreTabs />}
       {children}
     </>
   );

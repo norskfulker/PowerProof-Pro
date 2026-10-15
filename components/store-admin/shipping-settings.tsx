@@ -1,7 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { HandCoins, Plus, Trash2, Truck, X } from "lucide-react";
+import { toast } from "sonner";
+import { FileDown, HandCoins, Package, Plus, Trash2, Truck, X } from "lucide-react";
+import Link from "next/link";
+import { ConfirmDialog } from "@/components/pp/confirm-dialog";
+import { EmptyState } from "@/components/pp/empty-state";
 import { CurrencyInput } from "@/components/pp/currency-input";
 import { SaveBar } from "@/components/save/save-bar";
 import { SettingsSection } from "@/components/settings/settings-section";
@@ -22,6 +26,67 @@ const countryName = (c: string) => (c === EVERYWHERE ? "Everywhere else" : COUNT
 
 /** A first zone for the store's own country, so setting up is one click */
 const starter = (store: Store): ShippingZone => ({ id: uid("zone"), name: countryName(store.country), countries: [store.country], rate: store.currency === "INR" ? 5000 : 500, days: "3–5 days" });
+
+/** Shown in place of HSN/SAC codes and SKUs while the store sells digital products */
+export function PhysicalShippingOff({ storeId, what }: { storeId: string; what: string }) {
+  return (
+    <EmptyState
+      icon={Truck}
+      compact
+      title={`${what} come with physical shipping.`}
+      body="Your store sells digital products, which use the standard software tax code. Turn on physical shipping to sell things you ship and set these up."
+      action={<Button asChild variant="secondary"><Link href={`/store/${storeId}/settings`}>Open Store settings</Link></Button>}
+    />
+  );
+}
+
+/**
+ * What the store sells: digital or physical, never both. Turning physical shipping on is what
+ * opens up HSN/SAC codes, SKUs, shipping rates and cash on delivery. The database refuses the
+ * switch while products of the other kind are active, and says so here.
+ */
+export function SellModeSection({ store, onSaved }: { store: Store; onSaved: (s: Store) => void }) {
+  const [asking, setAsking] = useState<"digital" | "physical">();
+  const physical = store.sells === "physical";
+  return (
+    <SettingsSection title="Physical shipping" description="A store sells digital downloads or physical products, not both at once.">
+      <label className="flex min-h-11 items-center justify-between gap-3">
+        <span className="flex items-start gap-3">
+          {physical ? <Package className="mt-0.5 size-5 text-primary" aria-hidden /> : <FileDown className="mt-0.5 size-5 text-primary" aria-hidden />}
+          <span>
+            <span className="block font-medium">{physical ? "This store ships physical products" : "This store sells digital products"}</span>
+            <span className="block text-sm text-muted-foreground">
+              {physical
+                ? "HSN/SAC codes, SKUs, shipping rates and cash on delivery are on. Digital downloads can't be sold here."
+                : "Turn this on to sell things you ship. That's when HSN/SAC codes, SKUs, shipping rates and cash on delivery become available."}
+            </span>
+          </span>
+        </span>
+        <Switch checked={physical} onCheckedChange={(on) => setAsking(on ? "physical" : "digital")} aria-label="Physical shipping" />
+      </label>
+      <ConfirmDialog
+        open={!!asking}
+        onOpenChange={(o) => !o && setAsking(undefined)}
+        title={asking === "physical" ? "Turn on physical shipping?" : "Turn off physical shipping?"}
+        description={
+          asking === "physical"
+            ? "Your store will sell physical products only. Archive your digital products first; you can bring them back by switching again."
+            : "Your store will sell digital downloads only. Archive your physical products first. Shipping zones and cash on delivery stay saved for later."
+        }
+        confirmLabel={asking === "physical" ? "Sell physical products" : "Sell digital products"}
+        onConfirm={async () => {
+          if (!asking) return;
+          try {
+            onSaved(await updateStore({ sells: asking }));
+            toast.success(asking === "physical" ? "Physical shipping is on" : "Physical shipping is off");
+          } catch (e) {
+            toast.error("Couldn't switch", { description: e instanceof Error ? e.message : undefined });
+          }
+        }}
+      />
+    </SettingsSection>
+  );
+}
 
 /**
  * Shipping for physical products: zones (countries) at a flat rate per order, free over an amount

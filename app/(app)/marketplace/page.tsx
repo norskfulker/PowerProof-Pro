@@ -1,10 +1,14 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import Link from "next/link";
-import { Globe2, Plus, RotateCcw, Search, SlidersHorizontal, Store, Tag, Users } from "lucide-react";
+import { Suspense, useMemo, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { Plus, RotateCcw, Search, SlidersHorizontal, Tag } from "lucide-react";
 import { DealCard, SpotlightCard, type Show } from "@/components/marketplace/deal-card";
+import { DealEditor, MyDeals } from "@/components/marketplace/my-deals";
 import { EmptyState, ErrorState } from "@/components/pp/empty-state";
+import { PageHeader } from "@/components/pp/page-header";
+import { StatCard } from "@/components/pp/stat-card";
+import { StatusTabs } from "@/components/pp/status-tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,12 +16,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { useApi } from "@/hooks/use-api";
 import { useCurrentStore } from "@/hooks/use-current-store";
-import { getMarketplace, getRates, type Deal, type MarketFilters, type SortKey } from "@/lib/api";
+import { getMarketplace, getMyDeals, getProducts, getRates, type Deal, type MarketFilters, type SortKey } from "@/lib/api";
+import { can } from "@/lib/team";
 import { COUNTRIES, flagOf } from "@/lib/countries";
 import { canConvert } from "@/lib/fx";
 import { formatNumber } from "@/lib/format";
 import { CURRENCIES } from "@/lib/money";
-import type { CurrencyCode } from "@/lib/types";
+import type { CurrencyCode, Store as StoreT } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 const ANY = "any";
@@ -41,18 +46,6 @@ const QUICK: { id: string; label: string; apply: Partial<MarketFilters>; match: 
   { id: "verified", label: "Verified", apply: { fulfilment: undefined, billing: undefined, badge: "verified" }, match: (f) => f.badge === "verified" && !f.fulfilment && !f.billing },
 ];
 
-function Stat({ icon: Icon, value, label }: { icon: typeof Tag; value: string; label: string }) {
-  return (
-    <div className="flex items-center gap-3">
-      <span className="grid size-10 shrink-0 place-items-center rounded-full bg-white/15 text-white"><Icon className="size-5" aria-hidden /></span>
-      <div>
-        <p className="font-display text-2xl leading-none text-white">{value}</p>
-        <p className="mt-1 text-xs text-white/75">{label}</p>
-      </div>
-    </div>
-  );
-}
-
 /**
  * Inside the creator app (sign-in required), and open to sellers worldwide. Deals from sellers on
  * PowerProof: one-time products and subscriptions, digital and physical. Each card shows the
@@ -60,6 +53,68 @@ function Stat({ icon: Icon, value, label }: { icon: typeof Tag; value: string; l
  * shared) revenue. Prices can be viewed in your own currency when exchange rates are loaded.
  */
 export default function MarketplacePage() {
+  return (
+    <Suspense>
+      <Marketplace />
+    </Suspense>
+  );
+}
+
+/**
+ * One page, laid out like the rest of the app: Browse (every live deal) and My deals (this store's
+ * listings). Listing a deal and editing one happen here too, in place of the list
+ * (?tab=mine&new=1, ?tab=mine&deal=<id>), so nothing opens a separate screen.
+ */
+function Marketplace() {
+  const params = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+  const store = useCurrentStore();
+  // Listing deals is for people who work on the store's offers
+  const canList = can(store.data?.access, "marketing");
+  const tab: "browse" | "mine" = params.get("tab") === "mine" && canList ? "mine" : "browse";
+  const editing = tab === "mine" ? (params.get("new") === "1" ? "new" : params.get("deal") ?? undefined) : undefined;
+  const go = (q: string) => router.replace(q ? `${pathname}?${q}` : pathname, { scroll: false });
+  const mine = useApi(getMyDeals, [], { live: true });
+  const products = useApi(() => getProducts(), [], { live: true });
+
+  const header = editing ? (
+    <PageHeader
+      back={{ href: "/marketplace?tab=mine", label: "My deals" }}
+      title={editing === "new" ? "List a deal" : "Edit deal"}
+    />
+  ) : (
+    <PageHeader
+      title="Marketplace"
+      actions={canList ? <Button onClick={() => go("tab=mine&new=1")}><Plus aria-hidden /> List a deal</Button> : undefined}
+    />
+  );
+
+  return (
+    <>
+      <title>Marketplace · PowerProof</title>
+      {header}
+      {!editing && (
+        <StatusTabs
+          label="Marketplace"
+          value={tab}
+          onChange={(v) => go(v === "mine" ? "tab=mine" : "")}
+          tabs={[{ value: "browse", label: "Browse" }, ...(canList ? [{ value: "mine" as const, label: "My deals", count: mine.data?.length }] : [])]}
+        />
+      )}
+      {editing ? (
+        <DealEditor dealId={editing === "new" ? undefined : editing} deals={mine} products={products} store={store} onDone={() => go("tab=mine")} />
+      ) : tab === "mine" ? (
+        <MyDeals deals={mine} products={products.data} store={store.data} onNew={() => go("tab=mine&new=1")} onEdit={(id) => go(`tab=mine&deal=${id}`)} />
+      ) : (
+        <Browse store={store.data} canList={canList} onNew={() => go("tab=mine&new=1")} />
+      )}
+    </>
+  );
+}
+
+/** Every live deal: quick views, filters, best sellers and the rest */
+function Browse({ store, canList, onNew }: { store: StoreT | undefined; canList: boolean; onNew: () => void }) {
   const [f, setF] = useState<MarketFilters>({ sort: "sold" });
   const [text, setText] = useState({ min: "", max: "" });
   const [more, setMore] = useState(false);
@@ -68,9 +123,8 @@ export default function MarketplacePage() {
   const key = JSON.stringify(f);
   const { data, loading, error, reload } = useApi(() => getMarketplace({ ...f, limit: 96 }), [key], { live: true });
   const rates = useApi(getRates, []);
-  const store = useCurrentStore();
 
-  const home = store.data?.currency;
+  const home = store?.currency;
   const convertible = !!home && !!rates.data && canConvert(rates.data, home);
   const show: Show | undefined = convertible && rates.data ? { currency: pick ?? home!, rates: rates.data } : undefined;
 
@@ -86,43 +140,26 @@ export default function MarketplacePage() {
 
   return (
     <>
-      <title>Marketplace · PowerProof</title>
-      <section aria-labelledby="mp-h" className="relative -mt-2 mb-8 overflow-hidden rounded-card bg-primary p-6 text-primary-foreground md:p-10">
-        <div aria-hidden className="pointer-events-none absolute -top-24 -right-16 size-72 rounded-full bg-accent/30 blur-3xl" />
-        <div aria-hidden className="pointer-events-none absolute -bottom-28 left-1/3 size-72 rounded-full bg-white/10 blur-3xl" />
-        <div className="relative flex flex-wrap items-start justify-between gap-6">
-          <div className="max-w-2xl">
-            <p className="inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 text-xs font-semibold"><Globe2 className="size-3.5" aria-hidden /> Sellers from {stats.countries > 1 ? `${stats.countries} countries` : "around the world"}</p>
-            <h1 id="mp-h" className="mt-4 text-4xl text-white md:text-5xl">Marketplace</h1>
-            <p className="mt-3 max-w-xl text-lg text-white/85">The best deals from PowerProof sellers: digital downloads, physical products and subscriptions. See the real price, who is selling, and how it is selling.</p>
-          </div>
-          <div className="flex gap-2">
-            <Button asChild variant="secondary"><Link href="/catalog/deals">My deals</Link></Button>
-            <Button asChild variant="brass"><Link href="/catalog/deals/new"><Plus aria-hidden /> List a deal</Link></Button>
-          </div>
-        </div>
-        <div className="relative mt-8 grid grid-cols-2 gap-5 md:grid-cols-4">
-          <Stat icon={Tag} value={formatNumber(stats.deals)} label="deals live" />
-          <Stat icon={Store} value={formatNumber(stats.sellers)} label="sellers" />
-          <Stat icon={Globe2} value={formatNumber(stats.countries)} label="countries" />
-          <Stat icon={Users} value={formatNumber(stats.sold)} label="units sold" />
-        </div>
-        <div className="relative mt-8 max-w-2xl">
-          <Search className="pointer-events-none absolute top-1/2 left-4 size-5 -translate-y-1/2 text-muted-foreground" aria-hidden />
-          <Input type="search" aria-label="Search the marketplace" placeholder="Search deals or sellers" value={f.search ?? ""} onChange={(e) => set({ search: e.target.value })} className="h-12 rounded-full border-0 bg-surface pl-12 text-base text-foreground shadow-lg" />
-        </div>
-      </section>
-
+      <div className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-4">
+        <StatCard label="Deals live" value={formatNumber(stats.deals)} loading={loading && !data} />
+        <StatCard label="Sellers" value={formatNumber(stats.sellers)} loading={loading && !data} />
+        <StatCard label="Countries" value={formatNumber(stats.countries)} loading={loading && !data} />
+        <StatCard label="Units sold" value={formatNumber(stats.sold)} loading={loading && !data} />
+      </div>
       <div className="sticky top-2 z-20 mb-6 flex flex-col gap-3 rounded-card border bg-surface/95 p-3 shadow-sm backdrop-blur">
+        <div className="relative">
+          <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
+          <Input type="search" aria-label="Search the marketplace" placeholder="Search deals or sellers" value={f.search ?? ""} onChange={(e) => set({ search: e.target.value })} className="pl-9" />
+        </div>
         <div className="flex flex-wrap items-center gap-2">
-          <div role="group" aria-label="Quick views" className="flex min-w-0 flex-1 gap-2 overflow-x-auto pb-0.5">
+          <div role="group" aria-label="Quick views" className="flex w-full min-w-0 gap-2 overflow-x-auto pb-0.5 2xl:w-auto 2xl:flex-1">
             {QUICK.map((q) => (
               <button key={q.id} type="button" aria-pressed={q.match(f)} onClick={() => set(q.apply)} className={cn("min-h-10 shrink-0 rounded-full border px-4 text-sm font-medium transition-colors pointer-coarse:min-h-11", q.match(f) ? "border-primary bg-primary text-primary-foreground" : "bg-surface hover:border-primary")}>
                 {q.label}
               </button>
             ))}
           </div>
-          <Button type="button" variant="secondary" size="sm" aria-expanded={more} aria-controls="mp-filters" onClick={() => setMore((m) => !m)}>
+          <Button type="button" variant="secondary" size="sm" className="max-2xl:ml-auto" aria-expanded={more} aria-controls="mp-filters" onClick={() => setMore((m) => !m)}>
             <SlidersHorizontal aria-hidden /> Filters{finer > 0 && <span className="ml-1 grid size-5 place-items-center rounded-full bg-primary text-[0.6875rem] text-primary-foreground">{finer}</span>}
           </Button>
           <div className="flex items-center gap-2">
@@ -203,7 +240,7 @@ export default function MarketplacePage() {
             icon={Tag}
             title={filtered ? "No deals match those filters." : "No deals yet."}
             body={filtered ? "Try fewer filters, another country or a wider price range." : "Be the first: list one of your products as a deal and sellers everywhere will see it."}
-            action={filtered ? undefined : <Button asChild><Link href="/catalog/deals/new">List a deal</Link></Button>}
+            action={filtered || !canList ? undefined : <Button onClick={onNew}>List a deal</Button>}
           />
         ) : (
           <>

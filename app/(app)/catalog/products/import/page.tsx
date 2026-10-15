@@ -55,7 +55,9 @@ export default function ImportProductsPage() {
     if (file.size > 2 * 1024 * 1024) return setFileError("That file is over 2 MB. Split it into smaller files.");
     if (!/\.csv$/i.test(file.name) && !file.type.includes("csv") && file.type !== "text/plain") return setFileError("Choose a .csv file. In Excel or Sheets, use Save as, then CSV.");
     const parsed = parseProducts(await file.text(), currency);
-    setRows(parsed.rows);
+    // A store sells one kind: rows of the other kind are flagged, not imported
+    const sells = store.data?.sells ?? "digital";
+    setRows(parsed.rows.map((r) => (r.values && r.values.fulfilment !== sells ? { ...r, values: undefined, error: sells === "physical" ? "This store sells physical products. Digital rows can't be imported here." : "This store sells digital products. Turn on physical shipping in Store settings to import physical ones." } : r)));
     setFileError(parsed.fileError);
   }
 
@@ -103,7 +105,7 @@ export default function ImportProductsPage() {
 
   return (
     <>
-      <PageHeader back={{ href: "/catalog/products", label: "Products" }} title="Import products" description="Add many products at once from a spreadsheet. They arrive as drafts; add each file or image, then publish." />
+      <PageHeader back={{ href: "/catalog/products", label: "Products" }} title="Import products" />
 
       <ol className="flex flex-col gap-6">
         <li className="rounded-card border bg-surface p-5 md:p-6">

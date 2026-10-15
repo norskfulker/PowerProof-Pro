@@ -12,8 +12,9 @@ import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { AuthCard, FormError } from "@/components/auth/auth-card";
+import { GoogleAccountNotice } from "@/components/auth/google-account-notice";
 import { GoogleSignIn } from "@/components/auth/google-button";
-import { login, sendLoginLink } from "@/lib/api";
+import { emailUsesGoogle, login, sendLoginLink } from "@/lib/api";
 
 const passwordSchema = z.object({
   email: z.string().min(1, "Enter your email.").email("That email looks off. Check for typos."),
@@ -34,6 +35,8 @@ function LoginForm() {
   const [mode, setMode] = useState<"password" | "link">("password");
   const [error, setError] = useState<string>();
   const [linkSent, setLinkSent] = useState<string>();
+  // The email belongs to a Google account with no password yet
+  const [google, setGoogle] = useState<string>();
 
   const form = useForm<Values>({
     resolver: zodResolver(mode === "password" ? passwordSchema : (linkSchema as unknown as typeof passwordSchema)),
@@ -53,9 +56,13 @@ function LoginForm() {
       toast.success("Welcome back");
       router.push(next);
     } catch (e) {
+      // No password matched: if the account signs in with Google, say so and offer to add a password
+      if (mode === "password" && (await emailUsesGoogle(v.email))) return setGoogle(v.email.trim());
       setError(e instanceof Error ? e.message : "Something went wrong.");
     }
   }
+
+  if (google) return <GoogleAccountNotice email={google} next={next} onBack={() => setGoogle(undefined)} />;
 
   if (linkSent) {
     return (

@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { Check, Copy, Loader2, MoreHorizontal, UserPlus, Users } from "lucide-react";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/pp/confirm-dialog";
-import { EmptyState } from "@/components/pp/empty-state";
 import { StatusPill } from "@/components/pp/status-pill";
 import { usePlan } from "@/components/plan/plan-context";
 import { SettingsLoading, SettingsSection } from "@/components/settings/settings-section";
@@ -15,6 +14,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { StoreHandover } from "@/components/team/store-handover";
 import { useApi } from "@/hooks/use-api";
 import { useCurrentStore } from "@/hooks/use-current-store";
 import { ApiError, getTeam, inviteTeamMember, myMembership, removeTeamMember, updateTeamMember, type TeamPerson } from "@/lib/api";
@@ -279,9 +279,6 @@ export default function TeamPage() {
           </Button>
         }
       >
-        {people.length <= 1 ? (
-          <EmptyState compact icon={Users} title="It's just you for now." body="Invite someone to help with orders, products or the store's design. You choose what each person can see and change." />
-        ) : null}
         <ul className="divide-y">
           {people.map((p) => (
             <PersonRow
@@ -307,11 +304,24 @@ export default function TeamPage() {
             />
           ))}
         </ul>
+        {/* Just the owner so far: say what inviting is for, under their own row */}
+        {people.length <= 1 && (
+          <p className="mt-3 flex items-start gap-2 rounded-control bg-surface-sunken px-3 py-2.5 text-sm text-muted-foreground">
+            <Users className="mt-0.5 size-4 shrink-0" aria-hidden /> It&apos;s just you for now. Invite someone to help with orders, products or the store&apos;s design; you choose what each person can see and change.
+          </p>
+        )}
         {full && <p className="mt-3 text-sm text-muted-foreground">Every seat on your plan is used. Remove someone or cancel an invite to add another{plan.state?.tier === "free" ? ", or upgrade to Pro for more seats" : ""}.</p>}
         {me && !isOwner && (
           <Button variant="ghost" className="mt-3 text-danger" onClick={() => setRemoving(me)}>Leave this store</Button>
         )}
       </SettingsSection>
+
+      {/* One owner per store (payouts, GST and the plan follow them); "co-owners" are admins */}
+      {isOwner && (
+        <SettingsSection title="Transfer ownership" description={<>Hand {store.data.name} to someone else by email. Want someone to run it with you instead? Invite them as an <strong>Admin</strong> above: admins can do everything except payouts and billing.</>}>
+          <StoreHandover storeId={store.data.id} storeName={store.data.name} mode="transfer" />
+        </SettingsSection>
+      )}
 
       <PersonSheet editing={editing} isOwner={isOwner} onClose={() => setEditing(null)} onDone={team.reload} />
       <ConfirmDialog

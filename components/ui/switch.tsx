@@ -4,6 +4,10 @@ import * as React from "react"
 import { cn } from "@/lib/utils"
 import { Switch as SwitchPrimitive } from "radix-ui"
 
+/**
+ * On/off toggle. A slim track with a round thumb that slides across; the hit area is larger than
+ * the track (an invisible ring around it) so it stays easy to tap on phones.
+ */
 function Switch({
   className,
   size = "default",
@@ -11,38 +15,30 @@ function Switch({
 }: React.ComponentProps<typeof SwitchPrimitive.Root> & {
   size?: "sm" | "default"
 }) {
-  const [uncontrolledChecked, setUncontrolledChecked] = React.useState(props.defaultChecked ?? false)
-  const checked = props.checked ?? uncontrolledChecked
-
   return (
     <SwitchPrimitive.Root
       data-slot="switch"
       data-size={size}
       className={cn(
-        "relative inline-grid shrink-0 grid-cols-2 place-items-center rounded-full border border-transparent bg-muted p-0.5 transition-colors duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 data-[size=default]:h-8 data-[size=default]:w-16 data-[size=sm]:h-7 data-[size=sm]:w-14 data-[state=checked]:bg-primary motion-reduce:transition-none",
+        "peer group/switch relative inline-flex shrink-0 cursor-pointer items-center rounded-full border border-transparent p-0.5 transition-colors duration-200 ease-out outline-none",
+        "data-[size=default]:h-5 data-[size=default]:w-9 data-[size=sm]:h-4 data-[size=sm]:w-7",
+        "bg-border-strong hover:bg-muted-foreground/60 data-[state=checked]:bg-primary data-[state=checked]:hover:bg-primary-hover",
+        "focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+        "disabled:cursor-not-allowed disabled:opacity-50",
+        // Bigger target than the track itself
+        "after:absolute after:-inset-x-1.5 after:-inset-y-3 after:content-['']",
+        "motion-reduce:transition-none",
         className
       )}
       {...props}
-      checked={checked}
-      onCheckedChange={(next) => {
-        setUncontrolledChecked(next)
-        props.onCheckedChange?.(next)
-      }}
     >
-      <span
-        aria-hidden
-        className="pointer-events-none absolute inset-y-0.5 rounded-full bg-surface shadow-sm transition-transform duration-200 ease-out motion-reduce:transition-none"
-        style={{
-          left: "0.125rem",
-          width: size === "default" ? "1.5rem" : "1.25rem",
-          transform: checked
-            ? `translateX(${size === "default" ? "1.75rem" : "1.5rem"})`
-            : "translateX(0)",
-        }}
-      />
       <SwitchPrimitive.Thumb
         data-slot="switch-thumb"
-        className="pointer-events-none sr-only"
+        className={cn(
+          "pointer-events-none block rounded-full bg-white shadow-[0_1px_2px_rgb(0_0_0/0.25)] ring-0 transition-transform duration-200 ease-out motion-reduce:transition-none",
+          "group-data-[size=default]/switch:size-4 group-data-[size=sm]/switch:size-3",
+          "data-[state=unchecked]:translate-x-0 group-data-[size=default]/switch:data-[state=checked]:translate-x-4 group-data-[size=sm]/switch:data-[state=checked]:translate-x-3"
+        )}
       />
     </SwitchPrimitive.Root>
   )

@@ -151,7 +151,7 @@ export default function Page() {
   return (
     <>
       <title>Products · PowerProof admin</title>
-      <PageHeader title="Products" description="Every product in every store. Live ones are what buyers can see right now." />
+      <PageHeader title="Products" />
       <Suspense>
         <Products />
       </Suspense>

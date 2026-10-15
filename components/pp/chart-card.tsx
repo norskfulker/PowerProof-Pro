@@ -1,12 +1,12 @@
 "use client";
 
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
+import { useCallback, useId, useMemo } from "react";
 import {
   Area,
-  AreaChart,
-  Bar,
-  BarChart,
   CartesianGrid,
+  ComposedChart,
+  Line,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -51,12 +51,12 @@ export function ChartCard({
     <section className={cn("flex flex-col rounded-card border bg-surface p-5 md:p-6", className)} aria-label={title}>
       <header className="mb-4 flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="font-display text-lg">{title}</h2>
+          <h2 className="text-base">{title}</h2>
           {description && <p className="text-sm text-muted-foreground">{description}</p>}
         </div>
         {action}
       </header>
-      <div style={{ minHeight: height }} className="flex flex-1 flex-col">
+      <div style={{ minHeight: empty && !emptyChart && !loading && !error ? undefined : height }} className="flex flex-1 flex-col">
         {error ? (
           <ErrorState message={error} onRetry={onRetry} className="flex-1 py-6" />
         ) : loading ? (
@@ -67,7 +67,7 @@ export function ChartCard({
             <p className="pointer-events-none absolute inset-x-0 top-2 text-center text-xs text-muted-foreground">{emptyText}</p>
           </div>
         ) : empty ? (
-          <div className="grid flex-1 place-items-center rounded-media bg-surface-sunken p-6 text-center text-sm text-muted-foreground">
+          <div className="grid min-h-28 flex-1 place-items-center rounded-media bg-surface-sunken p-6 text-center text-sm text-muted-foreground">
             {emptyText}
           </div>
         ) : (
@@ -96,6 +96,9 @@ function TooltipBox({
   currency?: CurrencyCode;
 }) {
   if (!active || !payload?.length) return null;
+  // The gradient wash under a line is the same series: show each name once
+  payload = payload.filter((p, i, all) => p.name !== "value" && all.findIndex((q) => q.name === p.name) === i);
+  if (!payload.length) return null;
   return (
     <div className="rounded-control border bg-surface px-3 py-2 text-sm shadow-pop">
       <p className="eyebrow">{label}</p>
@@ -109,32 +112,87 @@ function TooltipBox({
   );
 }
 
-export function RevenueBars({ data, height = 240, currency }: { data: { label: string; revenue: number }[]; height?: number; currency?: CurrencyCode }) {
-  const still = useReducedMotion();
-  return (
-    <ResponsiveContainer width="100%" height={height}>
-      <BarChart data={data} margin={{ top: 4, right: 4, bottom: 0, left: -8 }}>
-        <CartesianGrid vertical={false} stroke="var(--border)" />
-        <XAxis dataKey="label" tickLine={false} axisLine={false} tick={axis} interval="preserveStartEnd" />
-        <YAxis tickLine={false} axisLine={false} tick={axis} width={48} domain={EMPTY_SAFE} tickFormatter={(v: number) => (v >= 1000 ? `${Math.round(v / 1000)}k` : `${v}`)} />
-        <Tooltip cursor={{ fill: "var(--muted)" }} content={<TooltipBox kind="money" currency={currency} />} />
-        <Bar isAnimationActive={!still} dataKey="revenue" name="revenue" fill="var(--chart-1)" radius={[6, 6, 0, 0]} maxBarSize={36} />
-      </BarChart>
-    </ResponsiveContainer>
-  );
-}
+const TONE = { revenue: "var(--chart-revenue)", orders: "var(--chart-orders)", visitors: "var(--chart-visitors)" } as const;
 
-export function VisitorsArea({ data, height = 240, name = "visitors" }: { data: { label: string; visitors: number }[]; height?: number; name?: string }) {
+/**
+ * A change-over-time chart: a 2px line with a soft shadow under it, an optional gradient wash below,
+ * and dots (every point on short ranges, just the latest on long ones, plus the one under the
+ * pointer, each with a ring in the surface colour). One series, one axis, a crosshair tooltip.
+ */
+export function TrendChart({
+  data,
+  tone = "revenue",
+  kind = "count",
+  variant = "area",
+  height = 240,
+  name,
+  currency,
+}: {
+  data: { label: string; value: number }[];
+  tone?: keyof typeof TONE;
+  kind?: "money" | "count";
+  /** area: line over a gradient wash; line: the line alone */
+  variant?: "area" | "line";
+  height?: number;
+  name: string;
+  currency?: CurrencyCode;
+}) {
   const still = useReducedMotion();
+  const id = useId().replace(/:/g, "");
+  const color = TONE[tone];
+  const everyDot = data.length <= 14;
+  const last = data.length - 1;
+  // Stable between renders: a new function on hover would restart the line's draw-in animation
+  const dot = useCallback(
+    (p: { cx?: number; cy?: number; index?: number }) =>
+      (everyDot || p.index === last) && p.cx != null && p.cy != null ? (
+        <circle key={`d-${p.index}`} cx={p.cx} cy={p.cy} r={4} fill={color} stroke="var(--surface)" strokeWidth={2} />
+      ) : (
+        <g key={`d-${p.index}`} />
+      ),
+    [everyDot, last, color]
+  );
+  const activeDot = useMemo(() => ({ r: 6, fill: color, stroke: "var(--surface)", strokeWidth: 2.5 }), [color]);
   return (
     <ResponsiveContainer width="100%" height={height}>
-      <AreaChart data={data} margin={{ top: 4, right: 4, bottom: 0, left: -8 }}>
+      <ComposedChart data={data} margin={{ top: 12, right: 20, bottom: 0, left: -8 }}>
+        <defs>
+          <linearGradient id={`fill-${id}`} x1="0" x2="0" y1="0" y2="1">
+            <stop offset="0%" stopColor={color} stopOpacity={0.28} />
+            <stop offset="70%" stopColor={color} stopOpacity={0.06} />
+            <stop offset="100%" stopColor={color} stopOpacity={0} />
+          </linearGradient>
+          <filter id={`shadow-${id}`} x="-10%" y="-40%" width="120%" height="200%">
+            <feDropShadow dx="0" dy="6" stdDeviation="5" floodColor={color} floodOpacity="0.35" />
+          </filter>
+        </defs>
         <CartesianGrid vertical={false} stroke="var(--border)" />
-        <XAxis dataKey="label" tickLine={false} axisLine={false} tick={axis} interval="preserveStartEnd" />
-        <YAxis tickLine={false} axisLine={false} tick={axis} width={48} domain={EMPTY_SAFE} allowDecimals={false} />
-        <Tooltip cursor={{ stroke: "var(--border-strong)" }} content={<TooltipBox kind="count" />} />
-        <Area isAnimationActive={!still} type="monotone" dataKey="visitors" name={name} stroke="var(--chart-2)" strokeWidth={2} fill="var(--accent-soft)" />
-      </AreaChart>
+        <XAxis dataKey="label" tickLine={false} axisLine={false} tick={axis} interval="preserveStartEnd" minTickGap={16} />
+        <YAxis
+          tickLine={false}
+          axisLine={false}
+          tick={axis}
+          width={48}
+          domain={EMPTY_SAFE}
+          allowDecimals={kind === "money"}
+          tickFormatter={(v: number) => (v >= 100000 ? `${(v / 100000).toFixed(1)}L` : v >= 1000 ? `${Math.round(v / 1000)}k` : `${v}`)}
+        />
+        <Tooltip cursor={{ stroke: "var(--border-strong)", strokeWidth: 1 }} content={<TooltipBox kind={kind} currency={currency} />} />
+        {variant === "area" && <Area isAnimationActive={!still} type="monotone" dataKey="value" stroke="none" fill={`url(#fill-${id})`} tooltipType="none" activeDot={false} />}
+        <Line
+          isAnimationActive={!still}
+          type="monotone"
+          dataKey="value"
+          name={name}
+          stroke={color}
+          strokeWidth={2}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          filter={`url(#shadow-${id})`}
+          dot={dot}
+          activeDot={activeDot}
+        />
+      </ComposedChart>
     </ResponsiveContainer>
   );
 }
@@ -157,10 +215,15 @@ export function ShareBars({
               {format(r.value)} · {r.share.toFixed(0)}%
             </span>
           </div>
-          <div className="h-2 overflow-hidden rounded-full bg-muted" aria-hidden>
+          <div className="h-2 rounded-full bg-muted" aria-hidden>
+            {/* The leader is the full-strength hue; the rest are a lighter step of it */}
             <div
-              className={cn("h-full rounded-full", i === 0 ? "bg-primary" : "bg-chart-3")}
-              style={{ width: r.value > 0 ? `${Math.max(2, r.share)}%` : 0 }}
+              className={cn("relative h-full rounded-full transition-[width] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]", r.value > 0 && "after:absolute after:top-1/2 after:right-0 after:size-3 after:translate-x-1/2 after:-translate-y-1/2 after:rounded-full after:border-2 after:border-surface after:bg-[var(--bar)] after:content-['']")}
+              style={{
+                width: r.value > 0 ? `${Math.max(2, r.share)}%` : 0,
+                "--bar": i === 0 ? "var(--chart-revenue)" : "color-mix(in oklab, var(--chart-revenue) 55%, var(--surface))",
+                background: "linear-gradient(90deg, color-mix(in oklab, var(--bar) 35%, transparent), var(--bar))",
+              } as React.CSSProperties}
             />
           </div>
         </li>

@@ -20,7 +20,7 @@ import { activeStoreId, currentUser, forgetMyStores, myStores, setActiveStore, s
 /** The creator's stores, their settings, design and pages, and the plan, from Supabase. */
 
 /** Columns a creator reads for their own store (they may read all of them). */
-const STORE_COLS = "id, owner_id, name, slug, country, tagline, logo_url, status, theme, theme_mode, currency_base, brand_color, support_email, refund_days, legal_name, invoice_name, company_address, gstin, invoice_prefix, invoice_footer, pan, business_type, created_at, updated_at, shipping";
+const STORE_COLS = "id, owner_id, name, slug, country, tagline, logo_url, status, theme, theme_mode, currency_base, brand_color, support_email, refund_days, legal_name, invoice_name, company_address, gstin, invoice_prefix, invoice_footer, pan, business_type, created_at, updated_at, shipping, sells, cart_reminders";
 
 async function owner() {
   const u = await currentUser();
@@ -108,6 +108,8 @@ export async function updateStore(patch: Partial<Store>): Promise<Store> {
     if (!r.success) throw new ApiError(r.error.issues[0]?.message ?? "Check the shipping settings.", "validation");
     row.shipping = JSON.parse(JSON.stringify(r.data));
   }
+  if (patch.sells !== undefined) row.sells = patch.sells === "physical" ? "physical" : "digital";
+  if (patch.cartReminders !== undefined) row.cart_reminders = !!patch.cartReminders;
   // Publishing is the end of onboarding: the store becomes visible to buyers
   if (patch.onboarded !== undefined) row.status = patch.onboarded ? "published" : "draft";
   if (Object.keys(row).length) {

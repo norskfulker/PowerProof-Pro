@@ -5,6 +5,8 @@ import type { AboutContent, Plan, Store, StorePageKey, StorePages } from "../typ
 import type { StoreRole } from "../team";
 import { liveChange } from "./live/notify";
 import * as live from "./live/store";
+import { getSessionRaw } from "./live/local";
+import { myStores } from "./live/session";
 
 /**
  * Account-level API: the creator's plan and limits, their stores, and each store's own About,
@@ -44,6 +46,18 @@ export interface OwnedStore {
 export const getOwnedStores = (): Promise<OwnedStore[]> => live.getOwnedStores();
 /** Makes another of the creator's stores the active one. */
 export const switchStore = (storeId: string): Promise<Store> => liveChange(live.switchStore(storeId));
+/**
+ * Whether the signed-in person works on this store (owner or team), for the "Dashboard" button on
+ * its storefront. Buyers who aren't signed in never trigger a request.
+ */
+export async function canManageStore(storeId: string): Promise<boolean> {
+  if (!getSessionRaw()) return false;
+  try {
+    return (await myStores()).some((s) => s.id === storeId);
+  } catch {
+    return false;
+  }
+}
 export const createOwnedStore = (input: { name: string; slug?: string }): Promise<Store> => liveChange(live.createOwnedStore(input));
 
 export interface StoreInfo {

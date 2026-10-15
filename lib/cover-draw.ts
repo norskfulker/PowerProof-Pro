@@ -44,7 +44,7 @@ function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: numbe
 export function drawCover(ctx: CanvasRenderingContext2D, spec: CoverSpec, w: number, h: number) {
   const unit = Math.min(w, h) / 100;
   const pad = unit * 8;
-  const display = cssVarFont("--font-bricolage", "sans-serif");
+  const display = cssVarFont("--font-heading", "sans-serif");
   const mono = cssVarFont("--font-plex-mono", "monospace");
 
   ctx.clearRect(0, 0, w, h);

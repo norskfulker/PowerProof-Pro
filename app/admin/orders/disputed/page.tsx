@@ -58,7 +58,7 @@ export default function Page() {
   return (
     <>
       <title>Disputed orders · PowerProof admin</title>
-      <PageHeader title="Disputed orders" description="Chargebacks raised by buyers' banks. They arrive here by themselves; the evidence is submitted in the Razorpay dashboard before the answer-by date." />
+      <PageHeader title="Disputed orders" />
       <StatusTabs
         label="Dispute status"
         value={tab}

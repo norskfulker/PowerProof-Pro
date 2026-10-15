@@ -43,8 +43,8 @@ export function AiChat({ pageId, isHome, context, insertIndex, autoFocus }: {
   const bottom = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    void refreshAllowance();
-  }, [refreshAllowance]);
+    void refreshAllowance(context.store.id);
+  }, [refreshAllowance, context.store.id]);
   useEffect(() => {
     bottom.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }, [messages, phase]);

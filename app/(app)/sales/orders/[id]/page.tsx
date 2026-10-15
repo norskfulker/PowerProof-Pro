@@ -16,7 +16,7 @@ import { ShippingCard } from "@/components/orders/shipping-card";
 import { useApi } from "@/hooks/use-api";
 import { useCurrentStore } from "@/hooks/use-current-store";
 import { getOrder, refundOrder, resendReceipt } from "@/lib/api";
-import { countryShort, formatDate, sourceLabel } from "@/lib/format";
+import { countryShort, sourceLabel } from "@/lib/format";
 
 export default function OrderDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -49,7 +49,6 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
     <>
       <PageHeader
         back={{ href: "/sales/orders", label: "Orders" }}
-        description={formatDate(o.createdAt, { time: true })}
         title={<span className="flex flex-wrap items-center gap-3"><span className="font-mono text-[1.75rem] tracking-tight">{o.number}</span> <StatusPill status={o.status} /></span>}
         actions={
           <>

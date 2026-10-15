@@ -7,32 +7,48 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Segmented } from "@/components/pp/segmented";
 import { layoutOf, SITE_STYLES, styleById, styleDoc, type SiteStyleDef } from "@/lib/site-styles";
-import type { SiteLayout, SiteStyleId } from "@/lib/types";
+import { themeVars } from "@/lib/store-themes";
+import type { SiteLayout, SiteStyleId, StoreTheme } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { useEditor } from "./editor-context";
 
-/** A tiny drawing of the type's page shape, so the choice can be seen before it's made */
-function Sketch({ s }: { s: SiteStyleDef }) {
-  const bar = "rounded-[2px] bg-current";
+/**
+ * A living preview of a site type, drawn in this store's own colours, fonts and corners (so it
+ * changes the moment the palette or accent does). It moves while hovered or chosen: tiles float,
+ * a sheen crosses the hero, the headline settles in.
+ */
+function LivePreview({ s, theme, mode }: { s: SiteStyleDef; theme: StoreTheme; mode: "light" | "dark" }) {
+  const vars = themeVars({ ...theme, siteStyle: s.id, layout: undefined, corners: s.corners, fonts: s.fonts }, mode) as React.CSSProperties;
   const inset = s.layout.width === "full" ? "px-0" : s.layout.width === "narrow" ? "px-5" : s.layout.width === "wide" ? "px-1.5" : "px-3";
   const gap = s.layout.spacing === "airy" ? "gap-2.5" : s.layout.spacing === "compact" ? "gap-1" : "gap-1.5";
-  const head = s.layout.headings === "huge" ? "h-3 w-4/5" : s.layout.headings === "large" ? "h-2.5 w-3/4" : s.layout.headings === "small" ? "h-1.5 w-1/2" : "h-2 w-2/3";
-  const centered = s.headerAlign === "center" || s.id === "minimal";
+  const head = s.layout.headings === "huge" ? "text-[0.95rem]" : s.layout.headings === "large" ? "text-[0.8rem]" : s.layout.headings === "small" ? "text-[0.6rem]" : "text-[0.7rem]";
+  const centered = s.headerAlign === "center" || s.id === "minimal" || s.id === "editorial";
+  const round = s.corners === "round" ? "rounded-full" : s.corners === "sharp" ? "rounded-none" : "rounded-[3px]";
+  const tile = s.corners === "round" ? "rounded-[8px]" : s.corners === "sharp" ? "rounded-none" : "rounded-[4px]";
   return (
-    <span aria-hidden className={cn("flex h-24 w-full flex-col overflow-hidden rounded-[6px] border bg-background p-1.5 text-foreground/70", gap)}>
+    <span aria-hidden style={vars} className={cn("flex h-28 w-full flex-col overflow-hidden rounded-[8px] border bg-[var(--background)] p-1.5 text-[var(--foreground)]", gap)}>
       <span className={cn("flex items-center gap-1", centered ? "justify-center" : "justify-between")}>
-        <span className={cn(bar, "h-1 w-5")} />
-        {!centered && <span className="flex gap-0.5">{[0, 1, 2].map((i) => <span key={i} className={cn(bar, "h-0.5 w-2 opacity-60")} />)}</span>}
+        <span className={cn("block size-2 bg-[var(--primary)]", round)} />
+        {!centered && <span className="flex gap-0.5">{[0, 1, 2].map((i) => <span key={i} className="block h-0.5 w-2 rounded-full bg-current opacity-40" />)}</span>}
       </span>
-      <span className={cn("flex flex-col", inset, gap, s.id === "minimal" || s.id === "editorial" ? "items-center" : "items-start", s.id === "freeflow" && "bg-current/10 py-1.5 pl-1")}>
-        <span className={cn(bar, head)} />
-        <span className={cn(bar, "h-1 w-1/2 opacity-50")} />
+      <span className={cn("relative flex flex-col overflow-hidden", inset, gap, centered ? "items-center text-center" : "items-start", s.id === "freeflow" && "rounded-[4px] bg-[var(--primary-soft)] py-1.5 pl-1")}>
+        <span className={cn("pp-on-hover font-display leading-none font-bold tracking-tight", head, s.id === "bold" && "uppercase")} style={{ animation: "pp-settle 2.4s ease-in-out infinite" }}>
+          Aa Store
+        </span>
+        <span className="block h-1 w-1/2 rounded-full bg-current opacity-35" />
+        <span className={cn("mt-0.5 block h-2 w-7 bg-[var(--primary)]", round)} />
+        {/* The sheen that crosses the hero */}
+        <span className="pp-on-hover pointer-events-none absolute inset-y-0 left-0 w-1/3 bg-gradient-to-r from-transparent via-white/45 to-transparent" style={{ animation: "pp-sheen 2.4s ease-in-out infinite" }} />
       </span>
-      {s.layout.dividers && <span className="h-px w-full bg-current/30" />}
+      {s.layout.dividers && <span className="h-px w-full bg-current opacity-20" />}
       <span className={cn("grid", inset, s.id === "informational" ? "grid-cols-1 gap-0.5" : "grid-cols-3 gap-1")}>
-        {[0, 1, 2].map((i) => (
-          <span key={i} className={cn(s.id === "informational" ? "h-0.5 opacity-50" : "h-4 opacity-25", bar, s.corners === "round" ? "rounded-full" : s.corners === "sharp" ? "rounded-none" : "")} />
-        ))}
+        {[0, 1, 2].map((i) =>
+          s.id === "informational" ? (
+            <span key={i} className="block h-0.5 rounded-full bg-current opacity-40" />
+          ) : (
+            <span key={i} className={cn("pp-float pp-on-hover block h-5", tile, i === 1 ? "bg-[var(--accent)]" : "bg-[var(--primary-soft)]")} style={{ animationDelay: `${i * 0.25}s` }} />
+          )
+        )}
       </span>
     </span>
   );
@@ -48,6 +64,7 @@ export function SiteStylePicker() {
   const restyle = useEditor((s) => s.restyle);
   if (!site) return null;
   const current = styleById(site.design.theme.siteStyle).id;
+  const mode: "light" | "dark" = site.design.theme.mode === "dark" ? "dark" : "light";
 
   const choose = (id: SiteStyleId) => {
     if (id === current) return;
@@ -79,10 +96,10 @@ export function SiteStylePicker() {
               role="radio"
               aria-checked={on}
               onClick={() => choose(s.id)}
-              className={cn("relative flex flex-col gap-2 rounded-control border bg-surface p-2 text-left transition-colors hover:border-border-strong", on && "border-primary ring-2 ring-primary/30 hover:border-primary")}
+              className={cn("pp-live group relative flex flex-col gap-2 rounded-card border bg-surface p-2 text-left shadow-card transition-[transform,box-shadow,border-color] duration-200 hover:-translate-y-0.5 hover:shadow-lift", on && "border-primary ring-2 ring-primary/30 hover:border-primary")}
             >
-              {on && <Check className="absolute top-3 right-3 size-4 rounded-full bg-primary p-0.5 text-primary-foreground" aria-hidden />}
-              <Sketch s={s} />
+              {on && <Check className="absolute top-3 right-3 z-10 size-4 rounded-full bg-primary p-0.5 text-primary-foreground" aria-hidden />}
+              <LivePreview s={s} theme={site.design.theme} mode={mode} />
               <span className="flex flex-col px-0.5">
                 <span className="text-sm font-semibold">{s.name}</span>
                 <span className="text-xs text-muted-foreground">{s.goodFor}</span>

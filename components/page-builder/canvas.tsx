@@ -15,6 +15,7 @@ import { layoutOf } from "@/lib/site-styles";
 import { cn } from "@/lib/utils";
 import type { IconWeight } from "@/components/pp/icon-library";
 import { IconPickerDialog } from "./controls";
+import { CanvasOverlay } from "./canvas-overlay";
 import { DeviceFrame, SCREEN_HEIGHT, SCREEN_WIDTH } from "./device-frame";
 import { useEditor } from "./editor-context";
 import { PreviewFrame, useFrameDocument } from "./preview-frame";
@@ -146,13 +147,12 @@ function AddLine({ index }: { index: number }) {
 
 /** Store-wide parts (announcement, header, footer): click to select, links don't navigate */
 function SitePartFrame({ id, children, className }: { id: SitePart; children: React.ReactNode; className?: string }) {
-  const selected = useEditor((s) => s.selectedId === id);
   const select = useEditor((s) => s.select);
   const setLinkPrompt = useEditor((s) => s.setLinkPrompt);
   return (
     <div
       data-node-id={id}
-      className={cn("relative cursor-pointer outline-offset-[-2px] hover:outline hover:outline-1 hover:outline-primary/50", selected && "outline outline-2 outline-primary hover:outline-2", className)}
+      className={cn("relative cursor-pointer", className)}
       onClickCapture={(e) => {
         e.preventDefault();
         e.stopPropagation();
@@ -201,6 +201,13 @@ function FrameKeys({ onKey }: { onKey?: (e: KeyboardEvent) => void }) {
     return () => doc.removeEventListener("keydown", onKey);
   }, [doc, onKey]);
   return null;
+}
+
+/** The draft page with the store's announcement bar, header and footer, for the full-tab preview */
+export function DraftPage({ context, screen }: { context: RenderContext; screen: number }) {
+  const doc = useEditor((s) => s.doc);
+  const site = useEditor((s) => s.site);
+  return <Page context={context} site={site} doc={doc} interactive={false} screen={screen} />;
 }
 
 function Page({ context, site, doc, previewAs, interactive, onKey, screen }: { context: RenderContext; site?: SiteDraft; doc: PageDoc; previewAs?: "light" | "dark"; interactive: boolean; onKey?: (e: KeyboardEvent) => void; /** What a "full screen" section fills, in px */ screen: number }) {
@@ -261,12 +268,13 @@ function Page({ context, site, doc, previewAs, interactive, onKey, screen }: { c
           </SitePartFrame>
         )}
         {/* The draft theme, so colours on the page follow unpublished changes */}
-        <PageRenderer doc={doc} context={{ ...context, theme }} env={env} className="flex-1" />
+        <PageRenderer doc={doc} context={{ ...context, theme }} env={env} className="flex-1 pb-12 md:pb-20" />
         {chrome && (
           <SitePartFrame id="@footer" className={schemeClass(design.footer?.scheme)}>
             <StoreFooter store={store} socials={design.socials} showPoweredBy={design.showPoweredBy} layout={layoutOf(theme).footer} />
           </SitePartFrame>
         )}
+        {interactive && <CanvasOverlay box={box} />}
         {interactive && <BlockToolbar container={box} />}
       </div>
     </StoreThemeScope>
@@ -302,7 +310,7 @@ export function Canvas({ context, className, previewAs, onKey, address = "" }: {
   );
 
   return (
-    <div className={cn("relative flex flex-col bg-surface-sunken p-3 md:p-6", className)} aria-label="Page canvas" role="region">
+    <div className={cn("relative flex flex-col bg-surface-sunken bg-[radial-gradient(var(--border-strong)_1px,transparent_1px)] [background-size:18px_18px] p-3 md:p-8", className)} aria-label="Page canvas" role="region">
       {focusSection && !section && <p className="mb-3 text-center text-sm text-muted-foreground">Select a block to see its section on its own.</p>}
       {frame(shown, !building)}
     </div>

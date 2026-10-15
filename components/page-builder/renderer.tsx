@@ -201,7 +201,6 @@ const SELF_ALIGN = { "": "", left: "text-left [&_figure]:items-start", center: "
 
 function Frame({ node, className, children, as: Tag = "div", style, bare }: { node: PageNode; className?: string; children: React.ReactNode; as?: "div" | "section"; style?: React.CSSProperties; /** Colours and box are drawn by an inner panel instead */ bare?: boolean }) {
   const env = useContext(Env);
-  const selected = env.mode === "edit" && env.selectedId === node.id;
   const top = node.type === "section" || node.type === "hero";
   return (
     <Tag
@@ -217,8 +216,8 @@ function Frame({ node, className, children, as: Tag = "div", style, bare }: { no
         SELF_ALIGN[node.style.selfAlign ?? ""],
         visibilityClass(node.visibility, env.mode),
         !bare && boxClass(node.style),
-        env.mode === "edit" && "relative outline-offset-2 hover:outline hover:outline-1 hover:outline-primary/50",
-        selected && "outline outline-2 outline-primary hover:outline-2 hover:outline-primary",
+        // Hover and selection outlines are drawn by the canvas overlay
+        env.mode === "edit" && "relative",
         className
       )}
       style={style}
@@ -424,7 +423,7 @@ function HeroBlock({ node }: { node: PageNode<"hero"> }) {
     <Painted node={node} outerClass="" innerClass={cn("grid items-center gap-8", split && p.image ? "grid-cols-1 @3xl/page:grid-cols-2" : "grid-cols-1")}>
         <div className={cn("flex min-w-0 flex-col gap-4", centered ? "items-center text-center" : node.style.align === "right" ? "items-end text-right" : "items-start text-left")}>
           <T node={node} path="eyebrow" value={p.eyebrow} optional as="p" placeholder="Small line above" className="text-sm font-semibold tracking-wide uppercase opacity-80" />
-          <T node={node} path="headline" value={p.headline} as={H} placeholder="Headline" className="font-display text-[length:calc(clamp(2rem,7cqw,3.75rem)*var(--pp-display,1))] leading-[1.02] font-extrabold tracking-[-0.03em] [overflow-wrap:anywhere]" />
+          <T node={node} path="headline" value={p.headline} as={H} placeholder="Headline" className="font-display text-[length:calc(clamp(2rem,7cqw,3.75rem)*var(--pp-display,1))] leading-[1.02] font-bold tracking-[-0.03em] [overflow-wrap:anywhere]" />
           <T node={node} path="subtext" value={p.subtext} optional as="p" multiline placeholder="A line under the headline" className="max-w-xl text-lg opacity-90 [overflow-wrap:anywhere]" />
           {(p.ctaLabel || p.cta2Label) && (
             <div className={cn("flex flex-wrap gap-3", centered ? "justify-center" : node.style.align === "right" && "justify-end")}>
@@ -612,7 +611,7 @@ function Block({ node }: { node: PageNode }) {
     case "heading": {
       const p = node.props as BlockProps<"heading">;
       const H = (`h${p.level}` as "h1" | "h2" | "h3");
-      const title = <T node={node} path="text" value={p.text} as={H} placeholder="Heading" className={cn("font-display leading-[1.08] font-extrabold tracking-[-0.02em] [overflow-wrap:anywhere]", HEADING[p.size])} />;
+      const title = <T node={node} path="text" value={p.text} as={H} placeholder="Heading" className={cn("font-display leading-[1.08] font-bold tracking-[-0.02em] [overflow-wrap:anywhere]", HEADING[p.size])} />;
       if (!p.linkLabel) return <Frame node={node}>{title}</Frame>;
       return (
         <Frame node={node} className="flex w-full flex-wrap items-end justify-between gap-x-4 gap-y-1 text-left">
@@ -950,7 +949,7 @@ function AboutBlock({ node }: { node: PageNode<"about"> }) {
           <Avatar className="size-24 @3xl/page:size-32"><AvatarFallback className="bg-accent-soft font-display text-3xl text-accent-ink">{a.initials}</AvatarFallback></Avatar>
         )}
         <div className="flex flex-col items-start gap-3">
-          <h2 className="font-display text-3xl font-extrabold">{a.name}</h2>
+          <h2 className="font-display text-3xl font-bold">{a.name}</h2>
           {a.location && <p className="text-sm opacity-75">{a.location}</p>}
           <p className="max-w-2xl text-lg leading-relaxed whitespace-pre-line opacity-90">{a.story}</p>
           {node.props.showLink && <LinkButton href={`/s/${ctx.store.slug}/about`} label={`More about ${a.name.split(" ")[0]}`} variant="secondary" />}

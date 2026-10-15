@@ -29,6 +29,8 @@ export interface NavData {
   locked: Set<"customDomain">;
   /** The signed-in person's access to the active store; items they can't open are left out */
   access?: StoreAccess;
+  /** The store ships physical products: physical-only items (SKUs) show */
+  physical?: boolean;
 }
 
 const BADGE_LABEL: Record<BadgeKey, string> = {
@@ -52,6 +54,7 @@ export function resolveNav(tree: NavNode[], data: NavData, path: string[] = [], 
   for (const n of tree) {
     const need = n.need ?? inherited;
     if (!can(data.access, need)) continue;
+    if (n.physical && !data.physical) continue;
     const here = [...path, n.label];
     const children = n.children ? resolveNav(n.children, data, here, need) : undefined;
     // A group whose items are all hidden goes too

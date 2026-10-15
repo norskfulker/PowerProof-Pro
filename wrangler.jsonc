@@ -22,7 +22,8 @@
   "assets": { "directory": ".open-next/assets", "binding": "ASSETS" },
   "services": [{ "binding": "WORKER_SELF_REFERENCE", "service": "powerproof-pro" }],
   "observability": { "enabled": true },
-  // Re-check custom domains waiting for DNS (app/api/cron/domains)
+  // Every 10 minutes: re-check custom domains waiting for DNS (app/api/cron/domains) and remind
+  // buyers who left checkout (app/api/cron/abandoned)
   "triggers": { "crons": ["*/10 * * * *"] }
   // (No "vars" here on purpose: dashboard Variables stay as they are across deploys.)
   // Custom domains reach the app through a route that catches every hostname on the zone.

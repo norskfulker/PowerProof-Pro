@@ -61,7 +61,6 @@ export default function CustomersPage() {
     <>
       <PageHeader
         title="Customers"
-        description="Everyone who has bought from you. Their email is theirs; use it for receipts and replies, not spam."
         actions={
           <Button asChild variant="secondary"><Link href="/dashboard">Get your store link</Link></Button>
         }

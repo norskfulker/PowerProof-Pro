@@ -10,9 +10,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { LinkImportDialog } from "@/components/products/link-import";
 import { NewProductForm } from "@/components/products/new-product-form";
 import { useApi } from "@/hooks/use-api";
+import { useCurrentStore } from "@/hooks/use-current-store";
 import { getProducts } from "@/lib/api";
 
-/** The first choice: what kind of product this is. The steps after it are the same for both. */
+/** One way per kind; a store shows only the kind it sells (physical shipping in Store settings). */
 const WAYS = [
   {
     href: "/catalog/products/new/upload?type=digital",
@@ -20,7 +21,7 @@ const WAYS = [
     title: "Digital product",
     body: "Something buyers download: a PDF, template, preset, course or audio. Upload the file, name it, set a price.",
     meta: "About a minute",
-    primary: true,
+    sells: "digital",
   },
   {
     href: "/catalog/products/new/upload?type=physical",
@@ -28,28 +29,31 @@ const WAYS = [
     title: "Physical product",
     body: "Something you ship. Same steps, without a file, and it lives in a collection so buyers can find it.",
     meta: "Needs a collection",
+    sells: "physical",
   },
 ];
 
 export default function NewProductPage() {
   const products = useApi(() => getProducts(), []);
+  const store = useCurrentStore();
   const [fromLink, setFromLink] = useState(false);
   // Someone's first product is three short steps; after that, the full form and a way to import many
-  if (!products.data && !products.error) return <Skeleton className="h-96 rounded-card" />;
-  if (products.data?.length === 0) return <NewProductForm type="digital" wizard />;
+  if ((!products.data && !products.error) || !store.data) return <Skeleton className="h-96 rounded-card" />;
+  if (products.data?.length === 0) return <NewProductForm wizard />;
+  const sells = store.data.sells;
   return (
     <>
-      <PageHeader back={{ href: "/catalog/products", label: "Products" }} title="Add a product" description="First, is it digital or physical? The steps are the same for both." />
+      <PageHeader back={{ href: "/catalog/products", label: "Your products" }} title="Add a product" />
       <LimitNotice kind="products" />
-      <ul className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        {WAYS.map((w) => (
-          <li key={w.href} data-coach={w.primary ? "new-product" : undefined}>
+      <ul className="grid grid-cols-1 gap-4">
+        {WAYS.filter((w) => w.sells === sells).map((w) => (
+          <li key={w.href} data-coach="new-product">
             <GuardedLink
               kind="products"
               href={w.href}
               className="group flex h-full flex-col rounded-card border bg-surface p-6 transition-[border-color,transform] duration-150 hover:-translate-y-0.5 hover:border-primary"
             >
-              <span className={w.primary ? "grid size-12 place-items-center rounded-control bg-primary text-primary-foreground" : "grid size-12 place-items-center rounded-control bg-primary-soft text-primary"}>
+              <span className="grid size-12 place-items-center rounded-control bg-primary text-primary-foreground">
                 <w.icon className="size-5" aria-hidden />
               </span>
               <h2 className="mt-5 text-xl">{w.title}</h2>
@@ -62,6 +66,13 @@ export default function NewProductPage() {
           </li>
         ))}
       </ul>
+      <p className="mt-3 text-sm text-muted-foreground">
+        {sells === "physical" ? "Selling downloads instead? " : "Selling things you ship? "}
+        <Link href={`/store/${store.data.id}/settings`} className="font-medium text-primary underline underline-offset-4">
+          {sells === "physical" ? "Turn off physical shipping" : "Turn on physical shipping"}
+        </Link>{" "}
+        in Store settings. A store sells one kind at a time.
+      </p>
       <section aria-labelledby="link-h" className="mt-6 flex flex-wrap items-center gap-4 rounded-card border bg-surface p-5">
         <span className="grid size-12 shrink-0 place-items-center rounded-control bg-primary-soft text-primary"><Link2 className="size-5" aria-hidden /></span>
         <span className="min-w-0 flex-1">

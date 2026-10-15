@@ -7,7 +7,7 @@ import { EmptyState } from "@/components/pp/empty-state";
 import { PageHeader } from "@/components/pp/page-header";
 import { Button } from "@/components/ui/button";
 import { useCurrentStore } from "@/hooks/use-current-store";
-import { can, needForPath, roleLabel, TEAM_AREAS, type StoreAccess, type TeamArea } from "@/lib/team";
+import { can, needForPath, TEAM_AREAS, type StoreAccess, type TeamArea } from "@/lib/team";
 
 /** Where each area starts, for the team member's home */
 const AREA_HOME: Record<TeamArea, string> = {
@@ -24,7 +24,7 @@ function TeamHome({ storeName, access }: { storeName: string; access: StoreAcces
   const areas = TEAM_AREAS.filter((a) => can(access, a.id) && a.id !== "analytics");
   return (
     <>
-      <PageHeader title={storeName} description={`You're on this store's team (${roleLabel(access.role)}). Here's what you can work on.`} />
+      <PageHeader title={storeName} />
       <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {areas.map((a) => (
           <li key={a.id}>

@@ -17,7 +17,7 @@ export function CollectionTileArt({ collection, size = "sm", className }: { coll
     return (
       <TileBackgroundView bg={bg} label={collection.name} className={cn("@container flex aspect-[4/3] w-full items-end rounded-media", size === "xs" ? "p-2" : "p-3", className)}>
         {size !== "xs" && (
-          <span aria-hidden className="line-clamp-2 font-display text-[clamp(0.875rem,9cqw,1.25rem)] leading-tight font-extrabold [overflow-wrap:anywhere]" style={{ color: tileTextColor(bg, avg) }}>
+          <span aria-hidden className="line-clamp-2 font-display text-[clamp(0.875rem,9cqw,1.25rem)] leading-tight font-bold [overflow-wrap:anywhere]" style={{ color: tileTextColor(bg, avg) }}>
             {collection.name}
           </span>
         )}

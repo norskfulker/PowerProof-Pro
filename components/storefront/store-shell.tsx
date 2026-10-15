@@ -11,7 +11,8 @@ import { BuyerStatus } from "@/components/buyer/buyer-states";
 import { useApi } from "@/hooks/use-api";
 import { useTheme } from "@/components/theme/theme-toggle";
 import { cn } from "@/lib/utils";
-import { getBuyerStoreTheme, getStorefront, setBuyerStoreTheme } from "@/lib/api";
+import { canManageStore, getBuyerStoreTheme, getStorefront, setBuyerStoreTheme, switchStore } from "@/lib/api";
+import { useRouter } from "next/navigation";
 import { resolveStoreMode, schemeClass, targetHref } from "@/lib/store-themes";
 import type { CurrencyCode } from "@/lib/types";
 import { StoreAnalytics } from "./store-analytics";
@@ -40,6 +41,15 @@ function Chrome({ children }: { children: React.ReactNode }) {
   const [buyer, setBuyer] = useState<"light" | "dark" | undefined>(() => getBuyerStoreTheme(store.id));
   const mode = resolveStoreMode(design.theme, site, buyer);
   const announcementOn = design.sections.find((s) => s.id === "announcement")?.enabled;
+  const router = useRouter();
+  // The store's owner and team get a way back to their dashboard, on this store
+  const team = useApi(() => canManageStore(store.id), [store.id]);
+  const manage = team.data
+    ? async () => {
+        await switchStore(store.id).catch(() => undefined);
+        router.push("/dashboard");
+      }
+    : undefined;
   return (
     <StoreThemeScope theme={design.theme} mode={mode} className="flex min-h-dvh flex-col">
       <SkipLink />
@@ -47,8 +57,9 @@ function Chrome({ children }: { children: React.ReactNode }) {
       {announcementOn && design.announcement.text.trim() && (
         <div data-store-chrome><AnnouncementBar announcement={design.announcement} href={design.announcement.target ? targetHref(store.slug, design.announcement.target) : undefined} /></div>
       )}
-      <div data-store-chrome className={cn(design.header?.sticky !== false && "sticky top-0 z-30", schemeClass(design.header?.scheme))}><StoreNavbar store={store} collections={view.collections} header={{ ...design.header, sticky: false }} /></div>
-      <main id="main" className="flex-1">{children}</main>
+      <div data-store-chrome className={cn(design.header?.sticky !== false && "sticky top-0 z-30", schemeClass(design.header?.scheme))}><StoreNavbar store={store} collections={view.collections} header={{ ...design.header, sticky: false }} manage={manage} /></div>
+      {/* Room between the last section and the footer */}
+      <main id="main" className="flex-1 pb-12 md:pb-20">{children}</main>
       <div data-store-chrome><CurrencyBar /></div>
       <div data-store-chrome className={schemeClass(design.footer?.scheme)}>
       <StoreFooter

@@ -31,7 +31,7 @@ export function QuestionsInbox({ compact }: { compact?: boolean }) {
       {compact ? (
         <p className="mb-3 text-sm text-muted-foreground">Asked on your product pages. Answers show to everyone and the asker gets an email.</p>
       ) : (
-        <PageHeader title="Questions" description="Asked on your product pages. Answers show to everyone and the asker gets an email. Verified buyers can answer too." actions={<Button asChild variant="secondary"><Link href="/catalog/products">See your products</Link></Button>} />
+        <PageHeader title="Questions" actions={<Button asChild variant="secondary"><Link href="/catalog/products">See your products</Link></Button>} />
       )}
       {error ? <ErrorState message={error} onRetry={reload} /> : loading && !data ? <Skeleton className="h-96 rounded-card" /> : data && data.length === 0 ? (
         <EmptyState compact={compact} icon={MessagesSquare} title="No questions yet." body="When someone asks about a product, it lands here." action={<Button asChild variant="secondary"><Link href="/catalog/products">See your products</Link></Button>} />

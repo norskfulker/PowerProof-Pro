@@ -40,20 +40,20 @@ export function ProductCard({
     <Link
       href={href}
       className={cn(
-        "group flex flex-col gap-3 rounded-card border bg-surface p-3 transition-[border-color,transform] duration-150 ease-out hover:-translate-y-0.5 hover:border-border-strong",
+        "group flex flex-col overflow-hidden rounded-card border bg-surface transition-[border-color,transform,box-shadow] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] hover:-translate-y-0.5 hover:border-border-strong hover:shadow-lift",
         className
       )}
     >
-      <ProductImageView image={product.images[0]} fallback={product.tileBackground} fallbackLabel={product.title} />
-      <div className="flex flex-1 flex-col gap-1 px-1 pb-1">
-        <div className="flex items-center justify-between gap-2">
-          <span className="eyebrow">{KIND_LABEL[product.kind]}</span>
-          {variant === "creator" && <StatusPill status={product.status} />}
-        </div>
-        <p className="line-clamp-2 font-semibold leading-snug group-hover:underline group-hover:underline-offset-4">{product.title}</p>
-        <div className="mt-auto flex items-baseline justify-between gap-2 pt-1">
+      <span className="relative block overflow-hidden bg-muted">
+        <ProductImageView image={product.images[0]} fallback={product.tileBackground} fallbackLabel={product.title} className="rounded-none transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-[1.04]" />
+        {variant === "creator" && <span className="absolute top-3 left-3"><StatusPill status={product.status} /></span>}
+      </span>
+      <div className="flex flex-1 flex-col gap-1.5 p-4">
+        <span className="eyebrow">{KIND_LABEL[product.kind]}</span>
+        <p className="line-clamp-2 text-[0.9375rem] leading-snug font-semibold tracking-[-0.01em]">{product.title}</p>
+        <div className="mt-auto flex items-baseline justify-between gap-2 pt-2">
           <span className="flex items-baseline gap-2">
-            <MoneyText value={price} className="font-semibold" />
+            <MoneyText value={price} className="font-display text-lg font-bold tracking-[-0.02em]" />
             {product.compareAt && variant === "buyer" && (
               <MoneyText
                 value={currency ? localPrice(product.compareAt, currency) : product.compareAt}
@@ -61,9 +61,7 @@ export function ProductCard({
               />
             )}
           </span>
-          {variant === "creator" && (
-            <span className="font-mono text-xs text-muted-foreground">{product.salesCount} sold</span>
-          )}
+          {variant === "creator" && <span className="text-xs font-medium text-muted-foreground tabular">{product.salesCount} sold</span>}
         </div>
       </div>
     </Link>

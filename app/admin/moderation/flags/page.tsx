@@ -86,7 +86,7 @@ export default function Page() {
   return (
     <>
       <title>Flags · PowerProof admin</title>
-      <PageHeader title="Flags" description="Content that visitors reported from a store. Take it down or dismiss the report; either is written to the audit log." />
+      <PageHeader title="Flags" />
       <StatusTabs
         label="Report status"
         value={tab}

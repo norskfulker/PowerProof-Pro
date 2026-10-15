@@ -1,5 +1,5 @@
 import {
-  AlertOctagon, Banknote, Box, Brush, FileText, Flag, FolderOpen, Globe, Images, Inbox, LayoutDashboard, MessagesSquare,
+  AlertOctagon, Banknote, BarChart3, Box, Brush, FileText, Flag, FolderOpen, Globe, Images, Inbox, LayoutDashboard, MessagesSquare,
   Newspaper, Package, Plug, Receipt, ScrollText, Search, Settings, Shield, ShoppingBag, Sparkles, Store, Tag, Ticket, Users, Wallet, Wrench, type LucideIcon,
 } from "lucide-react";
 import type { Need } from "../team";
@@ -29,18 +29,24 @@ export interface NavNode {
   inEditor?: true;
   /** Who on the store's team can open it (lib/team.ts); children inherit it. Default: everyone. */
   need?: Need;
+  /** Only once the store has physical shipping turned on (SKUs) */
+  physical?: true;
 }
 
-/** Every address that belongs to the Store area (Store settings is under Settings). */
-const STORE_MATCH = ["/store/{store}/design", "/store/{store}/pages", "/store/{store}/offers", "/store/{store}/reviews", "/store/{store}/questions", "/store/{store}/seo", "/store/{store}/analytics-tags"];
+/** The store designer: My Store in the sidebar (reviews and questions open as its panels) */
+const STORE_MATCH = ["/store/{store}/design", "/store/{store}/reviews", "/store/{store}/questions"];
+/** Settings › Store: the store's details plus its Policies, Offers and SEO tabs */
+const STORE_SETTINGS_MATCH = ["/store/{store}/settings", "/store/{store}/pages", "/store/{store}/offers", "/store/{store}/seo", "/store/{store}/analytics-tags"];
 
 /**
- * What's inside the Store area: shown as tabs at the top of the Store pages (and found by search),
- * not as nested items in the sidebar.
+ * Settings › Store, as tabs across the top of its pages (and found by search): General, Policies,
+ * Offers and SEO. Design is the store editor itself (My Store); it stays here so search finds its
+ * panels, but isn't a tab.
  */
 const EDITOR = "/store/{store}/design/pages/home/edit";
 
 export const STORE_NAV: NavNode[] = [
+  { id: "store-general", label: "General", href: "/store/{store}/settings", need: "business" },
   {
     // Pages and FAQ are panels of the store editor, beside the pages that show them
     id: "design", label: "Design", icon: Brush, need: "design", children: [
@@ -77,19 +83,16 @@ export const STORE_NAV: NavNode[] = [
 ];
 
 export const CREATOR_NAV: NavNode[] = [
-  // Getting started, operations and analytics are sections of the one dashboard
+  // Getting started, operations, your products and the marketplace, at a glance
   { id: "dashboard", label: "Dashboard", href: "/dashboard", icon: LayoutDashboard, match: ["/getting-started"] },
-  // Browse every live deal, plus this store's own listings (moved out of Catalog)
-  {
-    id: "marketplace", label: "Marketplace", icon: ShoppingBag, children: [
-      { id: "marketplace-browse", label: "Browse", href: "/marketplace", icon: ShoppingBag },
-      { id: "deals", label: "My deals", href: "/catalog/deals", icon: Tag, match: ["/catalog/deals/"], need: "marketing" },
-    ],
-  },
-  // The business flow, in order: Catalog (Collections, Products), Sales (Orders, Customers, Payouts),
+  // Sales, buyers, products and visitors in detail
+  { id: "analytics", label: "Analytics", href: "/analytics", icon: BarChart3, need: "analytics" },
+  // One page: browse every live deal, and list and manage this store's own deals in place
+  { id: "marketplace", label: "Marketplace", href: "/marketplace", icon: ShoppingBag },
+  // The business flow, in order: Your products (Collections, Products), Store Data (Orders, Customers, Payouts),
   // then the Store's look and the rest. Store settings live under Settings.
   {
-    id: "catalog", label: "Catalog", icon: Package, children: [
+    id: "catalog", label: "Your products", icon: Package, children: [
       { id: "collections", label: "Collections", href: "/catalog/collections", icon: FolderOpen, match: ["/catalog/collections/"], need: "catalog" },
       { id: "products", label: "Products", href: "/catalog/products", icon: Package, badge: "products_all", match: ["/catalog/products/"], need: "catalog" },
       { id: "bundles", label: "Bundles", href: "/catalog/bundles", icon: Box, need: "marketing" },
@@ -105,8 +108,9 @@ export const CREATOR_NAV: NavNode[] = [
       { id: "payouts", label: "Payouts", href: "/sales/payouts/balance", icon: Wallet, match: ["/sales/payouts/"], need: "owner" },
     ],
   },
-  // Store is one plain item; its sections (Design, Policies, Offers and SEO) are tabs inside it
-  { id: "store", label: "My Store", href: EDITOR, icon: Store, match: STORE_MATCH, need: "design" },
+  // My Store asks how to build: Create with AI (AI Studio), Create custom (the editor) or Copy a store.
+  // Policies, Offers and SEO are tabs of Settings › Store.
+  { id: "store", label: "My Store", href: "/store/{store}/design", icon: Store, match: STORE_MATCH, need: "design" },
   {
     id: "tools", label: "Tools", icon: Wrench, need: "design", children: [
       { id: "ai-images", label: "AI image maker", href: "/tools/ai-images", icon: Sparkles },
@@ -115,12 +119,13 @@ export const CREATOR_NAV: NavNode[] = [
   },
   {
     id: "settings", label: "Settings", icon: Settings, children: [
-      { id: "settings-store", label: "Store", href: "/store/{store}/settings", match: ["/store/{store}/settings"], need: "business" },
+      { id: "settings-store", label: "Store", href: "/store/{store}/settings", match: STORE_SETTINGS_MATCH, need: "business" },
       { id: "settings-domain", label: "Domain", href: "/store/{store}/domain", pro: "customDomain", match: ["/store/{store}/domain"], need: "design" },
       { id: "settings-profile", label: "Profile", href: "/settings/profile" },
       { id: "settings-company", label: "Company and invoices", href: "/settings/company", need: "business" },
-      { id: "settings-tax", label: "Tax (HSN/SAC)", href: "/settings/tax", need: "business" },
-      { id: "settings-skus", label: "SKUs", href: "/settings/skus", need: "catalog" },
+      // HSN/SAC codes appear here once physical shipping is on; invoice numbering is always here
+      { id: "settings-tax", label: "Tax and invoices", href: "/settings/tax", need: "business" },
+      { id: "settings-skus", label: "SKUs", href: "/settings/skus", need: "catalog", physical: true },
       { id: "settings-billing", label: "Billing and plan", href: "/settings/billing", need: "owner" },
       { id: "settings-team", label: "Team", href: "/settings/team" },
     ],

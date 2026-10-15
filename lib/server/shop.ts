@@ -8,8 +8,10 @@ import { sbAdmin } from "../supabase/admin";
 import type { Money, CurrencyCode } from "../types";
 import { shippingFrom, type ShipTo } from "../shipping";
 import { CheckoutError, priceOrder, type AskedLine, type CouponRow, type ProductRow } from "./checkout";
-import { newOrderMail, paymentFailedMail, payoutMail, receiptMail, refundMail, sendMail, shippedMail } from "./email";
+import { emailPrefsFrom } from "../email-prefs";
+import { cartReminderMail, newOrderMail, paymentFailedMail, payoutMail, receiptMail, refundMail, sendMail, shippedMail } from "./email";
 import { createGatewayOrder, GatewayError, razorpayConfig, refundPayment } from "./razorpay";
+import { DIRECT_GATEWAYS, directGatewayFor, startDirect } from "./gateways";
 
 /**
  * Everything that touches money or private files, on the server with the service-role key.
@@ -51,7 +53,9 @@ export interface CheckoutInput {
 export type CheckoutReply =
   | { free: true; orderId: string; token: string }
   | { free: false; cod: true; orderId: string; token: string }
-  | { free: false; orderId: string; ref: string; keyId: string; gatewayOrderId: string; amount: number; currency: string; storeName: string };
+  | { free: false; orderId: string; ref: string; keyId: string; gatewayOrderId: string; amount: number; currency: string; storeName: string }
+  /** The store's own gateway (Stripe, custom): the buyer pays on its page and comes back */
+  | { free: false; redirect: string; orderId: string };
 
 interface CartInput {
   storeSlug: string;
@@ -67,13 +71,14 @@ interface CartInput {
 /** Loads the store, its live products, deal rules and the code, and prices the cart. Nothing is written. */
 async function priceCart(input: CartInput) {
   const db = sbAdmin();
-  const { data: store } = await db.from("stores").select("id, name, status, currency_base, gstin, theme, shipping").eq("slug", input.storeSlug).maybeSingle();
+  const { data: store } = await db.from("stores").select("id, name, status, currency_base, gstin, theme, shipping, sells").eq("slug", input.storeSlug).maybeSingle();
   if (!store || store.status !== "published") throw new CheckoutError("This store isn't open for orders.", 404);
 
   const bumpCfg = (store.theme as { orderBump?: { productId: string; price: { amount: number } } } | null)?.orderBump;
   const bump = input.bumpProductId && bumpCfg && bumpCfg.productId === input.bumpProductId ? { productId: bumpCfg.productId, price: bumpCfg.price.amount } : undefined;
+  // A store sells one kind (stores.sells): a product of the other kind left over from before isn't for sale
   const wanted = [...new Set([...input.productIds, ...(input.lines ?? []).map((l) => l.productId), ...(bump ? [bump.productId] : [])])];
-  const { data: products } = await db.from("products").select("id, title, price_minor, hsn_sac, tax_rate_bps, fulfilment, track_stock, stock").eq("store_id", store.id).eq("status", "live").in("id", wanted);
+  const { data: products } = await db.from("products").select("id, title, price_minor, hsn_sac, tax_rate_bps, fulfilment, track_stock, stock").eq("store_id", store.id).eq("status", "live").eq("fulfilment", store.sells).in("id", wanted);
   const { data: variants } = wanted.length ? await db.from("product_variants").select("id, product_id, title, price_minor, stock").in("product_id", wanted).order("sort_order") : { data: [] };
   const { data: ruleRows } = await db.from("deal_rules").select("*").eq("store_id", store.id).eq("active", true);
 
@@ -172,6 +177,26 @@ export async function createCheckout(input: CheckoutInput): Promise<CheckoutRepl
   const { data: ref } = await db.rpc("gen_order_ref");
   const orderRef = ref as string;
   const free = priced.total === 0;
+
+  // A Pro store's own gateway takes the payment instead of PowerProof's
+  const direct = free ? null : await directGatewayFor(store.id);
+  if (direct) {
+    if (priced.total < 100) throw new CheckoutError("That total is too small to charge. Add something else.");
+    const titles = (priced.items as { title: string }[]).map((i) => i.title);
+    const started = await startDirect(direct, { ref: orderRef, amount: priced.total, currency: priced.currency, storeName: store.name, storeSlug: input.storeSlug, title: titles.length === 1 ? titles[0] : `${titles.length} items from ${store.name}`, buyer: { name: input.buyer.name.trim(), email: input.buyer.email.trim().toLowerCase(), phone: input.buyer.phone.trim() } });
+    const made = await db.rpc("create_order", { ...orderArgs(input, store.id, orderRef, priced), p_gateway_order_id: started.gatewayOrderId, p_payment_method: "online" });
+    if (made.error || !made.data) {
+      console.error("[checkout] create_order failed", made.error?.message);
+      throw new CheckoutError("We couldn't save your order. Please try again.", 500);
+    }
+    const id = made.data as string;
+    await db.from("orders").update({ gateway: direct.provider }).eq("id", id);
+    if (started.keyId) return { free: false, orderId: id, ref: orderRef, keyId: started.keyId, gatewayOrderId: started.gatewayOrderId, amount: priced.total, currency: priced.currency, storeName: store.name };
+    const redirect = started.redirect ?? (await started.finish?.(id));
+    if (!redirect) throw new CheckoutError("We couldn't start the payment. Please try again.", 502);
+    return { free: false, redirect, orderId: id };
+  }
+
   const cfg = razorpayConfig();
   if (!free && !cfg) throw new CheckoutError("Payments aren't connected for this store yet. Please check back shortly.", 503);
   if (!free && priced.total < 100) throw new CheckoutError("That total is too small to charge. Add something else.");
@@ -229,9 +254,10 @@ function orderArgs(input: CheckoutInput, storeId: string, ref: string, priced: R
 }
 
 /** Marks the order paid (safe to call twice), emails the receipt, and returns a link token. */
-export async function completePayment(gatewayOrderId: string, paymentId: string, feeMinor?: number): Promise<{ orderId: string; ref: string; token: string }> {
+export async function completePayment(gatewayOrderId: string, paymentId: string, feeMinor?: number, direct?: boolean): Promise<{ orderId: string; ref: string; token: string }> {
   const db = sbAdmin();
-  const r = await db.rpc("apply_payment", { p_gateway_order_id: gatewayOrderId, p_gateway_payment_id: paymentId, p_gateway_fee_minor: feeMinor as number });
+  // Paid through the store's own gateway: no balance, no platform fee
+  const r = direct ? await db.rpc("apply_direct_payment", { p_gateway_order_id: gatewayOrderId, p_gateway_payment_id: paymentId }) : await db.rpc("apply_payment", { p_gateway_order_id: gatewayOrderId, p_gateway_payment_id: paymentId, p_gateway_fee_minor: feeMinor as number });
   if (r.error || !r.data?.[0]) throw new CheckoutError(r.error?.message.includes("order_not_found") ? "We can't find that order." : "We couldn't confirm that payment.", 400);
   const row = r.data[0] as { out_order_id: string; out_ref: string; out_token: string | null; out_already_paid: boolean };
   let token = row.out_token;
@@ -318,10 +344,12 @@ export async function downloadLink(token: string, fileId: string): Promise<strin
 /** Gives the money back (when it was paid through the gateway) and closes the order's books */
 export async function refundOrder(orderId: string, reason: string): Promise<void> {
   const db = sbAdmin();
-  const { data: o } = await db.from("orders").select("status, total_minor, currency, gateway_payment_id, ref").eq("id", orderId).single();
+  const { data: o } = await db.from("orders").select("status, total_minor, currency, gateway, gateway_payment_id, ref").eq("id", orderId).single();
   if (!o) throw new CheckoutError("We can't find that order.", 404);
   if (o.status === "refunded") return;
   if (o.status !== "paid") throw new CheckoutError("Only a paid order can be refunded.");
+  // The money went to the store's own gateway, so only it can send it back
+  if ((DIRECT_GATEWAYS as readonly string[]).includes(o.gateway)) throw new CheckoutError("This sale was paid through your own payment gateway. Refund it from that gateway's dashboard.", 409);
   let refundId = `free_refund_${randomUUID()}`;
   // Free orders had no payment, and cash on delivery is handed back by the seller
   if (o.gateway_payment_id && !o.gateway_payment_id.startsWith("free_") && !o.gateway_payment_id.startsWith("cod_")) {
@@ -343,8 +371,8 @@ async function storeOwner(storeId: string) {
   const db = sbAdmin();
   const { data: store } = await db.from("stores").select("name, owner_id").eq("id", storeId).single();
   if (!store) return null;
-  const { data: owner } = await db.from("profiles").select("email, full_name").eq("id", store.owner_id).maybeSingle();
-  return { store, email: owner?.email ?? null, name: owner?.full_name ?? "" };
+  const { data: owner } = await db.from("profiles").select("email, full_name, notify").eq("id", store.owner_id).maybeSingle();
+  return { store, email: owner?.email ?? null, name: owner?.full_name ?? "", prefs: emailPrefsFrom(owner?.notify) };
 }
 
 /** Tells the creator a new order came in (paid, free, or cash on delivery) */
@@ -353,7 +381,8 @@ export async function mailNewOrder(orderId: string) {
   const { data: o } = await db.from("orders").select("ref, buyer_name, currency, total_minor, store_id, payment_method, ship_to").eq("id", orderId).single();
   if (!o) return;
   const [who, { data: items }] = await Promise.all([storeOwner(o.store_id), db.from("order_items").select("title, line_total_minor, quantity, variant_title").eq("order_id", orderId)]);
-  if (!who?.email) return;
+  // Switched off in Settings › Profile › Notifications (the bell still shows it)
+  if (!who?.email || !who.prefs.newOrder) return;
   const fmt = (n: number) => formatMoney(money(n, o.currency));
   const mail = newOrderMail({
     storeName: who.store.name,
@@ -412,11 +441,67 @@ export async function mailPayout(gatewayPayoutId: string, ok: boolean, reason?: 
   const { data: p } = await db.from("payouts").select("amount_minor, currency, owner_id, method_id").eq("gateway_payout_id", gatewayPayoutId).maybeSingle();
   if (!p) return;
   const [{ data: owner }, { data: method }] = await Promise.all([
-    db.from("profiles").select("email, full_name").eq("id", p.owner_id).maybeSingle(),
+    db.from("profiles").select("email, full_name, notify").eq("id", p.owner_id).maybeSingle(),
     db.from("payout_methods").select("bank_name, account_last4, upi_masked").eq("id", p.method_id).maybeSingle(),
   ]);
-  if (!owner?.email) return;
+  if (!owner?.email || !emailPrefsFrom(owner.notify).payouts) return;
   const to = method?.account_last4 ? `${method.bank_name ?? "your bank"} account ending ${method.account_last4}` : method?.upi_masked ? `UPI ${method.upi_masked}` : "your payout account";
   const mail = payoutMail({ ownerName: owner.full_name ?? "", amount: formatMoney(money(Number(p.amount_minor), p.currency)), to, ok, reason, payoutsUrl: `${siteUrl()}/sales/payouts/balance` });
   return sendMail({ to: owner.email, ...mail });
+}
+
+/* Abandoned checkouts -------------------------------------------------------------------- */
+
+const HOUR = 60 * 60 * 1000;
+
+/**
+ * Emails buyers who started paying and stopped: once, an hour or more after, within two days, for
+ * stores that keep reminders on (stores.cart_reminders), unless the buyer has since ordered from
+ * the store. Each order is claimed (reminded_at) before sending, so two runs never send twice.
+ * Called by the cron (app/api/cron/abandoned).
+ */
+export async function remindAbandonedCheckouts(now = Date.now()): Promise<{ checked: number; sent: number; skipped: number }> {
+  const db = sbAdmin();
+  const { data: rows } = await db
+    .from("orders")
+    .select("id, store_id, buyer_name, buyer_email, currency, total_minor, created_at")
+    .eq("status", "pending")
+    .eq("payment_method", "online")
+    .is("reminded_at", null)
+    .lt("created_at", new Date(now - HOUR).toISOString())
+    .gt("created_at", new Date(now - 48 * HOUR).toISOString())
+    .order("created_at")
+    .limit(50);
+  let sent = 0;
+  let skipped = 0;
+  for (const o of rows ?? []) {
+    // Claim it first: whatever happens next, this order never gets a second reminder
+    const { data: claimed } = await db.from("orders").update({ reminded_at: new Date(now).toISOString() }).eq("id", o.id).is("reminded_at", null).select("id").maybeSingle();
+    if (!claimed) continue;
+    const [{ data: store }, { data: since }, { data: items }] = await Promise.all([
+      db.from("stores").select("name, status, support_email, cart_reminders").eq("id", o.store_id).single(),
+      db.from("orders").select("id").eq("store_id", o.store_id).eq("buyer_email", o.buyer_email).in("status", ["paid", "cod"]).gt("created_at", o.created_at).limit(1),
+      db.from("order_items").select("title, line_total_minor, quantity, product_id").eq("order_id", o.id),
+    ]);
+    if (!store || store.status !== "published" || !store.cart_reminders || (since ?? []).length || !items?.length) {
+      skipped++;
+      continue;
+    }
+    const origin = await storeOrigin(o.store_id);
+    const first = items.find((i) => i.product_id);
+    const { data: product } = first ? await db.from("products").select("slug, status").eq("id", first.product_id!).maybeSingle() : { data: null };
+    const fmt = (n: number) => formatMoney(money(n, o.currency));
+    const mail = cartReminderMail({
+      storeName: store.name,
+      buyerName: o.buyer_name,
+      lines: items.map((i) => ({ title: `${i.title}${i.quantity > 1 ? ` × ${i.quantity}` : ""}`, amount: fmt(Number(i.line_total_minor)) })),
+      total: fmt(Number(o.total_minor)),
+      url: product?.status === "live" ? `${origin.home}/${product.slug}` : origin.home,
+      supportEmail: store.support_email ?? undefined,
+    });
+    const r = await sendMail({ to: String(o.buyer_email), ...mail });
+    if (r.sent) sent++;
+    else skipped++;
+  }
+  return { checked: rows?.length ?? 0, sent, skipped };
 }

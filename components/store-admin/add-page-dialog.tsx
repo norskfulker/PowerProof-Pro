@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Switch } from "@/components/ui/switch";
 import { createVisualPage, getPageTemplates } from "@/lib/api";
+import { TemplateThumb } from "@/components/page-builder/template-thumb";
 
 export const editPageHref = (id: string, ai?: boolean) => `/store/current/design/pages/${id}/edit${ai ? "?ai=1" : ""}`;
 
@@ -56,10 +57,10 @@ export function AddPageDialog({ open, onOpenChange, beforeLeave }: { open: boole
 
   return (
     <Dialog open={open} onOpenChange={(o) => !busy && onOpenChange(o)}>
-      <DialogContent className="sm:max-w-2xl">
+      <DialogContent className="sm:max-w-3xl">
         <DialogHeader>
           <DialogTitle className="font-display text-xl">Add page</DialogTitle>
-          <DialogDescription>Pick a starting point. It&apos;s laid out in your site template (Theme › Site template), like every other page. Every block can be changed or removed.</DialogDescription>
+          <DialogDescription>Pick a ready-made page. It opens on its own gradient, laid out in your site&apos;s style, and every block can be changed.</DialogDescription>
         </DialogHeader>
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="np-title">Page name</Label>
@@ -67,14 +68,22 @@ export function AddPageDialog({ open, onOpenChange, beforeLeave }: { open: boole
           {titleError && <p id="np-title-err" className="text-sm font-medium text-danger">{titleError}</p>}
         </div>
         <fieldset className="flex flex-col gap-2">
-          <legend className="mb-1 text-sm font-medium">Template</legend>
-          <RadioGroup value={template} onValueChange={setTemplate} aria-label="Template" className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+          <legend className="mb-1 text-sm font-medium">Start from</legend>
+          {/* Ready-made pages, each on its own gradient, drawn the way they're laid out */}
+          <RadioGroup value={template} onValueChange={setTemplate} aria-label="Template" className="grid max-h-[46vh] grid-cols-2 gap-3 overflow-y-auto p-0.5 sm:grid-cols-3">
             {templates.map((t) => (
-              <label key={t.id} htmlFor={`tpl-${t.id}`} className="flex min-h-16 cursor-pointer items-start gap-3 rounded-control border bg-surface p-3 has-[[data-state=checked]]:border-primary has-[[data-state=checked]]:bg-primary-soft has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-primary">
-                <RadioGroupItem id={`tpl-${t.id}`} value={t.id} className="mt-0.5" />
-                <span className="flex flex-col">
-                  <span className="text-sm font-semibold">{t.name}</span>
-                  <span className="text-xs text-muted-foreground">{t.description}</span>
+              <label
+                key={t.id}
+                htmlFor={`tpl-${t.id}`}
+                className="group flex cursor-pointer flex-col gap-2 rounded-card border bg-surface p-2 shadow-card transition-[transform,box-shadow,border-color] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] hover:-translate-y-0.5 hover:shadow-lift has-[[data-state=checked]]:border-primary has-[[data-state=checked]]:ring-2 has-[[data-state=checked]]:ring-primary/30 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-primary"
+              >
+                <TemplateThumb template={t.id} />
+                <span className="flex items-start gap-2 px-1 pb-1">
+                  <RadioGroupItem id={`tpl-${t.id}`} value={t.id} className="mt-0.5" />
+                  <span className="flex min-w-0 flex-col">
+                    <span className="text-sm font-semibold">{t.name}</span>
+                    <span className="line-clamp-2 text-xs text-muted-foreground">{t.description}</span>
+                  </span>
                 </span>
               </label>
             ))}

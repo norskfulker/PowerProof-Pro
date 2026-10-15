@@ -78,8 +78,8 @@ export function FeeCalculator() {
           <dd className="text-right"><MoneyText value={gross} mono /></dd>
           <dt className="text-muted-foreground">Fees</dt>
           <dd className="text-right"><MoneyText value={{ ...fees, amount: -fees.amount }} mono /></dd>
-          <dt className="text-muted-foreground">Subscription (₹1,999)</dt>
-          <dd className="text-right font-mono text-[0.8125rem]">{firstMonth ? "Free this month" : `₹${(PRICING.monthlyInr / 100).toLocaleString("en-IN")} / month, billed in INR`}</dd>
+          <dt className="shrink-0 text-muted-foreground">Subscription</dt>
+          <dd className="text-right font-mono text-[0.8125rem] [overflow-wrap:normal]">{firstMonth ? "Free this month" : `₹${(PRICING.monthlyInr / 100).toLocaleString("en-IN")} / month`}</dd>
         </dl>
         <div className="mt-auto border-t border-dashed border-border-strong pt-4">
           <p className="text-sm font-semibold">You keep each month</p>

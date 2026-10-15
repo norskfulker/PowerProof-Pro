@@ -3,6 +3,7 @@ import { ApiError as GeminiApiError, FunctionCallingConfigMode, GoogleGenAI, typ
 import { schemesOf } from "../store-themes";
 import type { StoreTheme } from "../types";
 import { AiInputError, type AiEvent, aiHeroToNode, aiPageType, aiSectionToNode, aiThemeToPatch, aiToolSchemas, type AiBrief, type AiMedia, type AiStoreFacts } from "./ai";
+import type { AiProvider } from "../integrations";
 import { ICON_NAMES } from "./icon-names";
 
 /**
@@ -12,9 +13,21 @@ import { ICON_NAMES } from "./icon-names";
 /** The latest stable Gemini Flash; GEMINI_MODEL overrides it */
 export const GEMINI_PAGE_MODEL = "gemini-3.8-flash";
 
-/** Whether the AI service is set up */
-export function aiConnected(): boolean {
-  return Boolean(process.env.GEMINI_API_KEY);
+/** Whether the AI service is set up (PowerProof's own, or the store's when it brings one) */
+export function aiConnected(own?: OwnAi | null): boolean {
+  return Boolean(own?.apiKey || process.env.GEMINI_API_KEY);
+}
+
+/** A store's own AI provider (Pro, Settings › Connections): its key, address, route, model and options */
+export interface OwnAi {
+  provider: AiProvider;
+  apiKey: string;
+  baseUrl: string;
+  route: string;
+  model: string;
+  /** Merged into every request body */
+  extra: Record<string, unknown>;
+  headers: Record<string, string>;
 }
 
 /** The store as the AI may describe it: real things only */
@@ -213,6 +226,8 @@ function geminiSchema(node: unknown): unknown {
 }
 
 interface RunOpts {
+  /** The store's own AI provider; PowerProof's Gemini without it */
+  own?: OwnAi | null;
   brief: AiBrief;
   store: AiStoreContext;
   existingSections: number;
@@ -299,8 +314,10 @@ const NUDGE = "Please build the page now with the tools, starting with the first
 const CUT = "That call was cut off and wasn't added. Add it again, shorter.";
 
 async function runGemini(opts: RunOpts, b: Builder, seen: Map<string, Seen>): Promise<RunResult> {
-  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-  const model = process.env.GEMINI_MODEL || GEMINI_PAGE_MODEL;
+  const own = opts.own?.provider === "gemini" ? opts.own : undefined;
+  const host = own?.baseUrl.replace(/\/v1(beta)?\/?$/, "");
+  const ai = new GoogleGenAI({ apiKey: own?.apiKey ?? process.env.GEMINI_API_KEY, ...(host && host !== "https://generativelanguage.googleapis.com" ? { httpOptions: { baseUrl: host, headers: own?.headers } } : own?.headers ? { httpOptions: { headers: own.headers } } : {}) });
+  const model = own?.model || process.env.GEMINI_MODEL || GEMINI_PAGE_MODEL;
   const s = aiToolSchemas();
   const declarations = (Object.keys(TOOL_INFO) as ToolName[]).map((name) => ({ name, description: TOOL_INFO[name], parametersJsonSchema: geminiSchema(s[name]) }));
   const pictures: Part[] = [...seen].flatMap(([ref, img]) => [{ text: ref }, { inlineData: { mimeType: img.mimeType, data: img.data } }]);
@@ -360,7 +377,7 @@ async function runGemini(opts: RunOpts, b: Builder, seen: Map<string, Seen>): Pr
     if (opts.signal?.aborted) return { sections: b.sections, summary, error: "Stopped." };
     if (e instanceof GeminiApiError) {
       const status = e.status;
-      return { sections: b.sections, summary, error: status === 401 || status === 403 ? "The AI service isn't set up correctly. Check GEMINI_API_KEY." : status === 429 ? "The AI is busy right now. Try again in a minute." : "The AI service had a problem. Try again." };
+      return { sections: b.sections, summary, error: aiFailure(status, !!own) };
     }
     if (made) return { sections: b.sections, summary, note: "The last section couldn't be read, so it was left out." };
     return { sections: 0, summary, error: "Something went wrong while building the page. Try again." };
@@ -368,15 +385,121 @@ async function runGemini(opts: RunOpts, b: Builder, seen: Map<string, Seen>): Pr
   return { sections: b.sections, summary };
 }
 
+/** What to tell the creator when the AI service answers with an error status */
+function aiFailure(status: number, own: boolean): string {
+  if (status === 401 || status === 403) return own ? "Your AI key was refused. Check it in Settings › Connections." : "The AI service isn't set up correctly. Check GEMINI_API_KEY.";
+  if (status === 404) return own ? "Your AI provider didn't find that model or address. Check the URL, route and model in Settings › Connections." : "The AI service had a problem. Try again.";
+  if (status === 429) return "The AI is busy right now. Try again in a minute.";
+  return own ? `Your AI provider answered with an error (${status}). Try again, or check Settings › Connections.` : "The AI service had a problem. Try again.";
+}
+
+class OwnAiError extends Error {
+  constructor(readonly status: number) {
+    super(`AI provider answered ${status}`);
+  }
+}
+
+/** One request to the store's own provider; options from the connection are merged in */
+async function ownCall(own: OwnAi, route: string, body: Record<string, unknown>, headers: Record<string, string>, signal?: AbortSignal): Promise<Record<string, unknown>> {
+  const res = await fetch(`${own.baseUrl.replace(/\/+$/, "")}${own.route || route}`, {
+    method: "POST",
+    headers: { "content-type": "application/json", ...own.headers, ...headers },
+    body: JSON.stringify({ ...body, ...own.extra }),
+    cache: "no-store",
+    redirect: "error",
+    signal: AbortSignal.any([AbortSignal.timeout(180_000), ...(signal ? [signal] : [])]),
+  });
+  if (!res.ok) {
+    console.error(`[ai:own] ${own.provider} answered ${res.status}`);
+    throw new OwnAiError(res.status);
+  }
+  return (await res.json()) as Record<string, unknown>;
+}
+
+/**
+ * The same build with the store's own OpenAI-compatible or Anthropic provider: the tools go as
+ * function definitions, each call is checked by the builder, and the answers go back until the
+ * model is done.
+ */
+async function runOwn(opts: RunOpts, b: Builder, seen: Map<string, Seen>): Promise<RunResult> {
+  const own = opts.own!;
+  const s = aiToolSchemas();
+  const names = Object.keys(TOOL_INFO) as ToolName[];
+  const prompt = userPrompt(opts.brief, opts.store, opts.existingSections, seen);
+  const anthropic = own.provider === "anthropic";
+  type Call = { id: string; name: string; args: Record<string, unknown> | null };
+  const messages: Record<string, unknown>[] = anthropic
+    ? [{ role: "user", content: [{ type: "text", text: prompt }, ...[...seen].flatMap(([ref, img]) => [{ type: "text", text: ref }, { type: "image", source: { type: "base64", media_type: img.mimeType, data: img.data } }])] }]
+    : [{ role: "system", content: systemPrompt() }, { role: "user", content: [{ type: "text", text: prompt }, ...[...seen].flatMap(([ref, img]) => [{ type: "text", text: ref }, { type: "image_url", image_url: { url: `data:${img.mimeType};base64,${img.data}` } }])] }];
+  let summary = "";
+  try {
+    for (let turn = 0; turn < MAX_TURNS; turn++) {
+      if (turn === 0) opts.emit({ type: "status", text: "Reading your store and planning the page" });
+      let calls: Call[];
+      let cut: boolean;
+      if (anthropic) {
+        const r = await ownCall(own, "/messages", { model: own.model, max_tokens: 16000, system: systemPrompt(), tools: names.map((n) => ({ name: n, description: TOOL_INFO[n], input_schema: s[n] })), messages }, { "x-api-key": own.apiKey, "anthropic-version": "2023-06-01" }, opts.signal);
+        const content = (r.content ?? []) as { type: string; text?: string; id?: string; name?: string; input?: Record<string, unknown> }[];
+        messages.push({ role: "assistant", content });
+        summary = (summary + content.filter((c) => c.type === "text").map((c) => c.text ?? "").join("")).trim();
+        calls = content.filter((c) => c.type === "tool_use").map((c) => ({ id: c.id ?? "", name: c.name ?? "", args: c.input ?? null }));
+        cut = r.stop_reason === "max_tokens";
+      } else {
+        const r = await ownCall(own, "/chat/completions", { model: own.model, messages, tools: names.map((n) => ({ type: "function", function: { name: n, description: TOOL_INFO[n], parameters: s[n] } })), tool_choice: "auto" }, { authorization: `Bearer ${own.apiKey}` }, opts.signal);
+        const choice = ((r.choices ?? []) as { message?: { content?: string | null; tool_calls?: { id: string; function: { name: string; arguments: string } }[] }; finish_reason?: string }[])[0];
+        const m = choice?.message ?? {};
+        messages.push({ role: "assistant", content: m.content ?? null, ...(m.tool_calls?.length ? { tool_calls: m.tool_calls } : {}) });
+        if (m.content) summary = (summary + m.content).trim();
+        calls = (m.tool_calls ?? []).map((c) => {
+          let args: Record<string, unknown> | null = null;
+          try {
+            args = JSON.parse(c.function.arguments || "{}");
+          } catch {
+            /* cut off or not JSON */
+          }
+          return { id: c.id, name: c.function.name, args };
+        });
+        cut = choice?.finish_reason === "length";
+      }
+      const replies = calls.map((c) => {
+        if (!c.args) return { c, ok: false, message: CUT };
+        b.starting(c.name);
+        const r = b.handle(c.name, c.args);
+        return { c, ok: r.ok, message: r.message };
+      });
+      if (cut && replies.length) {
+        b.dropPending();
+        replies[replies.length - 1] = { ...replies[replies.length - 1], ok: false, message: CUT };
+      } else b.flush();
+      if (!replies.length) {
+        if (b.sections === 0 && turn === 0) {
+          messages.push({ role: "user", content: NUDGE });
+          continue;
+        }
+        break;
+      }
+      if (anthropic) messages.push({ role: "user", content: replies.map((x) => ({ type: "tool_result", tool_use_id: x.c.id, content: x.message, ...(x.ok ? {} : { is_error: true }) })) });
+      else for (const x of replies) messages.push({ role: "tool", tool_call_id: x.c.id, content: JSON.stringify(x.ok ? { result: x.message } : { error: x.message }) });
+    }
+  } catch (e) {
+    b.dropPending();
+    if (opts.signal?.aborted) return { sections: b.sections, summary, error: "Stopped." };
+    if (e instanceof OwnAiError) return { sections: b.sections, summary, error: aiFailure(e.status, true) };
+    if (b.sections > 0) return { sections: b.sections, summary, note: "The last section couldn't be read, so it was left out." };
+    return { sections: 0, summary, error: "Your AI provider couldn't be reached. Check the URL in Settings › Connections and try again." };
+  }
+  return { sections: b.sections, summary };
+}
+
 /** Runs one build. `emit` gets each event as it happens. Never throws: errors become an "error" event. */
 export async function runAiPage(opts: RunOpts): Promise<{ ok: boolean; sections: number }> {
-  if (!aiConnected()) {
+  if (!aiConnected(opts.own)) {
     opts.emit({ type: "error", message: "AI page building isn't connected yet." });
     return { ok: false, sections: 0 };
   }
   opts.emit({ type: "status", text: "Looking at your pictures" });
   const seen = await lookAt(opts.store.media, opts.signal);
-  const r = await runGemini(opts, createBuilder(opts), seen);
+  const r = opts.own && opts.own.provider !== "gemini" ? await runOwn(opts, createBuilder(opts), seen) : await runGemini(opts, createBuilder(opts), seen);
   if (r.note) opts.emit({ type: "note", text: r.note });
   if (r.sections === 0) {
     opts.emit({ type: "error", message: r.error ?? "The AI didn't add any sections. Try a more detailed description." });

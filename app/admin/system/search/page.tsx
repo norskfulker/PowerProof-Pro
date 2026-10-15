@@ -45,7 +45,7 @@ export default function Page() {
   return (
     <>
       <title>Search · PowerProof admin</title>
-      <PageHeader title="Search" description="Find any order, buyer, creator or store. Buyer emails stay partly hidden." />
+      <PageHeader title="Search" />
       <div className="relative mb-6 max-w-xl">
         <Search className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
         <Input type="search" autoFocus aria-label="Search the platform" placeholder="Order number, buyer email, store or creator" value={q} onChange={(e) => setQ(e.target.value)} className="pl-10" />

@@ -9,5 +9,6 @@ const SECTIONS: OfferSection[] = ["coupons", "bundles", "deals"];
 export default function OffersPage({ params }: { params: Promise<{ id: string; section: string }> }) {
   const { id, section } = use(params);
   if (!SECTIONS.includes(section as OfferSection)) notFound();
-  return <OffersManager storeId={id} section={section as OfferSection} />;
+  // The Offers tab row above (Coupons, Bundles, Deal Paths, Limited-time deals) is the only switcher
+  return <OffersManager storeId={id} section={section as OfferSection} tabs={false} />;
 }

@@ -70,13 +70,13 @@ describe.each([
 
 describe("dark tokens follow the brief", () => {
   it("keeps the given surfaces and brass", () => {
-    expect(DARK.background.toLowerCase()).toBe("#0a1412");
-    expect(DARK.surface.toLowerCase()).toBe("#101d1a");
-    expect(DARK.foreground.toLowerCase()).toBe("#eaf0ed");
-    expect(DARK["muted-foreground"].toLowerCase()).toBe("#93a39d");
-    expect(DARK.border.toLowerCase()).toBe("#1f322d");
+    expect(DARK.background.toLowerCase()).toBe("#0b0d0c");
+    expect(DARK.surface.toLowerCase()).toBe("#131615");
+    expect(DARK.foreground.toLowerCase()).toBe("#f1f3f2");
+    expect(DARK["muted-foreground"].toLowerCase()).toBe("#9aa29e");
+    expect(DARK.border.toLowerCase()).toBe("#232826");
     expect(DARK.accent.toLowerCase()).toBe("#c9a24f");
-    expect(DARK["primary-foreground"].toLowerCase()).toBe("#06100d");
+    expect(DARK["primary-foreground"].toLowerCase()).toBe("#04110c");
   });
 });
 

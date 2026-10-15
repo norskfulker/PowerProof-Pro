@@ -208,7 +208,7 @@ export function NavTree({
             ? "bg-sidebar-admin-foreground/12 text-sidebar-admin-foreground"
             : "text-sidebar-admin-foreground/80 hover:bg-sidebar-admin-foreground/8 hover:text-sidebar-admin-foreground"
           : active
-            ? "bg-primary-soft text-primary"
+            ? "bg-primary-soft font-semibold text-primary"
             : inTrail && depth === 0
               ? "text-foreground"
               : "text-foreground/80 hover:bg-muted hover:text-foreground",
@@ -246,7 +246,7 @@ export function NavTree({
         style: indent,
         title: collapsed && depth === 0 ? n.label : undefined,
       };
-      const line = admin ? "bg-sidebar-admin-foreground/25" : "bg-border-strong";
+      const line = admin ? "bg-sidebar-admin-foreground/20" : "bg-border";
       return (
         <li key={n.id} role="none" className={cn(depth > 0 && "relative ml-3 pl-3")}>
           {/* The tree: a line down the side of a group's items, with a short branch to each */}

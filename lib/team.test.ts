@@ -26,7 +26,8 @@ describe("team access", () => {
   it("knows which area each screen needs", () => {
     expect(needForPath("/catalog/products/123")).toBe("catalog");
     expect(needForPath("/catalog/bundles")).toBe("marketing");
-    expect(needForPath("/catalog/deals/new")).toBe("marketing");
+    expect(needForPath("/catalog/bundles")).toBe("marketing");
+    expect(needForPath("/analytics")).toBe("analytics");
     expect(needForPath("/sales/orders/1")).toBe("orders");
     expect(needForPath("/sales/payouts/balance")).toBe("owner");
     expect(needForPath("/store/abc/design/pages/home/edit")).toBe("design");

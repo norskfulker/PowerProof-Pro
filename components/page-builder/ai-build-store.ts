@@ -24,12 +24,15 @@ export interface AiAllowance {
   daily: number;
   /** Free messages left (lifetime). Null for Pro, which builds daily instead. */
   freeLeft: number | null;
+  /** The store's own AI model, when it brings its own (no allowance applies) */
+  own?: string;
 }
 
 /** One line under the input: what the quota looks like right now. */
 export function allowanceText(a: AiAllowance): string {
   const left = Math.max(0, a.daily - a.used);
   if (!a.connected) return "AI page building isn't connected yet.";
+  if (a.own) return `Running on your own AI (${a.own})`;
   if (a.freeLeft !== null) {
     if (a.freeLeft <= 0) return `You've used your ${AI_FREE_MESSAGES} free AI messages. Pro builds ${a.daily} pages a day.`;
     return `${a.freeLeft} of ${AI_FREE_MESSAGES} free messages left`;
@@ -59,7 +62,9 @@ interface AiBuildState {
   aborter: AbortController | null;
   editorRef?: EditorStore;
   seo?: { title: string; description: string };
-  refreshAllowance: () => Promise<void>;
+  /** The store whose own AI (if any) is used; remembered for later refreshes */
+  storeId?: string;
+  refreshAllowance: (storeId?: string) => Promise<void>;
   /** One run at a time: streams sections onto the canvas through the editor's AI preview */
   start: (editor: EditorStore, brief: AiBrief, meta: AiRunMeta) => Promise<{ placed: number; error?: string }>;
   stop: () => void;
@@ -77,9 +82,10 @@ export const useAiBuild = create<AiBuildState>((set, get) => ({
   messages: [],
   aborter: null,
 
-  async refreshAllowance() {
+  async refreshAllowance(storeId) {
+    if (storeId) set({ storeId });
     try {
-      const a = await getAiPageAllowance();
+      const a = await getAiPageAllowance(storeId ?? get().storeId);
       set({ allowance: a, allowanceError: undefined });
     } catch (e) {
       set({ allowanceError: e instanceof Error ? e.message : "Couldn't check your AI allowance." });

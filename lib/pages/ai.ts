@@ -50,6 +50,8 @@ export const aiBriefSchema = z.strictObject({
   theme: z.boolean().default(true),
   /** Replace the page, or add the new sections after what's there */
   mode: z.enum(["replace", "append"]).default("replace"),
+  /** Asked from AI Studio (Create with AI), so the store's own AI follows its "AI Studio" switch */
+  studio: z.boolean().optional(),
 });
 export type AiBrief = z.infer<typeof aiBriefSchema>;
 

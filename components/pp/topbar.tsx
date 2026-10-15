@@ -216,9 +216,9 @@ function AccountMenu() {
   );
 }
 
-export function Topbar({ admin }: { admin?: boolean }) {
+export function Topbar({ admin, className }: { admin?: boolean; className?: string }) {
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center gap-2 border-b bg-surface/95 px-4 backdrop-blur md:px-6">
+    <header className={`${className ?? ""} sticky top-0 z-30 flex h-16 items-center gap-2 border-b bg-surface/95 px-4 backdrop-blur md:px-6`}>
       {admin ? (
         <p className="font-display text-lg">Founder admin</p>
       ) : (

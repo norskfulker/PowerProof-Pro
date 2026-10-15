@@ -31,7 +31,8 @@ export const PALETTES: Palette[] = [
 ];
 
 export const FONT_PAIRS: { id: FontPairId; name: string; display: string; body: string; pair: string }[] = [
-  { id: "modern", name: "Modern", display: "var(--font-bricolage)", body: "var(--font-hanken)", pair: "Bricolage Grotesque + Hanken Grotesk" },
+  { id: "modern", name: "Modern", display: "var(--font-inter)", body: "var(--font-inter)", pair: "Inter Display + Inter" },
+  { id: "expressive", name: "Expressive", display: "var(--font-bricolage)", body: "var(--font-hanken)", pair: "Bricolage Grotesque + Hanken Grotesk" },
   { id: "editorial", name: "Editorial", display: "var(--font-fraunces)", body: "var(--font-hanken)", pair: "Fraunces + Hanken Grotesk" },
   { id: "clean", name: "Clean", display: "var(--font-space)", body: "var(--font-plex-sans)", pair: "Space Grotesk + IBM Plex Sans" },
 ];
@@ -164,15 +165,18 @@ function fontsOf(theme: StoreTheme) {
   return { ...pair, display: c.use === "body" ? pair.display : own, body: c.use === "headings" ? pair.body : own };
 }
 
+/** The store's heading and text faces, as the two variables every font utility reads */
+function fontVars(f: { display: string; body: string }): Record<string, string> {
+  return { "--font-heading": f.display, "--font-ui": f.body };
+}
+
 function paletteVars(theme: StoreTheme, mode: "light" | "dark"): Record<string, string> {
   const p = PALETTES.find((x) => x.id === theme.palette) ?? PALETTES[0];
   if (mode === "dark") return darkVars(theme, p);
   const f = fontsOf(theme);
   const accent = theme.accent || p.accent;
-  // Utilities resolve to var(--font-bricolage)/var(--font-hanken); remap those (never to themselves).
-  const fontRemap: Record<string, string> = {};
-  if (f.display !== "var(--font-bricolage)") fontRemap["--font-bricolage"] = f.display;
-  if (f.body !== "var(--font-hanken)") fontRemap["--font-hanken"] = f.body;
+  // Utilities resolve to var(--font-heading)/var(--font-ui) (app/globals.css); remap those.
+  const fontRemap = fontVars(f);
   return {
     ...fontRemap,
     "--background": p.background,
@@ -200,9 +204,7 @@ function darkVars(theme: StoreTheme, p: Palette): Record<string, string> {
   const d = p.dark;
   const accent = theme.accent || p.accent;
   const hex = /^#[0-9a-f]{6}$/i.test(accent);
-  const fontRemap: Record<string, string> = {};
-  if (f.display !== "var(--font-bricolage)") fontRemap["--font-bricolage"] = f.display;
-  if (f.body !== "var(--font-hanken)") fontRemap["--font-hanken"] = f.body;
+  const fontRemap = fontVars(f);
   const soft = hex ? mixHex(accent, d.surface, 0.86) : d.muted;
   return {
     ...fontRemap,

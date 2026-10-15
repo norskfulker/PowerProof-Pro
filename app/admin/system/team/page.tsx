@@ -33,7 +33,7 @@ export default function Page() {
   return (
     <>
       <title>Team · PowerProof admin</title>
-      <PageHeader title="Team" description="Everyone with access to this console." />
+      <PageHeader title="Team" />
       <p className="mb-4 max-w-2xl rounded-card border bg-surface-sunken px-4 py-3 text-sm">
         Admin access is given and taken away in the Supabase dashboard, not here: open Authentication › Users, pick the person, and set their app metadata to <span className="font-mono">{`{"role": "admin"}`}</span> (or clear it). They sign out and in once for it to apply. Keeping that step outside the app means no one in the app can make themselves, or anyone else, staff.
       </p>

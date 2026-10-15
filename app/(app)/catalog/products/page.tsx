@@ -222,8 +222,7 @@ function ProductsPageInner() {
   return (
     <>
       <PageHeader
-        title="Products"
-        description="Everything you sell. Drafts stay hidden until you publish."
+        title="Your products"
         actions={
           <>
             <Button variant="secondary" onClick={() => setFromLink(true)}><Link2 aria-hidden /> From a link</Button>
@@ -236,6 +235,19 @@ function ProductsPageInner() {
           </>
         }
       />
+      {/* Left over from before a store picked one kind: not for sale until archived or the store switches */}
+      {store.data && (() => {
+        const other = (data ?? []).filter((p) => p.status !== "archived" && p.fulfilment !== store.data!.sells);
+        if (!other.length) return null;
+        return (
+          <div role="status" className="mb-4 flex flex-col gap-2 rounded-card border border-warning/40 bg-warning-soft px-4 py-3 text-sm sm:flex-row sm:items-center">
+            <p className="flex-1">
+              <strong>{other.length} {store.data!.sells === "physical" ? "digital" : "physical"} product{other.length === 1 ? "" : "s"}</strong> can&apos;t be bought: this store {store.data!.sells === "physical" ? "ships physical products" : "sells digital products"}, and a store sells one kind at a time. Archive {other.length === 1 ? "it" : "them"}, or switch in Store settings.
+            </p>
+            <Link href={`/store/${store.data!.id}/settings`} className="font-semibold text-primary underline underline-offset-4">Store settings</Link>
+          </div>
+        );
+      })()}
       <StatusTabs
         label="Product status"
         value={tab}

@@ -9,7 +9,7 @@ export default function ImagesPage() {
   return (
     <>
       <title>AI images · PowerProof</title>
-      <PageHeader title="AI images" description="Describe what you want and get images for covers, banners and posts." />
+      <PageHeader title="AI images" />
       <ComingSoon
         title="The AI image maker opens soon."
         body="It needs an image service connected first. Meanwhile, upload your own images to the media library."

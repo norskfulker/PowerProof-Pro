@@ -62,7 +62,7 @@ export default function Page() {
   return (
     <>
       <title>Webhooks · PowerProof admin</title>
-      <PageHeader title="Webhooks" description="Messages Razorpay sent about payments, disputes and payouts. A failed one is retried by Razorpay for a while; you can run it again here. Handling is safe to repeat." />
+      <PageHeader title="Webhooks" />
       <StatusTabs label="Webhook state" value={tab} onChange={setTab} tabs={[{ value: "failed", label: "Not handled", count: data?.filter(failed).length }, { value: "all", label: "All recent", count: data?.length }]} />
       <DataTable
         key={tab}

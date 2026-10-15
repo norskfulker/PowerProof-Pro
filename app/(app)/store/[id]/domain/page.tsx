@@ -132,7 +132,7 @@ export default function StoreDomainPage() {
     }
   }
 
-  const header = <PageHeader title="Domain" description="Use your own web address for this store, like shop.yourname.in." />;
+  const header = <PageHeader title="Domain" />;
   if (load.state === "loading" || !storeId) return <>{header}<Skeleton className="h-64 rounded-card" /></>;
 
   if (load.state === "blocked") {

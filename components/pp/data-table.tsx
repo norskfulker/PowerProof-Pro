@@ -267,7 +267,7 @@ export function DataTable<T>({
           {stats.map((s) => (
             <div key={s.label} className="flex flex-col gap-1 bg-surface px-4 py-3">
               <dt className="eyebrow">{s.label}</dt>
-              <dd className="font-display text-xl font-extrabold tabular-nums">{loading && !data ? <Skeleton className="h-6 w-16" /> : s.value}</dd>
+              <dd className="font-display text-xl font-bold tabular-nums">{loading && !data ? <Skeleton className="h-6 w-16" /> : s.value}</dd>
               {s.hint && <dd className="text-xs text-muted-foreground">{s.hint}</dd>}
             </div>
           ))}

@@ -110,7 +110,7 @@ export function ProofReceipt({
       <div className="flex items-end justify-between gap-4 border-t border-dashed border-border-strong bg-surface-sunken px-5 py-4">
         <span className="font-semibold">Total</span>
         <span className="text-right">
-          <MoneyText value={order.buyerTotal} className="font-display text-2xl font-extrabold" />
+          <MoneyText value={order.buyerTotal} className="font-display text-2xl font-bold" />
           {converted && (
             <span className="block font-mono text-[0.6875rem] text-muted-foreground">
               Settled as <MoneyText value={order.total} />

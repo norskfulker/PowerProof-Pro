@@ -55,7 +55,6 @@ export default function Page() {
       <title>Blog · PowerProof admin</title>
       <PageHeader
         title="Blog"
-        description="Posts on /blog, written here. Publishing puts them live straight away."
         actions={
           <Button asChild>
             <Link href="/admin/blog/new"><Plus aria-hidden /> New post</Link>

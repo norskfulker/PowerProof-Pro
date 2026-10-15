@@ -22,6 +22,13 @@ export interface Store {
   onboarded: boolean;
   /** Uploaded logo; logoText is the fallback */
   logo?: { src: string; alt: string };
+  /**
+   * What the store sells: digital or physical, never both. "physical" is physical shipping turned
+   * on, and only then do HSN/SAC codes, SKUs, shipping rates and cash on delivery apply.
+   */
+  sells: "digital" | "physical";
+  /** Email buyers who started checkout and didn't pay, once */
+  cartReminders: boolean;
   /** Physical products: shipping zones and cash on delivery */
   shipping?: ShippingSettings;
   /** The seller name on checkout, receipts and invoices (falls back to the legal name, then the store name) */

@@ -3,7 +3,6 @@
 import { use } from "react";
 import { ErrorState } from "@/components/pp/empty-state";
 import { PageHeader } from "@/components/pp/page-header";
-import { RuleSummaryChip } from "@/components/pp/deal-parts";
 import { NoData, StatCard } from "@/components/pp/stat-card";
 import { StatusPill } from "@/components/pp/status-pill";
 import { DealPathEditor } from "@/components/store-admin/deal-path-editor";
@@ -22,7 +21,6 @@ export default function DealPathPage({ params }: { params: Promise<{ id: string;
         title={rule?.name ?? "Deal path"}
         back={{ href: "/store/current/offers/deal-paths", label: "Deal paths" }}
         actions={rule ? <StatusPill status={dealRuleStatus(rule)} /> : undefined}
-        description={rule ? <RuleSummaryChip rule={rule} titleOf={(pid) => data?.[1].find((p) => p.id === pid)?.title ?? "a product"} /> : undefined}
       />
       {error ? (
         <ErrorState message={error} onRetry={reload} />

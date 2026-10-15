@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useState } from "react";
+import { createContext, useCallback, useContext, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Check, Loader2, Sparkles } from "lucide-react";
@@ -78,19 +78,16 @@ export function PlanProvider({ children }: { children: React.ReactNode }) {
   const { data: limits } = useApi(getPlanLimits, []);
   const [open, setOpen] = useState<LimitKind | "general" | null>(null);
   const [pending, setPending] = useState(false);
-  const [startCheckout, setStartCheckout] = useState(false);
 
-  const upgrade = useCallback((kind?: LimitKind) => {
-    setOpen(kind ?? "general");
-    setStartCheckout(true);
-  }, []);
+  // Every Pro button lands here: it explains Pro first, and only the dialog's Upgrade button opens Razorpay
+  const upgrade = useCallback((kind?: LimitKind) => setOpen(kind ?? "general"), []);
 
   const guard = useCallback(
     (kind: "stores" | "products" | "pages", action: () => void) => {
       if (!data) return action();
       const max = data.limits[kind];
       if (max === null || data.usage[kind] < max) action();
-      else { setOpen(kind); setStartCheckout(true); }
+      else setOpen(kind);
     },
     [data]
   );
@@ -99,13 +96,15 @@ export function PlanProvider({ children }: { children: React.ReactNode }) {
     if (e instanceof ApiError && e.code === "limit") {
       const kind = (e as ApiError & { kind?: LimitKind }).kind ?? "products";
       setOpen(kind);
-      setStartCheckout(true);
       return true;
     }
     return false;
   }, []);
 
   const doUpgrade = useCallback(async () => {
+    // Close the dialog first so Razorpay's window isn't stacked under it
+    setOpen(null);
+    setPending(true);
     try {
       const started = await fetch("/api/billing/subscribe", { method: "POST" }).then((r) => r.json()).catch(() => ({ ok: false, message: "We couldn't reach the server." })) as
         | { ok: true; keyId: string; subscriptionId: string }
@@ -131,7 +130,6 @@ export function PlanProvider({ children }: { children: React.ReactNode }) {
           }).then((x) => x.json()).catch(() => ({ ok: false, message: "We couldn't confirm that." })) as { ok: boolean; message?: string };
           if (done.ok) {
             reload();
-            setOpen(null);
             toast.success("You're on Pro", { description: `Your first ${PRO_TRIAL_DAYS} days are free. Your card is authorised now and charged after the trial.` });
             router.refresh();
           } else {
@@ -151,18 +149,10 @@ export function PlanProvider({ children }: { children: React.ReactNode }) {
     }
   }, [reload, router]);
 
-  useEffect(() => {
-    if (!startCheckout || !open || pending) return;
-    setStartCheckout(false);
-    setOpen(null);
-    setPending(true);
-    void doUpgrade();
-  }, [startCheckout, open, pending, doUpgrade]);
-
   return (
     <Ctx.Provider value={{ state: data, limits, reload, upgrade, guard, handleLimitError }}>
       {children}
-      <Dialog open={open !== null && !startCheckout} onOpenChange={(o) => !pending && !o && setOpen(null)}>
+      <Dialog open={open !== null} onOpenChange={(o) => !pending && !o && setOpen(null)}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 font-display text-xl">
