@@ -1,0 +1,40 @@
+"use client";
+
+import { cn } from "@/lib/utils";
+
+/**
+ * Filter switch that looks like tabs but doesn't own panels (tabs without panels
+ * produce invalid aria-controls). Buttons with aria-pressed inside a labelled group.
+ */
+export function Segmented<T extends string>({
+  value,
+  onChange,
+  options,
+  label,
+  className,
+}: {
+  value: T;
+  onChange: (v: T) => void;
+  options: { value: T; label: React.ReactNode }[];
+  label: string;
+  className?: string;
+}) {
+  return (
+    <div role="group" aria-label={label} className={cn("inline-flex h-control max-w-full gap-0.5 overflow-x-auto rounded-control bg-muted p-0.5 pointer-coarse:min-h-control-touch pointer-coarse:gap-1.5", className)}>
+      {options.map((o) => (
+        <button
+          key={o.value}
+          type="button"
+          aria-pressed={value === o.value}
+          onClick={() => onChange(o.value)}
+          className={cn(
+            "inline-flex h-full min-w-8 shrink-0 items-center justify-center rounded-[7px] border border-transparent px-2.5 text-[0.8125rem] font-medium whitespace-nowrap transition-colors pointer-coarse:min-w-11",
+            value === o.value ? "border-border bg-surface text-foreground" : "text-muted-foreground hover:text-foreground"
+          )}
+        >
+          {o.label}
+        </button>
+      ))}
+    </div>
+  );
+}

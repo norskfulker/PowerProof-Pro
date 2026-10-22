@@ -1,0 +1,3 @@
+#!/bin/sh
+# Stops secrets reaching git (see check-env.mjs). Set up by `npm install` (the "prepare" script).
+exec node "$(git rev-parse --show-toplevel)/.githooks/check-env.mjs"

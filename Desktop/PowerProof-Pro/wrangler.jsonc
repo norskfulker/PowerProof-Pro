@@ -1,0 +1,26 @@
+/**
+ * PowerProof on Cloudflare Workers, built with the OpenNext adapter (open-next.config.ts).
+ * `npm run deploy` builds and deploys; `npm run preview` runs the built Worker locally.
+ *
+ * Secrets (dashboard Secrets tab, or one at a time with `npx wrangler secret put NAME`):
+ *   SUPABASE_SERVICE_ROLE_KEY, RAZORPAY_*, RESEND_API_KEY, GEMINI_API_KEY, CRON_SECRET
+ * Plain settings (dashboard Variables tab): MAIL_FROM.
+ * Keep them OUT of this file: every deploy uploads the vars written here, so an entry here
+ * would overwrite the dashboard value (even with "").
+ * NEXT_PUBLIC_* values are baked in at build time, so they come from the dashboard at build time.
+ */
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "powerproof-pro",
+  // worker.ts wraps the OpenNext Worker and adds the cron handler
+  "main": "worker.ts",
+  "compatibility_date": "2026-09-01",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "assets": { "directory": ".open-next/assets", "binding": "ASSETS" },
+  "services": [{ "binding": "WORKER_SELF_REFERENCE", "service": "powerproof-pro" }],
+  "observability": { "enabled": true },
+  // Every 10 minutes: remind buyers who left checkout and close orders unpaid after 2 hours
+  // (app/api/cron/abandoned), and run product schedules and low-stock emails (app/api/cron/catalog)
+  "triggers": { "crons": ["*/10 * * * *"] }
+  // (No "vars" here on purpose: dashboard Variables stay as they are across deploys.)
+}

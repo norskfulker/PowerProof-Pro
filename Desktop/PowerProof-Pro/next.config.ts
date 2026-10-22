@@ -1,0 +1,78 @@
+import type { NextConfig } from "next";
+
+/**
+ * Routes follow the menu (Part 7C): /catalog, /store/[id], /sales, /tools, /settings.
+ * Every old address keeps working through these redirects. Store screens that didn't carry a
+ * store id go to /store/current/..., which the store layout turns into the active store's id.
+ * Temporary (307) so links can still change while the app is in preview; query strings carry over.
+ */
+const MOVED: [from: string, to: string][] = [
+  // Catalog
+  ["/products", "/catalog/products"],
+  ["/products/:path*", "/catalog/products/:path*"],
+  ["/media", "/catalog/media"],
+  ["/pages", "/store/current/design/pages"],
+  // The old Design tabs now live in the store editor, on the home page.
+  ["/store/:id/design/theme", "/store/:id/design/pages/home/edit"],
+  ["/store/:id/design/sections", "/store/:id/design/pages/home/edit"],
+  ["/store/:id/design/backgrounds", "/store/:id/design/pages/home/edit"],
+  ["/store/:id/design/content", "/store/:id/design/pages/home/edit"],
+  ["/store/collections", "/catalog/collections"],
+  // Sales
+  ["/orders", "/sales/orders"],
+  ["/orders/:path*", "/sales/orders/:path*"],
+  ["/customers", "/sales/customers"],
+  ["/customers/:path*", "/sales/customers/:path*"],
+  ["/payouts", "/sales/payouts/balance"],
+  ["/sales/analytics", "/analytics"],
+  // Deals are listed and edited on the Marketplace page itself
+  ["/catalog/deals", "/marketplace?tab=mine"],
+  ["/catalog/deals/new", "/marketplace?tab=mine&new=1"],
+  ["/catalog/deals/:id", "/marketplace?tab=mine&deal=:id"],
+  // Tools
+  ["/images", "/tools/ai-images"],
+  ["/integrations", "/tools/integrations"],
+  // Store screens, now under the store they belong to
+  ["/store", "/store/current/design"],
+  ["/store/design", "/store/current/design"],
+  ["/store/pages", "/store/current/design/pages"],
+  ["/store/pages/:page/versions", "/store/current/design/pages/:page/versions"],
+  ["/store/pages/:page/edit", "/store/current/design/pages/:page/edit"],
+  ["/store/offers", "/store/current/offers/coupons"],
+  ["/store/offers/deal-paths", "/store/current/offers/deal-paths"],
+  ["/store/offers/deal-paths/:path*", "/store/current/offers/deal-paths/:path*"],
+  ["/store/reviews", "/store/current/reviews"],
+  ["/store/questions", "/store/current/questions"],
+  ["/store/seo", "/store/current/seo"],
+  // Custom domains were removed (migration 050): old Domain links land on Store settings
+  ["/store/domain", "/store/current/settings"],
+  ["/store/:id/domain", "/store/:id/settings"],
+  ["/store/info", "/store/current/pages/about"],
+  ["/settings/store", "/store/current/settings"],
+  // Section roots open their first page
+  ["/catalog", "/catalog/products"],
+  ["/sales", "/sales/orders"],
+  ["/sales/payouts", "/sales/payouts/balance"],
+  ["/tools", "/tools/ai-images"],
+  // My Store picks the page first
+  ["/store/:id", "/store/:id/design"],
+  ["/store/:id/offers", "/store/:id/offers/coupons"],
+  ["/store/:id/pages", "/store/:id/pages/home"],
+  // Admin
+  ["/admin/disputes", "/admin/orders/disputed"],
+  ["/admin/payouts", "/admin/money/payouts"],
+  ["/admin/flags", "/admin/moderation/flags"],
+  ["/admin/audit", "/admin/system/audit"],
+  ["/admin/search", "/admin/system/search"],
+  ["/admin/money", "/admin/money/payouts"],
+  ["/admin/moderation", "/admin/moderation/flags"],
+  ["/admin/system", "/admin/system/audit"],
+];
+
+const nextConfig: NextConfig = {
+  async redirects() {
+    return MOVED.map(([source, destination]) => ({ source, destination, permanent: false }));
+  },
+};
+
+export default nextConfig;

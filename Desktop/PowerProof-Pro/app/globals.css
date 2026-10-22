@@ -1,0 +1,548 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+/* Razorpay's external checkout must receive pointer input above the open Radix checkout sheet. */
+body[data-payment-provider-open="true"] .razorpay-container,
+body[data-payment-provider-open="true"] iframe.razorpay-checkout-frame,
+body[data-payment-provider-open="true"] iframe[id^="razorpay"] {
+  z-index: 2147483000 !important;
+  pointer-events: auto !important;
+}
+
+body[data-payment-provider-open="true"] [data-slot="sheet-overlay"],
+body[data-payment-provider-open="true"] [data-slot="sheet-content"] {
+  pointer-events: none !important;
+}
+
+/* Dark mode (Part 7A): <html data-theme="dark">, or any wrapper with data-theme for a scoped preview. */
+@custom-variant dark (&:is([data-theme="dark"] *));
+
+/* ------------------------------------------------------------------ */
+/* PowerProof tokens. Components read these, never raw hex values.     */
+/* Light is the default; [data-theme="light"] re-declares it so a light */
+/* island (emails, invoices, a preview) works inside a dark page.       */
+/* ------------------------------------------------------------------ */
+:root,
+[data-theme="light"] {
+  color-scheme: light;
+  /* Surfaces */
+  /* Which faces the type utilities use; store themes swap these two (lib/store-themes.ts) */
+  --font-heading: var(--font-inter);
+  --font-ui: var(--font-inter);
+
+  --background: #f7f7f5; /* paper */
+  --surface: #ffffff;
+  --surface-sunken: #f2f3f0;
+  --foreground: #0b100e; /* ink */
+  --muted: #f0f1ee;
+  --muted-foreground: #5c6560;
+  --border: #e6e7e3;
+  --border-strong: #d2d5cf;
+  --input: #868c88; /* 3:1 against white and paper for form boundaries */
+
+  /* Brand */
+  --primary: #0b5c45; /* emerald */
+  --primary-hover: #094d3a;
+  --primary-foreground: #ffffff;
+  --primary-soft: #e4f1ea;
+  --accent: #c9a24f; /* brass */
+  --accent-strong: #a9823a;
+  --accent-ink: #7a5c20; /* brass for small text, AA on porcelain */
+  --accent-foreground: #0c1f1b;
+  --accent-soft: #f6efdf;
+
+  /* Status (with ~10% tints) */
+  --success: #1f7a4d;
+  --success-soft: #e6f1eb;
+  --warning: #b7791f;
+  --warning-ink: #8a5a12;
+  --warning-soft: #f7efe2;
+  --danger: #b42318;
+  --danger-foreground: #ffffff;
+  --danger-soft: #f7e7e5;
+  --info: #1d5c7a;
+  --info-soft: #e5eef2;
+
+  /* Admin shell */
+  --sidebar-admin: #0e1412;
+  --sidebar-admin-foreground: #f5f6f4;
+
+  /* Charts */
+  --chart-1: #0b5c45;
+  /* Trend lines (validated together: lightness band, chroma, CVD and contrast on the surface) */
+  --chart-revenue: #0f8a63;
+  --chart-orders: #c2770e;
+  --chart-visitors: #1f86c7;
+  --chart-2: #c9a24f;
+  --chart-3: #4f8a78;
+  --chart-4: #1d5c7a;
+  --chart-5: #a3b8b0;
+
+  /* Motion */
+  --dur-fast: 150ms;
+  --dur-base: 200ms;
+  --shadow-pop: 0 12px 32px -12px rgb(12 31 27 / 0.22), 0 2px 6px rgb(12 31 27 / 0.06);
+  /* Resting depth: buttons and cards sit just above the page */
+  --pp-shadow-xs: 0 1px 2px rgb(11 16 14 / 0.1), 0 2px 6px -2px rgb(11 16 14 / 0.12), inset 0 1px 0 rgb(255 255 255 / 0.16);
+  /* Depth comes from stacked shadows: a contact line, a near soft one and a far wide one */
+  --pp-shadow-card: 0 0 0 1px rgb(11 16 14 / 0.015), 0 1px 1px rgb(11 16 14 / 0.03), 0 2px 4px -1px rgb(11 16 14 / 0.04), 0 8px 16px -8px rgb(11 16 14 / 0.07);
+  --pp-shadow-lift: 0 1px 1px rgb(11 16 14 / 0.04), 0 4px 8px -2px rgb(11 16 14 / 0.06), 0 16px 32px -12px rgb(11 16 14 / 0.16), 0 36px 64px -28px rgb(11 16 14 / 0.18);
+  --pp-shadow-deep: 0 2px 2px rgb(11 16 14 / 0.04), 0 8px 16px -4px rgb(11 16 14 / 0.08), 0 24px 48px -16px rgb(11 16 14 / 0.22), 0 56px 96px -40px rgb(11 16 14 / 0.25);
+
+  /*
+   * Gradients: layered "mesh" washes in sunny, natural tones (amber, peach, mint, emerald, sky),
+   * always under a fine grain (.grain) so they read as print, not as a flat digital glow.
+   * --mesh-dawn is light (dark text on it); --mesh-forest is deep (white text on it).
+   */
+  --mesh-dawn:
+    radial-gradient(60% 70% at 8% 10%, #ffe2a8 0%, transparent 60%),
+    radial-gradient(55% 60% at 92% 6%, #ffc3a6 0%, transparent 60%),
+    radial-gradient(60% 70% at 85% 95%, #b7f0d2 0%, transparent 60%),
+    radial-gradient(55% 60% at 10% 92%, #c7e8fb 0%, transparent 60%),
+    linear-gradient(135deg, #fff8ee 0%, #f2fbf6 100%);
+  --mesh-forest:
+    radial-gradient(70% 80% at 0% 0%, #12805f 0%, transparent 60%),
+    radial-gradient(60% 70% at 100% 0%, #1f9d6b 0%, transparent 58%),
+    radial-gradient(55% 60% at 100% 100%, rgb(240 170 72 / 0.55) 0%, transparent 60%),
+    radial-gradient(60% 70% at 0% 100%, #0d6e73 0%, transparent 60%),
+    linear-gradient(160deg, #0a4d3a 0%, #073528 100%);
+  --mesh-brass:
+    radial-gradient(70% 80% at 0% 0%, #fff1cf 0%, transparent 62%),
+    radial-gradient(60% 70% at 100% 100%, #ffd9b8 0%, transparent 60%),
+    linear-gradient(140deg, #fff8ea 0%, #fdeedd 100%);
+  --media-dim: 1;
+
+  /* Always-dark panels (code editor, video placeholders) and the dialog scrim */
+  --inverse: #0b100e;
+  --inverse-foreground: #f7f7f5;
+  --scrim: rgb(11 16 14 / 0.45);
+
+  /* Toasts: ink on light pages */
+  --toast-bg: #0b100e;
+  --toast-fg: #f7f7f5;
+  --toast-muted: #b7bdb9;
+  --toast-border: #0b100e;
+}
+
+/* Dark theme (Part 7A). Same tokens, dark values. Every pair is checked for AA in
+   lib/theme/contrast.test.ts. Scoped wrappers can force a theme with data-theme too. */
+:root[data-theme="dark"],
+[data-theme="dark"] {
+  color-scheme: dark;
+  --background: #0b0d0c;
+  --surface: #131615;
+  --surface-sunken: #0f1211;
+  --foreground: #f1f3f2;
+  --muted: #1a1e1c;
+  --muted-foreground: #9aa29e;
+  --border: #232826;
+  --border-strong: #333a37;
+  --input: #646d69;
+
+  /* Emerald lifted so it reads as text on dark surfaces and buttons stay legible */
+  --primary: #3cc492;
+  --primary-hover: #52d0a1;
+  --primary-foreground: #04110c;
+  --primary-soft: #10291f;
+  --accent: #c9a24f;
+  --accent-strong: #d8b465;
+  --accent-ink: #d9b45e;
+  --accent-foreground: #0c1f1b;
+  --accent-soft: #2a2414;
+
+  --success: #4cc38a;
+  --success-soft: #18342a;
+  --warning: #e0a84a;
+  --warning-ink: #e6b65e;
+  --warning-soft: #2d3021;
+  --danger: #f07468;
+  --danger-foreground: #1a0503;
+  --danger-soft: #2f2925;
+  --info: #5fb0d6;
+  --info-soft: #1b3234;
+
+  --sidebar-admin: #090b0a;
+  --sidebar-admin-foreground: #eaf0ed;
+
+  --chart-1: #3cc492;
+  --chart-revenue: #28a878;
+  --chart-orders: #bd7f24;
+  --chart-visitors: #4f9bdc;
+  --chart-2: #c9a24f;
+  --chart-3: #7fc4ad;
+  --chart-4: #5fb0d6;
+  --chart-5: #4a615a;
+
+  /* Shadows become borders in dark */
+  --shadow-pop: 0 0 0 1px var(--border-strong);
+  --pp-shadow-xs: inset 0 1px 0 rgb(255 255 255 / 0.08), 0 2px 6px -2px rgb(0 0 0 / 0.6);
+  /* A faint top highlight keeps dark cards crisp; deep black shadows give them height */
+  --pp-shadow-card: inset 0 1px 0 rgb(255 255 255 / 0.045), 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 20px -10px rgb(0 0 0 / 0.6);
+  --pp-shadow-lift: inset 0 1px 0 rgb(255 255 255 / 0.07), 0 2px 4px rgb(0 0 0 / 0.5), 0 20px 40px -16px rgb(0 0 0 / 0.75);
+  --pp-shadow-deep: inset 0 1px 0 rgb(255 255 255 / 0.08), 0 4px 8px rgb(0 0 0 / 0.5), 0 32px 64px -24px rgb(0 0 0 / 0.8);
+  --mesh-dawn:
+    radial-gradient(60% 70% at 8% 10%, rgb(240 170 72 / 0.22) 0%, transparent 60%),
+    radial-gradient(55% 60% at 92% 6%, rgb(255 140 110 / 0.16) 0%, transparent 60%),
+    radial-gradient(60% 70% at 85% 95%, rgb(60 196 146 / 0.2) 0%, transparent 60%),
+    radial-gradient(55% 60% at 10% 92%, rgb(90 180 230 / 0.16) 0%, transparent 60%),
+    linear-gradient(135deg, #15181a 0%, #121614 100%);
+  --mesh-brass:
+    radial-gradient(70% 80% at 0% 0%, rgb(240 190 90 / 0.22) 0%, transparent 62%),
+    radial-gradient(60% 70% at 100% 100%, rgb(255 150 110 / 0.14) 0%, transparent 60%),
+    linear-gradient(140deg, #1a1915 0%, #161513 100%);
+  --media-dim: 0.88;
+
+  --inverse: #050c0a;
+  --inverse-foreground: #eaf0ed;
+  --scrim: rgb(0 0 0 / 0.6);
+
+  /* Toasts: a raised surface on dark pages */
+  --toast-bg: #1c201e;
+  --toast-fg: #f1f3f2;
+  --toast-muted: #a9b0ac;
+  --toast-border: #333a37;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-sunken: var(--surface-sunken);
+  --color-foreground: var(--foreground);
+  --color-card: var(--surface);
+  --color-card-foreground: var(--foreground);
+  --color-popover: var(--surface);
+  --color-popover-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-input: var(--input);
+  --color-ring: var(--primary);
+
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-soft: var(--primary-soft);
+  --color-secondary: var(--surface);
+  --color-secondary-foreground: var(--foreground);
+  --color-accent: var(--accent);
+  --color-accent-strong: var(--accent-strong);
+  --color-accent-ink: var(--accent-ink);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent-soft: var(--accent-soft);
+
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-warning: var(--warning);
+  --color-warning-ink: var(--warning-ink);
+  --color-warning-soft: var(--warning-soft);
+  --color-danger: var(--danger);
+  --color-danger-foreground: var(--danger-foreground);
+  --color-danger-soft: var(--danger-soft);
+  --color-destructive: var(--danger);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+  --color-sidebar-admin: var(--sidebar-admin);
+  --color-sidebar-admin-foreground: var(--sidebar-admin-foreground);
+  --color-inverse: var(--inverse);
+  --color-inverse-foreground: var(--inverse-foreground);
+  --color-scrim: var(--scrim);
+
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  --font-display: var(--font-heading), var(--font-noto-deva), var(--font-noto-tamil), var(--font-noto-telugu), var(--font-noto-kannada), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-ui), var(--font-noto-deva), var(--font-noto-tamil), var(--font-noto-telugu), var(--font-noto-kannada), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, monospace;
+
+
+  /* Type scale: 12, 14, 16, 18, 22, 28, 36, 48, 64 */
+  --text-xs: 0.75rem;
+  --text-xs--line-height: 1.5;
+  --text-sm: 0.875rem;
+  --text-sm--line-height: 1.5;
+  --text-base: 1rem;
+  --text-base--line-height: 1.5;
+  --text-lg: 1.125rem;
+  --text-lg--line-height: 1.45;
+  --text-xl: 1.375rem;
+  --text-xl--line-height: 1.25;
+  --text-2xl: clamp(1.5rem, 1.25rem + 1vw, 1.75rem);
+  --text-2xl--line-height: 1.15;
+  --text-3xl: clamp(1.75rem, 1.4rem + 1.6vw, 2.25rem);
+  --text-3xl--line-height: 1.1;
+  --text-4xl: clamp(2.125rem, 1.5rem + 2.8vw, 3rem);
+  --text-4xl--line-height: 1.1;
+  --text-5xl: clamp(2.5rem, 1.4rem + 4.6vw, 4rem);
+  --text-5xl--line-height: 1.05;
+}
+
+/* Shape, depth and motion tokens (emitted as CSS variables by Tailwind) */
+@theme {
+  /* One height scale for every control: buttons, text boxes, dropdowns, selects, steppers.
+     Controls side by side are always the same height. Touch screens get at least 44px. */
+  --spacing-control-sm: 2.25rem;
+  --spacing-control: 2.5rem;
+  --spacing-control-lg: 3rem;
+  --spacing-control-touch: 2.75rem;
+  --radius-control: 10px;
+  --radius-card: 14px;
+  --radius-dialog: 18px;
+  --radius-media: 10px;
+  --radius-sm: 6px;
+  --radius-xs: 4px;
+  --shadow-pop: 0 12px 32px -12px rgb(12 31 27 / 0.22), 0 2px 6px rgb(12 31 27 / 0.06);
+  --shadow-xs: var(--pp-shadow-xs);
+  --shadow-card: var(--pp-shadow-card);
+  --shadow-lift: var(--pp-shadow-lift);
+  --shadow-deep: var(--pp-shadow-deep);
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+    font-size: 1rem;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  body {
+    font-optical-sizing: auto;
+    font-feature-settings: "cv11", "ss01";
+  }
+  /* Headings in Inter Display (the optical-size cut at 32); faces without that axis ignore it */
+  h1,
+  h2,
+  h3,
+  .font-display {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-variation-settings: "opsz" 32;
+    letter-spacing: -0.028em;
+    line-height: 1.1;
+  }
+  h1 {
+    letter-spacing: -0.034em;
+  }
+  /*
+   * Heading levels inside the creator app and admin console: the page title (h1) is the display
+   * face; card, panel and form-section titles (h2, h3) are the body face in semibold, so a page
+   * reads title → sections → content instead of every heading shouting. A heading that should
+   * stay display says so with font-display (Dashboard's section titles do).
+   */
+  [data-surface="app"] :where(h2, h3) {
+    font-family: var(--font-sans);
+    font-weight: 600;
+    font-variation-settings: normal;
+    letter-spacing: -0.012em;
+    line-height: 1.3;
+  }
+  [data-surface="app"] :where(h2, h3).font-display {
+    font-family: var(--font-display);
+    font-weight: 650;
+    font-variation-settings: "opsz" 32;
+    letter-spacing: -0.024em;
+    line-height: 1.15;
+  }
+  :focus-visible {
+    outline: 2px solid var(--ring, var(--primary));
+    outline-offset: 2px;
+  }
+  ::selection {
+    background: var(--primary-soft);
+    color: var(--foreground);
+  }
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+  /* Creator-entered text (titles, emails, codes) can be one very long word. Let it wrap anywhere
+     instead of widening the page. Zero specificity, so any utility still wins. */
+  :where(h1, h2, h3, h4, p, li, dd, dt, td, th, label, figcaption, blockquote, a, span, legend) {
+    overflow-wrap: anywhere;
+  }
+  /* Getting started: the element a coach-mark points at */
+  [data-coach-active="true"] {
+    outline: 3px solid var(--accent);
+    outline-offset: 4px;
+    border-radius: var(--radius-control);
+  }
+  /* Links and buttons in table cells get a full touch target on touch screens */
+  @media (pointer: coarse) {
+    :where([data-slot="table"]) :where(td a, td button) {
+      min-height: 2.75rem;
+      min-width: 2.75rem;
+      display: inline-flex;
+      align-items: center;
+    }
+  }
+}
+
+/* Components layer so text-* utilities can recolour it (e.g. on the dark admin sidebar) */
+@layer components {
+  /* Cards rest just above the page in light mode (a border alone in dark). Dashed boxes are
+     placeholders and stay flat. */
+  .rounded-card.border.bg-surface:not(.border-dashed),
+  .rounded-card.border.bg-card:not(.border-dashed) {
+    box-shadow: var(--pp-shadow-card);
+  }
+  :is(a, button).rounded-card.border.bg-surface {
+    transition: transform var(--dur-base) var(--ease-out), box-shadow var(--dur-base) var(--ease-out), border-color var(--dur-base) var(--ease-out);
+  }
+  :is(a, button).rounded-card.border.bg-surface:hover {
+    box-shadow: var(--pp-shadow-lift);
+  }
+  .eyebrow {
+    font-family: var(--font-sans);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    line-height: 1.4;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted-foreground);
+  }
+}
+
+@layer utilities {
+  .bg-mesh-dawn { background: var(--mesh-dawn); }
+  .bg-mesh-forest { background: var(--mesh-forest); color: #fff; }
+  .bg-mesh-brass { background: var(--mesh-brass); }
+  /* Film grain over a gradient (or anything): what keeps it from looking generated */
+  /* Zero specificity for position, so absolute/fixed/sticky utilities still win */
+  :where(.grain) { position: relative; }
+  .grain { isolation: isolate; }
+  .grain::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    border-radius: inherit;
+    opacity: 0.22;
+    mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .55 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  /*
+   * Glass icons: a frosted pane over a coloured blob (--gi → --gi2), lit from where the pointer is
+   * (--light-x/--light-y on <html>, set by GlassLight). Without a pointer the light sits top-left.
+   */
+  .glass-icon {
+    position: relative;
+    isolation: isolate;
+    display: inline-grid;
+    place-items: center;
+    flex-shrink: 0;
+    border-radius: 30%;
+    color: color-mix(in oklab, var(--gi) 55%, #06120d);
+  }
+  .glass-icon::before {
+    content: "";
+    position: absolute;
+    z-index: -2;
+    inset: 14% 4% -6% 18%;
+    border-radius: 34%;
+    background: linear-gradient(140deg, var(--gi) 0%, var(--gi2) 100%);
+    box-shadow: 0 8px 18px -6px color-mix(in oklab, var(--gi2) 70%, transparent);
+  }
+  .glass-icon::after {
+    content: "";
+    position: absolute;
+    z-index: -1;
+    inset: 0;
+    border-radius: inherit;
+    background:
+      radial-gradient(120% 120% at calc(var(--light-x, 0.2) * 100%) calc(var(--light-y, 0.1) * 100%), rgb(255 255 255 / 0.75) 0%, rgb(255 255 255 / 0.2) 45%, rgb(255 255 255 / 0.08) 100%);
+    -webkit-backdrop-filter: blur(8px) saturate(1.6);
+    backdrop-filter: blur(8px) saturate(1.6);
+    box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.6), inset 0 1px 0 rgb(255 255 255 / 0.9), 0 1px 2px rgb(11 16 14 / 0.08);
+  }
+  :is([data-theme="dark"]) .glass-icon { color: #fff; }
+  :is([data-theme="dark"]) .glass-icon::after {
+    background:
+      radial-gradient(120% 120% at calc(var(--light-x, 0.2) * 100%) calc(var(--light-y, 0.1) * 100%), rgb(255 255 255 / 0.28) 0%, rgb(255 255 255 / 0.08) 45%, rgb(255 255 255 / 0.03) 100%);
+    box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.16), inset 0 1px 0 rgb(255 255 255 / 0.3), 0 2px 6px rgb(0 0 0 / 0.4);
+  }
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+  .gutter {
+    padding-inline: 16px;
+  }
+  @media (min-width: 768px) {
+    .gutter {
+      padding-inline: 24px;
+    }
+  }
+}
+
+/* Paper is white: printed pages (invoices) never use the dark theme */
+@media print {
+  html,
+  body {
+    background: #ffffff !important;
+    color: #0c1f1b !important;
+  }
+}
+
+/* Photos and video posters dim a little in dark mode so they don't glare (covers stay as made) */
+.dim-media {
+  filter: brightness(var(--media-dim, 1));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Scrolling strips (store home and announcement bar). Static when motion is reduced. */
+@keyframes pp-marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+.pp-marquee-track {
+  display: flex;
+  width: max-content;
+  animation: pp-marquee var(--pp-marquee-s, 30s) linear infinite;
+}
+.pp-marquee[data-reverse] .pp-marquee-track { animation-direction: reverse; }
+.pp-marquee[data-pause]:hover .pp-marquee-track,
+.pp-marquee[data-pause]:focus-within .pp-marquee-track { animation-play-state: paused; }
+@media (prefers-reduced-motion: reduce) {
+  .pp-marquee-track { animation: none; flex-wrap: wrap; width: auto; justify-content: center; }
+  .pp-marquee-track [data-dup] { display: none; }
+}
+
+/* Text typed straight onto the page in the store editor */
+.pp-editable { cursor: text; border-radius: 2px; outline: 1px dashed transparent; outline-offset: 3px; min-width: 1ch; }
+.pp-editable:hover { outline-color: color-mix(in oklab, currentColor 45%, transparent); }
+.pp-editable:focus { outline: 2px solid var(--ring); }
+.pp-editable:empty::before { content: attr(data-placeholder); opacity: 0.5; }
+
+/* Living previews (page templates, site types): small, slow and off under reduced motion */
+@keyframes pp-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+@keyframes pp-nudge { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(3px); } }
+@keyframes pp-sheen { from { transform: translateX(-120%) skewX(-12deg); } to { transform: translateX(220%) skewX(-12deg); } }
+/* Paused previews rest on the first frame, so every animation starts at the element's normal state */
+@keyframes pp-settle { 0%, 100% { transform: none; opacity: 1; } 50% { transform: translateY(-1.5px); opacity: 0.75; } }
+.pp-float { animation: pp-float 3.2s ease-in-out infinite; }
+.pp-nudge { display: inline-block; animation: pp-nudge 1.6s ease-in-out infinite; }
+/* Only while the card is hovered or chosen, so a grid of previews isn't all moving at once */
+.pp-live .pp-on-hover { animation-play-state: paused !important; }
+.pp-live:is(:hover, :focus-visible, [aria-checked="true"]) .pp-on-hover { animation-play-state: running !important; }

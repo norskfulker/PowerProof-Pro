@@ -1,0 +1,174 @@
+"use client";
+
+import { use } from "react";
+import Link from "next/link";
+import { FileText, Package, ReceiptText, RotateCcw, ShieldCheck, Truck, Zap } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { BundleBox } from "@/components/pp/bundle-box";
+import { ErrorState } from "@/components/pp/empty-state";
+import { ProductImageView } from "@/components/pp/product-cover";
+import { StickyBuyBar } from "@/components/pp/sticky-buy-bar";
+import { ProductBuyBox } from "@/components/storefront/product-buy-box";
+import { ProductGallery } from "@/components/storefront/product-gallery";
+import { ProductQuestions } from "@/components/storefront/product-questions";
+import { ProductReviews } from "@/components/storefront/product-reviews";
+import { WriteReview } from "@/components/storefront/write-review";
+import { FaqAccordion } from "@/components/pp/faq-accordion";
+import { kindLabel } from "@/components/pp/product-card";
+import { ProductGrid } from "@/components/storefront/store-sections";
+import { useStorefront } from "@/components/storefront/storefront-context";
+import { useApi } from "@/hooks/use-api";
+import { getStoreProduct } from "@/lib/api";
+import { formatBytes, localPrice } from "@/lib/money";
+
+const ANCHORS = [
+  ["description", "Description"],
+  ["details", "Details"],
+  ["preview", "Preview"],
+  ["reviews", "Reviews"],
+  ["questions", "Questions"],
+  ["faq", "FAQ"],
+] as const;
+
+function fileFormat(name: string) {
+  return (name.split(".").pop() ?? "file").toUpperCase();
+}
+
+export default function ProductPage({ params }: { params: Promise<{ store: string; product: string }> }) {
+  const { product: productSlug } = use(params);
+  const { slug, view, currency, buy, buying } = useStorefront();
+  const { data, error, reload } = useApi(() => getStoreProduct(slug, productSlug), [slug, productSlug], { live: true });
+
+  if (error) {
+    return (
+      <div className="mx-auto max-w-xl px-4 py-16">
+        <ErrorState title={error.includes("not found") ? "That product isn't here." : undefined} message={error.includes("not found") ? "It may have been renamed or taken down." : error} onRetry={reload} />
+        <p className="mt-4 text-center"><Link className="font-medium underline" href={`/s/${slug}/products`}>See all products</Link></p>
+      </div>
+    );
+  }
+  if (!data) {
+    return (
+      <div className="mx-auto grid max-w-[1200px] grid-cols-1 gap-8 px-4 pt-8 md:grid-cols-2 md:px-6" aria-busy="true" aria-label="Loading product">
+        <Skeleton className="aspect-[4/3] rounded-card" />
+        <div className="flex flex-col gap-4"><Skeleton className="h-10 w-3/4" /><Skeleton className="h-6 w-1/3" /><Skeleton className="h-14 w-full" /><Skeleton className="h-24 w-full" /></div>
+      </div>
+    );
+  }
+
+  const { product, reviews, questions, related, bundles } = data;
+  const physical = product.fulfilment === "physical";
+  const totalSize = product.files.reduce((t, f) => t + (f.size ?? 0), 0);
+  // The facts a buyer looks for, shown for every product without the creator writing them
+  const details: [React.ComponentType<{ className?: string }>, string, string][] = [
+    [Package, "What it is", physical ? "A physical product, shipped to you" : kindLabel(product.kind)],
+    physical
+      ? [Truck, "Delivery", "Shipped to your address, with tracking when available"]
+      : [Zap, "Delivery", `Instant download${product.files.length ? `: ${product.files.length} file${product.files.length === 1 ? "" : "s"}${totalSize ? `, ${formatBytes(totalSize)}` : ""}` : ""}`],
+    [RotateCcw, "Refunds", `Within ${view.store.refundDays} days if it isn't right`],
+    [ReceiptText, "Invoice", "An invoice with every order"],
+    [ShieldCheck, "Payment", "Secure checkout: UPI, cards and netbanking"],
+  ];
+  const hasPreview = product.images.length > 1;
+  const anchors = ANCHORS.filter(([id]) => id !== "preview" || hasPreview);
+  const stickyHeader = view.design.header?.sticky === true;
+  const creator = view.design.about.name;
+  const hasVideo = product.kind === "course" || product.kind === "preset";
+  const onBuy = (choice?: { variantId?: string; quantity: number }) => buy({ productId: product.id, ...choice });
+
+  return (
+    <div className="mx-auto max-w-[1200px] px-4 pt-6 pb-24 md:px-6 md:pt-10 md:pb-0">
+      <title>{`${product.title} · ${view.store.name}`}</title>
+      <div className="grid grid-cols-1 gap-8 md:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] md:gap-12">
+        <ProductGallery images={product.images} title={product.title} hasVideo={hasVideo} video={product.video} fallback={product.tileBackground} />
+        <div className="flex flex-col gap-6">
+          <ProductBuyBox product={product} store={view.store} creatorName={creator} currency={currency} onBuy={onBuy} buying={buying === product.id} />
+          {bundles.map((b) => (
+            <BundleBox key={b.bundle.id} name={b.bundle.name} products={b.products} full={b.full} price={b.price} percentOff={b.percentOff} currency={currency} hrefFor={(p) => `/s/${slug}/${p.slug}`} onBuy={() => buy({ bundleId: b.bundle.id })} buying={buying === b.bundle.id} />
+          ))}
+        </div>
+      </div>
+
+      <nav aria-label="On this page" className={`sticky ${stickyHeader ? "top-16" : "top-0"} z-20 -mx-4 mt-10 overflow-x-auto border-y bg-background/95 px-4 backdrop-blur md:mx-0 md:rounded-card md:border`}>
+        <ul className="flex gap-2">
+          {anchors.map(([id, label]) => (
+            <li key={id}><a href={`#${id}`} className="inline-flex min-h-12 items-center px-3 text-sm font-medium whitespace-nowrap text-foreground/80 hover:text-foreground">{label}{id === "reviews" ? ` (${product.rating.count})` : id === "questions" ? ` (${questions.length})` : ""}</a></li>
+          ))}
+        </ul>
+      </nav>
+
+      <div className="mx-auto mt-8 flex max-w-[860px] flex-col gap-14">
+        <section id="description" aria-labelledby="h-desc" className="scroll-mt-32">
+          <h2 id="h-desc" className="pp-subhead mb-4 text-xl font-semibold tracking-[-0.02em]">Description</h2>
+          <p className="text-lg leading-relaxed whitespace-pre-line text-foreground/90">{product.description}</p>
+        </section>
+
+        <section id="details" aria-labelledby="h-det" className="scroll-mt-32">
+          <h2 id="h-det" className="pp-subhead mb-4 text-xl font-semibold tracking-[-0.02em]">Details</h2>
+          <dl className="grid grid-cols-1 gap-px overflow-hidden rounded-card border bg-border sm:grid-cols-2">
+            {details.map(([Icon, k, v]) => (
+              <div key={k} className="flex items-start gap-3 bg-surface px-4 py-3">
+                <Icon className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
+                <div className="min-w-0">
+                  <dt className="text-xs font-semibold text-muted-foreground">{k}</dt>
+                  <dd className="text-sm">{v}</dd>
+                </div>
+              </div>
+            ))}
+          </dl>
+        </section>
+
+        {product.files.length > 0 && <section id="included" aria-labelledby="h-inc" className="scroll-mt-32">
+          <h2 id="h-inc" className="pp-subhead mb-4 text-xl font-semibold tracking-[-0.02em]">What&apos;s included</h2>
+          <ul className="divide-y rounded-card border bg-surface">
+            {product.files.map((f) => (
+              <li key={f.id} className="flex items-center gap-3 px-4 py-3">
+                <FileText className="size-5 shrink-0 text-muted-foreground" aria-hidden />
+                <span className="min-w-0 flex-1 truncate font-medium">{f.name}</span>
+                <span className="rounded-full bg-muted px-2 py-0.5 font-mono text-[0.6875rem]">{fileFormat(f.name)}</span>
+                <span className="w-16 text-right font-mono text-xs text-muted-foreground">{formatBytes(f.size)}</span>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-2 text-sm text-muted-foreground">Delivered instantly on screen and by email. Updates are free.</p>
+        </section>}
+
+        {hasPreview && (
+          <section id="preview" aria-labelledby="h-prev" className="scroll-mt-32">
+            <h2 id="h-prev" className="pp-subhead mb-4 text-xl font-semibold tracking-[-0.02em]">Preview</h2>
+            <ul className="grid grid-cols-2 gap-3 md:grid-cols-3">
+              {product.images.slice(1).map((img) => <li key={img.id}><ProductImageView image={img} size="sm" /></li>)}
+            </ul>
+          </section>
+        )}
+
+        <section id="reviews" aria-labelledby="h-rev" className="scroll-mt-32">
+          <h2 id="h-rev" className="pp-subhead mb-4 text-xl font-semibold tracking-[-0.02em]">Reviews</h2>
+          <ProductReviews reviews={reviews} creatorName={creator.split(" ")[0]} write={<WriteReview key={product.id} slug={slug} productId={product.id} onDone={reload} />} />
+        </section>
+
+        <section id="questions" aria-labelledby="h-q" className="scroll-mt-32">
+          <h2 id="h-q" className="pp-subhead mb-4 text-xl font-semibold tracking-[-0.02em]">Questions</h2>
+          <ProductQuestions key={product.id} slug={slug} productId={product.id} initial={questions} />
+        </section>
+
+        <section id="faq" aria-labelledby="h-faq" className="scroll-mt-32">
+          <h2 id="h-faq" className="pp-subhead mb-4 text-xl font-semibold tracking-[-0.02em]">Questions buyers ask</h2>
+          <FaqAccordion items={view.pages.faq.slice(0, 5)} />
+          <p className="mt-3 text-sm text-muted-foreground">
+            Refunds: {view.pages.refund.length > 220 ? <Link href={`/s/${slug}/policies/refund`} className="font-medium text-foreground underline underline-offset-4">read the refund policy</Link> : view.pages.refund}
+          </p>
+        </section>
+      </div>
+
+      {related.length > 0 && (
+        <section aria-labelledby="h-rel" className="mt-16">
+          <h2 id="h-rel" className="mb-5 text-[1.75rem]">You might also like</h2>
+          <ProductGrid products={related} />
+        </section>
+      )}
+
+      <StickyBuyBar watchId="main-buy" title={product.title} price={localPrice(product.info.price, currency)} onBuy={onBuy} buying={buying === product.id} />
+    </div>
+  );
+}

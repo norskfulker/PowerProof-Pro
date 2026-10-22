@@ -1,0 +1,190 @@
+import {
+  AlertOctagon, Banknote, BarChart3, Box, Brush, FileText, Flag, FolderOpen, Globe, Images, Inbox, LayoutDashboard, MessagesSquare,
+  Newspaper, Package, Plug, Receipt, ScrollText, Search, Settings, Shield, ShoppingBag, Sparkles, Store, Tag, Ticket, Users, Wallet, Wrench, type LucideIcon,
+} from "lucide-react";
+import type { Need } from "../team";
+
+/**
+ * The one navigation config (Part 7C). The sidebar, mobile drawer, store tabs, command palette and
+ * empty-state links all read this tree. Never write nav items by hand in components.
+ */
+
+export type BadgeKey = "products_all" | "products_live" | "products_draft" | "products_archived" | "reviews_pending" | "questions_open" | "disputes_open" | "orders_disputed" | "reports_open" | "payouts_open";
+
+export interface NavNode {
+  id: string;
+  label: string;
+  /** The link. `{store}` is replaced with the active store id. A group has none: clicking it only opens or closes it. */
+  href?: string;
+  icon?: LucideIcon;
+  children?: NavNode[];
+  badge?: BadgeKey;
+  /** Pro-only: shows a lock on Free and opens the Upgrade dialog */
+  /** Extra path prefixes that count as this item (detail pages) */
+  match?: string[];
+  /** Shown in the bottom tab bar on phones */
+  tab?: true;
+  /** A panel of the store editor: found by search (with its badge), not shown as a tab */
+  inEditor?: true;
+  /** Who on the store's team can open it (lib/team.ts); children inherit it. Default: everyone. */
+  need?: Need;
+  /** Only once the store has physical shipping turned on (SKUs) */
+  physical?: true;
+}
+
+/** The store designer: My Store in the sidebar (reviews and questions open as its panels) */
+const STORE_MATCH = ["/store/{store}/design", "/store/{store}/reviews", "/store/{store}/questions"];
+/** Settings › Store: the store's details plus its Policies, Offers and SEO tabs */
+const STORE_SETTINGS_MATCH = ["/store/{store}/settings", "/store/{store}/pages", "/store/{store}/offers", "/store/{store}/seo", "/store/{store}/analytics-tags"];
+
+/**
+ * Settings › Store, as tabs across the top of its pages (and found by search): General, Policies,
+ * Offers and SEO. Design is the store editor itself (My Store); it stays here so search finds its
+ * panels, but isn't a tab.
+ */
+const EDITOR = "/store/{store}/design/pages/home/edit";
+
+export const STORE_NAV: NavNode[] = [
+  { id: "store-general", label: "General", href: "/store/{store}/settings", need: "business" },
+  {
+    // Pages and FAQ are panels of the store editor, beside the pages that show them
+    id: "design", label: "Design", icon: Brush, need: "design", children: [
+      { id: "design-base", label: "Theme editor", href: EDITOR, match: ["/store/{store}/design/pages/", "/store/{store}/design/theme", "/store/{store}/design/sections", "/store/{store}/design/backgrounds", "/store/{store}/design/content"] },
+      { id: "design-pages", label: "Pages", href: `${EDITOR}?panel=pages`, inEditor: true },
+      { id: "pages-faq", label: "FAQ", href: `${EDITOR}?panel=faq`, inEditor: true },
+    ],
+  },
+  {
+    id: "policies", label: "Policies", icon: FileText, need: "design", children: [
+      { id: "policy-refund", label: "Refund", href: "/store/{store}/pages/policies/refund" },
+      { id: "policy-terms", label: "Terms", href: "/store/{store}/pages/policies/terms" },
+      { id: "policy-privacy", label: "Privacy", href: "/store/{store}/pages/policies/privacy" },
+      // Store content, edited in the store editor beside the page
+      { id: "pages-about", label: "About", href: `${EDITOR}?panel=about` },
+      { id: "reviews", label: "Reviews", href: `${EDITOR}?panel=reviews`, badge: "reviews_pending" },
+      { id: "questions", label: "Questions", href: `${EDITOR}?panel=questions`, badge: "questions_open" },
+    ],
+  },
+  {
+    id: "offers", label: "Offers", icon: Ticket, need: "marketing", children: [
+      { id: "offers-coupons", label: "Coupons", href: "/store/{store}/offers/coupons" },
+      { id: "offers-bundles", label: "Bundles", href: "/store/{store}/offers/bundles" },
+      { id: "offers-deal-paths", label: "Deal Paths", href: "/store/{store}/offers/deal-paths", match: ["/store/{store}/offers/deal-paths/"] },
+      { id: "offers-deals", label: "Limited-time deals", href: "/store/{store}/offers/deals" },
+    ],
+  },
+  {
+    id: "seo-tools", label: "SEO", icon: Globe, need: "design", children: [
+      { id: "seo", label: "SEO", href: "/store/{store}/seo" },
+      { id: "analytics-tags", label: "Analytics tags", href: "/store/{store}/analytics-tags" },
+    ],
+  },
+];
+
+export const CREATOR_NAV: NavNode[] = [
+  // Getting started, operations, your products and the marketplace, at a glance
+  { id: "dashboard", label: "Dashboard", href: "/dashboard", icon: LayoutDashboard, match: ["/getting-started"] },
+  // Sales, buyers, products and visitors in detail, with the store's data (orders, customers,
+  // leads, payouts) beside them
+  {
+    id: "analytics", label: "Analytics", icon: BarChart3, children: [
+      { id: "analytics-overview", label: "Overview", href: "/analytics", icon: BarChart3, need: "analytics" },
+      { id: "orders", label: "Orders", href: "/sales/orders", icon: Receipt, badge: "orders_disputed", match: ["/sales/orders/"], need: "orders" },
+      { id: "customers", label: "Customers", href: "/sales/customers", icon: Users, match: ["/sales/customers/"], need: "orders" },
+      { id: "leads", label: "Leads", href: "/sales/leads", icon: Inbox, match: ["/sales/leads/"], need: "orders" },
+      { id: "payouts", label: "Payouts", href: "/sales/payouts/balance", icon: Wallet, match: ["/sales/payouts/"], need: "owner" },
+    ],
+  },
+  // One page: browse every live deal, and list and manage this store's own deals in place
+  { id: "marketplace", label: "Marketplace", href: "/marketplace", icon: ShoppingBag },
+  // The business flow, in order: Your products (Collections, Products), then the Store's look and
+  // the rest. Store settings live under Settings.
+  {
+    id: "catalog", label: "Your products", icon: Package, children: [
+      { id: "collections", label: "Collections", href: "/catalog/collections", icon: FolderOpen, match: ["/catalog/collections/"], need: "catalog" },
+      { id: "products", label: "Products", href: "/catalog/products", icon: Package, badge: "products_all", match: ["/catalog/products/"], need: "catalog" },
+      { id: "bundles", label: "Bundles", href: "/catalog/bundles", icon: Box, need: "marketing" },
+      { id: "media", label: "Media library", href: "/catalog/media", icon: Images, need: "catalog" },
+      // Bring a store from Shopify, WooCommerce, Amazon, Etsy, Gumroad or a website
+    ],
+  },
+  // My Store asks how to build: Create with AI (AI Studio), Create custom (the editor) or Copy a store.
+  // Policies, Offers and SEO are tabs of Settings › Store.
+  { id: "store", label: "My Store", href: "/store/{store}/design", icon: Store, match: STORE_MATCH, need: "design" },
+  {
+    id: "tools", label: "Tools", icon: Wrench, need: "design", children: [
+      { id: "ai-images", label: "AI image maker", href: "/tools/ai-images", icon: Sparkles },
+      { id: "integrations", label: "Integrations", href: "/tools/integrations", icon: Plug },
+    ],
+  },
+  {
+    id: "settings", label: "Settings", icon: Settings, children: [
+      { id: "settings-store", label: "Store", href: "/store/{store}/settings", match: STORE_SETTINGS_MATCH, need: "business" },
+      { id: "settings-profile", label: "Profile", href: "/settings/profile" },
+      { id: "settings-company", label: "Company and invoices", href: "/settings/company", need: "business" },
+      // HSN/SAC codes appear here once physical shipping is on; invoice numbering is always here
+      { id: "settings-tax", label: "Tax and invoices", href: "/settings/tax", need: "business" },
+      { id: "settings-skus", label: "SKUs", href: "/settings/skus", need: "catalog", physical: true },
+      { id: "settings-billing", label: "Billing and plan", href: "/settings/billing", need: "owner" },
+      { id: "settings-team", label: "Team", href: "/settings/team" },
+    ],
+  },
+];
+
+export const ADMIN_NAV: NavNode[] = [
+  { id: "a-overview", label: "Overview", href: "/admin", icon: LayoutDashboard },
+  { id: "a-creators", label: "Creators", href: "/admin/creators", icon: Users },
+  { id: "a-stores", label: "Stores", href: "/admin/stores", icon: Store },
+  { id: "a-products", label: "Products", href: "/admin/products", icon: Package },
+  { id: "a-blog", label: "Blog", href: "/admin/blog", icon: Newspaper },
+  {
+    id: "a-orders", label: "Orders", icon: Receipt, children: [
+      { id: "a-orders-all", label: "All", href: "/admin/orders" },
+      { id: "a-orders-disputed", label: "Disputed", href: "/admin/orders/disputed", badge: "disputes_open" },
+    ],
+  },
+  {
+    id: "a-money", label: "Money", icon: Banknote, children: [
+      { id: "a-gateway", label: "Payment gateway", href: "/admin/money/gateway" },
+      { id: "a-payouts", label: "Payouts", href: "/admin/money/payouts", badge: "payouts_open" },
+      { id: "a-refunds", label: "Refunds", href: "/admin/money/refunds" },
+    ],
+  },
+  {
+    id: "a-moderation", label: "Moderation", icon: Shield, children: [
+      { id: "a-flags", label: "Flags", href: "/admin/moderation/flags", icon: Flag, badge: "reports_open" },
+      { id: "a-reviews", label: "Reviews", href: "/admin/moderation/reviews", icon: MessagesSquare },
+      { id: "a-deals", label: "Marketplace deals", href: "/admin/moderation/deals", icon: Tag },
+    ],
+  },
+  {
+    id: "a-system", label: "System", icon: ScrollText, children: [
+      { id: "a-audit", label: "Audit", href: "/admin/system/audit" },
+      { id: "a-webhooks", label: "Webhooks", href: "/admin/system/webhooks" },
+      { id: "a-team", label: "Team", href: "/admin/system/team" },
+      { id: "a-search", label: "Search", href: "/admin/system/search", icon: Search },
+    ],
+  },
+];
+
+export interface TabItem {
+  label: string;
+  href: string;
+  icon: LucideIcon;
+  /** Path prefixes that light this tab up */
+  match: string[];
+}
+
+export const MOBILE_TABS: TabItem[] = [
+  { label: "Home", href: "/dashboard", icon: LayoutDashboard, match: ["/dashboard", "/getting-started"] },
+  { label: "Products", href: "/catalog/products", icon: Package, match: ["/catalog"] },
+  { label: "Orders", href: "/sales/orders", icon: Receipt, match: ["/sales/orders"] },
+  { label: "Settings", href: "/settings/profile", icon: Settings, match: ["/settings", "/store/{store}/settings"] },
+];
+
+export const ADMIN_TABS: TabItem[] = [
+  { label: "Overview", href: "/admin", icon: LayoutDashboard, match: ["/admin"] },
+  { label: "Creators", href: "/admin/creators", icon: Users, match: ["/admin/creators", "/admin/stores"] },
+  { label: "Disputes", href: "/admin/orders/disputed", icon: AlertOctagon, match: ["/admin/orders"] },
+  { label: "Payouts", href: "/admin/money/payouts", icon: Banknote, match: ["/admin/money"] },
+];
