@@ -117,7 +117,29 @@ export class RetryableError extends Error {
   }
 }
 
-export interface AgentCode {
+/** A dashboard number for one store (keys match manifest.metrics); money in paise */
+export type MetricValues = Record<string, number>;
+
+export interface WeeklyReport {
+  subject: string;
+  /** Saved in agent_reports.data and drawn by the agent's email template */
+  data: Record<string, unknown>;
+  /** Nothing worth sending this week */
+  empty: boolean;
+}
+
+export interface AgentHooks {
+  /** Headline numbers for the dashboard (read-only) */
+  metrics?(db: StoreDb, o: { now: Date }): Promise<MetricValues>;
+  /** The weekly report's content (read-only); the platform renders, emails and records it */
+  report?(db: StoreDb, o: { periodStart: string; periodEnd: string; now: Date }): Promise<WeeklyReport>;
+  /** Rows from a connected sheet or an uploaded file, for the agent to save in its own tables */
+  ingest?(db: StoreDb, rows: string[][], o: { source: "csv" | "xlsx" | "sheet" | "manual"; fileName: string; mapping?: Record<string, number>; isFull: boolean; now: Date; userId?: string | null; newId: () => string }): Promise<{ ok: boolean; message?: string; summary?: unknown }>;
+  /** The owner finished or skipped an action item (e.g. a WhatsApp message sent from the queue) */
+  onAction?(db: StoreDb, item: { kind: string; refType: string | null; refId: string | null; payload: Record<string, unknown> }, outcome: "done" | "skipped", now: Date): Promise<void>;
+}
+
+export interface AgentCode extends AgentHooks {
   manifest: AgentManifest;
   steps: StepMap;
   /** System prompts by name (agents/<id>/prompts) */
@@ -125,10 +147,10 @@ export interface AgentCode {
 }
 
 /** Binds an agent's step functions (and prompts) to its manifest: every listed step must exist, and nothing extra */
-export function defineSteps(manifest: AgentManifest, steps: StepMap, prompts: Record<string, string> = {}): AgentCode {
+export function defineSteps(manifest: AgentManifest, steps: StepMap, prompts: Record<string, string> = {}, hooks: AgentHooks = {}): AgentCode {
   const missing = manifest.steps.filter((s) => typeof steps[s] !== "function");
   const extra = Object.keys(steps).filter((s) => !manifest.steps.includes(s));
   if (missing.length) throw new Error(`${manifest.id}: no code for step(s) ${missing.join(", ")}`);
   if (extra.length) throw new Error(`${manifest.id}: step(s) ${extra.join(", ")} aren't in the manifest`);
-  return { manifest, steps, prompts };
+  return { manifest, steps, prompts, ...hooks };
 }

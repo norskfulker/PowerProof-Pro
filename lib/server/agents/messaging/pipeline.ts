@@ -26,7 +26,8 @@ export interface PipelineDeps {
   /** Records the result; "failed" gives the credits back */
   finish(outboxId: string, o: { status: "sent" | "queued" | "failed"; providerId?: string; error?: string }): Promise<void>;
   enqueueAction(item: ActionItemInput): Promise<void>;
-  optOutUrl(channel: Channel, address: string): string;
+  /** The unsubscribe link for one message (signed, names no address) */
+  optOutUrl(outboxId: string): string;
   smsEnabled: boolean;
 }
 
@@ -91,7 +92,7 @@ export async function sendThroughPipeline(deps: PipelineDeps, msg: OutboundMessa
   }
 
   if (msg.channel === "email") {
-    const { text, html } = emailWithOptOut(msg.body, deps.optOutUrl("email", msg.to), from);
+    const { text, html } = emailWithOptOut(msg.body, deps.optOutUrl(r.outboxId), from);
     const sent = await deps.deliverEmail({ to: msg.to, subject: msg.subject || from, text, html, replyTo: msg.replyTo });
     if (!sent.ok) {
       await deps.finish(r.outboxId, { status: "failed", error: sent.error });

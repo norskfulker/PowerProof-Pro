@@ -53,7 +53,8 @@ export class MemoryDb implements StoreDb {
   }
   async upsert(table: string, rows: Row[], onConflict: string, opts?: { ignoreDuplicates?: boolean }) {
     const keys = onConflict.split(",").map((k) => k.trim());
-    for (const r of rows) {
+    for (const row of rows) {
+      const r: Row = { ...row, store_id: this.storeId };
       const hit = this.rows(table).find((x) => x.store_id === this.storeId && keys.every((k) => x[k] === r[k]));
       if (hit && opts?.ignoreDuplicates) continue;
       if (hit) Object.assign(hit, r);

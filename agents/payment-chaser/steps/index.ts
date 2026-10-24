@@ -1,6 +1,7 @@
 import { defineSteps, type StepCtx } from "@/lib/server/agents/runtime/types";
 import manifest from "../manifest";
 import { PROMPTS } from "../prompts/reminder";
+import { chaserHooks } from "../lib/hooks";
 import { draftMessages } from "./draft-messages";
 import { loadOverdue } from "./load-overdue";
 import { routeAndSend, type SendOutput } from "./route-and-send";
@@ -18,4 +19,4 @@ export default defineSteps(manifest, {
   draft_messages: draftMessages,
   route_and_send: routeAndSend,
   log_and_meter: logAndMeter,
-}, PROMPTS);
+}, PROMPTS, chaserHooks);
