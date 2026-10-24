@@ -56,6 +56,12 @@ export default defineAgent({
     title: "A first reminder, friendly, English",
     lines: ["Hi {{customer_name}}, hope you're well.", "A gentle reminder that {{invoice_list}} for {{amount}} was due on {{due_date}}.", "You can pay via {{pay_link_or_details}}. Could you share the date you'll pay?", "Thanks, {{business_name}}"],
   },
+  highlights: [
+    "You see every message before anything goes out: a free dry run comes first.",
+    "Nothing is sent outside the hours you choose.",
+    "A paid invoice stops its reminders at once.",
+    "Customers can opt out with one tap, and are never contacted again.",
+  ],
   help: {
     faq: [
       { q: "Will it send anything before I say so?", a: "No. Setup ends with a dry run that shows every message it would send. Nothing goes out until you switch it on." },

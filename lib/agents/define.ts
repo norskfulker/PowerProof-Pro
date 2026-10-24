@@ -79,6 +79,8 @@ export const manifestSchema = z.object({
   guardrails: z.object({ forbiddenPhrases: z.array(z.string()), maxMessagesPerContactPerDays: z.object({ messages: z.number().int().positive(), days: z.number().int().positive() }), /** Hours (India time) when messages may go out on their own, e.g. "09:00-20:00" */ sendWindow: z.string().regex(/^\d{2}:\d{2}-\d{2}:\d{2}$/), dailySendCap: z.number().int().positive() }),
   howItWorks: z.array(z.object({ step: z.string(), title: z.string(), body: z.string() })),
   sample: z.object({ title: z.string(), lines: z.array(z.string()) }),
+  /** Promises shown on the agent's public page ("Paid invoices stop reminders at once") */
+  highlights: z.array(z.string()).default([]),
   help: z.object({ faq: z.array(z.object({ q: z.string(), a: z.string() })) }),
 });
 
