@@ -17,7 +17,7 @@ export type AgentsSb = SupabaseClient<AgentsDatabase>;
 let admin: AgentsSb | null = null;
 export function agentsAdmin(): AgentsSb {
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!key) throw new Error("SUPABASE_SERVICE_ROLE_KEY is not set");
+  if (!key) throw new NotConfiguredError("SUPABASE_SERVICE_ROLE_KEY is not set");
   admin ??= createClient<AgentsDatabase>(SUPABASE_URL, key, { auth: { persistSession: false, autoRefreshToken: false } });
   return admin;
 }
@@ -39,6 +39,9 @@ export async function agentsAsUser(): Promise<AgentsSb> {
 }
 
 export class DbError extends Error {}
+
+/** A server setting agents need is missing on this deployment (routes answer 503 and say so) */
+export class NotConfiguredError extends Error {}
 
 export function must<T>(r: { data: T; error: { message: string } | null }, what: string): NonNullable<T> {
   if (r.error) throw new DbError(`${what}: ${r.error.message}`);

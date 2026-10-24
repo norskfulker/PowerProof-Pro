@@ -1,7 +1,7 @@
 import "server-only";
 import { NextResponse } from "next/server";
 import { currentAdmin } from "@/lib/server/admin-auth";
-import { agentsAdmin, agentsAsUser } from "./db";
+import { agentsAdmin, agentsAsUser, NotConfiguredError } from "./db";
 
 /**
  * Who may do what, checked on the server against the database before any service-role write:
@@ -54,5 +54,6 @@ export const ok = (body: Record<string, unknown> = {}) => NextResponse.json({ ok
 export function fail(e: unknown, where: string) {
   if (e instanceof AgentError) return NextResponse.json({ ok: false, message: e.message }, { status: e.status });
   console.error(`[agents/${where}]`, e instanceof Error ? e.message : e);
+  if (e instanceof NotConfiguredError) return NextResponse.json({ ok: false, message: "Agents aren't set up on this site yet: the server key is missing." }, { status: 503 });
   return NextResponse.json({ ok: false, message: "Something went wrong. Try again in a minute." }, { status: 500 });
 }
