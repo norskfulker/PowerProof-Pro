@@ -20,8 +20,8 @@ describe("nav config", () => {
     }
   });
   it("keeps the nested groups in business-flow order: Dashboard, Analytics, Marketplace, Your products, Store Data, then My Store", () => {
-    expect(CREATOR_NAV.map((g) => g.label)).toEqual(["Dashboard", "Analytics", "Marketplace", "Agents", "Your products", "Store Data", "My Store", "Tools", "Settings"]);
-    expect(ADMIN_NAV.map((g) => g.label)).toEqual(["Overview", "Creators", "Stores", "Products", "Blog", "Agents", "Orders", "Money", "Moderation", "System"]);
+    expect(CREATOR_NAV.map((g) => g.label)).toEqual(["Dashboard", "Analytics", "Marketplace", "Your products", "Store Data", "My Store", "Tools", "Settings"]);
+    expect(ADMIN_NAV.map((g) => g.label)).toEqual(["Overview", "Creators", "Stores", "Products", "Blog", "Orders", "Money", "Moderation", "System"]);
   });
   it("puts Home, Products, Orders and Settings in the tab bar", () => {
     expect(MOBILE_TABS.map((t) => t.label)).toEqual(["Home", "Products", "Orders", "Settings"]);

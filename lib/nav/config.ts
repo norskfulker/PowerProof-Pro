@@ -1,5 +1,5 @@
 import {
-  AlertOctagon, Banknote, BarChart3, Bot, Box, Brush, FileText, Flag, FolderOpen, Globe, Images, Inbox, LayoutDashboard, MessagesSquare,
+  AlertOctagon, Banknote, BarChart3, Box, Brush, FileText, Flag, FolderOpen, Globe, Images, Inbox, LayoutDashboard, MessagesSquare,
   Newspaper, Package, Plug, Receipt, ScrollText, Search, Settings, Shield, ShoppingBag, Sparkles, Store, Tag, Ticket, Users, Wallet, Wrench, type LucideIcon,
 } from "lucide-react";
 import type { Need } from "../team";
@@ -89,8 +89,6 @@ export const CREATOR_NAV: NavNode[] = [
   { id: "analytics", label: "Analytics", href: "/analytics", icon: BarChart3, need: "analytics" },
   // One page: browse every live deal, and list and manage this store's own deals in place
   { id: "marketplace", label: "Marketplace", href: "/marketplace", icon: ShoppingBag },
-  // PowerProof Agents: the store's agents, their send queue and connections (owner and admins)
-  { id: "agents", label: "Agents", href: "/agents/my", icon: Bot, match: ["/agents/my/"], need: "team" },
   // The business flow, in order: Your products (Collections, Products), Store Data (Orders, Customers, Payouts),
   // then the Store's look and the rest. Store settings live under Settings.
   {
@@ -140,7 +138,6 @@ export const ADMIN_NAV: NavNode[] = [
   { id: "a-stores", label: "Stores", href: "/admin/stores", icon: Store },
   { id: "a-products", label: "Products", href: "/admin/products", icon: Package },
   { id: "a-blog", label: "Blog", href: "/admin/blog", icon: Newspaper },
-  { id: "a-agents", label: "Agents", href: "/admin/agents", icon: Bot, match: ["/admin/agents/"] },
   {
     id: "a-orders", label: "Orders", icon: Receipt, children: [
       { id: "a-orders-all", label: "All", href: "/admin/orders" },

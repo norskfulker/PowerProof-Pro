@@ -37,7 +37,7 @@ const worker = {
   async scheduled(_event: unknown, env: Env, ctx: Ctx) {
     if (!env.CRON_SECRET) return console.warn("[cron] CRON_SECRET isn't set, so custom domains aren't re-checked and checkout reminders aren't sent");
     // Each job is the app's own route, run with the same code and settings as everything else
-    for (const job of ["domains", "abandoned", "agents"]) {
+    for (const job of ["domains", "abandoned"]) {
       const req = new Request(`https://powerproof.internal/api/cron/${job}`, { headers: { authorization: `Bearer ${env.CRON_SECRET}` } });
       ctx.waitUntil(
         Promise.resolve(next.fetch(req, env, ctx)).then(async (res) => {
