@@ -80,7 +80,7 @@ What was decided while building the agent marketplace and Payment Chaser, and wh
 - The live migration history already used 049–058 (not in the repo), so the agents' migrations are **059–061**. Applied to the live PowerProofPro project with the founder's approval on 24 Oct 2026.
 - `supabase/tests/agents_rls.sql` ran on live inside one transaction ended by a deliberate error, so nothing was kept (checked afterwards: no test users, stores or rows left). Every check passed: store A can't read store B; a Limited team member sees nothing; the sealed secret column is unreadable from the browser; browser writes and credit functions are refused; credits are idempotent, can't overdraw and the ledger is append-only; one outbox row per key, charged once and refunded on failure; one claimed job per instance at a time; signed-out visitors can read the catalog and file demand requests only.
 - **Accepted security advisor findings** (intended): `agent_llm_cache` has RLS on and no policy (server-only, like `download_tokens`); `agent_request_demand` is callable signed out and signed in (the "I need this" form; it validates inside). No other agent function is callable from the browser.
-- **Performance advisor:** 30 foreign keys on the new tables had no covering index. `062_agents_fk_indexes.sql` adds them; written, not yet applied. "Unused index" notes on the new tables are expected until there's data.
+- **Performance advisor:** 30 foreign keys on the new tables had no covering index. `062_agents_fk_indexes.sql` adds them; applied to live on 24 Oct 2026, after which the advisor lists no agent or chaser table under unindexed foreign keys. "Unused index" notes on the new tables are expected until there's data.
 
 ## Not built yet (and why)
 
