@@ -32,3 +32,13 @@ Names only, never values. Secrets go in Cloudflare as **Secrets** (`npx wrangler
 - **On another machine:** `node scripts/env-sync.mjs pull` (pulls, decrypts into `.env.local`, keeps the old one as `.env.local.bak`, lists which names changed). Restart `npm run dev`.
 - **Check:** `node scripts/env-sync.mjs status`.
 - **One-time per machine:** copy the key file `%USERPROFILE%\.powerproof\env.key` (Windows) or `~/.powerproof/env.key` (Mac/Linux) from a machine that has it, via USB or a password manager, never git or chat. Without it the encrypted file can't be opened. If the key ever leaks, make a new one (delete the file, push again) and rotate the secrets.
+
+### …and on Cloudflare, automatically
+
+`.github/workflows/cloudflare-secrets.yml` runs whenever `secrets/env.local.enc` changes on `master` (so after every `env-sync push`). It decrypts the copy, takes the server secrets only (not `NEXT_PUBLIC_*`, not names already in `wrangler.jsonc` `vars`, not empty values) and sets them on the `powerproof-pro` Worker with `wrangler secret bulk`. No change to the file, no run, and Cloudflare stays as it is. It never deletes a secret: remove one by hand in the dashboard. It can also be run by hand from GitHub → Actions → Cloudflare secrets → Run workflow.
+
+One-time setup, GitHub → Settings → Secrets and variables → Actions → New repository secret:
+- `POWERPROOF_ENV_KEY`: the contents of your `env.key` file.
+- `CLOUDFLARE_SECRETS_TOKEN`: a Cloudflare **user** API token (My Profile → API Tokens) with **Workers Scripts: Edit** on your account.
+
+Public values (`NEXT_PUBLIC_*`, `MAIL_FROM`, …) still live in `wrangler.jsonc` `vars`; change them there.

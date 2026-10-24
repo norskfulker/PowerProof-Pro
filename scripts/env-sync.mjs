@@ -135,8 +135,61 @@ function status() {
   console.log('Run "push" to share this machine\'s version, or "pull" to take the synced one.');
 }
 
+/** wrangler.jsonc as plain JSON (same rules as lib/wrangler-vars.ts: strings kept, comments and trailing commas dropped) */
+function stripJsonc(text) {
+  let out = "";
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (c === '"') {
+      let j = i + 1;
+      while (j < text.length && text[j] !== '"') j += text[j] === "\\" ? 2 : 1;
+      out += text.slice(i, j + 1);
+      i = j;
+    } else if (c === "/" && text[i + 1] === "/") {
+      while (i < text.length && text[i] !== "\n") i++;
+      out += "\n";
+    } else if (c === "/" && text[i + 1] === "*") {
+      i = text.indexOf("*/", i + 2);
+      if (i < 0) break;
+      i++;
+    } else out += c;
+  }
+  return out.replace(/,(\s*[}\]])/g, "$1");
+}
+
+/** Values from a .env text (unquoted, comments and blank values dropped) */
+function parseEnv(text) {
+  const out = {};
+  for (const line of text.split(/\r?\n/)) {
+    const m = line.match(/^\s*(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)$/);
+    if (!m) continue;
+    const value = m[2].trim().replace(/^(["'])(.*)\1$/, "$2");
+    if (value) out[m[1]] = value;
+  }
+  return out;
+}
+
+/**
+ * For CI: the server secrets from the synced copy, as the JSON `wrangler secret bulk` reads.
+ * Skips NEXT_PUBLIC_* (built in at build time from wrangler.jsonc) and names already in
+ * wrangler.jsonc "vars" (a secret can't share a name with a var). Prints names only.
+ */
+function cloudflareJson(outFile) {
+  if (!outFile) fail("Use: node scripts/env-sync.mjs cloudflare <output.json>");
+  if (!existsSync(SEALED)) fail("There's no synced copy (secrets/env.local.enc) to read.");
+  const { text } = open(readFileSync(SEALED, "utf8"), loadKey({ create: false }));
+  const vars = Object.keys(JSON.parse(stripJsonc(readFileSync(join(ROOT, "wrangler.jsonc"), "utf8"))).vars ?? {});
+  const all = parseEnv(text);
+  const secrets = Object.fromEntries(Object.entries(all).filter(([k]) => !k.startsWith("NEXT_PUBLIC_") && !vars.includes(k)));
+  writeFileSync(outFile, JSON.stringify(secrets), { mode: 0o600 });
+  const skipped = Object.keys(all).filter((k) => !(k in secrets));
+  console.log(`Secrets for Cloudflare: ${Object.keys(secrets).join(", ") || "none"}`);
+  if (skipped.length) console.log(`Left to wrangler.jsonc / the build: ${skipped.join(", ")}`);
+}
+
 const cmd = process.argv[2];
 if (cmd === "push") push();
 else if (cmd === "pull") pull();
 else if (cmd === "status") status();
+else if (cmd === "cloudflare") cloudflareJson(process.argv[3]);
 else fail("Use: node scripts/env-sync.mjs push | pull | status");
