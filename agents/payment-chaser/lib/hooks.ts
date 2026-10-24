@@ -2,6 +2,7 @@ import { formatMoney } from "@/lib/money";
 import { istDay, istInstant, istMonthStart } from "@/lib/agents/time";
 import type { AgentHooks, StoreDb } from "@/lib/server/agents/runtime/types";
 import { ingest } from "./ingest";
+import { testMessage } from "./test-message";
 import { overdue, paidAfterReminder, sentBetween, type StatInvoice, type StatReminder } from "./stats";
 
 type InvoiceRow = { id: string; status: string; due_date: string; amount_total_minor: number; amount_paid_minor: number; paid_at: string | null };
@@ -19,6 +20,7 @@ export async function loadStats(db: StoreDb, since: Date) {
 
 export const chaserHooks: AgentHooks = {
   ingest,
+  testMessage,
 
   async metrics(db, { now }) {
     const monthStart = istInstant(istMonthStart(now));

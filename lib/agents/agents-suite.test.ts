@@ -6,3 +6,4 @@ import "@/agents/payment-chaser/tests/parse.spec";
 import "@/agents/payment-chaser/tests/run.spec";
 import "@/agents/_test-digest/tests/digest.spec";
 import "@/agents/payment-chaser/tests/import.spec";
+import "@/agents/payment-chaser/tests/test-message.spec";

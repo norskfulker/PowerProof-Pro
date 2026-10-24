@@ -137,6 +137,8 @@ export interface AgentHooks {
   ingest?(db: StoreDb, rows: string[][], o: { source: "csv" | "xlsx" | "sheet" | "manual"; fileName: string; mapping?: Record<string, number>; isFull: boolean; now: Date; userId?: string | null; newId: () => string }): Promise<{ ok: boolean; message?: string; summary?: unknown }>;
   /** The owner finished or skipped an action item (e.g. a WhatsApp message sent from the queue) */
   onAction?(db: StoreDb, item: { kind: string; refType: string | null; refId: string | null; payload: Record<string, unknown> }, outcome: "done" | "skipped", now: Date): Promise<void>;
+  /** A real message from the store's own data, for "Send me a test email" ({ missing }: nothing to build one from yet) */
+  testMessage?(db: StoreDb, o: { settings: Record<string, unknown>; businessName: string; now: Date }): Promise<{ subject: string; body: string; about: string } | { missing: string }>;
 }
 
 export interface AgentCode extends AgentHooks {

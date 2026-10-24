@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { AlertTriangle, ArrowRight, MessageCircle, Pause, Play, RefreshCw } from "lucide-react";
+import { AlertTriangle, ArrowRight, Mail, MessageCircle, Pause, Play, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { AGENT_UI } from "@/agents/ui";
 import { getManifest } from "@/agents/index";
@@ -97,11 +97,11 @@ export function AgentDetail({ instanceId }: { instanceId: string }) {
 
 function RunControls({ instance }: { instance: AgentInstance }) {
   const [busy, setBusy] = useState(false);
-  const act = async (op: string, done: string) => {
+  const act = async (op: string, done: string | ((r: Record<string, unknown>) => string)) => {
     setBusy(true);
     try {
-      await agentOp(instance.id, { op });
-      toast.success(done);
+      const r = await agentOp(instance.id, { op });
+      toast.success(typeof done === "string" ? done : done(r));
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "That didn't work.");
     } finally {
@@ -109,22 +109,34 @@ function RunControls({ instance }: { instance: AgentInstance }) {
     }
   };
   const running = instance.status === "trial" || instance.status === "active";
+  // The owner's own copy of a real reminder: free, and never sent to a customer
+  const testEmail = (
+    <Button size="sm" variant="secondary" disabled={busy} onClick={() => act("test_email", (r) => `Test email sent to ${String(r.to)}. Check your inbox.`)}>
+      <Mail aria-hidden /> Send me a test email
+    </Button>
+  );
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex flex-wrap items-center gap-2">
       <AgentStatus status={instance.status} />
       {running ? (
         <>
           <Button size="sm" variant="secondary" disabled={busy} onClick={() => act("run", "Done. See Activity for what happened.")}>
             <RefreshCw aria-hidden /> Run now
           </Button>
+          {testEmail}
           <Button size="sm" variant="secondary" disabled={busy} onClick={() => act("pause", "Paused. Nothing goes out until you resume.")}>
             <Pause aria-hidden /> Pause
           </Button>
         </>
       ) : instance.status === "paused" ? (
-        <Button size="sm" disabled={busy} onClick={() => act("resume", "Back on.")}>
-          <Play aria-hidden /> Resume
-        </Button>
+        <>
+          <Button size="sm" disabled={busy} onClick={() => act("resume", "Back on.")}>
+            <Play aria-hidden /> Resume
+          </Button>
+          {testEmail}
+        </>
+      ) : instance.status === "trial_ended" ? (
+        testEmail
       ) : null}
     </div>
   );

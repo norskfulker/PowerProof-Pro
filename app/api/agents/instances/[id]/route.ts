@@ -5,10 +5,12 @@ import { AgentError, fail, ok, requireInstance } from "@/lib/server/agents/acces
 import { agentsAdmin } from "@/lib/server/agents/db";
 import { storeDb } from "@/lib/server/agents/db";
 import { activate, dryRun, runNow, saveSettings, setPaused } from "@/lib/server/agents/instances";
+import { sendTestEmail } from "@/lib/server/agents/test-email";
 
 /**
  * One agent in one store. GET: its headline numbers. PATCH: settings (checked against the
- * manifest). POST op: dry_run (free preview), activate (consent + go live), pause, resume, run, link.
+ * manifest). POST op: dry_run (free preview), activate (consent + go live), pause, resume, run,
+ * test_email (the owner gets a real reminder at their own address), link.
  */
 export const dynamic = "force-dynamic";
 
@@ -45,6 +47,7 @@ const op = z.discriminatedUnion("op", [
   z.object({ op: z.literal("pause") }),
   z.object({ op: z.literal("resume") }),
   z.object({ op: z.literal("run") }),
+  z.object({ op: z.literal("test_email") }),
   z.object({ op: z.literal("link"), connectorKey: z.string().min(1).max(40), connectionId: z.string().uuid() }),
 ]);
 
@@ -65,6 +68,8 @@ export async function POST(request: Request, { params }: Params) {
         return ok({ status: await setPaused(p.data, false) });
       case "run":
         return ok(await runNow(p.data, storeId));
+      case "test_email":
+        return ok(await sendTestEmail({ instanceId: p.data, storeId, agentId, user }));
       case "link": {
         const sb = agentsAdmin();
         const { data: conn } = await sb.from("agent_connections").select("id, store_id").eq("id", b.data.connectionId).maybeSingle();
