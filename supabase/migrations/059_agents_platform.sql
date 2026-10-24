@@ -1,4 +1,4 @@
--- 049: the agent marketplace platform (PowerProof Agents).
+-- 059: the agent marketplace platform (PowerProof Agents).
 --
 -- Additive only: new agent_* tables, functions and policies; nothing existing is changed.
 -- Tenant = the store. Reads from the browser go through RLS with store_can(store_id, 'agents')

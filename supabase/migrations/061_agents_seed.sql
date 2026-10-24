@@ -1,4 +1,4 @@
--- 051: the first catalog rows. Payment Chaser is live (its code is in agents/payment-chaser);
+-- 061: the first catalog rows. Payment Chaser is live (its code is in agents/payment-chaser);
 -- the rest are "coming soon" cards that collect demand. Prices are config here, never UI strings.
 -- Safe to run again: existing rows are left as Admin last set them.
 

@@ -1,5 +1,5 @@
 /**
- * Types for the agent tables (migrations 049–051). Kept apart from the generated
+ * Types for the agent tables (migrations 059–061). Kept apart from the generated
  * lib/database.types.ts so that file is never edited by hand; regenerate that file as usual and
  * these new tables appear there too. Rows are typed loosely here and narrowed by
  * lib/types/agents.ts where pages use them.

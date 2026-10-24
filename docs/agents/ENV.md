@@ -19,7 +19,7 @@ Names only, never values. Secrets go in Cloudflare as **Secrets** (`npx wrangler
 
 ## Accounts to set up
 
-1. **Supabase:** apply `supabase/migrations/049_agents_platform.sql`, `050_payment_chaser.sql`, `051_agents_seed.sql` (on a branch first), run `supabase/tests/agents_rls.sql` there, run the security advisors, then regenerate `lib/database.types.ts`.
+1. **Supabase:** apply `supabase/migrations/059_agents_platform.sql`, `060_payment_chaser.sql`, `061_agents_seed.sql` (on a branch first), run `supabase/tests/agents_rls.sql` there, run the security advisors, then regenerate `lib/database.types.ts`.
 2. **Google Cloud:** a project with the Google Sheets API and Google Picker API on; OAuth consent screen with the `drive.file` scope (non-sensitive); a Web OAuth client; an API key.
 3. **Anthropic** (optional): an API key.
 4. **Razorpay** (later, for billing): ideally a separate account for agents, its own plans and webhook secret.

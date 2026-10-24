@@ -1,5 +1,5 @@
 -- Agents: store isolation and access checks (done-when #9). Run on a Supabase BRANCH or local stack
--- after migrations 049–051, as the postgres role (SQL editor or psql). Everything happens inside one
+-- after migrations 059–061, as the postgres role (SQL editor or psql). Everything happens inside one
 -- transaction that is rolled back, so it leaves nothing behind. Any failed check raises an error.
 --
 --   psql "$BRANCH_DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/agents_rls.sql

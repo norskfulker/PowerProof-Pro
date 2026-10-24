@@ -1,4 +1,4 @@
--- 050: Payment Chaser (agent #1) data. Additive only; chaser_* tables, keyed by store_id.
+-- 060: Payment Chaser (agent #1) data. Additive only; chaser_* tables, keyed by store_id.
 -- Browser: SELECT for the store's owner and admins (store_can(store, 'agents')). Writes go through
 -- the server routes after they check access. The sender identity is the store's own invoice name
 -- (stores.invoice_name, then stores.name); there is no second "business" table.
