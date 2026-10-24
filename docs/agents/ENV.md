@@ -23,3 +23,12 @@ Names only, never values. Secrets go in Cloudflare as **Secrets** (`npx wrangler
 2. **Google Cloud:** a project with the Google Sheets API and Google Picker API on; OAuth consent screen with the `drive.file` scope (non-sensitive); a Web OAuth client; an API key.
 3. **Anthropic** (optional): an API key.
 4. **Razorpay** (later, for billing): ideally a separate account for agents, its own plans and webhook secret.
+
+## Same .env.local on every machine (encrypted sync)
+
+`.env.local` never goes to git in plain text (the repo is public, and `.gitignore` plus `.githooks/check-env.mjs` stop it). Instead an encrypted copy, `secrets/env.local.enc`, is committed:
+
+- **Changed a key?** `node scripts/env-sync.mjs push` (encrypts, commits that one file, pushes).
+- **On another machine:** `node scripts/env-sync.mjs pull` (pulls, decrypts into `.env.local`, keeps the old one as `.env.local.bak`, lists which names changed). Restart `npm run dev`.
+- **Check:** `node scripts/env-sync.mjs status`.
+- **One-time per machine:** copy the key file `%USERPROFILE%\.powerproof\env.key` (Windows) or `~/.powerproof/env.key` (Mac/Linux) from a machine that has it, via USB or a password manager, never git or chat. Without it the encrypted file can't be opened. If the key ever leaks, make a new one (delete the file, push again) and rotate the secrets.
