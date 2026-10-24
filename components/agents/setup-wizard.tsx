@@ -117,6 +117,13 @@ export function SetupWizard({ instanceId }: { instanceId: string }) {
               <span>{text}</span>
             </label>
           ))}
+          <p className="text-sm text-muted-foreground">
+            Read the{" "}
+            <Link href="/agents/terms" target="_blank" className="underline">
+              agent terms and privacy notes
+            </Link>{" "}
+            (draft).
+          </p>
           <div className="flex gap-2">
             <Button variant="secondary" onClick={() => setStep(2)}>
               Back

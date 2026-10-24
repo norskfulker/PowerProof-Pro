@@ -5,6 +5,8 @@
  */
 export {
   actOn,
+  adminGet,
+  adminOp,
   agentOp,
   chaserExportUrl,
   chaserOp,

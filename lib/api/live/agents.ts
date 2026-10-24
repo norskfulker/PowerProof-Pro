@@ -313,3 +313,15 @@ export async function chaserOp<T = Record<string, unknown>>(body: Record<string,
 export async function chaserExportUrl(): Promise<string> {
   return `/api/agents/chaser?storeId=${encodeURIComponent(await activeStoreId())}`;
 }
+
+/* Admin (PowerProof staff) --------------------------------------------------------------------- */
+
+export async function adminGet<T>(view: string, params: Record<string, string> = {}): Promise<T> {
+  const q = new URLSearchParams({ view, ...params });
+  const res = await fetch(`/api/agents/admin?${q}`, { cache: "no-store" });
+  const j = (await res.json().catch(() => ({}))) as { ok?: boolean; data?: T; message?: string };
+  if (!res.ok || !j.ok) throw new ApiError(j.message ?? "We couldn't load this.");
+  return j.data as T;
+}
+
+export const adminOp = (body: Record<string, unknown>) => post("/api/agents/admin", body);
