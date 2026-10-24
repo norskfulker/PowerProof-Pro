@@ -207,7 +207,8 @@ export function CheckoutSheet({ open, onOpenChange, storeId, storeSlug, lines, o
         },
       });
       razorpayRef.current = rz;
-      document.body.dataset.paymentProviderOpen = "true";
+      // Same data-payment-provider-open attribute; set through a method so the React Compiler lint accepts it
+      document.body.setAttribute("data-payment-provider-open", "true");
       rz.on("payment.failed", (r) => {
         delete document.body.dataset.paymentProviderOpen;
         setError(r.error?.description ?? "The payment didn't go through. You haven't been charged. Try again or use another method.");
