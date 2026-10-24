@@ -1,10 +1,11 @@
 import "server-only";
 import { AGENT_CODE } from "@/agents/server";
-import { esc, mailConfigured } from "@/lib/server/email";
+import { mailConfigured } from "@/lib/server/email";
 import { allow } from "@/lib/server/limit";
 import { AgentError } from "./access";
 import { agentsAdmin, storeDb } from "./db";
 import { sendAgentMail } from "./mail";
+import { reminderEmailHtml } from "./messaging/email-html";
 import { businessName, loadStoreInfo } from "./ports";
 
 /**
@@ -25,7 +26,7 @@ export async function sendTestEmail(o: { instanceId: string; storeId: string; ag
 
   const note = `This is a test, sent only to you. It's ${msg.about}. Customers also get an unsubscribe link at the bottom.`;
   const text = `${note}\n\n— — —\n\n${msg.body}`;
-  const html = `<div style="font-family:Arial,sans-serif;font-size:15px;line-height:1.5;color:#0B100E"><p style="background:#FFF4D6;border-radius:8px;padding:10px 12px;font-size:13px;margin:0 0 20px">${esc(note)}</p>${esc(msg.body).replace(/\n/g, "<br>")}</div>`;
+  const html = reminderEmailHtml({ brand: businessName(store), body: msg.body, notice: note, preheader: `Test: ${msg.subject}` });
   const sent = await sendAgentMail({ displayName: businessName(store), to: o.user.email, subject: `[Test] ${msg.subject}`, text, html, replyTo: store.support_email ?? undefined });
   if (!sent.sent) throw new AgentError(sent.reason === "not_configured" ? "Email isn't set up on this site yet (RESEND_API_KEY and MAIL_FROM)." : `The email service didn't accept it${sent.detail ? `: ${sent.detail}` : "."}`, 502);
   return { to: o.user.email };

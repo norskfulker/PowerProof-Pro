@@ -1,7 +1,7 @@
-import { esc } from "@/lib/server/email";
 import { inWindow, nextWindowOpen } from "@/lib/agents/time";
 import type { InstanceStatus } from "@/lib/agents/define";
 import type { ActionItemInput, Channel, OutboundMessage, SendOutcome } from "../runtime/types";
+import { reminderEmailHtml } from "./email-html";
 
 /**
  * The one path every agent message takes:
@@ -40,7 +40,7 @@ export function validRecipient(channel: Channel, to: string): boolean {
 
 export function emailWithOptOut(body: string, optOutUrl: string, from: string): { text: string; html: string } {
   const text = `${body}\n\n—\n${from}\nDon't want these reminders? Unsubscribe: ${optOutUrl}`;
-  const html = `<div style="font-family:Arial,sans-serif;font-size:15px;line-height:1.5;color:#0B100E">${esc(body).replace(/\n/g, "<br>")}<hr style="border:none;border-top:1px solid #E3E6E4;margin:24px 0 12px"><p style="font-size:12px;color:#5B6661">${esc(from)} · <a href="${esc(optOutUrl)}" style="color:#5B6661">Unsubscribe from these reminders</a></p></div>`;
+  const html = reminderEmailHtml({ brand: from, body, unsubscribeUrl: optOutUrl });
   return { text, html };
 }
 
