@@ -93,7 +93,7 @@ What was decided while building the agent marketplace and Payment Chaser, and wh
 These need a one-line change to an existing file; nothing was changed without a yes:
 
 1. ~~`worker.ts`: add `"agents"` to the cron job list~~ Done 24 Oct 2026 (approved).
-2. `lib/nav/config.ts`: an "Agents" item (owner/admin) in the creator sidebar, and one under Admin. Until then the pages are reachable by address only.
+2. ~~`lib/nav/config.ts`: "Agents" in the creator sidebar (owner/admin) and Admin~~ Done 24 Oct 2026 (approved), with `lib/nav/nav.test.ts` updated to match.
 3. `.env.example`: the new names (see `docs/agents/ENV.md`).
 
 ## Questions for the founder
