@@ -48,7 +48,7 @@ export const aiStoreDraftSchema = z.object({
   /** One of PALETTES, by name */
   palette: z.string().transform((p) => (PALETTES.some((x) => x.name === p) ? p : PALETTES[0].name)),
   sells: z.enum(["digital", "physical"]).catch("digital"),
-  about: z.object({ story: text(1200).default(""), location: text(80).default("") }).default({}),
+  about: z.object({ story: text(1200).default(""), location: text(80).default("") }).default({ story: "", location: "" }),
   faq: z.array(z.object({ q: text(200).pipe(z.string().min(3)), a: text(600).pipe(z.string().min(3)) })).max(8).default([]),
   collections: z.array(text(80).pipe(z.string().min(2))).max(5).default([]),
   products: z.array(aiStoreProductSchema).max(AI_STORE_MAX_PRODUCTS).default([]),

@@ -9,7 +9,9 @@ export const productSchema = z
     fulfilment: z.enum(["digital", "physical"]),
     kind: z.enum(["ebook", "template", "preset", "notion", "course", "audio", "other"]),
     price: money
-      .refine((m) => m.amount >= (m.currency === "INR" ? 1000 : 100), (m) => ({ message: m.currency === "INR" ? "₹10.00 is the minimum price." : "The minimum price is 1.00." }))
+      .superRefine((m, ctx) => {
+        if (m.amount < (m.currency === "INR" ? 1000 : 100)) ctx.addIssue({ code: "custom", message: m.currency === "INR" ? "₹10.00 is the minimum price." : "The minimum price is 1.00." });
+      })
       .refine((m) => m.amount <= (m.currency === "INR" ? 50000000 : 100000000), "That price is too high. Talk to us for big tickets."),
     compareAt: money.optional(),
     images: z

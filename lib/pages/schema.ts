@@ -261,7 +261,7 @@ const nodeSchema: z.ZodType<PageNode> = z.lazy(() =>
     .object({
       id: z.string().min(1),
       type: z.enum(BLOCK_TYPES as [BlockType, ...BlockType[]]),
-      props: z.record(z.unknown()),
+      props: z.record(z.string(), z.unknown()),
       style: styleSchema,
       layout: layoutSchema,
       visibility: visibilitySchema,
