@@ -43,16 +43,19 @@ export interface Checklist {
   coachSeen: string[];
 }
 
-/** In the order of the business flow: Collections, Products, Sales, Orders, Payouts, then the rest. */
+/**
+ * In the order of the store flow: workspace and store (onboarding), then the product (physical or
+ * digital), building the store, showing the product, getting paid and tracking orders. Then the rest.
+ */
 const DEF: Omit<ChecklistStep, "state" | "href" | "detail" | "n">[] = [
   { id: "verify_email", title: "Verify your email", why: "So buyers' receipts and your payouts reach you.", optional: false, coach: "verify-code", coachText: "Type the 6-digit code from the email we sent." },
-  { id: "collections", title: "Group products into collections", why: "Optional. Collections just help organize products; you can sell without one.", optional: true, coach: "new-collection", coachText: "Name a collection and pick a colour or image for its tile." },
-  { id: "first_product", title: "Add your first product", why: "The thing you sell.", optional: false, coach: "new-product", coachText: "Upload the file, then name it and set a price." },
-  { id: "publish", title: "Publish your store", why: "Make it visible to buyers.", optional: false, coach: "publish-store", coachText: "Publish to put your store live." },
+  { id: "first_product", title: "Add your first product", why: "Physical or digital: the thing you sell.", optional: false, coach: "new-product", coachText: "Pick physical or digital, then name it and set a price." },
+  { id: "customize", title: "Build your store", why: "With AI, the editor, or by copying a look you like.", optional: false, coach: "design-hero", coachText: "Pick your brand colour and fonts, then build a page." },
+  { id: "publish", title: "Publish and show your product", why: "Make the store and its product visible to buyers.", optional: false, coach: "publish-store", coachText: "Publish to put your store live." },
   { id: "share", title: "Share your link", why: "Buyers can't find a store nobody links to.", optional: false, coach: "share-link", coachText: "Copy your store link and post it where your audience is." },
-  { id: "first_sale", title: "Get your first sale", why: "It'll show up under Sales › Orders the moment it happens.", optional: false, coach: "share-link", coachText: "Share your link again, or run a launch offer." },
-  { id: "payout", title: "Add a payout method", why: "Where your money goes.", optional: false, coach: "add-payout-method", coachText: "Add the bank account (or UPI ID) to send your earnings to." },
-  { id: "customize", title: "Customize your store", why: "Your colour, fonts and pages.", optional: false, coach: "design-hero", coachText: "Pick your brand colour and fonts, then build a page." },
+  { id: "payout", title: "Set up how you get paid", why: "Where your money goes after each sale.", optional: false, coach: "add-payout-method", coachText: "Add the bank account (or UPI ID) to send your earnings to." },
+  { id: "first_sale", title: "Get paid and track orders", why: "Each paid order shows up under Store Data › Orders the moment it happens.", optional: false, coach: "share-link", coachText: "Share your link again, or run a launch offer." },
+  { id: "collections", title: "Group products into collections", why: "Optional. Collections just help organize products; you can sell without one.", optional: true, coach: "new-collection", coachText: "Name a collection and pick a colour or image for its tile." },
   { id: "business", title: "Set your invoice name", why: "Buyers see it at checkout and on their receipt and invoice. GST details are optional.", optional: true, coach: "company-form", coachText: "Add the name buyers should see. Add GST details only if you're registered." },
   { id: "analytics", title: "Connect analytics", why: "See where buyers come from. Optional.", optional: true, coach: "integration-google-analytics", coachText: "Paste your Google Analytics ID to start tracking." },
 ];
@@ -114,10 +117,10 @@ function build(flags: ProgressFlags, f: Facts): Checklist {
     business: "/settings/company",
     payout: "/sales/payouts/methods",
     first_product: "/catalog/products/new",
-    customize: "/store/current/design/pages/home/edit",
+    customize: "/store/current/design",
     publish: "/store/current/design/pages/home/edit",
     share: "/dashboard",
-    first_sale: "/dashboard",
+    first_sale: "/sales/orders",
     analytics: "/tools/integrations",
   };
   const productsFull = f.productsFull;

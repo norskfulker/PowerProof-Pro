@@ -44,7 +44,7 @@ export function ConnectionsPage() {
 
   return (
     <div className="flex flex-col gap-5">
-      <PageHeader title="Connections" back={{ href: "/agents/my", label: "Agents" }} />
+      <PageHeader title="Connections" back={{ href: "/marketplace?tab=subscribed", label: "Subscribed agents" }} />
       <p className="max-w-2xl text-muted-foreground">Connect something once and every agent that needs it can use it. Passwords and keys stay on PowerProof&apos;s server and are never shown again.</p>
       {loading || !data ? (
         <Skeleton className="h-40 rounded-card" />

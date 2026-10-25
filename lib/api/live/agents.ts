@@ -200,6 +200,14 @@ export async function getCredits(): Promise<{ balance: number; entries: CreditEn
   return { balance: Number((b.data as Row | null)?.balance ?? 0), entries: rows<Row>(e, "credits").map((r) => ({ delta: Number(r.delta), kind: String(r.kind), reason: (r.reason as string | null) ?? null, createdAt: String(r.created_at) })) };
 }
 
+/** Buying credits: an order to pay in Razorpay's window, then the signature it hands back */
+export async function startCreditPurchase(credits: number): Promise<{ keyId: string; orderId: string; amountMinor: number; currency: string }> {
+  return post("/api/agents/credits", { op: "start", storeId: await activeStoreId(), credits });
+}
+export async function confirmCreditPurchase(r: { orderId: string; paymentId: string; signature: string }): Promise<{ credits: number }> {
+  return post("/api/agents/credits", { op: "confirm", storeId: await activeStoreId(), ...r });
+}
+
 export const requestAgent = (input: { agentId: string; email: string; mobile?: string; note?: string; storeId?: string }) => post("/api/agents/demand", input);
 export const reportProblem = (input: { storeId: string; instanceId?: string; kind: "wrong_message" | "help" | "other"; message: string; context?: Record<string, unknown> }) => post("/api/agents/support", input);
 export const confirmOptOut = (token: string) => post("/api/agents/optout", { token });

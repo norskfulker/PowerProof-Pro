@@ -17,7 +17,7 @@ const AREA_HOME: Record<TeamArea, string> = {
   marketing: "/store/current/offers/coupons",
   analytics: "/dashboard",
   business: "/settings/company",
-  agents: "/agents/my",
+  agents: "/marketplace?tab=subscribed",
   marketplace: "/marketplace",
 };
 

@@ -78,7 +78,7 @@ export default function DraftPreviewPage({ params }: { params: Promise<{ pageId:
         {syncing ? <RefreshCw className="size-3.5 animate-spin text-muted-foreground" aria-hidden /> : <Eye className="size-3.5 text-primary" aria-hidden />}
         <span className="whitespace-nowrap">Preview of your draft{data.storeLive ? "" : " · not live yet"}</span>
         <span className="text-muted-foreground max-sm:hidden">· updates as you edit</span>
-        <Button type="button" variant="ghost" size="icon-sm" className="rounded-full" onClick={() => window.close()} aria-label="Close preview">
+        <Button type="button" variant="ghost" size="icon-sm" onClick={() => window.close()} aria-label="Close preview">
           <X />
         </Button>
       </div>

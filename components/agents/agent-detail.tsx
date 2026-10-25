@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { AlertTriangle, ArrowRight, Mail, MessageCircle, Pause, Play, RefreshCw } from "lucide-react";
+import { AlertTriangle, ArrowRight, Mail, MessageCircle, Pause, Play, Plus, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { AGENT_UI } from "@/agents/ui";
 import { getManifest } from "@/agents/index";
@@ -15,12 +15,14 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { useApi } from "@/hooks/use-api";
+import { useCurrentStore } from "@/hooks/use-current-store";
 import { agentOp, currentStoreId, getConnections, getCredits, getInstance, getMetrics, getRuns, reportProblem, saveAgentSettings, type AgentInstance, type AgentRun } from "@/lib/api/agents";
-import type { AgentManifest } from "@/lib/agents/define";
+import { CREDIT_PRICE, type AgentManifest } from "@/lib/agents/define";
 import { formatDate, timeAgo } from "@/lib/format";
 import { formatMoney } from "@/lib/money";
 import { cn } from "@/lib/utils";
 import { AgentStatus, ExplainedNumber, PAUSED_WHY, supportWhatsApp } from "./bits";
+import { BuyCredits, CREDIT_RULE } from "./buy-credits";
 import { SettingsFields } from "./settings-form";
 
 type Tab = "overview" | "activity" | "settings" | "connections" | "usage" | "help";
@@ -57,7 +59,7 @@ export function AgentDetail({ instanceId }: { instanceId: string }) {
   const ui = AGENT_UI[instance.agentId] ?? {};
   return (
     <div className="flex flex-col gap-5">
-      <PageHeader title={m.name} back={{ href: "/agents/my", label: "Agents" }} actions={<RunControls instance={instance} />} />
+      <PageHeader title={m.name} back={{ href: "/marketplace?tab=subscribed", label: "Subscribed agents" }} actions={<RunControls instance={instance} />} />
       <StatusBanner instance={instance} manifest={m} />
       <nav className="-mx-4 flex gap-1 overflow-x-auto border-b px-4" aria-label={`${m.name} sections`}>
         {TABS.map((t) => (
@@ -89,7 +91,7 @@ export function AgentDetail({ instanceId }: { instanceId: string }) {
       {tab === "activity" && <Activity instanceId={instance.id} />}
       {tab === "settings" && <SettingsTab instance={instance} manifest={m} />}
       {tab === "connections" && <ConnectionsTab instance={instance} />}
-      {tab === "usage" && <UsageTab manifest={m} />}
+      {tab === "usage" && <UsageTab />}
       {tab === "help" && <HelpTab instance={instance} manifest={m} />}
     </div>
   );
@@ -163,7 +165,7 @@ function StatusBanner({ instance, manifest }: { instance: AgentInstance; manifes
       <div className="flex items-start gap-3 rounded-card border border-warning/40 bg-warning-soft/40 p-4 text-sm">
         <AlertTriangle className="mt-0.5 size-5 shrink-0 text-warning-ink" aria-hidden />
         <p>
-          <span className="font-semibold">The {manifest.trial.credits} free credits are used up, so {manifest.name} has paused.</span> Everything it found and sent is kept. Paid plans open soon; see Usage &amp; billing.
+          <span className="font-semibold">The {manifest.trial.credits} free credits are used up, so {manifest.name} has paused.</span> Everything it found and sent is kept. Buy credits in Usage &amp; billing to carry on.
         </p>
       </div>
     );
@@ -270,23 +272,24 @@ function ConnectionsTab({ instance }: { instance: AgentInstance }) {
   );
 }
 
-function UsageTab({ manifest }: { manifest: AgentManifest }) {
+function UsageTab() {
   const { data, loading, error, reload } = useApi(getCredits, [], { live: true });
-  const plan = manifest.plans[0];
+  const { data: store } = useCurrentStore();
+  const [buying, setBuying] = useState(false);
   if (error) return <ErrorState message={error} onRetry={reload} />;
   return (
     <div className="flex max-w-2xl flex-col gap-5">
-      <ExplainedNumber label="Credits left" value={loading || !data ? "…" : data.balance.toLocaleString("en-IN")} loading={loading} explain="Credits are shared by all your agents. One credit pays for one action, like one message sent or prepared. Previews are free. At zero, agents pause: nothing is charged without you." emphasis />
-      {plan && (
-        <div className="rounded-card border bg-surface p-4 text-sm">
-          <p className="font-semibold">{manifest.name} monthly plan</p>
-          <p className="mt-1 text-muted-foreground">
-            {plan.launchPriceMinor !== undefined && plan.launchPriceMinor < plan.priceMinor ? `${formatMoney({ amount: plan.launchPriceMinor, currency: "INR" })} for the first month, then ` : ""}
-            {formatMoney({ amount: plan.priceMinor, currency: "INR" })} a month, with {plan.includedCredits} credits included.
-          </p>
-          <p className="mt-2 font-semibold text-accent-ink">Coming soon: payments for agents open shortly.</p>
-        </div>
-      )}
+      <ExplainedNumber label="Credits left" value={loading || !data ? "…" : data.balance.toLocaleString("en-IN")} loading={loading} explain={`Credits are shared by all your agents. ${CREDIT_RULE} Previews are free. At zero, agents pause: nothing is charged without you.`} emphasis />
+      <div className="flex flex-col gap-3 rounded-card border bg-surface p-4 text-sm sm:flex-row sm:items-center sm:justify-between">
+        <span>
+          <span className="block font-semibold">Pay as you go</span>
+          <span className="mt-1 block text-muted-foreground">Buy any number of credits at {formatMoney({ amount: CREDIT_PRICE.perCreditMinor, currency: CREDIT_PRICE.currency })} each. Failed tasks never use one.</span>
+        </span>
+        <Button className="shrink-0" onClick={() => setBuying(true)}>
+          <Plus aria-hidden /> Buy credits
+        </Button>
+      </div>
+      <BuyCredits open={buying} onOpenChange={setBuying} workspaceName={store?.workspaceName} onBought={reload} />
       <div>
         <h3 className="mb-2 font-semibold">Credit history</h3>
         {data?.entries.length ? (

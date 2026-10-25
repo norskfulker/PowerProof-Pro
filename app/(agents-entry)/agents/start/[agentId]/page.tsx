@@ -10,7 +10,7 @@ type Params = { params: Promise<{ agentId: string }> };
 
 /**
  * "Try free" lands here. Signed out: sign up first, then come back (signup carries ?next=).
- * No store yet: create one here (the app's own store step), then go straight to this agent's setup.
+ * No store yet: create one here (the app's own store step), then launch the agent inside the app.
  */
 export default async function StartAgentPage({ params }: Params) {
   const { agentId } = await params;
@@ -19,5 +19,7 @@ export default async function StartAgentPage({ params }: Params) {
   const { data: auth } = await sb.auth.getUser();
   if (!auth.user) redirect(`/signup?next=${encodeURIComponent(`/agents/start/${agentId}`)}`);
   const { data: stores } = await sb.rpc("my_stores");
+  // With a store, launching happens inside the app (its menu and top bar)
+  if (m && (stores ?? []).length > 0) redirect(`/marketplace/agents/${agentId}/launch`);
   return <StartAgent agentId={agentId} agentName={m?.name ?? null} hasStore={(stores ?? []).length > 0} />;
 }

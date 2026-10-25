@@ -10,6 +10,7 @@ export {
   agentOp,
   chaserExportUrl,
   chaserOp,
+  confirmCreditPurchase,
   confirmOptOut,
   connectionOp,
   currentStoreId,
@@ -31,5 +32,6 @@ export {
   requestAgent,
   saveAgentSettings,
   startAgent,
+  startCreditPurchase,
 } from "./live/agents";
 export type * from "../types/agents";

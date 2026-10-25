@@ -12,8 +12,12 @@ import { DemandForm } from "./demand-form";
 import { HowItWorks, SampleOutput } from "./how-it-works";
 import { priceLine } from "./catalog";
 
-/** One agent's public page. Live agents are drawn from their manifest; coming-soon ones collect demand. */
-export function AgentPage({ agentId }: { agentId: string }) {
+/**
+ * One agent's page. Live agents are drawn from their manifest; coming-soon ones collect demand.
+ * `inApp`: inside the app (menu and top bar), launching straight into this workspace.
+ */
+export function AgentPage({ agentId, inApp = false }: { agentId: string; inApp?: boolean }) {
+  const home = inApp ? "/marketplace" : "/agents";
   const { data, loading, error, reload } = useApi(getCatalog, []);
   if (error) return <ErrorState message={error} onRetry={reload} />;
   if (loading || !data)
@@ -31,7 +35,7 @@ export function AgentPage({ agentId }: { agentId: string }) {
         body="It may have been renamed or taken down."
         action={
           <Button asChild variant="secondary">
-            <Link href="/agents">See all agents</Link>
+            <Link href={home}>See all agents</Link>
           </Button>
         }
       />
@@ -39,12 +43,13 @@ export function AgentPage({ agentId }: { agentId: string }) {
 
   const m = a.manifest;
   const price = priceLine(a);
-  const start = `/agents/start/${a.id}`;
+  const start = inApp ? `/marketplace/agents/${a.id}/launch` : `/agents/start/${a.id}`;
+  const cta = inApp ? "Launch agent" : "Try free";
   return (
     <div className="flex flex-col gap-12">
       <header className="flex flex-col gap-4">
-        <Link href="/agents" className="text-sm text-muted-foreground hover:text-foreground">
-          ← All agents
+        <Link href={home} className="text-sm text-muted-foreground hover:text-foreground">
+          ← {inApp ? "Marketplace" : "All agents"}
         </Link>
         <p className="eyebrow">{a.category}</p>
         <h1 className="text-[2.25rem] sm:text-5xl">{a.name}</h1>
@@ -53,7 +58,7 @@ export function AgentPage({ agentId }: { agentId: string }) {
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
             <Button asChild size="lg">
               <Link href={start}>
-                Try free <ArrowRight aria-hidden />
+                {cta} <ArrowRight aria-hidden />
               </Link>
             </Button>
             <p className="text-sm text-muted-foreground">
@@ -97,7 +102,7 @@ export function AgentPage({ agentId }: { agentId: string }) {
           {a.enabled && (
             <div className="sticky bottom-4 z-10 sm:hidden">
               <Button asChild size="lg" className="w-full shadow-lift">
-                <Link href={start}>Try {a.name} free</Link>
+                <Link href={start}>{inApp ? `Launch ${a.name}` : `Try ${a.name} free`}</Link>
               </Button>
             </div>
           )}

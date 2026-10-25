@@ -93,9 +93,9 @@ export const CREATOR_NAV: NavNode[] = [
   { id: "dashboard", label: "Dashboard", href: "/dashboard", icon: LayoutDashboard, match: ["/getting-started"], bento: true },
   // Sales, buyers, products and visitors in detail
   { id: "analytics", label: "Analytics", href: "/analytics", icon: BarChart3, need: "analytics", bento: true },
-  // PowerProof Agents: the workspace's agents, their send queue and connections
-  { id: "agents", label: "Agents", href: "/agents/my", icon: Bot, match: ["/agents/my/"], need: "agents", bento: true },
-  // One page: browse every live deal, and list and manage this store's own deals in place
+  // PowerProof Agents: the workspace's agents (the Marketplace's "Subscribed agents" tab), their send queue and connections
+  { id: "agents", label: "Agents", href: "/marketplace?tab=subscribed", icon: Bot, match: ["/agents/my"], need: "agents", bento: true },
+  // One page: browse agents and every live deal, and manage this workspace's agents and this store's deals in place
   { id: "marketplace", label: "Marketplace", href: "/marketplace", icon: ShoppingBag, bento: true },
   // The list: Your products, then the Store and its data side by side
   {

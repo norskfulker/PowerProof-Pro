@@ -8,7 +8,7 @@ export default function AgentSetupPage({ params }: { params: Promise<{ instanceI
   const { instanceId } = use(params);
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title="Set up your agent" back={{ href: "/agents/my", label: "Agents" }} />
+      <PageHeader title="Set up your agent" back={{ href: "/marketplace?tab=subscribed", label: "Subscribed agents" }} />
       <SetupWizard instanceId={instanceId} />
     </div>
   );

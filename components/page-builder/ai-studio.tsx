@@ -230,9 +230,9 @@ function Studio({ session, autostart }: { session: EditorSession; autostart?: bo
                 className="w-full resize-none rounded-[14px] border border-input bg-surface px-3.5 py-3 pr-12 text-sm outline-none placeholder:text-muted-foreground focus-visible:border-primary focus-visible:outline-2 focus-visible:outline-primary pointer-coarse:text-base"
               />
               {running ? (
-                <Button type="button" size="icon-sm" variant="secondary" className="absolute right-2 bottom-3 rounded-full" onClick={() => useAiBuild.getState().stop()} aria-label="Stop"><Square /></Button>
+                <Button type="button" size="icon-sm" variant="secondary" className="absolute right-2 bottom-3" onClick={() => useAiBuild.getState().stop()} aria-label="Stop"><Square /></Button>
               ) : (
-                <Button type="button" size="icon-sm" className="absolute right-2 bottom-3 rounded-full" onClick={() => void send()} disabled={text.trim().length < 3 || blocked} aria-label="Send"><ArrowUp /></Button>
+                <Button type="button" size="icon-sm" className="absolute right-2 bottom-3" onClick={() => void send()} disabled={text.trim().length < 3 || blocked} aria-label="Send"><ArrowUp /></Button>
               )}
             </div>
             <div className="flex items-center justify-between gap-2">

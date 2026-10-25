@@ -16,10 +16,10 @@ import { AgentStatus, PAUSED_WHY } from "./bits";
 import { runLine } from "./agent-detail";
 
 /**
- * Agents home, laid out like the app's other pages: the header, alerts, a row of numbers (credits,
+ * Agents home (the Marketplace's "Subscribed agents" tab), laid out like the app's other pages: the header, alerts, a row of numbers (credits,
  * the queue, connections), the agents, then recent activity.
  */
-export function AgentsHome() {
+export function AgentsHome({ embedded = false }: { /** Inside the Marketplace's "Subscribed agents" tab, which has its own header */ embedded?: boolean }) {
   const agents = useApi(getMyAgents, [], { live: true });
   const queue = useApi(() => getActionItems(), [], { live: true });
   const credits = useApi(getCredits, [], { live: true });
@@ -30,16 +30,18 @@ export function AgentsHome() {
 
   return (
     <>
-      <PageHeader
-        title="Agents"
-        actions={
-          <Button asChild variant="secondary">
-            <Link href="/agents">
-              <Sparkles aria-hidden /> Browse agents
-            </Link>
-          </Button>
-        }
-      />
+      {!embedded && (
+        <PageHeader
+          title="Agents"
+          actions={
+            <Button asChild variant="secondary">
+              <Link href="/marketplace">
+                <Sparkles aria-hidden /> Browse agents
+              </Link>
+            </Button>
+          }
+        />
+      )}
       <div className="flex flex-col gap-6">
         {broken.map((c) => (
           <Link key={c.id} href="/agents/my/connections" className="flex items-start gap-3 rounded-card border border-danger/40 bg-danger-soft/40 p-4 text-sm">
@@ -74,7 +76,7 @@ export function AgentsHome() {
             body="Agents do follow-ups for you, every day, on their own. Start with a free trial."
             action={
               <Button asChild>
-                <Link href="/agents">See the agents</Link>
+                <Link href="/marketplace">See the agents</Link>
               </Button>
             }
           />

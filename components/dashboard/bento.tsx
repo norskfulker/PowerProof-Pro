@@ -93,7 +93,7 @@ export function ActionCells({ store }: { store?: Store }) {
         const body = <><a.icon aria-hidden /> {a.label}</>;
         return (
           <li key={a.label}>
-            <Button asChild variant="secondary" size="sm" className="rounded-full">
+            <Button asChild variant="secondary" size="sm">
               {a.guard ? <GuardedLink kind="products" href={href} data-coach={a.coach}>{body}</GuardedLink> : <Link href={href}>{body}</Link>}
             </Button>
           </li>

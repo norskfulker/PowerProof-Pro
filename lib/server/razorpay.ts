@@ -173,3 +173,8 @@ export async function cancelRzSubscription(cfg: RazorpayConfig, subscriptionId: 
 /** The Razorpay plan that bills Pro (created once in the Razorpay dashboard). */
 export const proPlanId = (env: Record<string, string | undefined> = process.env): string | null =>
   env.RAZORPAY_PRO_PLAN_ID?.trim() || null;
+
+/** An order as Razorpay holds it: the amount, whether it's paid, and the notes it was made with */
+export async function fetchGatewayOrder(cfg: RazorpayConfig, orderId: string) {
+  return get<{ id: string; amount: number; amount_paid: number; currency: string; status: string; notes: Record<string, string> | unknown[] }>(cfg, `/orders/${encodeURIComponent(orderId)}`);
+}

@@ -8,11 +8,11 @@ import { EmptyState, ErrorState } from "@/components/pp/empty-state";
 import { MoneyText } from "@/components/pp/money-text";
 import { StatusPill } from "@/components/pp/status-pill";
 import { PageHeader } from "@/components/pp/page-header";
+import { StoreBadge } from "@/components/store-admin/store-badge";
 import { useGettingStarted } from "@/components/getting-started/getting-started-provider";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ActionCells, BalanceCell, TodayCell } from "@/components/dashboard/bento";
 import { LiveFeed } from "@/components/dashboard/live-feed";
-import { GlobalSearch } from "@/components/search/global-search";
 import { useApi } from "@/hooks/use-api";
 import { useCurrentStore } from "@/hooks/use-current-store";
 import { getBalance, getNavCounts, getPlan, getProducts, getSummary } from "@/lib/api";
@@ -40,7 +40,7 @@ function Todo({ href, label, count, tone = "alert" }: { href: string; label: str
 }
 
 /**
- * The dashboard, kept quiet: the search box, a row of shortcuts, today's money, what needs doing
+ * The dashboard, kept quiet: a row of shortcuts, today's money, what needs doing
  * and the latest products. Sales, buyers and visitors in detail are on the Analytics page.
  */
 function DashboardSections({ summary, balance, store, products }: { summary: Summary; balance: BalanceState; store: Store | undefined; products: Product[] | undefined }) {
@@ -128,6 +128,7 @@ export default function DashboardPage() {
 
   return (
     <>
+      <StoreBadge />
       <PageHeader
         title={firstName ? `${greeting()}, ${firstName}` : greeting()}
         actions={
@@ -146,10 +147,6 @@ export default function DashboardPage() {
         }
       />
 
-      {/* The main search box: searches the workspace today, and will take AI tasks later */}
-      <div className="mb-6">
-        <GlobalSearch scope="creator" variant="hero" />
-      </div>
 
       {plan.data?.plan.status === "trial" && plan.data.plan.trialEndsAt && (
         <div className="mb-6 flex flex-col gap-3 rounded-card border border-accent/40 bg-accent-soft px-5 py-4 sm:flex-row sm:items-center">

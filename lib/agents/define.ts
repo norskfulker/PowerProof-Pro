@@ -7,8 +7,14 @@ import { z } from "zod";
  * This file is shared by the browser and the server: it holds data shapes only, never server code.
  */
 
-/** One credit is one request, whatever the agent (founder, Oct 2026: $5 buys 60 requests) */
-export const CREDIT_PACK = { credits: 60, priceMinor: 500, currency: "USD" } as const;
+/**
+ * Credits are bought in any number at one flat price (founder, 25 Oct 2026: $0.08 each). One credit
+ * is one finished piece of work, whatever the agent; a failed one gives its credit back.
+ */
+export const CREDIT_PRICE = { perCreditMinor: 8, currency: "USD", min: 10, max: 100_000 } as const;
+
+/** What `n` credits cost, in cents */
+export const creditsCostMinor = (n: number) => Math.round(n) * CREDIT_PRICE.perCreditMinor;
 
 export const connectorTypes = ["verified_email", "invoice_source", "google_sheets", "sms_provider"] as const;
 export type ConnectorType = (typeof connectorTypes)[number];

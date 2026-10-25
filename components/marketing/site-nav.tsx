@@ -30,7 +30,7 @@ function ProfileMenu({ account }: { account: SignedIn }) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" aria-label={`Account: ${account.name}`} className="rounded-full">
+        <Button variant="ghost" size="icon" aria-label={`Account: ${account.name}`}>
           <Avatar className="size-9">
             <AvatarFallback className="bg-accent-soft font-semibold text-accent-ink">{initials(account.name)}</AvatarFallback>
           </Avatar>

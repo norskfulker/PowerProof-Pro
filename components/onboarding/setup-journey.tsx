@@ -3,13 +3,13 @@
 import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const STAGES = ["Create your workspace", "Add your first product", "Share & sell"] as const;
+const STAGES = ["Workspace", "Store", "Product", "Build store", "Show product", "Get paid & track"] as const;
 
 /**
- * The road from sign-up to first sale, shown across onboarding and the first product
- * so the creator always knows what they did, what they're doing, and what's next.
+ * The road from sign-up to first sale, shown across onboarding, the first product and building
+ * the store, so the creator always knows what they did, what they're doing, and what's next.
  */
-export function SetupJourney({ current }: { /** The stage they're on now (0-based) */ current: 0 | 1 | 2 }) {
+export function SetupJourney({ current }: { /** The stage they're on now (0-based) */ current: 0 | 1 | 2 | 3 | 4 | 5 }) {
   return (
     <ol aria-label="Setup progress" className="flex items-start gap-1 sm:gap-2">
       {STAGES.map((label, i) => {

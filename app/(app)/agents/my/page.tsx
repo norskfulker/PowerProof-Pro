@@ -1,7 +1,6 @@
-"use client";
+import { redirect } from "next/navigation";
 
-import { AgentsHome } from "@/components/agents/agents-home";
-
+/** The workspace's agents live in the Marketplace now, as its "Subscribed agents" tab */
 export default function MyAgentsPage() {
-  return <AgentsHome />;
+  redirect("/marketplace?tab=subscribed");
 }

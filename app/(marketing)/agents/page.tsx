@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { Catalog } from "@/components/agents/catalog";
+import { Suspense } from "react";
+import { AgentMarket } from "@/components/agents/catalog";
 
 export const metadata: Metadata = {
   title: "Agents for your business",
@@ -14,7 +15,9 @@ export default function AgentsCatalogPage() {
       <h1 className="mt-2 max-w-3xl text-[2.25rem] sm:text-5xl">Helpers that do the boring follow-ups for you.</h1>
       <p className="mt-4 max-w-xl text-lg text-muted-foreground">Connect your invoices or sheet once. The agent works every day on its own, and you see everything it does.</p>
       <div className="mt-8">
-        <Catalog />
+        <Suspense>
+          <AgentMarket />
+        </Suspense>
       </div>
     </section>
   );

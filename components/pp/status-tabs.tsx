@@ -23,7 +23,7 @@ export function StatusTabs<T extends string>({ tabs, value, onChange, label, cla
     refs.current[next]?.focus();
   };
   return (
-    <div role="tablist" aria-label={label} className={cn("mb-4 flex gap-1 overflow-x-auto border-b", className)}>
+    <div role="tablist" aria-label={label} className={cn("mb-4 flex gap-1 overflow-x-auto border-b [scrollbar-width:none] [&::-webkit-scrollbar]:hidden", className)}>
       {tabs.map((t, i) => {
         const on = i === index;
         return (

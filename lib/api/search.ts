@@ -5,6 +5,7 @@ import { getOrders, getCustomers } from "./orders";
 import { getPayouts } from "./payouts";
 import { getProducts } from "./products";
 import { getStore } from "./store";
+import { subscribe } from "./live/local";
 
 /**
  * Global search (Part 4A). One index over the creator's own store: products, orders, buyers, invoices,
@@ -190,8 +191,37 @@ export function runSearch(items: Indexed[], query: string, filters: SearchFilter
   return { query, pattern, groups, total: hit.length };
 }
 
+/*
+ * The index is built once and reused while you type: every key would otherwise reload the whole
+ * store. It's thrown away when data changes (here or in another tab) and after INDEX_TTL, so
+ * results stay current.
+ */
+const INDEX_TTL = 30_000;
+let cached: { at: number; storeKey: string; items: Promise<Indexed[]> } | undefined;
+let watching = false;
+
+/** Forget the index: the next search reads the store again */
+export function invalidateSearch() {
+  cached = undefined;
+}
+
+async function index(): Promise<Indexed[]> {
+  if (!watching && typeof window !== "undefined") {
+    watching = true;
+    subscribe(invalidateSearch);
+  }
+  const storeKey = (await getStore().catch(() => undefined))?.id ?? "";
+  if (!cached || cached.storeKey !== storeKey || Date.now() - cached.at > INDEX_TTL) {
+    const items = buildIndex();
+    cached = { at: Date.now(), storeKey, items };
+    // A failed build isn't kept: the next key tries again
+    items.catch(() => cached?.items === items && invalidateSearch());
+  }
+  return cached.items;
+}
+
 export async function search(query: string, opts: { scope?: SearchScope; filters?: SearchFilters; perGroup?: number } = {}): Promise<SearchResponse> {
   if (!query.trim()) return { query, pattern: "text", groups: [], total: 0 };
   const filters = { ...opts.filters, types: (opts.filters?.types?.length ? opts.filters.types : CREATOR_TYPES).filter((t) => CREATOR_TYPES.includes(t)) };
-  return runSearch(await buildIndex(), query, filters, opts.perGroup ?? 5);
+  return runSearch(await index(), query, filters, opts.perGroup ?? 5);
 }

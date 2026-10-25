@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { BadgeCheck, Clock, Flame, ShieldCheck, Star, TrendingUp } from "lucide-react";
 import { MoneyText } from "@/components/pp/money-text";
+import { StoreKind } from "@/components/pp/store-kind";
 import type { Deal } from "@/lib/api";
 import { countryByCode, flagOf } from "@/lib/countries";
 import { convert, type Rates } from "@/lib/fx";
@@ -55,15 +56,21 @@ function Cover({ d, className }: { d: Deal; className?: string }) {
   );
 }
 
+/** Who sells it, what kind of store it is (digital or physical) and where the seller is based */
 function Seller({ d }: { d: Deal }) {
   const c = countryByCode(d.country);
   return (
-    <p className="flex items-center gap-2 text-sm text-muted-foreground">
-      <SellerMark name={d.storeName} />
-      <span className="min-w-0 truncate font-medium text-foreground">{d.storeName}</span>
-      {d.verified && <BadgeCheck className="size-4 shrink-0 text-primary" aria-label="Verified seller" />}
-      <span className="ml-auto shrink-0" title={c.name}><span aria-hidden>{flagOf(d.country)}</span><span className="sr-only">{c.name}</span></span>
-    </p>
+    <div className="flex flex-col gap-1.5 text-sm text-muted-foreground">
+      <p className="flex items-center gap-2">
+        <SellerMark name={d.storeName} />
+        <span className="min-w-0 truncate font-medium text-foreground">{d.storeName}</span>
+        {d.verified && <BadgeCheck className="size-4 shrink-0 text-primary" aria-label="Verified seller" />}
+      </p>
+      <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
+        <StoreKind sells={d.fulfilment} />
+        <span title={c.name} className="whitespace-nowrap">{d.fulfilment === "physical" ? "Ships from" : "From"} <span aria-hidden>{flagOf(d.country)}</span> {c.name}</span>
+      </p>
+    </div>
   );
 }
 

@@ -16,6 +16,7 @@ import { Logo } from "./logo";
 import { MobileTabBar } from "./mobile-tab-bar";
 import { Notifications } from "./notifications";
 import { AccountMenu, Topbar } from "./topbar";
+import { ViewModeSwitch } from "./view-mode";
 
 const RAIL_KEY = "pp:nav-rail";
 const railListeners = new Set<() => void>();
@@ -74,6 +75,7 @@ function Sidebar({ admin, collapsed, onToggle, onNavigate }: { admin: boolean; c
           </Button>
         )}
       </div>
+      <ViewModeSwitch mode={admin ? "admin" : "user"} collapsed={collapsed} onNavigate={onNavigate} />
       <Suspense>
         {!admin && <BentoNav tree={nav.tree} collapsed={collapsed} onNavigate={onNavigate} />}
         <NavTree tree={list} area={admin ? "admin" : "creator"} tone={admin ? "admin" : "light"} filter={admin} collapsed={collapsed} onNavigate={onNavigate} onExpandRail={collapsed ? onToggle : undefined} />

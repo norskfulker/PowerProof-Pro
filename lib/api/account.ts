@@ -39,6 +39,12 @@ export interface OwnedStore {
   brandColor: string;
   active: boolean;
   products: number;
+  /** Products buyers can see and buy now */
+  liveProducts: number;
+  /** Digital downloads or physical goods that ship (never both) */
+  sells: "digital" | "physical";
+  /** Where the store is based (ISO code) */
+  country: string;
   /** Your role in this store: owner, or a team you joined */
   role: StoreRole;
   workspaceId: string;

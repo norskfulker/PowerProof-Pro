@@ -1,8 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight, Brush, Sparkles, Wand2, type LucideIcon } from "lucide-react";
+import { Suspense } from "react";
+import { useSearchParams } from "next/navigation";
+import { ArrowRight, Brush, ExternalLink, Receipt, Sparkles, Wallet, Wand2, type LucideIcon } from "lucide-react";
+import { SetupJourney } from "@/components/onboarding/setup-journey";
 import { PageHeader } from "@/components/pp/page-header";
+import { Button } from "@/components/ui/button";
+import { useCurrentStore } from "@/hooks/use-current-store";
 import { cn } from "@/lib/utils";
 
 const EDITOR = "/store/current/design/pages/home/edit";
@@ -36,11 +41,49 @@ const CHOICES: { href: string; icon: LucideIcon; title: string; body: string; po
   },
 ];
 
+/**
+ * Right after the first product (?first=1): where the setup road stands, and the steps after
+ * building: show the product in the live store, then get paid and track orders.
+ */
+function FirstRun() {
+  const first = useSearchParams().get("first") === "1";
+  const { data: store } = useCurrentStore();
+  if (!first) return null;
+  return (
+    <div className="mb-6 flex flex-col gap-4">
+      <SetupJourney current={3} />
+      <div className="flex flex-wrap items-center gap-2 rounded-card border bg-surface-sunken p-3 text-sm">
+        <span className="mr-auto text-muted-foreground">Your product is saved. Build the store around it, then:</span>
+        {store && (
+          <Button asChild size="sm" variant="secondary">
+            <Link href={`/s/${store.slug}`} target="_blank">
+              <ExternalLink aria-hidden /> Show my product
+            </Link>
+          </Button>
+        )}
+        <Button asChild size="sm" variant="secondary">
+          <Link href="/sales/payouts/methods">
+            <Wallet aria-hidden /> Get paid
+          </Link>
+        </Button>
+        <Button asChild size="sm" variant="secondary">
+          <Link href="/sales/orders">
+            <Receipt aria-hidden /> Track orders
+          </Link>
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 /** My Store: how to build the store. Each way ends in the same editor, so they can be mixed freely. */
 export default function MyStorePage() {
   return (
     <>
       <title>My Store · PowerProof</title>
+      <Suspense>
+        <FirstRun />
+      </Suspense>
       <PageHeader title="My Store" className="mb-2 md:mb-3" />
       <p className="mb-6 max-w-2xl text-sm text-muted-foreground md:mb-8">How would you like to build it? You can switch any time: everything ends up in the same editor.</p>
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">

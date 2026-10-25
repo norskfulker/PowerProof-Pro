@@ -41,7 +41,7 @@ export function ActionQueue() {
 
   return (
     <div className="mx-auto flex w-full max-w-xl flex-col gap-5">
-      <PageHeader title="Send queue" back={{ href: "/agents/my", label: "Agents" }} />
+      <PageHeader title="Send queue" back={{ href: "/marketplace?tab=subscribed", label: "Subscribed agents" }} />
       {!next ? (
         <EmptyState icon={CheckCircle2} title="All done" body="Nothing needs you right now. New WhatsApp messages and calls show up here." />
       ) : (

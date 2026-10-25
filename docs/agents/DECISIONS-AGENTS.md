@@ -13,7 +13,7 @@ What was decided while building the agent marketplace and Payment Chaser, and wh
 | SMS, mobile OTP | SMS off; no mobile OTP, now or later | SMS is an adapter stub that never sends; the manifest shows it as "Coming soon". No OTP flow. |
 | Sender | The existing `amaze@powerproof.app` | Agent mail uses `MAIL_FROM`'s address, shown as "<Store> via PowerProof", reply-to the store's support email. No separate subdomain. |
 | Brand | PowerProof Agents | |
-| Credit cost | $5 for 60 requests, any agent | `CREDIT_PACK` in `lib/agents/define.ts`. One credit = one request. |
+| Credit cost | $5 for 60 requests, any agent. **Changed 25 Oct 2026:** any number of credits at $0.08 each; one credit = one finished task, failed ones don't count | `CREDIT_PRICE` in `lib/agents/define.ts`. Bought through `/api/agents/credits` (Razorpay order in USD, then the signed payment adds a `topup` row keyed on the payment id). Failed sends already give their credit back (`agent_outbox_finish`). |
 | Model | Gemini for now | Gemini is the default; the Anthropic adapter (plain HTTPS) is built behind the same interface and the admin switch. |
 | Google Sheets | Build it | Picker + `drive.file` scope; daily refresh. |
 | Existing lint failure | Fix it | `components/buyer/checkout-sheet.tsx`: the one existing file changed, approved. |

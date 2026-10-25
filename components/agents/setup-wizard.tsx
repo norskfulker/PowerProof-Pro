@@ -48,7 +48,7 @@ export function SetupWizard({ instanceId }: { instanceId: string }) {
       </div>
     );
 
-  const steps = ["Your data", "Free preview", "Rules", "Switch on"];
+  const steps = ["Your details", "Free preview", "Rules", "Run"];
   const saveRules = async () => {
     if (!settings) return true;
     try {
@@ -105,9 +105,9 @@ export function SetupWizard({ instanceId }: { instanceId: string }) {
       )}
       {step === 3 && (
         <section className="flex flex-col gap-5" aria-labelledby="s4">
-          <h2 id="s4" className="text-2xl">Switch on {m.name}</h2>
+          <h2 id="s4" className="text-2xl">Run {m.name}</h2>
           <ul className="flex flex-col gap-2 text-muted-foreground">
-            <li className="flex gap-2"><Check className="mt-1 size-4 shrink-0 text-success" aria-hidden /> {m.trial.credits} free credits to start. One credit pays for one action, like one message.</li>
+            <li className="flex gap-2"><Check className="mt-1 size-4 shrink-0 text-success" aria-hidden /> {m.trial.credits} free credits to start. It runs once now, then on its schedule. Each run takes one credit per finished task, like one reminder sent; failed ones don&apos;t count.</li>
             <li className="flex gap-2"><Check className="mt-1 size-4 shrink-0 text-success" aria-hidden /> When credits run out it pauses. Nothing is ever charged without you.</li>
             <li className="flex gap-2"><Check className="mt-1 size-4 shrink-0 text-success" aria-hidden /> Pause it any time from its page.</li>
           </ul>
@@ -136,7 +136,14 @@ export function SetupWizard({ instanceId }: { instanceId: string }) {
                 setBusy(true);
                 try {
                   const r = await agentOp<{ status: string }>(instance.id, { op: "activate", consent });
-                  toast.success(r.status === "trial_ended" ? "Set up, but there are no credits left to run it." : `${m.name} is on. It checks every hour.`);
+                  if (r.status === "trial_ended") toast.success("Set up, but there are no credits left to run it.");
+                  else {
+                    // The first run starts now; credits are taken per finished task, then on every scheduled run
+                    await agentOp(instance.id, { op: "run" }).then(
+                      () => toast.success(`${m.name} ran for the first time. It runs on its schedule from now on.`),
+                      () => toast.success(`${m.name} is on. Its first run starts shortly.`)
+                    );
+                  }
                   router.replace(`/agents/my/${instance.id}`);
                 } catch (e) {
                   toast.error(e instanceof Error ? e.message : "That didn't work. Try again.");
@@ -144,7 +151,7 @@ export function SetupWizard({ instanceId }: { instanceId: string }) {
                 }
               }}
             >
-              <Rocket aria-hidden /> {busy ? "Switching on…" : `Switch on ${m.name}`}
+              <Rocket aria-hidden /> {busy ? "Running…" : `Run ${m.name}`}
             </Button>
           </div>
         </section>

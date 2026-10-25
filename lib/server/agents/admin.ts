@@ -1,6 +1,6 @@
 import "server-only";
 import { AGENTS, getManifest } from "@/agents/index";
-import { CREDIT_PACK } from "@/lib/agents/define";
+import { CREDIT_PRICE } from "@/lib/agents/define";
 import { agentsAdmin, must } from "./db";
 import { maskAddress, platformSettings } from "./ports";
 
@@ -98,7 +98,7 @@ export async function adminRuns() {
 
 /**
  * Margin for the last 30 days, per agent and per store. Revenue is what was charged through agent
- * billing (none until it opens); "value" is credits used at the list price ($5 for 60). Cost is the
+ * billing (none until it opens); "value" is credits used at the list price ($0.08 each). Cost is the
  * model's tokens at the configured rates plus email. A row is flagged when a credit costs more than
  * it's worth.
  */
@@ -107,7 +107,7 @@ export async function adminMargin() {
   const since = new Date(Date.now() - 30 * DAY).toISOString();
   const settings = await platformSettings();
   const rates = settings.cost_rates as { usd_inr?: number; llm?: Record<string, { in: number; out: number }>; email_usd?: number; credit_usd?: number };
-  const creditUsd = rates.credit_usd ?? CREDIT_PACK.priceMinor / 100 / CREDIT_PACK.credits;
+  const creditUsd = rates.credit_usd ?? CREDIT_PRICE.perCreditMinor / 100;
   const [ledger, usage, emails, subs] = await Promise.all([
     sb.from("agent_credit_ledger").select("store_id, agent_id, delta, kind").in("kind", ["charge", "release"]).gte("created_at", since).limit(100000),
     sb.from("agent_llm_usage").select("store_id, agent_id, provider, input_tokens, output_tokens").gte("created_at", since).limit(100000),

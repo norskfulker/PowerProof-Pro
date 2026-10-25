@@ -272,8 +272,17 @@ export async function getOwnedStores(): Promise<OwnedStore[]> {
   const active = await activeStoreId();
   const rows = await myStores();
   // Products are counted only where the person can see the catalog (row level security)
-  const counts = must(await sb().from("products").select("store_id").in("store_id", rows.map((r) => r.id)));
-  const list = rows.map((r) => ({ id: r.id, name: r.name, slug: r.slug, logoText: initials(r.name), brandColor: r.brandColor ?? DEFAULT_BRAND, active: r.id === active, products: counts.filter((c) => c.store_id === r.id).length, role: r.access.role, workspaceId: r.workspaceId }));
+  const ids = rows.map((r) => r.id);
+  const [counts, kinds] = await Promise.all([
+    sb().from("products").select("store_id, status").in("store_id", ids).then((r) => must(r)),
+    // What each store sells and where it's based, so the switcher can say so
+    sb().from("stores").select("id, sells, country").in("id", ids).then((r) => must(r)),
+  ]);
+  const list = rows.map((r) => {
+    const k = kinds.find((x) => x.id === r.id);
+    const mine = counts.filter((c) => c.store_id === r.id);
+    return { id: r.id, name: r.name, slug: r.slug, logoText: initials(r.name), brandColor: r.brandColor ?? DEFAULT_BRAND, active: r.id === active, products: mine.length, liveProducts: mine.filter((c) => c.status === "live").length, role: r.access.role, workspaceId: r.workspaceId, sells: (k?.sells === "physical" ? "physical" : "digital") as OwnedStore["sells"], country: k?.country ?? "" };
+  });
   return [...list.filter((s) => s.active), ...list.filter((s) => !s.active)];
 }
 

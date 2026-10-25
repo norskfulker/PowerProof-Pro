@@ -68,7 +68,7 @@ export default defineAgent({
       { q: "Can the AI change amounts or dates?", a: "No. AI only writes the wording. Amounts, dates, names and invoice numbers are put in by the app and checked before anything is sent." },
       { q: "What happens when an invoice is paid?", a: "Mark it paid (or upload your file again with it gone, and confirm). Reminders for it stop at once." },
       { q: "How does WhatsApp work?", a: "WhatsApp messages wait in your Send queue. Tap Send next, WhatsApp opens with the message written, you press send." },
-      { q: "What do credits pay for?", a: "One credit is one reminder: an email sent or a WhatsApp message prepared. Previews and dry runs are free. When credits run out the agent pauses; nothing is charged without you." },
+      { q: "What do credits pay for?", a: "One credit is one finished reminder: an email sent or a WhatsApp message prepared. A reminder that fails gives its credit back. Credits cost $0.08 each, bought in any number. Previews and dry runs are free. When credits run out the agent pauses; nothing is charged without you." },
       { q: "Can my customers stop the messages?", a: "Yes. Every email has an unsubscribe link and every WhatsApp message says how to opt out. Once they do, they get nothing more." },
     ],
   },

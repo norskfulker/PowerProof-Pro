@@ -26,11 +26,18 @@ interface Values {
 
 type LinkState = { for: string; slug?: string; available?: boolean; failed?: boolean };
 
-export function StepStore({ onDone }: { onDone: () => void }) {
+/** Two stages: name the workspace, then its first store (name, link, country, colour) */
+export function StepStore({ onDone, onStage }: { onDone: () => void; /** Told when the form moves between the workspace (0) and the store (1) */ onStage?: (stage: 0 | 1) => void }) {
+  const [stage, setStageState] = useState<0 | 1>(0);
+  const setStage = (n: 0 | 1) => {
+    setStageState(n);
+    onStage?.(n);
+  };
   const [error, setError] = useState<string>();
   const [link, setLink] = useState<LinkState | null>(null);
   const form = useForm<Values>({ defaultValues: { workspace: "", name: "", country: DEFAULT_COUNTRY, brandColor: PALETTES[0].bg }, mode: "onTouched" });
   const name = useWatch({ control: form.control, name: "name" });
+  const workspace = useWatch({ control: form.control, name: "workspace" });
   const clean = cleanStoreName(name ?? "");
   const valid = storeNameError(clean) === null;
 
@@ -60,7 +67,15 @@ export function StepStore({ onDone }: { onDone: () => void }) {
   const ready = Boolean(current?.slug && current.available);
 
   return (
-    <StepFrame formId="step-store" title="Create your workspace" description="Your workspace holds your stores, products, marketplace deals, agents and team. Name it, then name its first store. You can add more stores later." submitLabel="Create workspace" pending={form.formState.isSubmitting} disabled={!ready}>
+    <StepFrame
+      formId="step-store"
+      title={stage === 0 ? "Create your workspace" : "Create your store"}
+      description={stage === 0 ? "Your workspace holds your stores, products, marketplace deals, agents and team." : `The first store in ${workspace.trim() || "your workspace"}. You can add more stores later.`}
+      submitLabel={stage === 0 ? "Next: your store" : "Create store"}
+      onBack={stage === 1 ? () => setStage(0) : undefined}
+      pending={form.formState.isSubmitting}
+      disabled={stage === 0 ? (workspace ?? "").trim().length < 2 : !ready}
+    >
       <Form {...form}>
         <form
           id="step-store"
@@ -68,6 +83,7 @@ export function StepStore({ onDone }: { onDone: () => void }) {
           className="flex flex-col gap-5"
           onSubmit={form.handleSubmit(async (v) => {
             setError(undefined);
+            if (stage === 0) return setStage(1);
             const nameError = storeNameError(v.name);
             if (nameError) return form.setError("name", { message: nameError });
             const color = normalizeHex(v.brandColor);
@@ -82,7 +98,7 @@ export function StepStore({ onDone }: { onDone: () => void }) {
           })}
         >
           <FormError message={error} />
-          <FormField
+          {stage === 0 && <FormField
             control={form.control}
             name="workspace"
             rules={{ validate: (v) => (v.trim().length < 2 ? "Give your workspace a name." : v.trim().length > WORKSPACE_NAME_MAX ? `Keep it under ${WORKSPACE_NAME_MAX} characters.` : true) }}
@@ -96,16 +112,17 @@ export function StepStore({ onDone }: { onDone: () => void }) {
                 <div className="min-h-5"><FormMessage /></div>
               </FormItem>
             )}
-          />
+          />}
+          {stage === 1 && <>
           <FormField
             control={form.control}
             name="name"
             rules={{ validate: (v) => storeNameError(v) ?? true }}
             render={({ field }) => (
               <FormItem>
-                <FormLabel>First store name</FormLabel>
+                <FormLabel>Store name</FormLabel>
                 <FormControl>
-                  <Input maxLength={STORE_NAME_MAX + 10} autoComplete="off" {...field} />
+                  <Input autoFocus maxLength={STORE_NAME_MAX + 10} autoComplete="off" {...field} />
                 </FormControl>
                 <div className="min-h-5"><FormMessage /></div>
               </FormItem>
@@ -153,6 +170,7 @@ export function StepStore({ onDone }: { onDone: () => void }) {
               <FormField control={form.control} name="brandColor" render={({ field }) => <BrandColorPicker value={field.value} onChange={field.onChange} />} />
             </div>
           </details>
+          </>}
         </form>
       </Form>
     </StepFrame>

@@ -4,7 +4,7 @@ import { readableOn } from "@/lib/color";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { Check, ChevronsUpDown, Coins, ExternalLink, SunMoon, ListChecks, Loader2, LogOut, Pencil, Plus, Settings, Shield, Sparkles } from "lucide-react";
 import { useGettingStarted } from "@/components/getting-started/getting-started-provider";
 import { usePlan } from "@/components/plan/plan-context";
@@ -27,12 +27,17 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useApi } from "@/hooks/use-api";
 import { useCurrentStore } from "@/hooks/use-current-store";
+import { isUnlimited, useIsAdmin } from "@/hooks/use-is-admin";
 import { createOwnedStore, getOwnedStores, getWorkspaceCredits, getWorkspaces, logout, renameWorkspace, switchStore, WORKSPACE_NAME_MAX } from "@/lib/api";
 import { can, roleLabel } from "@/lib/team";
 import { formatNumber, initials } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { GlobalSearch } from "@/components/search/global-search";
 import { Notifications } from "./notifications";
+import { STORE_KIND, StoreKind, StorePlace } from "./store-kind";
+import { BuyCredits, CREDIT_RULE } from "@/components/agents/buy-credits";
+import { CREDIT_PRICE } from "@/lib/agents/define";
+import { formatMoney } from "@/lib/money";
 
 type StoreDialog = { kind: "store" } | { kind: "workspace" } | { kind: "rename"; name: string } | null;
 
@@ -150,7 +155,7 @@ function WorkspaceSwitcher() {
               {store?.logoText ?? "··"}
             </span>
             <span className="flex min-w-0 flex-col items-start leading-tight max-sm:hidden">
-              <span className="max-w-full truncate text-[0.6875rem] font-normal text-muted-foreground">{active?.name ?? "Workspace"}</span>
+              <span className="max-w-full truncate text-[0.6875rem] font-normal text-muted-foreground">{active?.name ?? "Workspace"}{store ? ` · ${STORE_KIND[store.sells].label}` : ""}</span>
               <span className="max-w-full truncate">{store?.name ?? "Loading…"}</span>
             </span>
             <ChevronsUpDown className="text-muted-foreground" aria-hidden />
@@ -159,10 +164,16 @@ function WorkspaceSwitcher() {
         <DropdownMenuContent align="start" className="w-72">
           <DropdownMenuLabel className="eyebrow">Stores in {active?.name ?? "this workspace"}</DropdownMenuLabel>
           {here.map((s) => (
-            <DropdownMenuItem key={s.id} onSelect={() => !s.active && open(s.id, s.name)}>
-              {s.active ? <Check aria-hidden /> : <span className="size-4" aria-hidden />}
-              <span className="min-w-0 flex-1 truncate">{s.name}</span>
-              <span className="font-mono text-[0.625rem] text-muted-foreground">{s.products} products</span>
+            <DropdownMenuItem key={s.id} onSelect={() => !s.active && open(s.id, s.name)} className="items-start">
+              {s.active ? <Check className="mt-0.5" aria-hidden /> : <span className="size-4" aria-hidden />}
+              <span className="flex min-w-0 flex-1 flex-col gap-1">
+                <span className="truncate">{s.name}</span>
+                <span className="flex flex-wrap items-center gap-1.5 text-[0.6875rem]">
+                  <StoreKind sells={s.sells} compact />
+                  <StorePlace country={s.country} />
+                </span>
+              </span>
+              <span className="font-mono text-[0.625rem] text-muted-foreground" title={`${s.products} in all`}>{s.liveProducts} live</span>
             </DropdownMenuItem>
           ))}
           {owner && (
@@ -211,43 +222,60 @@ function WorkspaceSwitcher() {
  */
 function CreditsChip() {
   const { data: store } = useCurrentStore();
-  const { data } = useApi(getWorkspaceCredits, [store?.workspaceId], { live: true });
+  const { data, reload } = useApi(getWorkspaceCredits, [store?.workspaceId], { live: true });
   const [open, setOpen] = useState(false);
+  const [buying, setBuying] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
   if (data === undefined) return null;
-  const label = `${formatNumber(data)} ${data === 1 ? "credit" : "credits"}`;
+  const unlimited = isUnlimited(data);
+  const label = unlimited ? "Unlimited credits" : `${formatNumber(data)} ${data === 1 ? "credit" : "credits"}`;
+  const canBuy = can(store?.access, "agents");
   // Opens on hover with a short grace period, so the pointer can travel into the card
   const hover = (o: boolean) => {
     clearTimeout(timer.current);
     timer.current = setTimeout(() => setOpen(o), o ? 80 : 160);
   };
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button variant="secondary" size="sm" className="rounded-full font-mono" aria-label={`Agent credits: ${label}`} onMouseEnter={() => hover(true)} onMouseLeave={() => hover(false)}>
-          <Coins aria-hidden className={cn(data <= 0 && "text-warning-ink")} />
-          <span className="max-sm:sr-only">{label}</span>
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent align="end" className="w-72" onMouseEnter={() => hover(true)} onMouseLeave={() => hover(false)}>
-        <p className="text-sm text-muted-foreground">Balance available</p>
-        <p className="font-display text-3xl font-bold tracking-[-0.03em] tabular">{formatNumber(data)}</p>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Shared by every store and agent in {store?.workspaceName ?? "this workspace"}. One credit pays for one action, like one message sent. At zero, agents pause.
-        </p>
-        <div className="mt-4 flex flex-col gap-2">
-          <Button disabled aria-describedby="credits-soon">
-            <Plus aria-hidden /> Buy more credits
+    <>
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <Button variant="secondary" size="sm" className="font-mono" aria-label={`Agent credits: ${label}`} onMouseEnter={() => hover(true)} onMouseLeave={() => hover(false)}>
+            <Coins aria-hidden className={cn(data <= 0 && "text-warning-ink")} />
+            <span className="max-sm:sr-only">{label}</span>
           </Button>
-          <p id="credits-soon" className="text-center text-xs text-muted-foreground">Credit packs open soon.</p>
-          {can(store?.access, "agents") && (
-            <Button asChild variant="ghost" size="sm" onClick={() => setOpen(false)}>
-              <Link href="/agents/my">See agents and usage</Link>
-            </Button>
-          )}
-        </div>
-      </PopoverContent>
-    </Popover>
+        </PopoverTrigger>
+        <PopoverContent align="end" className="w-72" onMouseEnter={() => hover(true)} onMouseLeave={() => hover(false)}>
+          <p className="text-sm text-muted-foreground">Balance available</p>
+          <p className="font-display text-3xl font-bold tracking-[-0.03em] tabular">{unlimited ? "Unlimited" : formatNumber(data)}</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {unlimited
+              ? "PowerProof staff workspaces never run out. Every run is still recorded."
+              : <>Shared by every store and agent in {store?.workspaceName ?? "this workspace"}. {CREDIT_RULE} At zero, agents pause.</>}
+          </p>
+          <div className="mt-4 flex flex-col gap-2">
+            {unlimited ? null : canBuy ? (
+              <Button
+                onClick={() => {
+                  setOpen(false);
+                  setBuying(true);
+                }}
+              >
+                <Plus aria-hidden /> Buy credits
+              </Button>
+            ) : (
+              <p className="text-center text-xs text-muted-foreground">Ask the workspace owner to buy credits.</p>
+            )}
+            {!unlimited && <p className="text-center text-xs text-muted-foreground">Any amount, {formatMoney({ amount: CREDIT_PRICE.perCreditMinor, currency: CREDIT_PRICE.currency })} a credit.</p>}
+            {canBuy && (
+              <Button asChild variant="ghost" size="sm" onClick={() => setOpen(false)}>
+                <Link href="/marketplace?tab=subscribed">Subscribed agents and usage</Link>
+              </Button>
+            )}
+          </div>
+        </PopoverContent>
+      </Popover>
+      {canBuy && !unlimited && <BuyCredits open={buying} onOpenChange={setBuying} workspaceName={store?.workspaceName} onBought={reload} />}
+    </>
   );
 }
 
@@ -257,16 +285,9 @@ export function AccountMenu({ variant = "avatar" }: { variant?: "avatar" | "row"
   const gs = useGettingStarted();
   const { data: store } = useCurrentStore();
   const { state: planState, upgrade } = usePlan();
-  const pro = planState?.tier === "pro";
-  const [isAdmin, setIsAdmin] = useState(false);
-  useEffect(() => {
-    let active = true;
-    fetch("/api/admin/me", { cache: "no-store" })
-      .then((response) => response.ok ? response.json() as Promise<{ isAdmin: boolean }> : { isAdmin: false })
-      .then((result) => { if (active) setIsAdmin(result.isAdmin); })
-      .catch(() => { if (active) setIsAdmin(false); });
-    return () => { active = false; };
-  }, []);
+  const isAdmin = useIsAdmin();
+  // Staff are always on Pro
+  const pro = isAdmin || planState?.tier === "pro";
 
   const avatar = (
     <Avatar className={variant === "row" ? "size-8" : "size-9"}>
@@ -287,7 +308,7 @@ export function AccountMenu({ variant = "avatar" }: { variant?: "avatar" | "row"
             {planState && <span className={cn("rounded-full px-2 py-0.5 text-[0.6875rem] font-semibold", pro ? "bg-accent text-accent-foreground" : "bg-muted text-muted-foreground")}>{pro ? "Pro" : "Free"}</span>}
           </Button>
         ) : (
-          <Button variant="ghost" size="icon" aria-label="Account menu" className="rounded-full">{avatar}</Button>
+          <Button variant="ghost" size="icon" aria-label="Account menu">{avatar}</Button>
         )}
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" side={variant === "row" ? "right" : "bottom"} sideOffset={variant === "row" ? 12 : 4} className="w-64">
@@ -325,7 +346,7 @@ export function AccountMenu({ variant = "avatar" }: { variant?: "avatar" | "row"
         </DropdownMenuItem>
         {isAdmin && <DropdownMenuItem asChild>
           <Link href="/admin">
-            <Shield aria-hidden /> Founder admin
+            <Shield aria-hidden /> Switch to admin view
           </Link>
         </DropdownMenuItem>}
         <div className="flex items-center justify-between gap-3 px-2 py-1.5">
@@ -349,10 +370,9 @@ export function AccountMenu({ variant = "avatar" }: { variant?: "avatar" | "row"
 /**
  * The top bar: workspace › store on the left, search, then the workspace's agent credits.
  * Notifications and the account live in the sidebar (on phones, where the sidebar is a sheet,
- * they stay here too). The dashboard has its own big search box, so the bar leaves it out there.
+ * they stay here too). The search box is the only one in the app: every page shares it.
  */
 export function Topbar({ admin, className }: { admin?: boolean; className?: string }) {
-  const onDashboard = usePathname() === "/dashboard";
   return (
     <header className={`${className ?? ""} sticky top-0 z-30 flex h-16 items-center gap-2 border-b bg-surface/95 px-4 backdrop-blur md:px-6`}>
       {admin ? (
@@ -361,7 +381,7 @@ export function Topbar({ admin, className }: { admin?: boolean; className?: stri
         <WorkspaceSwitcher />
       )}
       <div className="flex flex-1 justify-end md:justify-center">
-        {(admin || !onDashboard) && <GlobalSearch scope={admin ? "admin" : "creator"} />}
+        <GlobalSearch scope={admin ? "admin" : "creator"} />
       </div>
       {admin ? (
         <AccountMenu />
