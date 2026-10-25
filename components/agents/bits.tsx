@@ -7,6 +7,7 @@ import { EmptyState } from "@/components/pp/empty-state";
 import { StatusPill } from "@/components/pp/status-pill";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { can } from "@/lib/team";
 import { useCurrentStore } from "@/hooks/use-current-store";
 import type { InstanceStatus } from "@/lib/agents/define";
 import { cn } from "@/lib/utils";
@@ -41,7 +42,7 @@ export function ExplainedNumber({ label, value, explain, emphasis, loading }: { 
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <button type="button" className="flex min-h-11 w-full flex-col items-start rounded-card border bg-surface p-4 text-left transition-colors hover:border-primary/40 focus-visible:outline-2 md:p-5" aria-label={`${label}: how this is worked out`}>
-          <span className="eyebrow flex items-center gap-1.5">
+          <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
             {label} <Info className="size-3.5" aria-hidden />
           </span>
           <span className={cn("mt-2 font-display text-[clamp(1.5rem,7vw,2rem)] leading-tight font-bold tracking-[-0.02em] tabular", emphasis && "text-accent-strong", loading && "text-muted-foreground")}>{loading ? "…" : value}</span>
@@ -52,16 +53,15 @@ export function ExplainedNumber({ label, value, explain, emphasis, loading }: { 
   );
 }
 
-/** Agents are for the store's owner and admins (Limited team members can't be given them yet) */
+/** Agents are for the workspace's owner, admins and members given the Agents area */
 export function AgentsGate({ children }: { children: React.ReactNode }) {
   const { data: store } = useCurrentStore();
-  const role = store?.access?.role;
-  if (!role || role === "owner" || role === "admin") return <>{children}</>;
+  if (can(store?.access, "agents")) return <>{children}</>;
   return (
     <EmptyState
       icon={Lock}
-      title="Agents are for the store's owner and admins."
-      body={`Ask the owner of ${store?.name ?? "this store"} to make you an admin in Settings › Team.`}
+      title="Agents aren't part of your access."
+      body={`Ask the owner of ${store?.workspaceName ?? "this workspace"} to give you Agents in Settings › Team.`}
       action={
         <Button asChild variant="secondary">
           <Link href="/dashboard">Go to your start page</Link>

@@ -213,17 +213,17 @@ export function payoutMail(o: { ownerName: string; amount: string; to: string; o
   };
 }
 
-/** Someone was asked to join a store's team */
-export function teamInviteMail(o: { storeName: string; inviterName: string; role: string; areas: string[]; acceptUrl: string; email: string }): Omit<Mail, "to"> {
+/** Someone was asked to join a workspace's team */
+export function teamInviteMail(o: { workspaceName: string; inviterName: string; role: string; areas: string[]; acceptUrl: string; email: string }): Omit<Mail, "to"> {
   const what = o.role === "admin" ? "as an admin, with access to everything except payouts and billing" : `to help with ${o.areas.join(", ").toLowerCase()}`;
   return {
-    subject: `${o.inviterName} invited you to ${o.storeName} on PowerProof`,
+    subject: `${o.inviterName} invited you to ${o.workspaceName} on PowerProof`,
     html: shell(
-      `Join ${o.storeName}`,
-      `<p>${esc(o.inviterName)} invited you to the ${esc(o.storeName)} store on PowerProof ${esc(what)}.</p>${button(o.acceptUrl, "Accept the invite")}${muted(`Log in or sign up with <strong>${esc(o.email)}</strong> to accept. The link works for 7 days. If you weren't expecting this, you can ignore it.`)}`,
+      `Join ${o.workspaceName}`,
+      `<p>${esc(o.inviterName)} invited you to the ${esc(o.workspaceName)} workspace on PowerProof ${esc(what)}, in every store it holds.</p>${button(o.acceptUrl, "Accept the invite")}${muted(`Log in or sign up with <strong>${esc(o.email)}</strong> to accept. The link works for 7 days. If you weren't expecting this, you can ignore it.`)}`,
       OWN
     ),
-    text: `${o.inviterName} invited you to the ${o.storeName} store on PowerProof ${what}.\n\nAccept: ${o.acceptUrl}\n\nLog in or sign up with ${o.email} to accept. The link works for 7 days.`,
+    text: `${o.inviterName} invited you to the ${o.workspaceName} workspace on PowerProof ${what}, in every store it holds.\n\nAccept: ${o.acceptUrl}\n\nLog in or sign up with ${o.email} to accept. The link works for 7 days.`,
   };
 }
 

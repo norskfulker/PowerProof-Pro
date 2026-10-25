@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { ColorModeToggle, LIGHT_DARK } from "@/components/theme/color-mode-toggle";
 import type { SocialLinks, Store } from "@/lib/types";
-import { LogoMark } from "./logo";
 import { StoreLogo } from "./store-navbar";
 
 export function StoreFooter({
@@ -35,7 +34,7 @@ export function StoreFooter({
       <p>© {new Date().getFullYear()} {store.name}. Prices include any GST that applies.</p>
       {theme && <ColorModeToggle label="Store colour mode" value={theme.mode} onChange={theme.onChange} options={LIGHT_DARK} className="sm:order-last" />}
       {showPoweredBy && (
-        <Link href="/" className="inline-flex min-h-11 items-center gap-1.5"><LogoMark className="size-4" /> Powered by PowerProof</Link>
+        <Link href="/" className="inline-flex min-h-11 items-center gap-1">Powered by <span className="font-extrabold tracking-[-0.03em]">PowerProof</span></Link>
       )}
     </>
   );

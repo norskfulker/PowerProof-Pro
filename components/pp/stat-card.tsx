@@ -26,7 +26,7 @@ export function StatCard({
   const up = (delta ?? 0) >= 0;
   return (
     <div className={cn("rounded-card border bg-surface p-5 md:p-6", className)}>
-      <p className="eyebrow">{label}</p>
+      <p className="text-sm text-muted-foreground">{label}</p>
       {loading ? (
         <>
           <Skeleton className="mt-3 h-8 w-28" />

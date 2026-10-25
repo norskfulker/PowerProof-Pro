@@ -18,6 +18,12 @@ export interface ResolvedNode {
   match?: string[];
   /** A panel of the store editor: found by search, not shown as a tab */
   inEditor?: true;
+  /** A quick-control tile at the top of the sidebar */
+  bento?: true;
+  /** At the bottom of the sidebar */
+  footer?: true;
+  /** The pages of a group shown as one link (search still finds each) */
+  linkChildren?: ResolvedNode[];
   /** Labels of the ancestors, for search results */
   path: string[];
 }
@@ -60,6 +66,22 @@ export function resolveNav(tree: NavNode[], data: NavData, path: string[] = [], 
     // A group whose items are all hidden goes too
     if (n.children && !children?.length) continue;
     const count = n.badge ? data.counts[n.badge] : undefined;
+    if (n.asLink && children?.length) {
+      const all = (k: ResolvedNode[]): ResolvedNode[] => k.flatMap((c) => [c, ...all(c.children ?? [])]);
+      const pages = all(children).filter((c) => c.href);
+      out.push({
+        id: n.id,
+        label: n.label,
+        href: pages[0]?.href,
+        icon: n.icon,
+        match: pages.flatMap((c) => [c.href!.split("?")[0], ...(c.match ?? [])]),
+        ...(n.footer ? { footer: true as const } : {}),
+        // Kept for search, which lists each settings page on its own
+        linkChildren: children,
+        path: here,
+      });
+      continue;
+    }
     out.push({
       id: n.id,
       label: n.label,
@@ -72,6 +94,8 @@ export function resolveNav(tree: NavNode[], data: NavData, path: string[] = [], 
       locked: n.pro && data.locked.has(n.pro) ? n.pro : undefined,
       match: n.match?.map((m) => fill(m, data.storeId)),
       ...(n.inEditor ? { inEditor: true as const } : {}),
+      ...(n.bento ? { bento: true as const } : {}),
+      ...(n.footer ? { footer: true as const } : {}),
       path: here,
     });
   }
@@ -79,7 +103,7 @@ export function resolveNav(tree: NavNode[], data: NavData, path: string[] = [], 
 }
 
 export function flattenNav(tree: ResolvedNode[]): ResolvedNode[] {
-  return tree.flatMap((n) => [n, ...(n.children ? flattenNav(n.children) : [])]);
+  return tree.flatMap((n) => [n, ...flattenNav(n.children ?? n.linkChildren ?? [])]);
 }
 
 function score(n: ResolvedNode, pathname: string, query: URLSearchParams): number {

@@ -15,7 +15,7 @@ import { areaLabels } from "@/lib/team";
 type State = { s: "loading" } | { s: "missing" } | { s: "ready"; info: InviteInfo; signedInAs: string | null };
 
 /**
- * The link from a team invite. Says which store and what access before anyone signs in; joining
+ * The link from a team invite. Says which workspace and what access before anyone signs in; joining
  * needs the account with the invited email (the database checks it).
  */
 export default function InvitePage({ params }: { params: Promise<{ token: string }> }) {
@@ -42,7 +42,7 @@ export default function InvitePage({ params }: { params: Promise<{ token: string
   if (state.s === "loading") return <Skeleton className="h-80 rounded-dialog" />;
   if (state.s === "missing") {
     return (
-      <AuthCard title="This invite isn't valid" description="It was already used, cancelled, or replaced by a newer link. Ask the store owner to send a new one.">
+      <AuthCard title="This invite isn't valid" description="It was already used, cancelled, or replaced by a newer link. Ask the workspace owner to send a new one.">
         <Button asChild variant="secondary"><Link href="/dashboard">Go to PowerProof</Link></Button>
       </AuthCard>
     );
@@ -50,8 +50,8 @@ export default function InvitePage({ params }: { params: Promise<{ token: string
 
   const { info, signedInAs } = state;
   const what = info.role === "admin" ? "everything except payouts and billing" : areaLabels(info.areas).join(", ").toLowerCase();
-  const title = `Join ${info.storeName}`;
-  const description = <>{info.inviter} invited <strong className="text-foreground">{info.email}</strong> to help run {info.storeName} on PowerProof, with access to {what}.</>;
+  const title = `Join ${info.workspaceName}`;
+  const description = <>{info.inviter} invited <strong className="text-foreground">{info.email}</strong> to the {info.workspaceName} workspace on PowerProof, with access to {what} in {info.stores === 1 ? "its store" : `all ${info.stores} of its stores`}.</>;
 
   if (info.expired) {
     return (
@@ -107,8 +107,8 @@ export default function InvitePage({ params }: { params: Promise<{ token: string
             setError(undefined);
             try {
               await acceptInvite(token);
-              toast.success(`You joined ${info.storeName}`);
-              // The app opens on the store you just joined (it's now the active one)
+              toast.success(`You joined ${info.workspaceName}`);
+              // The app opens on the workspace's first store (it's now the active one)
               router.replace("/dashboard");
               router.refresh();
             } catch (e) {
@@ -119,7 +119,7 @@ export default function InvitePage({ params }: { params: Promise<{ token: string
         >
           {busy ? <Loader2 className="animate-spin" aria-hidden /> : <Users aria-hidden />} Join the team
         </Button>
-        <p className="text-xs text-muted-foreground">Your own stores, if you have any, stay yours. Switch between stores from the menu at the top.</p>
+        <p className="text-xs text-muted-foreground">Your own workspaces, if you have any, stay yours. Switch between workspaces and stores from the menu at the top.</p>
       </div>
     </AuthCard>
   );

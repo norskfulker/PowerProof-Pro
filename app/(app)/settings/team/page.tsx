@@ -6,7 +6,6 @@ import { Check, Copy, Loader2, MoreHorizontal, UserPlus, Users } from "lucide-re
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/pp/confirm-dialog";
 import { StatusPill } from "@/components/pp/status-pill";
-import { usePlan } from "@/components/plan/plan-context";
 import { SettingsLoading, SettingsSection } from "@/components/settings/settings-section";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -17,7 +16,7 @@ import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetT
 import { StoreHandover } from "@/components/team/store-handover";
 import { useApi } from "@/hooks/use-api";
 import { useCurrentStore } from "@/hooks/use-current-store";
-import { ApiError, getTeam, inviteTeamMember, myMembership, removeTeamMember, updateTeamMember, type TeamPerson } from "@/lib/api";
+import { getTeam, inviteTeamMember, myMembership, removeTeamMember, updateTeamMember, type TeamPerson } from "@/lib/api";
 import { formatDate, initials, timeAgo } from "@/lib/format";
 import { areaLabels, can, roleLabel, TEAM_AREAS, type TeamArea } from "@/lib/team";
 
@@ -61,7 +60,6 @@ function PersonSheet({ editing, isOwner, onClose, onDone }: { editing: Editing |
   const [error, setError] = useState<string>();
   const [link, setLink] = useState<string>();
   const [opened, setOpened] = useState<Editing | null>(null);
-  const plan = usePlan();
 
   // Reset the form each time the sheet opens for someone
   if (editing !== opened) {
@@ -77,7 +75,7 @@ function PersonSheet({ editing, isOwner, onClose, onDone }: { editing: Editing |
     e.preventDefault();
     setError(undefined);
     if (!person && !/^\S+@\S+\.\S+$/.test(email.trim())) return setError("Type the email address to invite.");
-    if (role === "member" && !areas.length) return setError("Pick at least one part of the store they can work on.");
+    if (role === "member" && !areas.length) return setError("Pick at least one part of the workspace they can work on.");
     setBusy(true);
     try {
       if (person?.id) {
@@ -96,7 +94,6 @@ function PersonSheet({ editing, isOwner, onClose, onDone }: { editing: Editing |
         }
       }
     } catch (err) {
-      if (err instanceof ApiError && err.code === "limit") plan.upgrade();
       setError(err instanceof Error ? err.message : "That didn't save. Try again.");
     } finally {
       setBusy(false);
@@ -108,7 +105,7 @@ function PersonSheet({ editing, isOwner, onClose, onDone }: { editing: Editing |
       <SheetContent className="w-full overflow-y-auto sm:max-w-md">
         <SheetHeader>
           <SheetTitle className="font-display text-2xl">{person ? `Access for ${person.name || person.email}` : "Invite someone"}</SheetTitle>
-          <SheetDescription>{person ? "Choose what they can work on in this store." : "They get an email with a link to join. They'll need a PowerProof login with that email (it's free)."}</SheetDescription>
+          <SheetDescription>{person ? "Choose what they can work on, in every store of this workspace." : "They get an email with a link to join the workspace. They'll need a PowerProof login with that email (it's free)."}</SheetDescription>
         </SheetHeader>
         {link ? (
           <div className="flex flex-col gap-4 px-4 pb-6">
@@ -130,8 +127,8 @@ function PersonSheet({ editing, isOwner, onClose, onDone }: { editing: Editing |
               <legend className="mb-1 text-sm font-semibold">Role</legend>
               {(
                 [
-                  ["member", "Limited", "Only the parts of the store you pick below."],
-                  ["admin", "Admin", isOwner ? "Everything except payouts and billing. Can invite people too." : "Only the store's owner can make admins."],
+                  ["member", "Limited", "Only the parts you pick below, in every store of the workspace."],
+                  ["admin", "Admin", isOwner ? "Everything except payouts and billing. Can invite people too." : "Only the workspace's owner can make admins."],
                 ] as const
               ).map(([v, label, hint]) => (
                 <label key={v} className="flex min-h-11 cursor-pointer items-start gap-3 rounded-control border p-3 text-sm has-[:checked]:border-primary has-[:checked]:bg-primary-soft has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-60">
@@ -149,7 +146,7 @@ function PersonSheet({ editing, isOwner, onClose, onDone }: { editing: Editing |
                     <span className="flex flex-col"><span className="font-medium">{a.label}</span><span className="text-xs text-muted-foreground">{a.body}</span></span>
                   </label>
                 ))}
-                <p className="mt-1 text-xs text-muted-foreground">Payouts, payout accounts, billing and deleting the store always stay with the owner.</p>
+                <p className="mt-1 text-xs text-muted-foreground">Payouts, payout accounts, billing and deleting stores always stay with the owner.</p>
               </fieldset>
             )}
             {error && <p role="alert" className="rounded-control border border-danger/40 bg-danger-soft px-3 py-2 text-sm font-medium text-danger">{error}</p>}
@@ -172,7 +169,7 @@ function PersonRow({ p, manage, isOwner, onEdit, onResend, onRemove }: { p: Team
         <span className="truncate font-medium">{p.name || p.email}{p.isYou && <span className="font-normal text-muted-foreground"> (you)</span>}</span>
         {p.name && <span className="truncate text-xs text-muted-foreground">{p.email}</span>}
         <span className="text-xs text-muted-foreground">
-          {p.role === "owner" ? "Owns this store" : p.role === "admin" ? "Everything except payouts and billing" : areaLabels(p.areas).join(", ")}
+          {p.role === "owner" ? "Owns this workspace" : p.role === "admin" ? "Everything except payouts and billing" : areaLabels(p.areas).join(", ")}
         </span>
       </span>
       <span className="flex shrink-0 flex-col items-end gap-1">
@@ -207,25 +204,25 @@ function PersonRow({ p, manage, isOwner, onEdit, onResend, onRemove }: { p: Team
 }
 
 /** For someone who joined: what they can do here, and a way to leave */
-function MyAccess({ storeName }: { storeName: string }) {
+function MyAccess({ workspaceName }: { workspaceName: string }) {
   const router = useRouter();
   const me = useApi(myMembership, []);
   const [confirm, setConfirm] = useState(false);
   if (!me.data) return <SettingsLoading error={me.error} onRetry={me.reload} />;
   const m = me.data;
   return (
-    <SettingsSection title="Your access" description={`You're on the ${storeName} team. The owner decides what you can work on.`}>
+    <SettingsSection title="Your access" description={`You're on the ${workspaceName} team. The owner decides what you can work on, in every store it holds.`}>
       <dl className="grid grid-cols-1 gap-x-6 gap-y-2 text-sm sm:grid-cols-[auto_1fr]">
         <dt className="text-muted-foreground">Role</dt><dd className="font-medium">{roleLabel(m.role)}</dd>
         <dt className="text-muted-foreground">You can work on</dt><dd>{m.role === "admin" ? "Everything except payouts and billing" : areaLabels(m.areas).join(", ")}</dd>
       </dl>
-      <Button variant="ghost" className="mt-4 text-danger" onClick={() => setConfirm(true)}>Leave this store</Button>
+      <Button variant="ghost" className="mt-4 text-danger" onClick={() => setConfirm(true)}>Leave this workspace</Button>
       <ConfirmDialog
         open={confirm}
         onOpenChange={setConfirm}
-        title={`Leave ${storeName}?`}
+        title={`Leave ${workspaceName}?`}
         description="You'll lose access straight away. The owner can invite you again."
-        confirmLabel="Leave store"
+        confirmLabel="Leave workspace"
         onConfirm={async () => {
           try {
             await removeTeamMember(m.id);
@@ -233,7 +230,7 @@ function MyAccess({ storeName }: { storeName: string }) {
             toast.error(e instanceof Error ? e.message : "That didn't work. Try again.");
             throw e;
           }
-          toast.success(`You left ${storeName}`);
+          toast.success(`You left ${workspaceName}`);
           router.push("/dashboard");
           router.refresh();
         }}
@@ -247,20 +244,18 @@ export default function TeamPage() {
   const access = store.data?.access;
   const manage = can(access, "team");
   const isOwner = access?.role === "owner";
-  const plan = usePlan();
   const team = useApi(() => (manage ? getTeam() : Promise.resolve([] as TeamPerson[])), [manage]);
   const [editing, setEditing] = useState<Editing | null>(null);
   const [removing, setRemoving] = useState<TeamPerson | null>(null);
   const router = useRouter();
 
   if (!store.data) return <SettingsLoading error={store.error} onRetry={store.reload} />;
-  if (!manage) return <MyAccess storeName={store.data.name} />;
+  const workspace = store.data.workspaceName ?? "this workspace";
+  if (!manage) return <MyAccess workspaceName={workspace} />;
   if (!team.data) return <SettingsLoading error={team.error} onRetry={team.reload} />;
 
   const people = team.data;
   const used = people.filter((p) => p.role !== "owner").length;
-  const seats = plan.state ? plan.limits?.[plan.state.tier]?.teamSeats : undefined;
-  const full = seats !== undefined && seats !== null && used >= seats;
   const me = people.find((p) => p.isYou && p.id);
 
   return (
@@ -269,12 +264,12 @@ export default function TeamPage() {
         title="Team"
         description={
           <>
-            People who help run {store.data.name}. Each sees only the parts you give them; payouts, payout accounts and billing stay with the owner.
-            {seats !== undefined && <> {seats === null ? `${used} invited or joined.` : `${used} of ${seats} seats used.`}</>}
+            People who help run {workspace}. What you give each person applies to every store in the workspace; payouts, payout accounts and billing stay with the owner.
+            {" "}{used} invited or joined. Invite as many people as you like.
           </>
         }
         saveBar={
-          <Button onClick={() => (full ? plan.upgrade() : setEditing({ mode: "invite" }))}>
+          <Button onClick={() => setEditing({ mode: "invite" })}>
             <UserPlus aria-hidden /> Invite someone
           </Button>
         }
@@ -307,18 +302,17 @@ export default function TeamPage() {
         {/* Just the owner so far: say what inviting is for, under their own row */}
         {people.length <= 1 && (
           <p className="mt-3 flex items-start gap-2 rounded-control bg-surface-sunken px-3 py-2.5 text-sm text-muted-foreground">
-            <Users className="mt-0.5 size-4 shrink-0" aria-hidden /> It&apos;s just you for now. Invite someone to help with orders, products or the store&apos;s design; you choose what each person can see and change.
+            <Users className="mt-0.5 size-4 shrink-0" aria-hidden /> It&apos;s just you for now. Invite someone to help with orders, products, agents or the marketplace; you choose what each person can see and change.
           </p>
         )}
-        {full && <p className="mt-3 text-sm text-muted-foreground">Every seat on your plan is used. Remove someone or cancel an invite to add another{plan.state?.tier === "free" ? ", or upgrade to Pro for more seats" : ""}.</p>}
         {me && !isOwner && (
-          <Button variant="ghost" className="mt-3 text-danger" onClick={() => setRemoving(me)}>Leave this store</Button>
+          <Button variant="ghost" className="mt-3 text-danger" onClick={() => setRemoving(me)}>Leave this workspace</Button>
         )}
       </SettingsSection>
 
       {/* One owner per store (payouts, GST and the plan follow them); "co-owners" are admins */}
       {isOwner && (
-        <SettingsSection title="Transfer ownership" description={<>Hand {store.data.name} to someone else by email. Want someone to run it with you instead? Invite them as an <strong>Admin</strong> above: admins can do everything except payouts and billing.</>}>
+        <SettingsSection title="Transfer a store" description={<>Hand {store.data.name} to someone else by email; it moves into their workspace. Want someone to run it with you instead? Invite them as an <strong>Admin</strong> above: admins can do everything except payouts and billing.</>}>
           <StoreHandover storeId={store.data.id} storeName={store.data.name} mode="transfer" />
         </SettingsSection>
       )}
@@ -327,9 +321,9 @@ export default function TeamPage() {
       <ConfirmDialog
         open={!!removing}
         onOpenChange={(o) => !o && setRemoving(null)}
-        title={removing?.isYou ? `Leave ${store.data.name}?` : removing?.status === "invited" ? `Cancel the invite to ${removing.email}?` : `Remove ${removing?.name || removing?.email}?`}
-        description={removing?.isYou ? "You'll lose access straight away." : removing?.status === "invited" ? "The link they were sent stops working." : "They lose access to this store straight away. Their own stores aren't affected."}
-        confirmLabel={removing?.isYou ? "Leave store" : removing?.status === "invited" ? "Cancel invite" : "Remove"}
+        title={removing?.isYou ? `Leave ${workspace}?` : removing?.status === "invited" ? `Cancel the invite to ${removing.email}?` : `Remove ${removing?.name || removing?.email}?`}
+        description={removing?.isYou ? "You'll lose access straight away." : removing?.status === "invited" ? "The link they were sent stops working." : "They lose access to every store in this workspace straight away. Their own workspaces aren't affected."}
+        confirmLabel={removing?.isYou ? "Leave workspace" : removing?.status === "invited" ? "Cancel invite" : "Remove"}
         onConfirm={async () => {
           if (!removing?.id) return;
           try {
@@ -338,7 +332,7 @@ export default function TeamPage() {
             toast.error(e instanceof Error ? e.message : "That didn't work. Try again.");
             throw e;
           }
-          toast.success(removing.isYou ? "You left the store" : removing.status === "invited" ? "Invite cancelled" : "Removed from the team");
+          toast.success(removing.isYou ? "You left the workspace" : removing.status === "invited" ? "Invite cancelled" : "Removed from the team");
           if (removing.isYou) {
             router.push("/dashboard");
             router.refresh();

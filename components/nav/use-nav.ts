@@ -29,7 +29,7 @@ export function useNav(area: "creator" | "admin"): { tree: ResolvedNode[]; store
     return {
       tree: resolveNav(area === "admin" ? ADMIN_NAV : CREATOR_NAV, nav),
       // The Store area's tabs: not in the sidebar, but shown across the top of the Store pages and found by search
-      storeTabs: area === "admin" ? [] : resolveNav(STORE_NAV, nav, ["My Store"]),
+      storeTabs: area === "admin" ? [] : resolveNav(STORE_NAV, nav, ["Store"]),
     };
   }, [area, data, domainOk, access, physical]);
   return { tree, storeTabs };

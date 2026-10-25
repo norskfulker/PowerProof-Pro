@@ -29,6 +29,1089 @@ export type Database = {
         }
         Relationships: []
       }
+      agent_action_items: {
+        Row: {
+          body: string | null
+          created_at: string
+          done_at: string | null
+          done_by: string | null
+          id: string
+          idempotency_key: string
+          instance_id: string
+          kind: string
+          payload: Json
+          ref_id: string | null
+          ref_type: string | null
+          snooze_until: string | null
+          status: string
+          store_id: string
+          title: string
+        }
+        Insert: {
+          body?: string | null
+          created_at?: string
+          done_at?: string | null
+          done_by?: string | null
+          id?: string
+          idempotency_key: string
+          instance_id: string
+          kind: string
+          payload?: Json
+          ref_id?: string | null
+          ref_type?: string | null
+          snooze_until?: string | null
+          status?: string
+          store_id: string
+          title: string
+        }
+        Update: {
+          body?: string | null
+          created_at?: string
+          done_at?: string | null
+          done_by?: string | null
+          id?: string
+          idempotency_key?: string
+          instance_id?: string
+          kind?: string
+          payload?: Json
+          ref_id?: string | null
+          ref_type?: string | null
+          snooze_until?: string | null
+          status?: string
+          store_id?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_action_items_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "agent_instances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_action_items_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agent_audit_log: {
+        Row: {
+          action: string
+          actor_id: string | null
+          created_at: string
+          id: number
+          meta: Json
+          target_id: string | null
+          target_type: string | null
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          created_at?: string
+          id?: never
+          meta?: Json
+          target_id?: string | null
+          target_type?: string | null
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          created_at?: string
+          id?: never
+          meta?: Json
+          target_id?: string | null
+          target_type?: string | null
+        }
+        Relationships: []
+      }
+      agent_catalog: {
+        Row: {
+          category: string
+          created_at: string
+          description: string
+          enabled: boolean
+          id: string
+          name: string
+          sort: number
+          status: string
+          tagline: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          description?: string
+          enabled?: boolean
+          id: string
+          name: string
+          sort?: number
+          status?: string
+          tagline?: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string
+          enabled?: boolean
+          id?: string
+          name?: string
+          sort?: number
+          status?: string
+          tagline?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      agent_connections: {
+        Row: {
+          config: Json
+          created_at: string
+          created_by: string | null
+          id: string
+          label: string
+          last_checked_at: string | null
+          last_error: string | null
+          secret_enc: string | null
+          status: string
+          store_id: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          config?: Json
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          label?: string
+          last_checked_at?: string | null
+          last_error?: string | null
+          secret_enc?: string | null
+          status?: string
+          store_id: string
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          config?: Json
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          label?: string
+          last_checked_at?: string | null
+          last_error?: string | null
+          secret_enc?: string | null
+          status?: string
+          store_id?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_connections_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agent_consents: {
+        Row: {
+          accepted_at: string
+          id: string
+          instance_id: string
+          store_id: string
+          text: string
+          user_id: string | null
+        }
+        Insert: {
+          accepted_at?: string
+          id?: string
+          instance_id: string
+          store_id: string
+          text: string
+          user_id?: string | null
+        }
+        Update: {
+          accepted_at?: string
+          id?: string
+          instance_id?: string
+          store_id?: string
+          text?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_consents_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "agent_instances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_consents_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agent_credit_ledger: {
+        Row: {
+          agent_id: string | null
+          created_at: string
+          created_by: string | null
+          delta: number
+          id: number
+          idempotency_key: string
+          kind: string
+          reason: string | null
+          ref: string | null
+          store_id: string
+        }
+        Insert: {
+          agent_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          delta: number
+          id?: never
+          idempotency_key: string
+          kind: string
+          reason?: string | null
+          ref?: string | null
+          store_id: string
+        }
+        Update: {
+          agent_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          delta?: number
+          id?: never
+          idempotency_key?: string
+          kind?: string
+          reason?: string | null
+          ref?: string | null
+          store_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_credit_ledger_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agent_demand_requests: {
+        Row: {
+          agent_id: string
+          created_at: string
+          email: string
+          id: string
+          mobile: string | null
+          note: string | null
+          store_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          agent_id: string
+          created_at?: string
+          email: string
+          id?: string
+          mobile?: string | null
+          note?: string | null
+          store_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          agent_id?: string
+          created_at?: string
+          email?: string
+          id?: string
+          mobile?: string | null
+          note?: string | null
+          store_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_demand_requests_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agent_catalog"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_demand_requests_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agent_instance_connections: {
+        Row: {
+          connection_id: string
+          connector_key: string
+          instance_id: string
+          store_id: string
+        }
+        Insert: {
+          connection_id: string
+          connector_key: string
+          instance_id: string
+          store_id: string
+        }
+        Update: {
+          connection_id?: string
+          connector_key?: string
+          instance_id?: string
+          store_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_instance_connections_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "agent_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_instance_connections_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "agent_instances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_instance_connections_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agent_instances: {
+        Row: {
+          agent_id: string
+          consent_at: string | null
+          consent_by: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          last_run_at: string | null
+          next_run_at: string | null
+          paused_reason: string | null
+          run_every_minutes: number | null
+          run_lock_until: string | null
+          settings: Json
+          status: string
+          store_id: string
+          updated_at: string
+        }
+        Insert: {
+          agent_id: string
+          consent_at?: string | null
+          consent_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          last_run_at?: string | null
+          next_run_at?: string | null
+          paused_reason?: string | null
+          run_every_minutes?: number | null
+          run_lock_until?: string | null
+          settings?: Json
+          status?: string
+          store_id: string
+          updated_at?: string
+        }
+        Update: {
+          agent_id?: string
+          consent_at?: string | null
+          consent_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          last_run_at?: string | null
+          next_run_at?: string | null
+          paused_reason?: string | null
+          run_every_minutes?: number | null
+          run_lock_until?: string | null
+          settings?: Json
+          status?: string
+          store_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_instances_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agent_catalog"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_instances_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agent_jobs: {
+        Row: {
+          attempts: number
+          created_at: string
+          id: string
+          idempotency_key: string
+          instance_id: string | null
+          kind: string
+          last_error: string | null
+          locked_until: string | null
+          max_attempts: number
+          payload: Json
+          run_at: string
+          run_id: string | null
+          status: string
+          store_id: string
+          updated_at: string
+        }
+        Insert: {
+          attempts?: number
+          created_at?: string
+          id?: string
+          idempotency_key: string
+          instance_id?: string | null
+          kind: string
+          last_error?: string | null
+          locked_until?: string | null
+          max_attempts?: number
+          payload?: Json
+          run_at?: string
+          run_id?: string | null
+          status?: string
+          store_id: string
+          updated_at?: string
+        }
+        Update: {
+          attempts?: number
+          created_at?: string
+          id?: string
+          idempotency_key?: string
+          instance_id?: string | null
+          kind?: string
+          last_error?: string | null
+          locked_until?: string | null
+          max_attempts?: number
+          payload?: Json
+          run_at?: string
+          run_id?: string | null
+          status?: string
+          store_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_jobs_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "agent_instances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_jobs_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "agent_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_jobs_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agent_llm_cache: {
+        Row: {
+          body: string
+          cache_key: string
+          created_at: string
+          store_id: string
+          subject: string | null
+        }
+        Insert: {
+          body: string
+          cache_key: string
+          created_at?: string
+          store_id: string
+          subject?: string | null
+        }
+        Update: {
+          body?: string
+          cache_key?: string
+          created_at?: string
+          store_id?: string
+          subject?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_llm_cache_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agent_llm_usage: {
+        Row: {
+          agent_id: string
+          created_at: string
+          id: number
+          input_tokens: number
+          model: string
+          ok: boolean
+          output_tokens: number
+          provider: string
+          store_id: string
+        }
+        Insert: {
+          agent_id: string
+          created_at?: string
+          id?: never
+          input_tokens?: number
+          model: string
+          ok?: boolean
+          output_tokens?: number
+          provider: string
+          store_id: string
+        }
+        Update: {
+          agent_id?: string
+          created_at?: string
+          id?: never
+          input_tokens?: number
+          model?: string
+          ok?: boolean
+          output_tokens?: number
+          provider?: string
+          store_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_llm_usage_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agent_messages_outbox: {
+        Row: {
+          agent_id: string
+          body: string
+          channel: string
+          contact_key: string
+          created_at: string
+          credit_reason: string | null
+          credits: number
+          error: string | null
+          id: string
+          idempotency_key: string
+          instance_id: string
+          provider_message_id: string | null
+          sent_at: string | null
+          status: string
+          store_id: string
+          subject: string | null
+          to_address: string
+        }
+        Insert: {
+          agent_id: string
+          body: string
+          channel: string
+          contact_key: string
+          created_at?: string
+          credit_reason?: string | null
+          credits?: number
+          error?: string | null
+          id?: string
+          idempotency_key: string
+          instance_id: string
+          provider_message_id?: string | null
+          sent_at?: string | null
+          status?: string
+          store_id: string
+          subject?: string | null
+          to_address: string
+        }
+        Update: {
+          agent_id?: string
+          body?: string
+          channel?: string
+          contact_key?: string
+          created_at?: string
+          credit_reason?: string | null
+          credits?: number
+          error?: string | null
+          id?: string
+          idempotency_key?: string
+          instance_id?: string
+          provider_message_id?: string | null
+          sent_at?: string | null
+          status?: string
+          store_id?: string
+          subject?: string | null
+          to_address?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_messages_outbox_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "agent_instances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_messages_outbox_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agent_optouts: {
+        Row: {
+          address_hash: string
+          channel: string
+          created_at: string
+          source: string
+          store_id: string
+        }
+        Insert: {
+          address_hash: string
+          channel: string
+          created_at?: string
+          source?: string
+          store_id: string
+        }
+        Update: {
+          address_hash?: string
+          channel?: string
+          created_at?: string
+          source?: string
+          store_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_optouts_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agent_payment_events: {
+        Row: {
+          created_at: string
+          error: string | null
+          event_id: string
+          event_type: string
+          gateway: string
+          id: number
+          payload: Json
+          processed_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          error?: string | null
+          event_id: string
+          event_type: string
+          gateway?: string
+          id?: never
+          payload: Json
+          processed_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          error?: string | null
+          event_id?: string
+          event_type?: string
+          gateway?: string
+          id?: never
+          payload?: Json
+          processed_at?: string | null
+        }
+        Relationships: []
+      }
+      agent_plans: {
+        Row: {
+          active: boolean
+          agent_id: string
+          created_at: string
+          currency: string
+          id: string
+          included_credits: number
+          launch_price_minor: number | null
+          name: string
+          price_minor: number
+          razorpay_plan_id: string | null
+        }
+        Insert: {
+          active?: boolean
+          agent_id: string
+          created_at?: string
+          currency?: string
+          id: string
+          included_credits?: number
+          launch_price_minor?: number | null
+          name?: string
+          price_minor: number
+          razorpay_plan_id?: string | null
+        }
+        Update: {
+          active?: boolean
+          agent_id?: string
+          created_at?: string
+          currency?: string
+          id?: string
+          included_credits?: number
+          launch_price_minor?: number | null
+          name?: string
+          price_minor?: number
+          razorpay_plan_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_plans_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agent_catalog"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agent_platform_settings: {
+        Row: {
+          cost_rates: Json
+          id: boolean
+          llm_provider: string
+          runs_enabled: boolean
+          sending_enabled: boolean
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          cost_rates?: Json
+          id?: boolean
+          llm_provider?: string
+          runs_enabled?: boolean
+          sending_enabled?: boolean
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          cost_rates?: Json
+          id?: boolean
+          llm_provider?: string
+          runs_enabled?: boolean
+          sending_enabled?: boolean
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      agent_reports: {
+        Row: {
+          created_at: string
+          data: Json
+          error: string | null
+          id: string
+          instance_id: string
+          period_end: string
+          period_start: string
+          sent_at: string | null
+          status: string
+          store_id: string
+        }
+        Insert: {
+          created_at?: string
+          data?: Json
+          error?: string | null
+          id?: string
+          instance_id: string
+          period_end: string
+          period_start: string
+          sent_at?: string | null
+          status?: string
+          store_id: string
+        }
+        Update: {
+          created_at?: string
+          data?: Json
+          error?: string | null
+          id?: string
+          instance_id?: string
+          period_end?: string
+          period_start?: string
+          sent_at?: string | null
+          status?: string
+          store_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_reports_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "agent_instances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_reports_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agent_run_steps: {
+        Row: {
+          attempts: number
+          error: string | null
+          output: Json | null
+          run_id: string
+          status: string
+          step: string
+          store_id: string
+          updated_at: string
+        }
+        Insert: {
+          attempts?: number
+          error?: string | null
+          output?: Json | null
+          run_id: string
+          status: string
+          step: string
+          store_id: string
+          updated_at?: string
+        }
+        Update: {
+          attempts?: number
+          error?: string | null
+          output?: Json | null
+          run_id?: string
+          status?: string
+          step?: string
+          store_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_run_steps_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "agent_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_run_steps_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agent_runs: {
+        Row: {
+          agent_id: string
+          dry_run: boolean
+          error: string | null
+          finished_at: string | null
+          id: string
+          instance_id: string
+          started_at: string
+          status: string
+          store_id: string
+          summary: Json
+          trigger: string
+        }
+        Insert: {
+          agent_id: string
+          dry_run?: boolean
+          error?: string | null
+          finished_at?: string | null
+          id?: string
+          instance_id: string
+          started_at?: string
+          status?: string
+          store_id: string
+          summary?: Json
+          trigger: string
+        }
+        Update: {
+          agent_id?: string
+          dry_run?: boolean
+          error?: string | null
+          finished_at?: string | null
+          id?: string
+          instance_id?: string
+          started_at?: string
+          status?: string
+          store_id?: string
+          summary?: Json
+          trigger?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_runs_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "agent_instances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_runs_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agent_subscriptions: {
+        Row: {
+          agent_id: string
+          created_at: string
+          current_period_end: string | null
+          id: string
+          plan_id: string | null
+          razorpay_subscription_id: string | null
+          status: string
+          store_id: string
+          updated_at: string
+        }
+        Insert: {
+          agent_id: string
+          created_at?: string
+          current_period_end?: string | null
+          id?: string
+          plan_id?: string | null
+          razorpay_subscription_id?: string | null
+          status?: string
+          store_id: string
+          updated_at?: string
+        }
+        Update: {
+          agent_id?: string
+          created_at?: string
+          current_period_end?: string | null
+          id?: string
+          plan_id?: string | null
+          razorpay_subscription_id?: string | null
+          status?: string
+          store_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_subscriptions_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agent_catalog"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_subscriptions_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "agent_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_subscriptions_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agent_support_items: {
+        Row: {
+          closed_at: string | null
+          closed_by: string | null
+          context: Json
+          created_at: string
+          id: string
+          instance_id: string | null
+          kind: string
+          message: string
+          status: string
+          store_id: string
+          user_id: string | null
+        }
+        Insert: {
+          closed_at?: string | null
+          closed_by?: string | null
+          context?: Json
+          created_at?: string
+          id?: string
+          instance_id?: string | null
+          kind: string
+          message: string
+          status?: string
+          store_id: string
+          user_id?: string | null
+        }
+        Update: {
+          closed_at?: string | null
+          closed_by?: string | null
+          context?: Json
+          created_at?: string
+          id?: string
+          instance_id?: string | null
+          kind?: string
+          message?: string
+          status?: string
+          store_id?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_support_items_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "agent_instances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_support_items_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_generations: {
         Row: {
           created_at: string
@@ -256,6 +1339,296 @@ export type Database = {
         }
         Relationships: []
       }
+      chaser_customers: {
+        Row: {
+          created_at: string
+          email: string | null
+          id: string
+          is_paused: boolean
+          language_pref: string | null
+          name: string
+          notes: string | null
+          opted_out_at: string | null
+          phone_e164: string | null
+          store_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          is_paused?: boolean
+          language_pref?: string | null
+          name: string
+          notes?: string | null
+          opted_out_at?: string | null
+          phone_e164?: string | null
+          store_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          is_paused?: boolean
+          language_pref?: string | null
+          name?: string
+          notes?: string | null
+          opted_out_at?: string | null
+          phone_e164?: string | null
+          store_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chaser_customers_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chaser_imports: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          error_report: Json
+          file_name: string
+          id: string
+          is_full: boolean
+          missing_invoice_ids: string[]
+          rows_failed: number
+          rows_imported: number
+          rows_total: number
+          rows_updated: number
+          source: string
+          status: string
+          store_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          error_report?: Json
+          file_name?: string
+          id?: string
+          is_full?: boolean
+          missing_invoice_ids?: string[]
+          rows_failed?: number
+          rows_imported?: number
+          rows_total?: number
+          rows_updated?: number
+          source: string
+          status?: string
+          store_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          error_report?: Json
+          file_name?: string
+          id?: string
+          is_full?: boolean
+          missing_invoice_ids?: string[]
+          rows_failed?: number
+          rows_imported?: number
+          rows_total?: number
+          rows_updated?: number
+          source?: string
+          status?: string
+          store_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chaser_imports_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chaser_invoices: {
+        Row: {
+          amount_paid_minor: number
+          amount_total_minor: number
+          created_at: string
+          currency: string
+          customer_id: string
+          due_date: string
+          id: string
+          import_id: string | null
+          invoice_date: string | null
+          invoice_no: string
+          paid_at: string | null
+          source: string
+          source_ref: string | null
+          status: string
+          store_id: string
+          updated_at: string
+        }
+        Insert: {
+          amount_paid_minor?: number
+          amount_total_minor: number
+          created_at?: string
+          currency?: string
+          customer_id: string
+          due_date: string
+          id?: string
+          import_id?: string | null
+          invoice_date?: string | null
+          invoice_no: string
+          paid_at?: string | null
+          source?: string
+          source_ref?: string | null
+          status?: string
+          store_id: string
+          updated_at?: string
+        }
+        Update: {
+          amount_paid_minor?: number
+          amount_total_minor?: number
+          created_at?: string
+          currency?: string
+          customer_id?: string
+          due_date?: string
+          id?: string
+          import_id?: string | null
+          invoice_date?: string | null
+          invoice_no?: string
+          paid_at?: string | null
+          source?: string
+          source_ref?: string | null
+          status?: string
+          store_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chaser_invoices_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "chaser_customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chaser_invoices_import_id_fkey"
+            columns: ["import_id"]
+            isOneToOne: false
+            referencedRelation: "chaser_imports"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chaser_invoices_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chaser_reminders: {
+        Row: {
+          anchor: string
+          body: string
+          channel: string
+          created_at: string
+          customer_id: string
+          edited: boolean
+          error: string | null
+          facts: Json
+          id: string
+          idempotency_key: string
+          invoice_ids: string[]
+          language: string
+          provider_message_id: string | null
+          queued_at: string | null
+          run_id: string | null
+          scheduled_for: string | null
+          sent_at: string | null
+          source: string
+          stage: number
+          status: string
+          store_id: string
+          subject: string | null
+          template_body: string
+          template_subject: string | null
+          tone: string
+          updated_at: string
+        }
+        Insert: {
+          anchor: string
+          body: string
+          channel: string
+          created_at?: string
+          customer_id: string
+          edited?: boolean
+          error?: string | null
+          facts?: Json
+          id?: string
+          idempotency_key: string
+          invoice_ids?: string[]
+          language: string
+          provider_message_id?: string | null
+          queued_at?: string | null
+          run_id?: string | null
+          scheduled_for?: string | null
+          sent_at?: string | null
+          source?: string
+          stage: number
+          status?: string
+          store_id: string
+          subject?: string | null
+          template_body: string
+          template_subject?: string | null
+          tone: string
+          updated_at?: string
+        }
+        Update: {
+          anchor?: string
+          body?: string
+          channel?: string
+          created_at?: string
+          customer_id?: string
+          edited?: boolean
+          error?: string | null
+          facts?: Json
+          id?: string
+          idempotency_key?: string
+          invoice_ids?: string[]
+          language?: string
+          provider_message_id?: string | null
+          queued_at?: string | null
+          run_id?: string | null
+          scheduled_for?: string | null
+          sent_at?: string | null
+          source?: string
+          stage?: number
+          status?: string
+          store_id?: string
+          subject?: string | null
+          template_body?: string
+          template_subject?: string | null
+          tone?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chaser_reminders_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "chaser_customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chaser_reminders_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       collection_items: {
         Row: {
           collection_id: string
@@ -469,6 +1842,73 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "custom_pages_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customer_profiles: {
+        Row: {
+          email: string
+          note: string | null
+          store_id: string
+          tags: string[]
+          unsubscribed_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          email: string
+          note?: string | null
+          store_id: string
+          tags?: string[]
+          unsubscribed_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          email?: string
+          note?: string | null
+          store_id?: string
+          tags?: string[]
+          unsubscribed_at?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_profiles_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customer_segments: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          rules: Json
+          store_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          rules?: Json
+          store_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          rules?: Json
+          store_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_segments_store_id_fkey"
             columns: ["store_id"]
             isOneToOne: false
             referencedRelation: "stores"
@@ -700,6 +2140,41 @@ export type Database = {
           },
         ]
       }
+      email_sends: {
+        Row: {
+          created_at: string
+          id: string
+          recipients: number
+          sent_by: string | null
+          store_id: string
+          subject: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          recipients: number
+          sent_by?: string | null
+          store_id: string
+          subject: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          recipients?: number
+          sent_by?: string | null
+          store_id?: string
+          subject?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_sends_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fx_rates: {
         Row: {
           currency: string
@@ -921,6 +2396,7 @@ export type Database = {
           body: string | null
           created_at: string
           dedupe: string | null
+          emailed_at: string | null
           href: string | null
           id: string
           kind: string
@@ -933,6 +2409,7 @@ export type Database = {
           body?: string | null
           created_at?: string
           dedupe?: string | null
+          emailed_at?: string | null
           href?: string | null
           id?: string
           kind: string
@@ -945,6 +2422,7 @@ export type Database = {
           body?: string | null
           created_at?: string
           dedupe?: string | null
+          emailed_at?: string | null
           href?: string | null
           id?: string
           kind?: string
@@ -955,6 +2433,64 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "notifications_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      order_events: {
+        Row: {
+          actor_id: string | null
+          actor_name: string | null
+          amount_minor: number | null
+          body: string | null
+          created_at: string
+          id: string
+          kind: string
+          order_id: string
+          store_id: string
+        }
+        Insert: {
+          actor_id?: string | null
+          actor_name?: string | null
+          amount_minor?: number | null
+          body?: string | null
+          created_at?: string
+          id?: string
+          kind: string
+          order_id: string
+          store_id: string
+        }
+        Update: {
+          actor_id?: string | null
+          actor_name?: string | null
+          amount_minor?: number | null
+          body?: string | null
+          created_at?: string
+          id?: string
+          kind?: string
+          order_id?: string
+          store_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_events_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "creator_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_events_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_events_store_id_fkey"
             columns: ["store_id"]
             isOneToOne: false
             referencedRelation: "stores"
@@ -1065,6 +2601,7 @@ export type Database = {
           id: string
           invoice_no: string | null
           invoice_path: string | null
+          marketing_opt_in: boolean
           paid_at: string | null
           payment_method: string
           ref: string
@@ -1103,6 +2640,7 @@ export type Database = {
           id?: string
           invoice_no?: string | null
           invoice_path?: string | null
+          marketing_opt_in?: boolean
           paid_at?: string | null
           payment_method?: string
           ref?: string
@@ -1141,6 +2679,7 @@ export type Database = {
           id?: string
           invoice_no?: string | null
           invoice_path?: string | null
+          marketing_opt_in?: boolean
           paid_at?: string | null
           payment_method?: string
           ref?: string
@@ -1499,10 +3038,13 @@ export type Database = {
           fulfilment: string
           hsn_sac: string | null
           id: string
+          low_stock_at: number
           min_price_minor: number
           options: Json
+          paused_by_switch: boolean
           price_minor: number
           product_type: string
+          publish_at: string | null
           sku: string | null
           slug: string
           source_url: string | null
@@ -1512,6 +3054,7 @@ export type Database = {
           tax_rate_bps: number
           title: string
           track_stock: boolean
+          unpublish_at: string | null
           updated_at: string
           weight_grams: number | null
         }
@@ -1524,10 +3067,13 @@ export type Database = {
           fulfilment?: string
           hsn_sac?: string | null
           id?: string
+          low_stock_at?: number
           min_price_minor?: number
           options?: Json
+          paused_by_switch?: boolean
           price_minor?: number
           product_type?: string
+          publish_at?: string | null
           sku?: string | null
           slug: string
           source_url?: string | null
@@ -1537,6 +3083,7 @@ export type Database = {
           tax_rate_bps?: number
           title: string
           track_stock?: boolean
+          unpublish_at?: string | null
           updated_at?: string
           weight_grams?: number | null
         }
@@ -1549,10 +3096,13 @@ export type Database = {
           fulfilment?: string
           hsn_sac?: string | null
           id?: string
+          low_stock_at?: number
           min_price_minor?: number
           options?: Json
+          paused_by_switch?: boolean
           price_minor?: number
           product_type?: string
+          publish_at?: string | null
           sku?: string | null
           slug?: string
           source_url?: string | null
@@ -1562,6 +3112,7 @@ export type Database = {
           tax_rate_bps?: number
           title?: string
           track_stock?: boolean
+          unpublish_at?: string | null
           updated_at?: string
           weight_grams?: number | null
         }
@@ -1766,13 +3317,66 @@ export type Database = {
           },
         ]
       }
+      review_emails: {
+        Row: {
+          created_at: string
+          email: string
+          product_id: string
+          review_id: string
+          store_id: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          product_id: string
+          review_id: string
+          store_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          product_id?: string
+          review_id?: string
+          store_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "review_emails_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "review_emails_review_id_fkey"
+            columns: ["review_id"]
+            isOneToOne: true
+            referencedRelation: "creator_reviews"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "review_emails_review_id_fkey"
+            columns: ["review_id"]
+            isOneToOne: true
+            referencedRelation: "reviews"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "review_emails_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       reviews: {
         Row: {
           body: string | null
           created_at: string
           creator_reply: string | null
           id: string
-          order_id: string
+          order_id: string | null
           photos: string[]
           pinned: boolean
           product_id: string
@@ -1783,13 +3387,14 @@ export type Database = {
           store_id: string
           title: string | null
           updated_at: string
+          verified: boolean | null
         }
         Insert: {
           body?: string | null
           created_at?: string
           creator_reply?: string | null
           id?: string
-          order_id: string
+          order_id?: string | null
           photos?: string[]
           pinned?: boolean
           product_id: string
@@ -1800,13 +3405,14 @@ export type Database = {
           store_id: string
           title?: string | null
           updated_at?: string
+          verified?: boolean | null
         }
         Update: {
           body?: string | null
           created_at?: string
           creator_reply?: string | null
           id?: string
-          order_id?: string
+          order_id?: string | null
           photos?: string[]
           pinned?: boolean
           product_id?: string
@@ -1817,6 +3423,7 @@ export type Database = {
           store_id?: string
           title?: string | null
           updated_at?: string
+          verified?: boolean | null
         }
         Relationships: [
           {
@@ -1898,44 +3505,6 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "store_claims_store_id_fkey"
-            columns: ["store_id"]
-            isOneToOne: false
-            referencedRelation: "stores"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      store_integrations: {
-        Row: {
-          config: Json
-          enabled: boolean
-          kind: string
-          provider: string
-          secret_enc: string | null
-          store_id: string
-          updated_at: string
-        }
-        Insert: {
-          config?: Json
-          enabled?: boolean
-          kind: string
-          provider: string
-          secret_enc?: string | null
-          store_id: string
-          updated_at?: string
-        }
-        Update: {
-          config?: Json
-          enabled?: boolean
-          kind?: string
-          provider?: string
-          secret_enc?: string | null
-          store_id?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "store_integrations_store_id_fkey"
             columns: ["store_id"]
             isOneToOne: false
             referencedRelation: "stores"
@@ -2035,75 +3604,40 @@ export type Database = {
           },
         ]
       }
-      store_members: {
+      store_integrations: {
         Row: {
-          accepted_at: string | null
-          areas: string[]
-          created_at: string
-          email: string
-          expires_at: string | null
-          id: string
-          invited_at: string
-          invited_by: string | null
-          role: string
-          status: string
+          config: Json
+          enabled: boolean
+          kind: string
+          provider: string
+          secret_enc: string | null
           store_id: string
-          token_hash: string | null
           updated_at: string
-          user_id: string | null
         }
         Insert: {
-          accepted_at?: string | null
-          areas?: string[]
-          created_at?: string
-          email: string
-          expires_at?: string | null
-          id?: string
-          invited_at?: string
-          invited_by?: string | null
-          role?: string
-          status?: string
+          config?: Json
+          enabled?: boolean
+          kind: string
+          provider: string
+          secret_enc?: string | null
           store_id: string
-          token_hash?: string | null
           updated_at?: string
-          user_id?: string | null
         }
         Update: {
-          accepted_at?: string | null
-          areas?: string[]
-          created_at?: string
-          email?: string
-          expires_at?: string | null
-          id?: string
-          invited_at?: string
-          invited_by?: string | null
-          role?: string
-          status?: string
+          config?: Json
+          enabled?: boolean
+          kind?: string
+          provider?: string
+          secret_enc?: string | null
           store_id?: string
-          token_hash?: string | null
           updated_at?: string
-          user_id?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "store_members_invited_by_fkey"
-            columns: ["invited_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "store_members_store_id_fkey"
+            foreignKeyName: "store_integrations_store_id_fkey"
             columns: ["store_id"]
             isOneToOne: false
             referencedRelation: "stores"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "store_members_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -2147,9 +3681,9 @@ export type Database = {
           cart_reminders: boolean
           company_address: string | null
           country: string
-          first_opened_at: string | null
           created_at: string
           currency_base: string
+          first_opened_at: string | null
           gstin: string | null
           id: string
           invoice_footer: string | null
@@ -2161,6 +3695,7 @@ export type Database = {
           owner_id: string
           pan: string | null
           refund_days: number
+          revenue_goal_minor: number | null
           sells: string
           setup_mode: string
           shipping: Json
@@ -2171,6 +3706,7 @@ export type Database = {
           theme: Json
           theme_mode: string
           updated_at: string
+          workspace_id: string
         }
         Insert: {
           brand_color?: string | null
@@ -2178,9 +3714,9 @@ export type Database = {
           cart_reminders?: boolean
           company_address?: string | null
           country?: string
-          first_opened_at?: string | null
           created_at?: string
           currency_base?: string
+          first_opened_at?: string | null
           gstin?: string | null
           id?: string
           invoice_footer?: string | null
@@ -2192,6 +3728,7 @@ export type Database = {
           owner_id: string
           pan?: string | null
           refund_days?: number
+          revenue_goal_minor?: number | null
           sells?: string
           setup_mode?: string
           shipping?: Json
@@ -2202,6 +3739,7 @@ export type Database = {
           theme?: Json
           theme_mode?: string
           updated_at?: string
+          workspace_id: string
         }
         Update: {
           brand_color?: string | null
@@ -2209,9 +3747,9 @@ export type Database = {
           cart_reminders?: boolean
           company_address?: string | null
           country?: string
-          first_opened_at?: string | null
           created_at?: string
           currency_base?: string
+          first_opened_at?: string | null
           gstin?: string | null
           id?: string
           invoice_footer?: string | null
@@ -2223,6 +3761,7 @@ export type Database = {
           owner_id?: string
           pan?: string | null
           refund_days?: number
+          revenue_goal_minor?: number | null
           sells?: string
           setup_mode?: string
           shipping?: Json
@@ -2233,6 +3772,7 @@ export type Database = {
           theme?: Json
           theme_mode?: string
           updated_at?: string
+          workspace_id?: string
         }
         Relationships: [
           {
@@ -2240,6 +3780,13 @@ export type Database = {
             columns: ["owner_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stores_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
             referencedColumns: ["id"]
           },
         ]
@@ -2318,8 +3865,128 @@ export type Database = {
         }
         Relationships: []
       }
+      workspace_members: {
+        Row: {
+          accepted_at: string | null
+          areas: string[]
+          created_at: string
+          email: string
+          expires_at: string | null
+          id: string
+          invited_at: string
+          invited_by: string | null
+          role: string
+          status: string
+          token_hash: string | null
+          updated_at: string
+          user_id: string | null
+          workspace_id: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          areas?: string[]
+          created_at?: string
+          email: string
+          expires_at?: string | null
+          id?: string
+          invited_at?: string
+          invited_by?: string | null
+          role?: string
+          status?: string
+          token_hash?: string | null
+          updated_at?: string
+          user_id?: string | null
+          workspace_id: string
+        }
+        Update: {
+          accepted_at?: string | null
+          areas?: string[]
+          created_at?: string
+          email?: string
+          expires_at?: string | null
+          id?: string
+          invited_at?: string
+          invited_by?: string | null
+          role?: string
+          status?: string
+          token_hash?: string | null
+          updated_at?: string
+          user_id?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_members_invited_by_fkey"
+            columns: ["invited_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workspace_members_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workspace_members_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workspaces: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          owner_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          owner_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          owner_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspaces_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
+      agent_credit_balances: {
+        Row: {
+          balance: number | null
+          store_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_credit_ledger_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       creator_balances: {
         Row: {
           available_minor: number | null
@@ -2588,6 +4255,11 @@ export type Database = {
       }
     }
     Functions: {
+      actor_name: { Args: never; Returns: string }
+      add_order_note: {
+        Args: { p_body: string; p_order: string }
+        Returns: Json
+      }
       admin_audit: {
         Args: { p_limit?: number; p_q?: string }
         Returns: {
@@ -2889,6 +4561,132 @@ export type Database = {
           processed_at: string
         }[]
       }
+      agent_charge_credits: {
+        Args: {
+          p_agent: string
+          p_key: string
+          p_n: number
+          p_reason: string
+          p_store: string
+        }
+        Returns: string
+      }
+      agent_claim_job: {
+        Args: { p_id: string; p_lease_seconds: number }
+        Returns: {
+          attempts: number
+          created_at: string
+          id: string
+          idempotency_key: string
+          instance_id: string | null
+          kind: string
+          last_error: string | null
+          locked_until: string | null
+          max_attempts: number
+          payload: Json
+          run_at: string
+          run_id: string | null
+          status: string
+          store_id: string
+          updated_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "agent_jobs"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      agent_claim_jobs: {
+        Args: { p_lease_seconds: number; p_limit: number }
+        Returns: {
+          attempts: number
+          created_at: string
+          id: string
+          idempotency_key: string
+          instance_id: string | null
+          kind: string
+          last_error: string | null
+          locked_until: string | null
+          max_attempts: number
+          payload: Json
+          run_at: string
+          run_id: string | null
+          status: string
+          store_id: string
+          updated_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "agent_jobs"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      agent_credit_balance: { Args: { p_store: string }; Returns: number }
+      agent_finish_job: {
+        Args: {
+          p_error?: string
+          p_id: string
+          p_ok: boolean
+          p_retry_seconds?: number
+        }
+        Returns: string
+      }
+      agent_grant_credits: {
+        Args: {
+          p_agent: string
+          p_by?: string
+          p_key: string
+          p_kind: string
+          p_n: number
+          p_reason?: string
+          p_store: string
+        }
+        Returns: boolean
+      }
+      agent_outbox_finish: {
+        Args: {
+          p_error?: string
+          p_id: string
+          p_provider_id?: string
+          p_status: string
+        }
+        Returns: undefined
+      }
+      agent_outbox_reserve: {
+        Args: {
+          p_agent: string
+          p_body: string
+          p_cap_days: number
+          p_cap_messages: number
+          p_channel: string
+          p_contact_key: string
+          p_credits: number
+          p_daily_cap: number
+          p_instance: string
+          p_key: string
+          p_reason: string
+          p_store: string
+          p_subject: string
+          p_to: string
+        }
+        Returns: {
+          outbox_id: string
+          outbox_status: string
+          result: string
+        }[]
+      }
+      agent_request_demand: {
+        Args: {
+          p_agent: string
+          p_email: string
+          p_mobile?: string
+          p_note?: string
+          p_store?: string
+        }
+        Returns: undefined
+      }
       ai_credits_remaining: { Args: never; Returns: number }
       ai_page_allowance: {
         Args: never
@@ -2902,14 +4700,6 @@ export type Database = {
         Args: { p_from: string; p_store: string; p_to: string }
         Returns: Json
       }
-      auth_methods: {
-        Args: { p_email: string }
-        Returns: {
-          out_exists: boolean
-          out_google: boolean
-          out_password: boolean
-        }[]
-      }
       apply_direct_payment: {
         Args: { p_gateway_order_id: string; p_gateway_payment_id: string }
         Returns: {
@@ -2918,6 +4708,15 @@ export type Database = {
           out_ref: string
           out_token: string
         }[]
+      }
+      apply_partial_refund: {
+        Args: {
+          p_amount: number
+          p_gateway_refund_id: string
+          p_order: string
+          p_reason: string
+        }
+        Returns: undefined
       }
       apply_payment: {
         Args: {
@@ -2945,6 +4744,14 @@ export type Database = {
           p_store_slug: string
         }
         Returns: Json
+      }
+      auth_methods: {
+        Args: { p_email: string }
+        Returns: {
+          out_exists: boolean
+          out_google: boolean
+          out_password: boolean
+        }[]
       }
       booked_slots: {
         Args: {
@@ -2990,6 +4797,15 @@ export type Database = {
           p_total: number
         }
         Returns: string
+      }
+      creator_order_views: { Args: { p_orders: string[] }; Returns: Json }
+      customer_audience: {
+        Args: { p_store: string }
+        Returns: {
+          email: string
+          opted_in: boolean
+          unsubscribed: boolean
+        }[]
       }
       finish_ai_page: {
         Args: { p_id: string; p_status: string }
@@ -3062,6 +4878,20 @@ export type Database = {
           owner_plan: string
           role: string
           slug: string
+          workspace_id: string
+          workspace_name: string
+        }[]
+      }
+      my_workspaces: {
+        Args: never
+        Returns: {
+          areas: string[]
+          created_at: string
+          id: string
+          name: string
+          owner_plan: string
+          role: string
+          stores: number
         }[]
       }
       next_invoice_no: { Args: never; Returns: string }
@@ -3083,9 +4913,19 @@ export type Database = {
         Returns: undefined
       }
       order_for_token: { Args: { p_token: string }; Returns: string }
+      order_refunded: { Args: { p_order: string }; Returns: number }
+      order_view: { Args: { p_order: string }; Returns: Json }
+      other_kind_live: {
+        Args: { p_except: string; p_kind: string; p_store: string }
+        Returns: string
+      }
       payout_name_tokens: { Args: { p: string }; Returns: string[] }
       primary_domain: { Args: { p_slug: string }; Returns: string }
       product_is_public: { Args: { p_product: string }; Returns: boolean }
+      product_stats: {
+        Args: { p_from: string; p_product: string; p_to: string }
+        Returns: Json
+      }
       record_dispute: {
         Args: {
           p_amount: number
@@ -3113,6 +4953,7 @@ export type Database = {
       }
       resolve_domain: { Args: { p_host: string }; Returns: string }
       return_stock: { Args: { p_order: string }; Returns: undefined }
+      run_product_schedule: { Args: never; Returns: Json }
       set_order_fulfilment: {
         Args: {
           p_carrier?: string
@@ -3179,6 +5020,18 @@ export type Database = {
         }
         Returns: undefined
       }
+      submit_open_review: {
+        Args: {
+          p_body: string
+          p_email: string
+          p_name: string
+          p_product: string
+          p_rating: number
+          p_store_slug: string
+          p_title: string
+        }
+        Returns: boolean
+      }
       submit_review: {
         Args: {
           p_body: string
@@ -3190,6 +5043,10 @@ export type Database = {
         Returns: undefined
       }
       suggest_store_slug: { Args: { p_name: string }; Returns: string }
+      switch_live_kind: {
+        Args: { p_store: string; p_to: string }
+        Returns: Json
+      }
       take_stock: { Args: { p_order: string }; Returns: undefined }
       team_accept: { Args: { p_token: string }; Returns: string }
       team_invite: {
@@ -3197,13 +5054,13 @@ export type Database = {
           p_areas: string[]
           p_email: string
           p_role: string
-          p_store: string
+          p_workspace: string
         }
         Returns: Json
       }
       team_invite_info: { Args: { p_token: string }; Returns: Json }
       team_list: {
-        Args: { p_store: string }
+        Args: { p_workspace: string }
         Returns: {
           accepted_at: string
           areas: string[]
@@ -3247,6 +5104,11 @@ export type Database = {
           out_discount_minor: number
         }[]
       }
+      workspace_can: {
+        Args: { p_area?: string; p_workspace: string }
+        Returns: boolean
+      }
+      workspace_credits: { Args: { p_workspace: string }; Returns: number }
     }
     Enums: {
       discount_kind: "percent" | "fixed"

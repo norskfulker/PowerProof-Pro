@@ -8,8 +8,8 @@ const STEPS = [
   {
     n: "01",
     time: "30 seconds",
-    title: "Name your store",
-    body: "Pick a name and a link like powerproof.app/yourname. Business details are optional; add them when you need GST invoices.",
+    title: "Create your workspace",
+    body: "Name your workspace and its first store, with a link like powerproof.app/yourname. Add more stores and invite your team any time. Business details are optional; add them when you need GST invoices.",
   },
   {
     n: "02",

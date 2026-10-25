@@ -10,7 +10,7 @@ import { CURRENCIES } from "@/lib/money";
 import { Input } from "@/components/ui/input";
 import { FormError } from "@/components/auth/auth-card";
 import { BrandColorPicker } from "@/components/pp/brand-color-picker";
-import { checkSlug, createStore, suggestSlug } from "@/lib/api";
+import { checkSlug, createStore, suggestSlug, WORKSPACE_NAME_MAX } from "@/lib/api";
 import { SITE_URL } from "@/lib/format";
 import { cleanStoreName, STORE_NAME_MAX, storeNameError } from "@/lib/slug";
 import { normalizeHex } from "@/lib/color";
@@ -18,6 +18,7 @@ import { PALETTES } from "@/lib/palettes";
 import { StepFrame } from "./step-frame";
 
 interface Values {
+  workspace: string;
   name: string;
   country: string;
   brandColor: string;
@@ -28,7 +29,7 @@ type LinkState = { for: string; slug?: string; available?: boolean; failed?: boo
 export function StepStore({ onDone }: { onDone: () => void }) {
   const [error, setError] = useState<string>();
   const [link, setLink] = useState<LinkState | null>(null);
-  const form = useForm<Values>({ defaultValues: { name: "", country: DEFAULT_COUNTRY, brandColor: PALETTES[0].bg }, mode: "onTouched" });
+  const form = useForm<Values>({ defaultValues: { workspace: "", name: "", country: DEFAULT_COUNTRY, brandColor: PALETTES[0].bg }, mode: "onTouched" });
   const name = useWatch({ control: form.control, name: "name" });
   const clean = cleanStoreName(name ?? "");
   const valid = storeNameError(clean) === null;
@@ -59,7 +60,7 @@ export function StepStore({ onDone }: { onDone: () => void }) {
   const ready = Boolean(current?.slug && current.available);
 
   return (
-    <StepFrame formId="step-store" title="Create your store" description="A name and your country is all it takes. Your first product comes next." submitLabel="Create store" pending={form.formState.isSubmitting} disabled={!ready}>
+    <StepFrame formId="step-store" title="Create your workspace" description="Your workspace holds your stores, products, marketplace deals, agents and team. Name it, then name its first store. You can add more stores later." submitLabel="Create workspace" pending={form.formState.isSubmitting} disabled={!ready}>
       <Form {...form}>
         <form
           id="step-store"
@@ -73,7 +74,7 @@ export function StepStore({ onDone }: { onDone: () => void }) {
             if (!color) return setError("Pick a colour as #RRGGBB.");
             if (!ready || !current?.slug) return;
             try {
-              await createStore({ name: cleanStoreName(v.name), brandColor: color, slug: current.slug, country: v.country });
+              await createStore({ workspaceName: v.workspace, name: cleanStoreName(v.name), brandColor: color, slug: current.slug, country: v.country });
               onDone();
             } catch (e) {
               setError(e instanceof Error ? e.message : "Something went wrong.");
@@ -83,13 +84,28 @@ export function StepStore({ onDone }: { onDone: () => void }) {
           <FormError message={error} />
           <FormField
             control={form.control}
+            name="workspace"
+            rules={{ validate: (v) => (v.trim().length < 2 ? "Give your workspace a name." : v.trim().length > WORKSPACE_NAME_MAX ? `Keep it under ${WORKSPACE_NAME_MAX} characters.` : true) }}
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Workspace name</FormLabel>
+                <FormControl>
+                  <Input autoFocus maxLength={WORKSPACE_NAME_MAX} autoComplete="organization" placeholder="Your business or team" {...field} />
+                </FormControl>
+                <FormDescription>Usually your business name. Everyone you invite joins the workspace.</FormDescription>
+                <div className="min-h-5"><FormMessage /></div>
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
             name="name"
             rules={{ validate: (v) => storeNameError(v) ?? true }}
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Store name</FormLabel>
+                <FormLabel>First store name</FormLabel>
                 <FormControl>
-                  <Input autoFocus maxLength={STORE_NAME_MAX + 10} autoComplete="organization" {...field} />
+                  <Input maxLength={STORE_NAME_MAX + 10} autoComplete="off" {...field} />
                 </FormControl>
                 <div className="min-h-5"><FormMessage /></div>
               </FormItem>

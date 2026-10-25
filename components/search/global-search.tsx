@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Clock, CornerDownRight, Eye, Loader2, Search, X } from "lucide-react";
+import { ArrowRight, Clock, CornerDownRight, Eye, Loader2, Search, Sparkles, X } from "lucide-react";
 import { Command as CommandPrimitive } from "cmdk";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
@@ -51,7 +51,7 @@ export const SEARCH_TIPS = [
 /** The platform never changes while the page is open */
 const noSubscribe = () => () => {};
 
-export function GlobalSearch({ scope }: { scope: SearchScope }) {
+export function GlobalSearch({ scope, variant = "bar" }: { scope: SearchScope; /** `hero`: the dashboard's main box (one day it also takes AI work) */ variant?: "bar" | "hero" }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   // ⌘ on Apple keyboards, Ctrl everywhere else — the key handler below accepts both
@@ -144,19 +144,38 @@ export function GlobalSearch({ scope }: { scope: SearchScope }) {
 
   return (
     <>
-      <Button
-        variant="secondary"
-        onClick={() => onOpenChange(true)}
-        className="w-full max-w-sm min-w-0 shrink justify-start font-normal text-muted-foreground max-sm:hidden"
-        aria-label={`Search (${mod} K)`}
-      >
-        <Search aria-hidden />
-        <span className="truncate">{scope === "admin" ? "Search orders, stores, people" : "Search products, orders, people"}</span>
-        <kbd className="ml-auto rounded-[4px] border bg-surface-sunken px-1.5 font-mono text-[0.625rem]">{mod} K</kbd>
-      </Button>
-      <Button variant="ghost" size="icon" className="sm:hidden" onClick={() => onOpenChange(true)} aria-label="Search">
-        <Search />
-      </Button>
+      {variant === "hero" ? (
+        <Button
+          variant="secondary"
+          size="lg"
+          onClick={() => onOpenChange(true)}
+          className="w-full min-w-0 justify-start rounded-card px-4 text-base font-normal text-muted-foreground shadow-xs"
+          aria-label={`Search your workspace (${mod} K)`}
+        >
+          <Search aria-hidden />
+          <span className="truncate">Search products, orders, buyers and pages</span>
+          <span className="ml-auto flex shrink-0 items-center gap-2">
+            <span className="inline-flex items-center gap-1 rounded-full bg-accent-soft px-2 py-0.5 text-[0.6875rem] font-medium text-accent-ink max-sm:hidden"><Sparkles className="size-3" aria-hidden /> AI tasks soon</span>
+            <kbd className="rounded-[4px] border bg-surface-sunken px-1.5 font-mono text-[0.625rem] max-sm:hidden">{mod} K</kbd>
+          </span>
+        </Button>
+      ) : (
+        <>
+          <Button
+            variant="secondary"
+            onClick={() => onOpenChange(true)}
+            className="w-full max-w-sm min-w-0 shrink justify-start font-normal text-muted-foreground max-sm:hidden"
+            aria-label={`Search (${mod} K)`}
+          >
+            <Search aria-hidden />
+            <span className="truncate">{scope === "admin" ? "Search orders, stores, people" : "Search products, orders, people"}</span>
+            <kbd className="ml-auto rounded-[4px] border bg-surface-sunken px-1.5 font-mono text-[0.625rem]">{mod} K</kbd>
+          </Button>
+          <Button variant="ghost" size="icon" className="sm:hidden" onClick={() => onOpenChange(true)} aria-label="Search">
+            <Search />
+          </Button>
+        </>
+      )}
 
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent bare className="top-[8dvh] max-h-[84dvh] translate-y-0 sm:max-w-[min(42rem,calc(100%-2rem))]" showCloseButton={false}>

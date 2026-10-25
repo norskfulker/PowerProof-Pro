@@ -3,11 +3,12 @@ import { ALL_AREAS, type StoreRole, type TeamArea } from "../team";
 import { ApiError } from "./client";
 import { liveChange } from "./live/notify";
 import { fail } from "./live/errors";
-import { activeStoreId, forgetMyStores, setActiveStore } from "./live/session";
+import { activeWorkspaceId, currentUser, forgetMyStores, setActiveStore } from "./live/session";
 
 /**
- * A store's team. Everything goes through the database's team_* functions, which check who is
- * asking: the owner and admins manage people, only the owner makes admins, anyone can leave.
+ * A workspace's team: everyone on it works on every store in the workspace, in the areas they were
+ * given. Everything goes through the database's team_* functions, which check who is asking: the
+ * owner and admins manage people, only the owner makes admins, anyone can leave. Seats are unlimited.
  * Invites are sent by a server route (/api/team/invite) because sending email needs a secret key.
  */
 
@@ -36,7 +37,9 @@ export interface InviteReply {
 }
 
 export interface InviteInfo {
-  storeName: string;
+  workspaceName: string;
+  /** How many stores the workspace holds */
+  stores: number;
   inviter: string;
   email: string;
   role: "admin" | "member";
@@ -48,26 +51,25 @@ const areasOf = (a: string[] | null | undefined): TeamArea[] => (a ?? []).filter
 
 /** The database's reasons, in words */
 const REASONS: Record<string, string> = {
-  not_allowed: "Only the store's owner and admins can manage the team.",
-  owner_only: "Only the store's owner can make admins or change them.",
-  no_areas: "Pick at least one part of the store they can work on.",
+  not_allowed: "Only the workspace's owner and admins can manage the team.",
+  owner_only: "Only the workspace's owner can make admins or change them.",
+  no_areas: "Pick at least one part of the workspace they can work on.",
   bad_email: "That email looks off. Check for typos.",
-  is_owner: "That's the store owner's own email.",
-  already_member: "They're already on this store's team.",
-  plan_limit_team: "Your plan's team seats are all used. Remove someone, or upgrade to Pro for more.",
+  is_owner: "That's the workspace owner's own email.",
+  already_member: "They're already in this workspace.",
   invite_not_found: "This invite link isn't valid any more. Ask for a new one.",
-  invite_expired: "This invite has expired. Ask the store owner to send a new one.",
+  invite_expired: "This invite has expired. Ask the workspace owner to send a new one.",
   wrong_account: "This invite is for a different email address. Log in with the email it was sent to.",
 };
 
 function teamFail(e: { message: string; code?: string } | null): never {
   const key = Object.keys(REASONS).find((k) => e?.message.includes(k));
-  if (key) throw new ApiError(REASONS[key], key === "plan_limit_team" ? "limit" : "validation");
+  if (key) throw new ApiError(REASONS[key], "validation");
   fail(e as Parameters<typeof fail>[0]);
 }
 
 export async function getTeam(): Promise<TeamPerson[]> {
-  const r = await sb().rpc("team_list", { p_store: await activeStoreId() });
+  const r = await sb().rpc("team_list", { p_workspace: await activeWorkspaceId() });
   if (r.error) teamFail(r.error);
   return (r.data ?? []).map((p) => ({
     id: p.id,
@@ -90,11 +92,11 @@ export async function inviteTeamMember(input: { email: string; role: "admin" | "
   const res = await fetch("/api/team/invite", {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ storeId: await activeStoreId(), ...input }),
+    body: JSON.stringify({ workspaceId: await activeWorkspaceId(), ...input }),
   }).catch(() => undefined);
   if (!res) throw new ApiError("We couldn't reach PowerProof. Check your connection and try again.");
   const body = (await res.json().catch(() => ({}))) as { ok?: boolean; message?: string; code?: string; emailed?: boolean; link?: string };
-  if (!res.ok || !body.ok || !body.link) throw new ApiError(body.message ?? "The invite didn't go out. Try again.", body.code === "plan_limit_team" ? "limit" : "validation");
+  if (!res.ok || !body.ok || !body.link) throw new ApiError(body.message ?? "The invite didn't go out. Try again.", "validation");
   return liveChange(Promise.resolve({ emailed: !!body.emailed, link: body.link }));
 }
 
@@ -104,7 +106,7 @@ export async function updateTeamMember(id: string, role: "admin" | "member", are
   await liveChange(Promise.resolve());
 }
 
-/** Removes someone, cancels an invite, or (on your own row) leaves the store */
+/** Removes someone, cancels an invite, or (on your own row) leaves the workspace */
 export async function removeTeamMember(id: string): Promise<void> {
   const r = await sb().rpc("team_remove", { p_member: id });
   if (r.error) teamFail(r.error);
@@ -112,13 +114,10 @@ export async function removeTeamMember(id: string): Promise<void> {
   await liveChange(Promise.resolve());
 }
 
-/** The active store's member row for the signed-in person (to leave it) */
+/** The active workspace's member row for the signed-in person (to leave it) */
 export async function myMembership(): Promise<{ id: string; role: StoreRole; areas: TeamArea[] } | null> {
-  const storeId = await activeStoreId();
-  const { data: auth } = await sb().auth.getSession();
-  const uid = auth.session?.user.id;
-  if (!uid) return null;
-  const r = await sb().from("store_members").select("id, role, areas").eq("store_id", storeId).eq("user_id", uid).maybeSingle();
+  const [workspaceId, me] = await Promise.all([activeWorkspaceId(), currentUser()]);
+  const r = await sb().from("workspace_members").select("id, role, areas").eq("workspace_id", workspaceId).eq("user_id", me.id).maybeSingle();
   if (r.error) fail(r.error);
   return r.data ? { id: r.data.id, role: r.data.role === "admin" ? "admin" : "member", areas: areasOf(r.data.areas) } : null;
 }
@@ -127,16 +126,17 @@ export async function myMembership(): Promise<{ id: string; role: StoreRole; are
 export async function getInviteInfo(token: string): Promise<InviteInfo | null> {
   const r = await sb().rpc("team_invite_info", { p_token: token });
   if (r.error) fail(r.error);
-  const v = r.data as { storeName?: string; inviter?: string; email?: string; role?: string; areas?: string[]; expired?: boolean } | null;
-  if (!v?.storeName) return null;
-  return { storeName: v.storeName, inviter: v.inviter ?? "The store owner", email: v.email ?? "", role: v.role === "admin" ? "admin" : "member", areas: areasOf(v.areas), expired: !!v.expired };
+  const v = r.data as { workspaceName?: string; stores?: number; inviter?: string; email?: string; role?: string; areas?: string[]; expired?: boolean } | null;
+  if (!v?.workspaceName) return null;
+  return { workspaceName: v.workspaceName, stores: v.stores ?? 0, inviter: v.inviter ?? "The workspace owner", email: v.email ?? "", role: v.role === "admin" ? "admin" : "member", areas: areasOf(v.areas), expired: !!v.expired };
 }
 
-/** Joins the store and makes it the active one */
+/** Joins the workspace and makes its first store the active one */
 export async function acceptInvite(token: string): Promise<string> {
   const r = await sb().rpc("team_accept", { p_token: token });
   if (r.error) teamFail(r.error);
-  const storeId = r.data as string;
+  const storeId = r.data as string | null;
+  if (!storeId) throw new ApiError("You joined, but this workspace has no store yet. Ask the owner to add one.", "validation");
   forgetMyStores();
   setActiveStore(storeId);
   return liveChange(Promise.resolve(storeId));

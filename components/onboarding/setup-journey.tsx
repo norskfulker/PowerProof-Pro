@@ -3,7 +3,7 @@
 import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const STAGES = ["Name your store", "Add your first product", "Share & sell"] as const;
+const STAGES = ["Create your workspace", "Add your first product", "Share & sell"] as const;
 
 /**
  * The road from sign-up to first sale, shown across onboarding and the first product

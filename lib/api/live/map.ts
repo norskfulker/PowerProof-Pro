@@ -34,7 +34,8 @@ import type {
 
 type T = Database["public"]["Tables"];
 export type StoreRow = Partial<T["stores"]["Row"]> & Pick<T["stores"]["Row"], "id" | "name" | "slug" | "status" | "theme" | "theme_mode" | "currency_base" | "created_at">;
-export type ProductRow = T["products"]["Row"];
+/** The product columns the app reads (scheduling and stock-alert columns are the database's own) */
+export type ProductRow = Omit<T["products"]["Row"], "low_stock_at" | "paused_by_switch" | "publish_at" | "unpublish_at">;
 export type MediaRow = T["product_media"]["Row"];
 export type FileRow = T["product_files"]["Row"];
 export type VariantRow = T["product_variants"]["Row"];

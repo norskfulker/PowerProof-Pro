@@ -33,8 +33,9 @@ const POLL_MS = 60_000;
 /**
  * The bell: orders, refunds, disputes, reviews, questions, form sign-ups, payouts and stock, for
  * the parts of the store this person works on. Opening one marks it read and goes to it.
+ * `row` is the sidebar's full-width line, `icon` the bare bell (icon rail, phone top bar).
  */
-export function Notifications() {
+export function Notifications({ variant = "icon", side = "bottom" }: { variant?: "icon" | "row"; side?: "bottom" | "right" }) {
   const router = useRouter();
   const { data, loading, error, reload, setData } = useApi(() => getNotifications(30), [], { live: true });
   const [open, setOpen] = useState(false);
@@ -61,16 +62,24 @@ export function Notifications() {
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button variant="ghost" size="icon" aria-label={unread ? `Notifications, ${unread} unread` : "Notifications"} className="relative">
-          <Bell />
-          {unread > 0 && (
-            <span aria-hidden className="absolute top-1 right-1 grid min-w-4 place-items-center rounded-full bg-danger px-1 text-[0.625rem] leading-4 font-semibold text-white">
-              {unread > 99 ? "99+" : unread}
-            </span>
-          )}
-        </Button>
+        {variant === "row" ? (
+          <Button variant="ghost" className="w-full justify-start gap-2.5 px-2.5 font-medium" aria-label={unread ? `Notifications, ${unread} unread` : "Notifications"}>
+            <Bell aria-hidden />
+            <span className="flex-1 text-left">Notifications</span>
+            {unread > 0 && <span aria-hidden className="grid min-w-5 place-items-center rounded-full bg-danger px-1.5 text-[0.6875rem] leading-5 font-semibold text-white">{unread > 99 ? "99+" : unread}</span>}
+          </Button>
+        ) : (
+          <Button variant="ghost" size="icon" aria-label={unread ? `Notifications, ${unread} unread` : "Notifications"} className="relative">
+            <Bell />
+            {unread > 0 && (
+              <span aria-hidden className="absolute top-1 right-1 grid min-w-4 place-items-center rounded-full bg-danger px-1 text-[0.625rem] leading-4 font-semibold text-white">
+                {unread > 99 ? "99+" : unread}
+              </span>
+            )}
+          </Button>
+        )}
       </PopoverTrigger>
-      <PopoverContent align="end" className="w-[min(380px,calc(100vw-32px))] p-0">
+      <PopoverContent side={side} align="end" sideOffset={side === "right" ? 12 : 4} className="w-[min(380px,calc(100vw-32px))] p-0">
         <div className="flex items-center justify-between gap-2 border-b px-4 py-3">
           <p className="font-semibold">Notifications</p>
           <div className="flex items-center gap-1">

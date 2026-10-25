@@ -27,8 +27,8 @@ body[data-payment-provider-open="true"] [data-slot="sheet-content"] {
   color-scheme: light;
   /* Surfaces */
   /* Which faces the type utilities use; store themes swap these two (lib/store-themes.ts) */
-  --font-heading: var(--font-inter);
-  --font-ui: var(--font-inter);
+  --font-heading: var(--font-geist);
+  --font-ui: var(--font-geist);
 
   --background: #f7f7f5; /* paper */
   --surface: #ffffff;
@@ -256,7 +256,7 @@ body[data-payment-provider-open="true"] [data-slot="sheet-content"] {
 
   --font-display: var(--font-heading), var(--font-noto-deva), var(--font-noto-tamil), var(--font-noto-telugu), var(--font-noto-kannada), ui-sans-serif, system-ui, sans-serif;
   --font-sans: var(--font-ui), var(--font-noto-deva), var(--font-noto-tamil), var(--font-noto-telugu), var(--font-noto-kannada), ui-sans-serif, system-ui, sans-serif;
-  --font-mono: var(--font-plex-mono), ui-monospace, monospace;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
 
 
   /* Type scale: 12, 14, 16, 18, 22, 28, 36, 48, 64 */
@@ -313,9 +313,8 @@ body[data-payment-provider-open="true"] [data-slot="sheet-content"] {
   }
   body {
     font-optical-sizing: auto;
-    font-feature-settings: "cv11", "ss01";
   }
-  /* Headings in Inter Display (the optical-size cut at 32); faces without that axis ignore it */
+  /* Headings: tight, bold Geist. The opsz setting only matters to store faces that have the axis */
   h1,
   h2,
   h3,
@@ -427,45 +426,14 @@ body[data-payment-provider-open="true"] [data-slot="sheet-content"] {
     mix-blend-mode: overlay;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .55 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   }
-  /*
-   * Glass icons: a frosted pane over a coloured blob (--gi → --gi2), lit from where the pointer is
-   * (--light-x/--light-y on <html>, set by GlassLight). Without a pointer the light sits top-left.
-   */
+  /* Icon chips: a small round tint of the tone (--gi2) behind the icon in that tone */
   .glass-icon {
-    position: relative;
-    isolation: isolate;
     display: inline-grid;
     place-items: center;
     flex-shrink: 0;
-    border-radius: 30%;
-    color: color-mix(in oklab, var(--gi) 55%, #06120d);
-  }
-  .glass-icon::before {
-    content: "";
-    position: absolute;
-    z-index: -2;
-    inset: 14% 4% -6% 18%;
-    border-radius: 34%;
-    background: linear-gradient(140deg, var(--gi) 0%, var(--gi2) 100%);
-    box-shadow: 0 8px 18px -6px color-mix(in oklab, var(--gi2) 70%, transparent);
-  }
-  .glass-icon::after {
-    content: "";
-    position: absolute;
-    z-index: -1;
-    inset: 0;
-    border-radius: inherit;
-    background:
-      radial-gradient(120% 120% at calc(var(--light-x, 0.2) * 100%) calc(var(--light-y, 0.1) * 100%), rgb(255 255 255 / 0.75) 0%, rgb(255 255 255 / 0.2) 45%, rgb(255 255 255 / 0.08) 100%);
-    -webkit-backdrop-filter: blur(8px) saturate(1.6);
-    backdrop-filter: blur(8px) saturate(1.6);
-    box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.6), inset 0 1px 0 rgb(255 255 255 / 0.9), 0 1px 2px rgb(11 16 14 / 0.08);
-  }
-  :is([data-theme="dark"]) .glass-icon { color: #fff; }
-  :is([data-theme="dark"]) .glass-icon::after {
-    background:
-      radial-gradient(120% 120% at calc(var(--light-x, 0.2) * 100%) calc(var(--light-y, 0.1) * 100%), rgb(255 255 255 / 0.28) 0%, rgb(255 255 255 / 0.08) 45%, rgb(255 255 255 / 0.03) 100%);
-    box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.16), inset 0 1px 0 rgb(255 255 255 / 0.3), 0 2px 6px rgb(0 0 0 / 0.4);
+    border-radius: 9999px;
+    background: color-mix(in oklab, var(--gi2) 14%, transparent);
+    color: color-mix(in oklab, var(--gi2) 80%, var(--foreground));
   }
   .tabular {
     font-variant-numeric: tabular-nums;

@@ -56,6 +56,8 @@ export function NavTree({
   onNavigate,
   onExpandRail,
   label = "Main",
+  filter = true,
+  grow = true,
 }: {
   tree: ResolvedNode[];
   area: "creator" | "admin";
@@ -66,6 +68,10 @@ export function NavTree({
   /** Icon rail: a group icon opens the full sidebar at that group */
   onExpandRail?: () => void;
   label?: string;
+  /** The "Filter menu" box above the list (the admin console's long menu has it) */
+  filter?: boolean;
+  /** Fill the sidebar's spare height (the main list); off for a short list at the bottom */
+  grow?: boolean;
 }) {
   const pathname = usePathname();
   const search = useSearchParams();
@@ -275,8 +281,8 @@ export function NavTree({
     });
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      {!collapsed && (
+    <div className={cn("flex min-h-0 flex-col", grow && "flex-1")}>
+      {filter && !collapsed && (
         <div className="relative px-3 pb-2">
           <Search className={cn("pointer-events-none absolute top-1/2 left-6 size-4 -translate-y-1/2", admin ? "text-sidebar-admin-foreground/60" : "text-muted-foreground")} aria-hidden />
           <input
@@ -304,7 +310,7 @@ export function NavTree({
           )}
         </div>
       )}
-      <nav aria-label={label} className="min-h-0 flex-1 overflow-y-auto px-3 pb-4">
+      <nav aria-label={label} className={cn("min-h-0 overflow-y-auto px-3", grow ? "flex-1 pb-4" : "pb-0")}>
         {shown.length === 0 ? (
           <p className={cn("px-3 py-2 text-sm", admin ? "text-sidebar-admin-foreground/70" : "text-muted-foreground")}>Nothing in the menu matches “{query}”.</p>
         ) : (

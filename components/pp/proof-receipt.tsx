@@ -1,7 +1,7 @@
 import { formatDate } from "@/lib/format";
 import type { Order } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { LogoMark } from "./logo";
+import { Logo } from "./logo";
 import { MoneyText } from "./money-text";
 import { StatusPill } from "./status-pill";
 
@@ -36,7 +36,7 @@ export function ProofReceipt({
     >
       <div className="flex items-center justify-between gap-3 border-b border-dashed border-border-strong px-5 py-4">
         <div className="flex items-center gap-2.5">
-          <LogoMark className="size-6" />
+          <Logo href={null} className="text-base" />
           <span className="eyebrow">Proof of purchase</span>
         </div>
         <StatusPill status={order.status} />

@@ -61,7 +61,7 @@ function rememberActive(storeId: string) {
 
 let resolved: { user: string; id: string } | null = null;
 
-/** A store the signed-in person can open: their own, or one whose team they joined */
+/** A store the signed-in person can open: in their own workspace, or one whose team they joined */
 export interface MyStore {
   id: string;
   name: string;
@@ -71,7 +71,23 @@ export interface MyStore {
   access: StoreAccess;
   /** The owner's plan: the store's Pro features follow it, whoever is working on it */
   ownerPlan: "free" | "pro";
+  /** The workspace the store sits in (access comes from there) */
+  workspaceId: string;
+  workspaceName: string;
 }
+
+/** A workspace the signed-in person can open: it holds stores, one team and one pool of agent credits */
+export interface MyWorkspace {
+  id: string;
+  name: string;
+  createdAt: string;
+  access: StoreAccess;
+  ownerPlan: "free" | "pro";
+  stores: number;
+}
+
+const accessOf = (role: string, areas: string[] | null): StoreAccess =>
+  role === "owner" ? { role: "owner", areas: ALL_AREAS } : { role: role === "admin" ? "admin" : "member", areas: (areas ?? []).filter((a): a is TeamArea => (ALL_AREAS as string[]).includes(a)) };
 
 let mine: { user: string; at: number; rows: Promise<MyStore[]> } | null = null;
 
@@ -91,12 +107,29 @@ export async function myStores(fresh = false): Promise<MyStore[]> {
       slug: s.slug,
       brandColor: s.brand_color,
       createdAt: s.created_at,
-      access: s.role === "owner" ? { role: "owner", areas: ALL_AREAS } : { role: s.role === "admin" ? "admin" : "member", areas: (s.areas ?? []).filter((a): a is TeamArea => (ALL_AREAS as string[]).includes(a)) },
+      access: accessOf(s.role, s.areas),
       ownerPlan: s.owner_plan === "pro" ? "pro" : "free",
+      workspaceId: s.workspace_id,
+      workspaceName: s.workspace_name,
     }));
   })();
   mine = { user: user.id, at: Date.now(), rows };
   return rows;
+}
+
+/** Every workspace this person can open (owned first), including ones with no store yet */
+export async function myWorkspaces(): Promise<MyWorkspace[]> {
+  const r = await sb().rpc("my_workspaces");
+  if (r.error) throw new ApiError("We couldn't load your workspaces. Refresh to try again.");
+  return (r.data ?? []).map((w) => ({ id: w.id, name: w.name, createdAt: w.created_at, access: accessOf(w.role, w.areas), ownerPlan: w.owner_plan === "pro" ? "pro" : "free", stores: w.stores }));
+}
+
+/** The workspace of the active store */
+export async function activeWorkspaceId(): Promise<string> {
+  const id = await activeStoreId();
+  const s = (await myStores()).find((r) => r.id === id);
+  if (!s) throw new ApiError("Create your workspace first.", "not_found");
+  return s.workspaceId;
 }
 
 /** Forget the cached list (after joining or leaving a team, or creating a store) */
@@ -114,7 +147,7 @@ export async function activeStoreId(): Promise<string> {
   const user = await currentUser();
   if (resolved?.user === user.id) return resolved.id;
   const rows = await myStores();
-  if (!rows.length) throw new ApiError("Create your store first.", "not_found");
+  if (!rows.length) throw new ApiError("Create your workspace first.", "not_found");
   const wanted = readActive() ?? getSessionRaw()?.storeId;
   const id = rows.find((r) => r.id === wanted)?.id ?? rows[0].id;
   rememberActive(id);

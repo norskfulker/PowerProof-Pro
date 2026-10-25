@@ -27,10 +27,16 @@ export interface NavNode {
   tab?: true;
   /** A panel of the store editor: found by search (with its badge), not shown as a tab */
   inEditor?: true;
-  /** Who on the store's team can open it (lib/team.ts); children inherit it. Default: everyone. */
+  /** Who on the workspace's team can open it (lib/team.ts); children inherit it. Default: everyone. */
   need?: Need;
   /** Only once the store has physical shipping turned on (SKUs) */
   physical?: true;
+  /** A quick-control tile at the top of the sidebar instead of a row in the list */
+  bento?: true;
+  /** At the bottom of the sidebar, under Notifications */
+  footer?: true;
+  /** A group shown in the sidebar as one link to its first page (its pages stay searchable) */
+  asLink?: true;
 }
 
 /** The store designer: My Store in the sidebar (reviews and questions open as its panels) */
@@ -83,25 +89,26 @@ export const STORE_NAV: NavNode[] = [
 ];
 
 export const CREATOR_NAV: NavNode[] = [
-  // Getting started, operations, your products and the marketplace, at a glance
-  { id: "dashboard", label: "Dashboard", href: "/dashboard", icon: LayoutDashboard, match: ["/getting-started"] },
+  // Quick-control tiles at the top of the sidebar: Dashboard, Analytics, Agents and Marketplace
+  { id: "dashboard", label: "Dashboard", href: "/dashboard", icon: LayoutDashboard, match: ["/getting-started"], bento: true },
   // Sales, buyers, products and visitors in detail
-  { id: "analytics", label: "Analytics", href: "/analytics", icon: BarChart3, need: "analytics" },
+  { id: "analytics", label: "Analytics", href: "/analytics", icon: BarChart3, need: "analytics", bento: true },
+  // PowerProof Agents: the workspace's agents, their send queue and connections
+  { id: "agents", label: "Agents", href: "/agents/my", icon: Bot, match: ["/agents/my/"], need: "agents", bento: true },
   // One page: browse every live deal, and list and manage this store's own deals in place
-  { id: "marketplace", label: "Marketplace", href: "/marketplace", icon: ShoppingBag },
-  // PowerProof Agents: the store's agents, their send queue and connections (owner and admins)
-  { id: "agents", label: "Agents", href: "/agents/my", icon: Bot, match: ["/agents/my/"], need: "team" },
-  // The business flow, in order: Your products (Collections, Products), Store Data (Orders, Customers, Payouts),
-  // then the Store's look and the rest. Store settings live under Settings.
+  { id: "marketplace", label: "Marketplace", href: "/marketplace", icon: ShoppingBag, bento: true },
+  // The list: Your products, then the Store and its data side by side
   {
     id: "catalog", label: "Your products", icon: Package, children: [
       { id: "collections", label: "Collections", href: "/catalog/collections", icon: FolderOpen, match: ["/catalog/collections/"], need: "catalog" },
       { id: "products", label: "Products", href: "/catalog/products", icon: Package, badge: "products_all", match: ["/catalog/products/"], need: "catalog" },
       { id: "bundles", label: "Bundles", href: "/catalog/bundles", icon: Box, need: "marketing" },
       { id: "media", label: "Media library", href: "/catalog/media", icon: Images, need: "catalog" },
-      // Bring a store from Shopify, WooCommerce, Amazon, Etsy, Gumroad or a website
     ],
   },
+  // The store asks how to build: Create with AI (AI Studio), Create custom (the editor) or Copy a store.
+  // Policies, Offers and SEO are tabs of Settings › Store.
+  { id: "store", label: "Store", href: "/store/{store}/design", icon: Store, match: STORE_MATCH, need: "design" },
   {
     id: "sales", label: "Store Data", icon: Receipt, children: [
       { id: "orders", label: "Orders", href: "/sales/orders", icon: Receipt, badge: "orders_disputed", match: ["/sales/orders/"], need: "orders" },
@@ -110,17 +117,17 @@ export const CREATOR_NAV: NavNode[] = [
       { id: "payouts", label: "Payouts", href: "/sales/payouts/balance", icon: Wallet, match: ["/sales/payouts/"], need: "owner" },
     ],
   },
-  // My Store asks how to build: Create with AI (AI Studio), Create custom (the editor) or Copy a store.
-  // Policies, Offers and SEO are tabs of Settings › Store.
-  { id: "store", label: "My Store", href: "/store/{store}/design", icon: Store, match: STORE_MATCH, need: "design" },
+  // Tools and Settings sit together at the bottom of the sidebar, under Notifications
   {
-    id: "tools", label: "Tools", icon: Wrench, need: "design", children: [
+    id: "tools", label: "Tools", icon: Wrench, need: "design", footer: true, children: [
       { id: "ai-images", label: "AI image maker", href: "/tools/ai-images", icon: Sparkles },
       { id: "integrations", label: "Integrations", href: "/tools/integrations", icon: Plug },
     ],
   },
   {
-    id: "settings", label: "Settings", icon: Settings, children: [
+    // One link at the bottom of the sidebar: opens the first settings page the person can see;
+    // the pages are tabs of Settings
+    id: "settings", label: "Settings", icon: Settings, footer: true, asLink: true, children: [
       { id: "settings-store", label: "Store", href: "/store/{store}/settings", match: STORE_SETTINGS_MATCH, need: "business" },
       { id: "settings-domain", label: "Domain", href: "/store/{store}/domain", pro: "customDomain", match: ["/store/{store}/domain"], need: "design" },
       { id: "settings-profile", label: "Profile", href: "/settings/profile" },

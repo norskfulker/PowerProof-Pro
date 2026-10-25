@@ -1,16 +1,19 @@
 /**
- * Store teams: who can work on which part of a store. The database decides (store_can() in every
- * policy, migration 038); this file names the areas for the screens, and maps each screen to the
- * area it needs so the menu and pages can say "not for you" instead of showing empty data.
+ * Workspace teams: who can work on which part of every store in a workspace. The database decides
+ * (store_can() in every policy, asked of the store's workspace since migration 063); this file
+ * names the areas for the screens, and maps each screen to the area it needs so the menu and pages
+ * can say "not for you" instead of showing empty data.
  */
 
 export const TEAM_AREAS = [
   { id: "catalog", label: "Products", body: "Products, collections, media, SKUs and tax codes" },
   { id: "orders", label: "Orders and customers", body: "Orders, shipping, refunds, customers, leads, reviews and questions" },
   { id: "design", label: "Store design", body: "The store editor, pages, policies, SEO, analytics tags and the domain" },
-  { id: "marketing", label: "Offers", body: "Coupons, bundles, deal paths and marketplace deals" },
+  { id: "marketing", label: "Offers", body: "Coupons, bundles and deal paths" },
   { id: "analytics", label: "Analytics", body: "Sales figures, buyers and visitor numbers on the Analytics page" },
   { id: "business", label: "Business details", body: "Store settings, company, invoice name and tax" },
+  { id: "agents", label: "Agents", body: "The workspace's agents, their send queue and connections" },
+  { id: "marketplace", label: "Marketplace", body: "Listing and managing marketplace deals" },
 ] as const;
 
 export type TeamArea = (typeof TEAM_AREAS)[number]["id"];
@@ -18,7 +21,7 @@ export const ALL_AREAS: TeamArea[] = TEAM_AREAS.map((a) => a.id);
 
 export type StoreRole = "owner" | "admin" | "member";
 
-/** What the signed-in person may do in one store */
+/** What the signed-in person may do in a workspace (and so in each of its stores) */
 export interface StoreAccess {
   role: StoreRole;
   areas: TeamArea[];
@@ -55,6 +58,7 @@ export function needForPath(path: string): Need {
     return "design";
   }
   if (p.startsWith("/catalog/bundles")) return "marketing";
+  if (p.startsWith("/agents")) return "agents";
   if (p.startsWith("/analytics")) return "analytics";
   if (p.startsWith("/catalog")) return "catalog";
   if (p.startsWith("/sales/payouts")) return "owner";

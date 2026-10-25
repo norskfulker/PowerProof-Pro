@@ -31,7 +31,7 @@ export const PALETTES: Palette[] = [
 ];
 
 export const FONT_PAIRS: { id: FontPairId; name: string; display: string; body: string; pair: string }[] = [
-  { id: "modern", name: "Modern", display: "var(--font-inter)", body: "var(--font-inter)", pair: "Inter Display + Inter" },
+  { id: "modern", name: "Modern", display: "var(--font-geist)", body: "var(--font-geist)", pair: "Geist" },
   { id: "expressive", name: "Expressive", display: "var(--font-bricolage)", body: "var(--font-hanken)", pair: "Bricolage Grotesque + Hanken Grotesk" },
   { id: "editorial", name: "Editorial", display: "var(--font-fraunces)", body: "var(--font-hanken)", pair: "Fraunces + Hanken Grotesk" },
   { id: "clean", name: "Clean", display: "var(--font-space)", body: "var(--font-plex-sans)", pair: "Space Grotesk + IBM Plex Sans" },

@@ -1,10 +1,10 @@
 import type { Metadata, Viewport } from "next";
 import {
   Bricolage_Grotesque,
-  Inter,
   Fraunces,
+  Geist,
+  Geist_Mono,
   Hanken_Grotesk,
-  IBM_Plex_Mono,
   IBM_Plex_Sans,
   Noto_Sans_Devanagari,
   Noto_Sans_Kannada,
@@ -15,32 +15,20 @@ import {
 import { ThemeSync } from "@/components/theme/theme-toggle";
 import { LiveSessionSync } from "@/components/auth/live-session-sync";
 import { HydrationMark } from "@/components/pp/hydration-mark";
-import { GlassLight } from "@/components/pp/glass-light";
 import { Toaster } from "@/components/ui/sonner";
 import { NO_FLASH_SCRIPT } from "@/lib/theme";
 import { siteUrl } from "@/lib/site-url";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import "./globals.css";
 
-// The type of the whole product: Inter for text, and its display cut (the "opsz" axis at 32) for
-// headings. One variable file covers every weight and both cuts.
-const inter = Inter({
-  subsets: ["latin"],
-  axes: ["opsz"],
-  variable: "--font-inter",
-  display: "swap",
-});
+// The type of the whole product: Geist for headings and text, Geist Mono for codes. One variable
+// file each covers every weight.
+const geist = Geist({ subsets: ["latin"], variable: "--font-geist", display: "swap" });
+const geistMono = Geist_Mono({ subsets: ["latin"], variable: "--font-geist-mono", display: "swap" });
 
 // The "Expressive" store font pair (the previous house style). Only stores that pick it use it.
 const bricolage = Bricolage_Grotesque({ subsets: ["latin"], weight: ["800"], variable: "--font-bricolage", display: "swap", preload: false });
 const hanken = Hanken_Grotesk({ subsets: ["latin"], weight: ["400", "500", "600", "700"], variable: "--font-hanken", display: "swap", preload: false });
-
-const plexMono = IBM_Plex_Mono({
-  subsets: ["latin"],
-  weight: ["400", "500", "600"],
-  variable: "--font-plex-mono",
-  display: "swap",
-});
 
 // Store theme font pairings (Editorial, Clean). Only stores that pick them use them, so they aren't
 // preloaded on every page; the browser fetches them when a themed store first renders.
@@ -97,7 +85,7 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     // The inline script sets data-theme before first paint, so React must not complain that it differs
-    <html lang="en" suppressHydrationWarning className={`${inter.variable} ${bricolage.variable} ${hanken.variable} ${plexMono.variable} ${fraunces.variable} ${spaceGrotesk.variable} ${plexSans.variable} ${INDIC}`}>
+    <html lang="en" suppressHydrationWarning className={`${geist.variable} ${geistMono.variable} ${bricolage.variable} ${hanken.variable} ${fraunces.variable} ${spaceGrotesk.variable} ${plexSans.variable} ${INDIC}`}>
       <head>
         {/* Light, dark or system, applied before anything paints (no flash) */}
         <script dangerouslySetInnerHTML={{ __html: NO_FLASH_SCRIPT }} />
@@ -105,7 +93,6 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <body>
         <ThemeSync />
         <LiveSessionSync />
-        <GlassLight />
         <HydrationMark />
         <TooltipProvider delayDuration={200}>{children}</TooltipProvider>
         <Toaster position="bottom-center" />

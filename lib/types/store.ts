@@ -37,6 +37,9 @@ export interface Store {
   access?: StoreAccess;
   /** The owner's plan (creator app only) */
   ownerPlan?: "free" | "pro";
+  /** The workspace the store sits in (creator app only) */
+  workspaceId?: string;
+  workspaceName?: string;
 }
 
 export interface Company {

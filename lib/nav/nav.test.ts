@@ -8,7 +8,7 @@ const data: NavData = {
   locked: new Set(["customDomain"]),
 };
 const tree = resolveNav(CREATOR_NAV, data);
-const storeTree = resolveNav(STORE_NAV, data, ["My Store"]);
+const storeTree = resolveNav(STORE_NAV, data, ["Store"]);
 const walk = (nodes: NavNode[]): NavNode[] => nodes.flatMap((n) => [n, ...(n.children ? walk(n.children) : [])]);
 
 describe("nav config", () => {
@@ -19,8 +19,10 @@ describe("nav config", () => {
       for (const n of all) if (!n.children?.length) expect(n.href, n.id).toBeTruthy();
     }
   });
-  it("keeps the nested groups in business-flow order: Dashboard, Analytics, Marketplace, Your products, Store Data, then My Store", () => {
-    expect(CREATOR_NAV.map((g) => g.label)).toEqual(["Dashboard", "Analytics", "Marketplace", "Agents", "Your products", "Store Data", "My Store", "Tools", "Settings"]);
+  it("puts the four quick-control tiles first, then Your products, the Store beside its data, and Tools and Settings at the bottom", () => {
+    expect(CREATOR_NAV.map((g) => g.label)).toEqual(["Dashboard", "Analytics", "Agents", "Marketplace", "Your products", "Store", "Store Data", "Tools", "Settings"]);
+    expect(CREATOR_NAV.filter((g) => g.bento).map((g) => g.id)).toEqual(["dashboard", "analytics", "agents", "marketplace"]);
+    expect(CREATOR_NAV.filter((g) => g.footer).map((g) => g.id)).toEqual(["tools", "settings"]);
     expect(ADMIN_NAV.map((g) => g.label)).toEqual(["Overview", "Creators", "Stores", "Products", "Blog", "Agents", "Orders", "Money", "Moderation", "System"]);
   });
   it("puts Home, Products, Orders and Settings in the tab bar", () => {
@@ -61,13 +63,14 @@ describe("resolveNav", () => {
     expect(flat.find((n) => n.id === "settings-domain")?.locked).toBe("customDomain");
     expect(flat.find((n) => n.id === "settings-domain")?.href).toBe("/store/store_fx/domain");
   });
-  it("makes My Store one plain sidebar item whose sections are tabs, and Store settings sit in Settings without an icon", () => {
+  it("makes the Store one plain sidebar item whose sections are tabs, and Settings one link whose pages are its tabs", () => {
     const store = tree.find((g) => g.id === "store")!;
     expect(store.href).toBe("/store/store_fx/design");
     expect(store.children).toBeUndefined();
     // Settings › Store's tabs (Design stays only so search finds the editor's panels)
     expect(storeTree.map((t) => t.label)).toEqual(["General", "Design", "Policies", "Offers", "SEO"]);
-    expect(activeTrail(tree, "/store/store_fx/offers/coupons").map((n) => n.id)).toEqual(["settings", "settings-store"]);
+    expect(activeTrail(tree, "/store/store_fx/offers/coupons").map((n) => n.id)).toEqual(["settings"]);
+    expect(activeTrail(tree, "/settings/team").map((n) => n.id)).toEqual(["settings"]);
     expect(activeTrail(tree, "/store/store_fx/design/pages/home/edit").map((n) => n.id)).toEqual(["store"]);
   });
   it("opens Pages and FAQ as panels of the store editor, and About, reviews and questions under Policies, all found by search with their badges", () => {
@@ -78,12 +81,16 @@ describe("resolveNav", () => {
     expect(policies.children!.map((c) => c.label)).toEqual(["Refund", "Terms", "Privacy", "About", "Reviews", "Questions"]);
     expect(policies.children!.find((c) => c.id === "reviews")).toMatchObject({ href: "/store/store_fx/design/pages/home/edit?panel=reviews", count: 3 });
     expect(navSearch(storeTree, "faq")[0].href).toBe("/store/store_fx/design/pages/home/edit?panel=faq");
-    const settings = tree.find((g) => g.id === "settings")!.children!.find((c) => c.id === "settings-store")!;
-    expect(settings.href).toBe("/store/store_fx/settings");
+    const group = tree.find((g) => g.id === "settings")!;
+    expect(group.href).toBe("/store/store_fx/settings");
+    expect(group.children).toBeUndefined();
+    // Each settings page is still found by search
+    expect(navSearch(tree, "billing")[0].href).toBe("/settings/billing");
+    const settings = group.linkChildren!.find((c) => c.id === "settings-store")!;
     expect(settings.icon).toBeUndefined();
   });
   it("makes groups only open and close: they have no page of their own", () => {
-    for (const id of ["catalog", "sales", "tools", "settings"]) {
+    for (const id of ["catalog", "sales", "tools"]) {
       const g = tree.find((x) => x.id === id)!;
       expect(g.href, id).toBeUndefined();
       expect(g.children?.length, id).toBeGreaterThan(0);

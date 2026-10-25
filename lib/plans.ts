@@ -58,7 +58,7 @@ export function planComparison(l: AllPlanLimits): { feature: string; free: strin
     { feature: "Products", free: count(l.free.products), pro: count(l.pro.products) },
     { feature: "Pages (launch, sale, link in bio)", free: count(l.free.pages), pro: count(l.pro.pages) },
     { feature: "Your own domain (shop.yourname.in)", free: l.free.customDomain ? "Included, with free SSL" : "powerproof.app/yourname", pro: l.pro.customDomain ? "Included, with free SSL" : "powerproof.app/yourname" },
-    { feature: "Team members (besides you)", free: count(l.free.teamSeats), pro: count(l.pro.teamSeats) },
+    { feature: "Workspace members (besides you)", free: count(l.free.teamSeats), pro: count(l.pro.teamSeats) },
     { feature: "AI image credits each month", free: String(l.free.aiCredits), pro: String(l.pro.aiCredits) },
     { feature: "AI page builds", free: `${AI_FREE_MESSAGES} free messages`, pro: `${l.pro.aiPagesDaily} a day` },
     { feature: "Deal paths, coupons, bundles", free: "Included", pro: "Included" },

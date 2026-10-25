@@ -3,18 +3,19 @@
 import { Suspense, useState, useSyncExternalStore } from "react";
 import { usePathname } from "next/navigation";
 import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
-import { PlanUsage } from "@/components/plan/plan-usage";
+import { BentoNav } from "@/components/nav/bento-nav";
 import { NavTree } from "@/components/nav/nav-tree";
+import type { ResolvedNode } from "@/lib/nav/model";
 import { AccessGuard } from "@/components/team/access-guard";
 import { useNav } from "@/components/nav/use-nav";
 import { Button } from "@/components/ui/button";
-import { useCurrentStore } from "@/hooks/use-current-store";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import { CreatorProviders } from "./creator-providers";
 import { Logo } from "./logo";
 import { MobileTabBar } from "./mobile-tab-bar";
-import { Topbar } from "./topbar";
+import { Notifications } from "./notifications";
+import { AccountMenu, Topbar } from "./topbar";
 
 const RAIL_KEY = "pp:nav-rail";
 const railListeners = new Set<() => void>();
@@ -34,10 +35,19 @@ function setRail(v: boolean) {
   railListeners.forEach((l) => l());
 }
 
-function SidebarUpgrade() {
-  const { data: store } = useCurrentStore();
-  if (store?.access?.role && store.access.role !== "owner") return null;
-  return <PlanUsage className="border-0 bg-transparent p-0" />;
+/** The bottom of the creator sidebar: Notifications, then Tools and Settings, then the account */
+function SidebarFooter({ tree, collapsed, onToggle, onNavigate }: { tree: ResolvedNode[]; collapsed?: boolean; onToggle?: () => void; onNavigate?: () => void }) {
+  return (
+    <div className={cn("flex shrink-0 flex-col gap-1 border-t", collapsed ? "items-center px-0 py-2" : "py-3")}>
+      <div className={cn(!collapsed && "px-3")}>
+        <Notifications variant={collapsed ? "icon" : "row"} side="right" />
+      </div>
+      <NavTree tree={tree} area="creator" label="Tools and settings" filter={false} grow={false} collapsed={collapsed} onNavigate={onNavigate} onExpandRail={collapsed ? onToggle : undefined} />
+      <div className={cn("mt-1", !collapsed && "px-3")}>
+        <AccountMenu variant={collapsed ? "avatar" : "row"} />
+      </div>
+    </div>
+  );
 }
 
 export function SkipLink() {
@@ -48,8 +58,11 @@ export function SkipLink() {
   );
 }
 
-function Sidebar({ admin, collapsed, onToggle, onNavigate, footer }: { admin: boolean; collapsed?: boolean; onToggle?: () => void; onNavigate?: () => void; footer?: React.ReactNode }) {
+function Sidebar({ admin, collapsed, onToggle, onNavigate }: { admin: boolean; collapsed?: boolean; onToggle?: () => void; onNavigate?: () => void }) {
   const nav = useNav(admin ? "admin" : "creator");
+  // Dashboard, Analytics, Agents and Marketplace are tiles; Tools and Settings sit at the bottom
+  const list = admin ? nav.tree : nav.tree.filter((n) => !n.bento && !n.footer);
+  const bottom = nav.tree.filter((n) => n.footer);
   return (
     <div className={cn("flex h-full flex-col", admin ? "bg-sidebar-admin text-sidebar-admin-foreground" : "bg-surface")}>
       <div className={cn("flex h-16 shrink-0 items-center gap-2", collapsed ? "justify-center px-2" : "px-5")}>
@@ -62,9 +75,10 @@ function Sidebar({ admin, collapsed, onToggle, onNavigate, footer }: { admin: bo
         )}
       </div>
       <Suspense>
-        <NavTree tree={nav.tree} area={admin ? "admin" : "creator"} tone={admin ? "admin" : "light"} collapsed={collapsed} onNavigate={onNavigate} onExpandRail={collapsed ? onToggle : undefined} />
+        {!admin && <BentoNav tree={nav.tree} collapsed={collapsed} onNavigate={onNavigate} />}
+        <NavTree tree={list} area={admin ? "admin" : "creator"} tone={admin ? "admin" : "light"} filter={admin} collapsed={collapsed} onNavigate={onNavigate} onExpandRail={collapsed ? onToggle : undefined} />
+        {!admin && <SidebarFooter tree={bottom} collapsed={collapsed} onToggle={onToggle} onNavigate={onNavigate} />}
       </Suspense>
-      {footer && !collapsed && <div className="shrink-0 border-t border-current/10 p-3">{footer}</div>}
     </div>
   );
 }
@@ -75,7 +89,6 @@ export function AppShell({ children, variant = "creator" }: { children: React.Re
   const savedRail = useSyncExternalStore((cb) => (railListeners.add(cb), () => railListeners.delete(cb)), readRail, () => false);
   // In the store editor the menu starts as icons, to leave room for the page; it still opens on click
   const [editorRail, setEditorRail] = useState(true);
-  const footer = admin ? undefined : <SidebarUpgrade />;
   // The store editor uses the full width beside the sidebar; it scrolls as one page like everything else
   const bleed = /\/design\/pages\/[^/]+\/edit$/.test(usePathname() ?? "");
   const rail = bleed ? editorRail : savedRail;
@@ -84,7 +97,7 @@ export function AppShell({ children, variant = "creator" }: { children: React.Re
       <div data-surface="app" className={cn("min-h-dvh md:grid", rail ? "md:grid-cols-[72px_minmax(0,1fr)]" : "md:grid-cols-[272px_minmax(0,1fr)]")}>
         <SkipLink />
         <aside className={cn("sticky top-0 hidden h-dvh border-r md:block", admin && "border-transparent")}>
-          <Sidebar admin={admin} collapsed={rail} onToggle={() => (bleed ? setEditorRail(!rail) : setRail(!rail))} footer={footer} />
+          <Sidebar admin={admin} collapsed={rail} onToggle={() => (bleed ? setEditorRail(!rail) : setRail(!rail))} />
         </aside>
         <div className="flex min-w-0 flex-col">
           {/* The store editor brings its own tool bar: on desktop it replaces this one */}
@@ -105,7 +118,7 @@ export function AppShell({ children, variant = "creator" }: { children: React.Re
         <Sheet open={more} onOpenChange={setMore}>
           <SheetContent side="left" className="w-[88vw] max-w-sm p-0">
             <SheetTitle className="sr-only">Menu</SheetTitle>
-            <Sidebar admin={admin} onNavigate={() => setMore(false)} footer={footer} />
+            <Sidebar admin={admin} onNavigate={() => setMore(false)} />
           </SheetContent>
         </Sheet>
       </div>

@@ -6,7 +6,7 @@ import type { StoreRole } from "../team";
 import { liveChange } from "./live/notify";
 import * as live from "./live/store";
 import { getSessionRaw } from "./live/local";
-import { myStores } from "./live/session";
+import { myStores, type MyWorkspace } from "./live/session";
 
 /**
  * Account-level API: the creator's plan and limits, their stores, and each store's own About,
@@ -41,6 +41,7 @@ export interface OwnedStore {
   products: number;
   /** Your role in this store: owner, or a team you joined */
   role: StoreRole;
+  workspaceId: string;
 }
 
 export const getOwnedStores = (): Promise<OwnedStore[]> => live.getOwnedStores();
@@ -58,7 +59,15 @@ export async function canManageStore(storeId: string): Promise<boolean> {
     return false;
   }
 }
-export const createOwnedStore = (input: { name: string; slug?: string }): Promise<Store> => liveChange(live.createOwnedStore(input));
+/** Adds a store to the active workspace, or to a new workspace when `workspaceName` is given */
+export const createOwnedStore = (input: { name: string; slug?: string; workspaceName?: string }): Promise<Store> => liveChange(live.createOwnedStore(input));
+
+/* Workspaces: hold the stores, one team and one pool of agent credits */
+export type Workspace = MyWorkspace & { active: boolean };
+export const getWorkspaces = (): Promise<Workspace[]> => live.getWorkspaces();
+export const renameWorkspace = (name: string): Promise<void> => liveChange(live.renameWorkspace(name));
+export const getWorkspaceCredits = (): Promise<number> => live.getWorkspaceCredits();
+export { WORKSPACE_NAME_MAX } from "./live/store";
 
 export interface StoreInfo {
   store: Store;

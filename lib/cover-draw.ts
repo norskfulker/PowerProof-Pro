@@ -45,7 +45,7 @@ export function drawCover(ctx: CanvasRenderingContext2D, spec: CoverSpec, w: num
   const unit = Math.min(w, h) / 100;
   const pad = unit * 8;
   const display = cssVarFont("--font-heading", "sans-serif");
-  const mono = cssVarFont("--font-plex-mono", "monospace");
+  const mono = cssVarFont("--font-geist-mono", "monospace");
 
   ctx.clearRect(0, 0, w, h);
   ctx.fillStyle = spec.bg;

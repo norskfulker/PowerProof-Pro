@@ -15,7 +15,7 @@ import { ApiError } from "../client";
 import type { OwnedStore, PlanState, StoreInfo, StorePageUpdate } from "../account";
 import { fail, must } from "./errors";
 import { designFrom, designToTheme, initials, pagesFrom, storeFrom, DEFAULT_BRAND, type StoreRow } from "./map";
-import { activeStoreId, currentUser, forgetMyStores, myStores, setActiveStore, syncSession } from "./session";
+import { activeStoreId, activeWorkspaceId, currentUser, forgetMyStores, myStores, myWorkspaces, setActiveStore, syncSession, type MyWorkspace } from "./session";
 
 /** The creator's stores, their settings, design and pages, and the plan, from Supabase. */
 
@@ -41,7 +41,7 @@ export async function getStore(storeId?: string): Promise<Store> {
   const store = storeFrom(row, who);
   const { pages } = pagesFrom(store, await pageRows(row.id));
   const mine = list.find((s) => s.id === row.id);
-  return { ...store, refundPolicy: pages.refund, access: mine?.access, ownerPlan: mine?.ownerPlan };
+  return { ...store, refundPolicy: pages.refund, access: mine?.access, ownerPlan: mine?.ownerPlan, workspaceId: mine?.workspaceId, workspaceName: mine?.workspaceName };
 }
 
 /* Store settings ------------------------------------------------------------ */
@@ -60,20 +60,71 @@ export async function suggestSlug(name: string): Promise<string> {
   return r.data as string;
 }
 
-/** Creates the creator's store: the first onboarding step. Retries once if the link was taken a moment ago. */
-export async function createStore(input: { name: string; brandColor: string; slug: string; country: string }): Promise<{ slug: string }> {
+/* Workspaces ------------------------------------------------------------------- */
+
+export const WORKSPACE_NAME_MAX = 60;
+
+function workspaceNameOk(raw: string): string {
+  const name = raw.replace(/\s+/g, " ").trim();
+  if (name.length < 2) throw new ApiError("Give your workspace a name (2 characters or more).", "validation");
+  if (name.length > WORKSPACE_NAME_MAX) throw new ApiError(`Keep the workspace name under ${WORKSPACE_NAME_MAX} characters.`, "validation");
+  return name;
+}
+
+/** The workspaces the signed-in person can open, with the active one marked */
+export async function getWorkspaces(): Promise<(MyWorkspace & { active: boolean })[]> {
+  const [list, active] = await Promise.all([myWorkspaces(), activeWorkspaceId().catch(() => "")]);
+  return list.map((w) => ({ ...w, active: w.id === active }));
+}
+
+/**
+ * A workspace of the signed-in person's own to put a new store in: one they own that has no store
+ * yet (a set-up that stopped half way), renamed, or a new one.
+ */
+async function freshWorkspace(rawName: string): Promise<string> {
+  const name = workspaceNameOk(rawName);
+  const user = await currentUser();
+  const empty = (await myWorkspaces()).find((w) => w.access.role === "owner" && w.stores === 0);
+  if (empty) {
+    must(await sb().from("workspaces").update({ name }).eq("id", empty.id).select("id").single());
+    return empty.id;
+  }
+  return must(await sb().from("workspaces").insert({ owner_id: user.id, name }).select("id").single()).id;
+}
+
+export async function renameWorkspace(rawName: string): Promise<void> {
+  const name = workspaceNameOk(rawName);
+  const r = await sb().from("workspaces").update({ name }).eq("id", await activeWorkspaceId()).select("id");
+  if (r.error) fail(r.error);
+  if (!r.data?.length) throw new ApiError("Only the workspace's owner and admins can rename it.", "validation");
+  forgetMyStores();
+}
+
+/** Agent credits left in the active workspace (one pool shared by its stores) */
+export async function getWorkspaceCredits(): Promise<number> {
+  const r = await sb().rpc("workspace_credits", { p_workspace: await activeWorkspaceId() });
+  if (r.error) fail(r.error);
+  return r.data ?? 0;
+}
+
+/**
+ * Creates the creator's workspace and its first store: the onboarding step. Retries once if the
+ * link was taken a moment ago.
+ */
+export async function createStore(input: { workspaceName: string; name: string; brandColor: string; slug: string; country: string }): Promise<{ slug: string }> {
   const nameError = storeNameError(input.name);
   if (nameError) throw new ApiError(nameError, "validation");
   const color = normalizeHex(input.brandColor);
   if (!color) throw new ApiError("Pick a colour as #RRGGBB.", "validation");
   const user = await currentUser();
+  const workspaceId = await freshWorkspace(input.workspaceName);
   const country = countryByCode(input.country);
   const name = cleanStoreName(input.name);
   let slug = input.slug;
   for (let attempt = 0; ; attempt++) {
     const r = await sb()
       .from("stores")
-      .insert({ owner_id: user.id, name, slug, country: country.code, currency_base: country.currency, brand_color: color, tagline: `Digital downloads by ${user.name || name}.`, support_email: user.email || null })
+      .insert({ owner_id: user.id, workspace_id: workspaceId, name, slug, country: country.code, currency_base: country.currency, brand_color: color, tagline: `Digital downloads by ${user.name || name}.`, support_email: user.email || null })
       .select("id")
       .single();
     if (!r.error) break;
@@ -222,7 +273,7 @@ export async function getOwnedStores(): Promise<OwnedStore[]> {
   const rows = await myStores();
   // Products are counted only where the person can see the catalog (row level security)
   const counts = must(await sb().from("products").select("store_id").in("store_id", rows.map((r) => r.id)));
-  const list = rows.map((r) => ({ id: r.id, name: r.name, slug: r.slug, logoText: initials(r.name), brandColor: r.brandColor ?? DEFAULT_BRAND, active: r.id === active, products: counts.filter((c) => c.store_id === r.id).length, role: r.access.role }));
+  const list = rows.map((r) => ({ id: r.id, name: r.name, slug: r.slug, logoText: initials(r.name), brandColor: r.brandColor ?? DEFAULT_BRAND, active: r.id === active, products: counts.filter((c) => c.store_id === r.id).length, role: r.access.role, workspaceId: r.workspaceId }));
   return [...list.filter((s) => s.active), ...list.filter((s) => !s.active)];
 }
 
@@ -232,15 +283,26 @@ export async function switchStore(storeId: string): Promise<Store> {
   return store;
 }
 
-export async function createOwnedStore(input: { name: string; slug?: string }): Promise<Store> {
+/**
+ * Adds a store to a workspace: the active one, or a new workspace when `workspaceName` is given.
+ * Only a workspace's owner adds stores (they own every store in it).
+ */
+export async function createOwnedStore(input: { name: string; slug?: string; workspaceName?: string }): Promise<Store> {
   const name = input.name.trim();
   if (name.length < 2) throw new ApiError("Give your store a name.", "validation");
   const slug = slugify(input.slug?.trim() || name);
   if (slug.length < 3) throw new ApiError("Use letters or numbers for the store link.", "validation");
   const who = await owner();
+  let workspaceId: string;
+  if (input.workspaceName !== undefined) workspaceId = await freshWorkspace(input.workspaceName);
+  else {
+    workspaceId = await activeWorkspaceId();
+    const ws = (await myWorkspaces()).find((w) => w.id === workspaceId);
+    if (ws?.access.role !== "owner") throw new ApiError("Only the workspace's owner can add stores to it. Create your own workspace instead.", "validation");
+  }
   const r = await sb()
     .from("stores")
-    .insert({ owner_id: who.id, name, slug, tagline: `Digital downloads by ${who.name}.`, support_email: who.email || null })
+    .insert({ owner_id: who.id, workspace_id: workspaceId, name, slug, tagline: `Digital downloads by ${who.name}.`, support_email: who.email || null })
     .select(STORE_COLS)
     .single();
   if (r.error) fail(r.error, { conflict: "That link is taken. Try another." });
