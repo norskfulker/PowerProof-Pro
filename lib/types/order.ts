@@ -1,6 +1,7 @@
 import type { CurrencyCode, ISODate, Money } from "./money";
 
-export type OrderStatus = "pending" | "cod" | "paid" | "refund_requested" | "refunded" | "failed";
+/** "cancelled": an online order not paid within an hour (cancelled automatically) */
+export type OrderStatus = "pending" | "cod" | "paid" | "refund_requested" | "refunded" | "failed" | "cancelled";
 
 /** Where a shipped order is. Absent for orders with nothing to ship. */
 export type FulfilmentStatus = "unfulfilled" | "shipped" | "delivered" | "cancelled";
@@ -75,6 +76,9 @@ export interface Order {
   paidAt?: ISODate;
   refundedAt?: ISODate;
   refundReason?: string;
+  /** Set when an unpaid online order was cancelled automatically */
+  cancelledAt?: string;
+  cancelReason?: string;
   /** Everything in the order. The first item mirrors productId/productTitle. */
   items: OrderItem[];
   bundleId?: string;

@@ -15,7 +15,7 @@ import {
   type SortingState,
   type VisibilityState,
 } from "@tanstack/react-table";
-import { ArrowDown, ArrowUp, ArrowUpDown, ChevronLeft, ChevronRight, Columns3, Download, Search, X } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, ChevronLeft, ChevronRight, Columns3, Download, LayoutGrid, Rows3, Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -25,6 +25,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import { ErrorState } from "./empty-state";
+import { Segmented } from "./segmented";
 
 export interface TableFilter {
   columnId: string;
@@ -126,6 +127,28 @@ function useHidden(key: string, defaults: string[]): [VisibilityState, (v: Visib
   return [state, set];
 }
 
+/** Table or cards, remembered per listing on this device */
+type View = "table" | "cards";
+function useView(key: string): [View, (v: View) => void] {
+  const raw = useSyncExternalStore(subscribe, () => readSaved(key), () => "");
+  const set = (v: View) => {
+    memory.set(key, v);
+    try {
+      localStorage.setItem(key, v);
+    } catch {
+      /* private window or blocked storage: kept for this visit */
+    }
+    window.dispatchEvent(new Event(HIDDEN_EVENT));
+  };
+  return [raw === "cards" ? "cards" : "table", set];
+}
+
+/** A column's name for its header: its own header, or a plain word when it has none */
+function headerText(id: string, header: unknown, meta?: ColumnMeta): string | undefined {
+  if (header !== undefined && header !== "") return undefined;
+  return meta?.label ?? (id === "actions" ? "Actions" : undefined);
+}
+
 export function DataTable<T>({
   columns,
   data,
@@ -193,6 +216,9 @@ export function DataTable<T>({
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
   const [range, setRange] = useState("all");
   const [visibility, setVisibility] = useHidden(`pp:table:${label}`, defaultHidden);
+  // With a card layout, either view on any screen: the same rows, search, filters, sort, page and ticks
+  const [view, setView] = useView(`pp:view:${label}`);
+  const cards = !!mobileCard && view === "cards";
 
   const rowsIn = useMemo(() => {
     const since = dateFilter ? sinceOf(range) : undefined;
@@ -309,13 +335,25 @@ export function DataTable<T>({
           </Button>
         )}
         <div className="flex flex-wrap gap-2 sm:ml-auto">
+          {mobileCard && (
+            <Segmented
+              label="View"
+              value={view}
+              onChange={setView}
+              className="max-md:hidden"
+              options={[
+                { value: "table", label: <><Rows3 className="size-4" aria-hidden /><span className="ml-1.5">Table</span></> },
+                { value: "cards", label: <><LayoutGrid className="size-4" aria-hidden /><span className="ml-1.5">Cards</span></> },
+              ]}
+            />
+          )}
           {toolbar}
           {csv && (
             <Button variant="secondary" disabled={!filtered} onClick={() => downloadCsv(selected.length ? selected : matching.map((r) => r.original), csv.columns, csv.filename)}>
               <Download aria-hidden /> {selected.length ? `Export ${selected.length}` : "Export"}
             </Button>
           )}
-          {hideable.length > 2 && (
+          {hideable.length > 2 && !cards && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="secondary" className="max-md:hidden" aria-label="Choose columns"><Columns3 aria-hidden /> Columns</Button>
@@ -345,16 +383,27 @@ export function DataTable<T>({
         </div>
       )}
 
-      {/* Mobile cards */}
+      {/* Cards: always on phones; on wider screens when Cards is picked */}
       {mobileCard && (
-        <ul className="flex flex-col gap-2 md:hidden" aria-label={label}>
-          {loading && !data ? Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-20 w-full rounded-card" />) : rows.map((r) => <li key={r.id}>{mobileCard(r.original)}</li>)}
+        <ul className={cn("grid grid-cols-1 gap-2", cards ? "md:grid-cols-2 md:gap-3 xl:grid-cols-3" : "md:hidden")} aria-label={label}>
+          {loading && !data
+            ? Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-20 w-full rounded-card" />)
+            : rows.map((r) => (
+                <li key={r.id} className="relative">
+                  {selectable && (
+                    <span className="absolute top-3 right-3 z-10">
+                      <Checkbox aria-label="Select" checked={r.getIsSelected()} onCheckedChange={(v) => r.toggleSelected(v === true)} />
+                    </span>
+                  )}
+                  {mobileCard(r.original)}
+                </li>
+              ))}
         </ul>
       )}
 
-      <div className={cn("overflow-hidden rounded-card border bg-surface", mobileCard && "max-md:hidden")}>
+      <div className={cn("overflow-hidden rounded-card border bg-surface", mobileCard && "max-md:hidden", cards && "md:hidden")}>
         <Table aria-label={label} aria-busy={loading || undefined}>
-          <TableHeader className="bg-surface-sunken/60">
+          <TableHeader className="bg-surface-sunken [&_th]:text-foreground/70">
             {table.getHeaderGroups().map((hg) => (
               <TableRow key={hg.id} className="hover:bg-transparent">
                 {hg.headers.map((h) => {
@@ -366,10 +415,11 @@ export function DataTable<T>({
                       {canSort ? (
                         <button className={cn("group inline-flex items-center gap-1 uppercase hover:text-foreground pointer-coarse:min-h-11 pointer-coarse:min-w-11", right && "flex-row-reverse")} onClick={h.column.getToggleSortingHandler()}>
                           {flexRender(h.column.columnDef.header, h.getContext())}
-                          {sorted === "asc" ? <ArrowUp className="size-3" /> : sorted === "desc" ? <ArrowDown className="size-3" /> : <ArrowUpDown className="size-3 opacity-0 transition-opacity group-hover:opacity-60" />}
+                          {sorted === "asc" ? <ArrowUp className="size-3" /> : sorted === "desc" ? <ArrowDown className="size-3" /> : <ArrowUpDown className="size-3 opacity-40 transition-opacity group-hover:opacity-80" />}
+                          <span className="sr-only">{sorted ? `, sorted ${sorted === "asc" ? "ascending" : "descending"}` : ", sortable"}</span>
                         </button>
                       ) : (
-                        flexRender(h.column.columnDef.header, h.getContext())
+                        headerText(h.column.id, h.column.columnDef.header, h.column.columnDef.meta as ColumnMeta) ?? flexRender(h.column.columnDef.header, h.getContext())
                       )}
                     </TableHead>
                   );
@@ -410,7 +460,7 @@ export function DataTable<T>({
         {!(loading && !data) && filtered === 0 && <p className="border-t px-4 py-10 text-center text-sm text-muted-foreground">{noResults}</p>}
       </div>
 
-      {!(loading && !data) && mobileCard && filtered === 0 && <p className="rounded-card border bg-surface px-4 py-8 text-center text-sm text-muted-foreground md:hidden">{noResults}</p>}
+      {!(loading && !data) && mobileCard && filtered === 0 && <p className={cn("rounded-card border bg-surface px-4 py-8 text-center text-sm text-muted-foreground", !cards && "md:hidden")}>{noResults}</p>}
 
       {!(loading && !data) && filtered > PAGE_SIZES[0] && (
         <nav className="flex flex-wrap items-center justify-between gap-3" aria-label="Pagination">

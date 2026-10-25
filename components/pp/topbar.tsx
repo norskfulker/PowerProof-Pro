@@ -5,12 +5,12 @@ import { ThemeToggle } from "@/components/theme/theme-toggle";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useRef, useState } from "react";
-import { Check, ChevronsUpDown, Coins, ExternalLink, SunMoon, ListChecks, Loader2, LogOut, Pencil, Plus, Settings, Shield, Sparkles } from "lucide-react";
+import { Check, ChevronsUpDown, Coins, ExternalLink, FolderPlus, SunMoon, ListChecks, Loader2, LogOut, Pencil, Plus, Settings, Shield, Sparkles } from "lucide-react";
 import { useGettingStarted } from "@/components/getting-started/getting-started-provider";
 import { usePlan } from "@/components/plan/plan-context";
 import { useUnsavedGuard } from "@/components/save/unsaved-guard";
-import { PlanUsage } from "@/components/plan/plan-usage";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -122,7 +122,29 @@ function WorkspaceDialog({ open, onOpenChange }: { open: StoreDialog; onOpenChan
   );
 }
 
-/** Workspace › store: switch either, add a store, start or rename a workspace */
+/** A compact icon button with a tooltip (on hover and keyboard focus): a link, or an action */
+function IconAction({ label, icon: Icon, href, onClick, onDone, size = "icon-sm" }: { label: string; icon: typeof Plus; href?: string; onClick?: () => void; onDone?: () => void; size?: "icon" | "icon-sm" }) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        {href ? (
+          <Button asChild variant="ghost" size={size} aria-label={label} className="text-muted-foreground hover:text-foreground">
+            <Link href={href} target="_blank" onClick={onDone}>
+              <Icon aria-hidden />
+            </Link>
+          </Button>
+        ) : (
+          <Button type="button" variant="ghost" size={size} aria-label={label} onClick={onClick} className="text-muted-foreground hover:text-foreground">
+            <Icon aria-hidden />
+          </Button>
+        )}
+      </TooltipTrigger>
+      <TooltipContent>{label}</TooltipContent>
+    </Tooltip>
+  );
+}
+
+/** Workspace › store: switch either; icons add a store, view it, and start or rename a workspace */
 function WorkspaceSwitcher() {
   const router = useRouter();
   const pathname = usePathname();
@@ -132,6 +154,7 @@ function WorkspaceSwitcher() {
   const { data: stores } = useApi(getOwnedStores, [], { live: true });
   const { data: workspaces } = useApi(getWorkspaces, [], { live: true });
   const [dialog, setDialog] = useState<StoreDialog>(null);
+  const [menu, setMenu] = useState(false);
   const active = workspaces?.find((w) => w.active);
   const here = (stores ?? []).filter((s) => s.workspaceId === active?.id);
   const owner = active?.access.role === "owner";
@@ -146,9 +169,16 @@ function WorkspaceSwitcher() {
       else router.refresh();
     });
 
+  // Opens a dialog from an icon in the menu: the menu closes first
+  const ask = (d: StoreDialog) => {
+    setMenu(false);
+    plan.guard("stores", () => setDialog(d));
+  };
+  const canRename = !!active && can(active.access, "team");
+
   return (
     <>
-      <DropdownMenu>
+      <DropdownMenu open={menu} onOpenChange={setMenu}>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" className="max-w-72 min-w-0 shrink gap-2.5 px-2" aria-label={`Workspace: ${active?.name ?? "loading"}, store: ${store?.name ?? "loading"}. Switch`}>
             <span className="grid size-7 shrink-0 place-items-center rounded-[8px] font-mono text-[0.6875rem] font-semibold" style={{ background: store?.brandColor ?? "var(--primary)", color: store?.brandColor ? readableOn(store.brandColor) : "var(--primary-foreground)" }}>
@@ -162,7 +192,11 @@ function WorkspaceSwitcher() {
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" className="w-72">
-          <DropdownMenuLabel className="eyebrow">Stores in {active?.name ?? "this workspace"}</DropdownMenuLabel>
+          <DropdownMenuLabel className="flex items-center gap-1">
+            <span className="eyebrow min-w-0 flex-1 truncate">Stores in {active?.name ?? "this workspace"}</span>
+            {store && <IconAction label="View live store" href={`/s/${store.slug}`} icon={ExternalLink} onDone={() => setMenu(false)} />}
+            {owner && <IconAction label={plan.state?.tier === "free" ? "Add a store (Pro)" : "Add a store"} icon={Plus} onClick={() => ask({ kind: "store" })} />}
+          </DropdownMenuLabel>
           {here.map((s) => (
             <DropdownMenuItem key={s.id} onSelect={() => !s.active && open(s.id, s.name)} className="items-start">
               {s.active ? <Check className="mt-0.5" aria-hidden /> : <span className="size-4" aria-hidden />}
@@ -176,21 +210,12 @@ function WorkspaceSwitcher() {
               <span className="font-mono text-[0.625rem] text-muted-foreground" title={`${s.products} in all`}>{s.liveProducts} live</span>
             </DropdownMenuItem>
           ))}
-          {owner && (
-            <DropdownMenuItem onSelect={() => plan.guard("stores", () => setDialog({ kind: "store" }))}>
-              <Plus aria-hidden /> Add a store
-              {plan.state?.tier === "free" && <span className="ml-auto font-mono text-[0.625rem]">PRO</span>}
-            </DropdownMenuItem>
-          )}
-          {store && (
-            <DropdownMenuItem asChild>
-              <Link href={`/s/${store.slug}`} target="_blank">
-                <ExternalLink aria-hidden /> View live store
-              </Link>
-            </DropdownMenuItem>
-          )}
           <DropdownMenuSeparator />
-          <DropdownMenuLabel className="eyebrow">Workspaces</DropdownMenuLabel>
+          <DropdownMenuLabel className="flex items-center gap-1">
+            <span className="eyebrow min-w-0 flex-1 truncate">Workspaces</span>
+            {canRename && <IconAction label="Rename workspace" icon={Pencil} onClick={() => { setMenu(false); setDialog({ kind: "rename", name: active!.name }); }} />}
+            <IconAction label="New workspace" icon={FolderPlus} onClick={() => ask({ kind: "workspace" })} />
+          </DropdownMenuLabel>
           {workspaces?.map((w) => {
             const first = stores?.find((s) => s.workspaceId === w.id);
             return (
@@ -201,16 +226,14 @@ function WorkspaceSwitcher() {
               </DropdownMenuItem>
             );
           })}
-          {active && can(active.access, "team") && (
-            <DropdownMenuItem onSelect={() => setDialog({ kind: "rename", name: active.name })}>
-              <Pencil aria-hidden /> Rename workspace
-            </DropdownMenuItem>
-          )}
-          <DropdownMenuItem onSelect={() => plan.guard("stores", () => setDialog({ kind: "workspace" }))}>
-            <Plus aria-hidden /> New workspace
-          </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+      {/* The most used store action, one tap from the bar */}
+      {store && (
+        <span className="max-sm:hidden">
+          <IconAction label="View live store" href={`/s/${store.slug}`} icon={ExternalLink} size="icon" />
+        </span>
+      )}
       <WorkspaceDialog open={dialog} onOpenChange={setDialog} />
     </>
   );
@@ -286,8 +309,9 @@ export function AccountMenu({ variant = "avatar" }: { variant?: "avatar" | "row"
   const { data: store } = useCurrentStore();
   const { state: planState, upgrade } = usePlan();
   const isAdmin = useIsAdmin();
-  // Staff are always on Pro
+  // Staff are always on Pro, with unlimited agent credits (migration 064); everyone else, their real plan
   const pro = isAdmin || planState?.tier === "pro";
+  const planLabel = isAdmin ? "Unlimited Pro" : pro ? "Pro" : "Free";
 
   const avatar = (
     <Avatar className={variant === "row" ? "size-8" : "size-9"}>
@@ -299,13 +323,13 @@ export function AccountMenu({ variant = "avatar" }: { variant?: "avatar" | "row"
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         {variant === "row" ? (
-          <Button variant="ghost" size="lg" className="w-full justify-start gap-2.5 px-2" aria-label={`Account menu, ${pro ? "Pro" : "Free"} plan`}>
+          <Button variant="ghost" size="lg" className="w-full justify-start gap-2.5 px-2" aria-label={`Account menu, ${planLabel} plan`}>
             {avatar}
             <span className="flex min-w-0 flex-1 flex-col items-start leading-tight">
               <span className="max-w-full truncate text-sm font-semibold">{store?.ownerName}</span>
               {!pro && planState && !planState.joined && <span className="text-xs font-medium text-accent-ink">Pro available</span>}
             </span>
-            {planState && <span className={cn("rounded-full px-2 py-0.5 text-[0.6875rem] font-semibold", pro ? "bg-accent text-accent-foreground" : "bg-muted text-muted-foreground")}>{pro ? "Pro" : "Free"}</span>}
+            {(planState || isAdmin) && <span className={cn("shrink-0 rounded-full px-2 py-0.5 text-[0.6875rem] font-semibold", pro ? "bg-accent text-accent-foreground" : "bg-muted text-muted-foreground")}>{isAdmin ? "Unlimited" : planLabel}</span>}
           </Button>
         ) : (
           <Button variant="ghost" size="icon" aria-label="Account menu">{avatar}</Button>
@@ -317,25 +341,33 @@ export function AccountMenu({ variant = "avatar" }: { variant?: "avatar" | "row"
           <span className="block truncate text-xs font-normal text-muted-foreground">{store?.ownerEmail}</span>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        {/* The plan's limits (the owner's plan in a workspace someone else owns) */}
-        <div className="px-2 py-1.5">
-          <PlanUsage className="border-0 p-0" />
-        </div>
-        {!pro && planState && !planState.joined && (
-          <DropdownMenuItem onSelect={() => upgrade()}>
-            <Sparkles aria-hidden /> Upgrade to Pro
+        {/* One plan entry, saying what the person really has */}
+        {planState?.joined && !isAdmin ? (
+          <div className="flex items-center gap-2 px-2 py-2 text-sm">
+            <Sparkles className="size-4 text-muted-foreground" aria-hidden />
+            <span className="flex-1">Workspace owner&apos;s plan</span>
+            <span className="rounded-full bg-muted px-2 py-0.5 text-[0.6875rem] font-semibold">{planState.tier === "pro" ? "Pro" : "Free"}</span>
+          </div>
+        ) : pro ? (
+          <DropdownMenuItem asChild className="my-1 rounded-control bg-accent-soft py-2.5 focus:bg-accent-soft/80">
+            <Link href="/settings/billing">
+              <Sparkles className="text-accent-ink" aria-hidden />
+              <span className="flex min-w-0 flex-1 flex-col">
+                <span className="font-semibold text-accent-ink">{planLabel} plan</span>
+                <span className="text-xs text-muted-foreground">{isAdmin ? "Staff: every Pro feature and unlimited agent credits" : "Billing and plan"}</span>
+              </span>
+            </Link>
+          </DropdownMenuItem>
+        ) : (
+          <DropdownMenuItem onSelect={() => upgrade()} className="my-1 rounded-control bg-accent-soft py-2.5 focus:bg-accent-soft/80">
+            <Sparkles className="text-accent-ink" aria-hidden />
+            <span className="flex min-w-0 flex-1 flex-col">
+              <span className="font-semibold text-accent-ink">Free plan</span>
+              <span className="text-xs text-muted-foreground">Upgrade to Pro</span>
+            </span>
           </DropdownMenuItem>
         )}
-        {pro && (
-          <>
-            <DropdownMenuItem asChild>
-              <Link href="/settings/billing">
-                <Sparkles aria-hidden /> Billing and plan
-              </Link>
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-          </>
-        )}
+        <DropdownMenuSeparator />
         <DropdownMenuItem asChild>
           <Link href="/settings/profile">
             <Settings aria-hidden /> Settings

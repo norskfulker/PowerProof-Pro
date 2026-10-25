@@ -13,6 +13,8 @@ import { MoneyText } from "@/components/pp/money-text";
 import { PageHeader } from "@/components/pp/page-header";
 import { StatusPill } from "@/components/pp/status-pill";
 import { StatusTabs } from "@/components/pp/status-tabs";
+import { UnpaidTimer } from "@/components/orders/unpaid-timer";
+import { useLiveStore } from "@/hooks/use-live-store";
 import { useApi } from "@/hooks/use-api";
 import { getOrders } from "@/lib/api";
 import { formatMoney, money } from "@/lib/money";
@@ -21,7 +23,7 @@ import type { Order } from "@/lib/types";
 
 
 const PAY: Record<string, string> = { upi: "UPI", card: "Card", netbanking: "Netbanking", wallet: "Wallet" };
-const payOf = (o: Order) => (o.payment === "cod" ? "Cash on delivery" : o.paymentMethod ? PAY[o.paymentMethod] : o.status === "pending" || o.status === "failed" ? "—" : "Online");
+const payOf = (o: Order) => (o.payment === "cod" ? "Cash on delivery" : o.paymentMethod ? PAY[o.paymentMethod] : o.status === "pending" || o.status === "failed" || o.status === "cancelled" ? "—" : "Online");
 /** Money the creator keeps: paid or cash collected, not refunded or failed */
 const counts = (o: Order) => o.status === "paid" || o.status === "cod" || o.status === "refund_requested";
 
@@ -29,12 +31,14 @@ function OrdersTable() {
   const params = useSearchParams();
   const productId = params.get("product") ?? undefined;
   const router = useRouter();
-  const tab = (["ship", "paid", "cod", "refunded", "disputed"] as const).find((s) => s === params.get("status")) ?? "all";
+  const tab = (["ship", "paid", "cod", "refunded", "cancelled", "disputed"] as const).find((s) => s === params.get("status")) ?? "all";
   // "disputed" isn't an order status: it narrows the list to orders with an open dispute; "ship" to orders waiting to be sent
   const disputed = tab === "disputed";
   const toShip = tab === "ship";
-  const status = tab === "paid" || tab === "refunded" || tab === "cod" ? tab : null;
+  const status = tab === "paid" || tab === "refunded" || tab === "cod" || tab === "cancelled" ? tab : null;
   const { data, loading, error, reload } = useApi(() => getOrders({ productId, disputed, toShip }), [productId, disputed, toShip], { live: true });
+  // New orders, payments and cancellations arrive without a refresh
+  useLiveStore(["orders"], reload);
   const shipping = data?.some((o) => o.fulfilment) ?? false;
 
   const columns = useMemo<ColumnDef<Order, unknown>[]>(
@@ -94,7 +98,8 @@ function OrdersTable() {
         cell: ({ row }) => (
           <span className="flex flex-wrap gap-1">
             <StatusPill status={row.original.status} />
-            {row.original.fulfilment && row.original.status !== "refunded" && row.original.status !== "failed" && <StatusPill status={row.original.fulfilment} />}
+            {row.original.fulfilment && row.original.status !== "refunded" && row.original.status !== "failed" && row.original.status !== "cancelled" && <StatusPill status={row.original.fulfilment} />}
+            <UnpaidTimer order={row.original} />
           </span>
         ),
       },
@@ -126,6 +131,7 @@ function OrdersTable() {
         ...(shipping || tab === "ship" || tab === "cod" ? [{ value: "ship" as const, label: "To ship" }, { value: "cod" as const, label: "Cash on delivery" }] : []),
         { value: "paid", label: "Paid" },
         { value: "refunded", label: "Refunded" },
+        { value: "cancelled", label: "Cancelled" },
         { value: "disputed", label: "Disputed" },
       ]}
     />
@@ -196,7 +202,8 @@ function OrdersTable() {
           <span className="flex flex-col items-end gap-1.5">
             <MoneyText value={o.buyerTotal} className="font-semibold" />
             <StatusPill status={o.status} />
-            {o.fulfilment && o.status !== "refunded" && o.status !== "failed" && <StatusPill status={o.fulfilment} />}
+            {o.fulfilment && o.status !== "refunded" && o.status !== "failed" && o.status !== "cancelled" && <StatusPill status={o.fulfilment} />}
+            <UnpaidTimer order={o} />
           </span>
         </Link>
       )}

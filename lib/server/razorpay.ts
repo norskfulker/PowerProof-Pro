@@ -178,3 +178,8 @@ export const proPlanId = (env: Record<string, string | undefined> = process.env)
 export async function fetchGatewayOrder(cfg: RazorpayConfig, orderId: string) {
   return get<{ id: string; amount: number; amount_paid: number; currency: string; status: string; notes: Record<string, string> | unknown[] }>(cfg, `/orders/${encodeURIComponent(orderId)}`);
 }
+
+/** The payment attempts on an order, newest first: used to check a late or missing webhook against Razorpay */
+export async function fetchOrderPayments(cfg: RazorpayConfig, orderId: string) {
+  return get<{ items: { id: string; status: string; amount: number; currency: string; fee?: number; method?: string; error_code?: string | null; error_description?: string | null; error_reason?: string | null; created_at?: number }[] }>(cfg, `/orders/${encodeURIComponent(orderId)}/payments`);
+}

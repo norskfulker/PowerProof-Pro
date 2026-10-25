@@ -194,7 +194,14 @@ export function CheckoutSheet({ open, onOpenChange, storeId, storeSlug, lines, o
         theme: { color: "#0F3D33" },
         // Razorpay needs to own the top layer while its payment UI is open. Its default modal
         // focus handling conflicts with the surrounding Radix checkout sheet.
-        modal: { escape: true, backdropclose: true, handleback: true, ondismiss: () => { razorpayRef.current = null; delete document.body.dataset.paymentProviderOpen; setBusy(false); setError(undefined); } },
+        modal: { escape: true, backdropclose: true, handleback: true, ondismiss: () => {
+          razorpayRef.current = null;
+          delete document.body.dataset.paymentProviderOpen;
+          setBusy(false);
+          setError(undefined);
+          // Tells the store the payment window was closed without paying (shown in its payment activity)
+          void fetch("/api/payments/event", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ gatewayOrderId: reply.gatewayOrderId, kind: "abandoned" }), keepalive: true }).catch(() => {});
+        } },
         handler: async (r: { razorpay_payment_id: string; razorpay_order_id: string; razorpay_signature: string }) => {
           razorpayRef.current = null;
           delete document.body.dataset.paymentProviderOpen;

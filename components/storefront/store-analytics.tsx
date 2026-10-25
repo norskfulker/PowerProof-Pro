@@ -24,6 +24,17 @@ function session(): string {
 }
 
 /**
+ * A product put in the cart (the storefront's Buy), for the store's live activity. Same rules as a
+ * visit: cookieless, skipped for Do Not Track, automated browsers and the editor's preview frame.
+ */
+export function trackCart(storeSlug: string, productId: string) {
+  if (typeof window === "undefined" || window.self !== window.top) return;
+  if (!shouldCount({ doNotTrack: navigator.doNotTrack, webdriver: navigator.webdriver })) return;
+  const source = classifySource(document.referrer, window.location.search, window.location.hostname);
+  void sb().rpc("track_event", { p_store_slug: storeSlug, p_kind: "cart", p_path: window.location.pathname, p_product: productId, p_source: source, p_session: session() });
+}
+
+/**
  * On a live storefront: counts the visit for the creator's dashboard (cookieless, skipped for
  * Do Not Track and automated browsers), and, when the creator added Google Analytics or Clarity,
  * asks the visitor once and loads the tags only if they agree.

@@ -16,7 +16,7 @@ import { activeStoreId } from "./session";
  * holds columns they may see (never the buyer's phone). `select *` is safe on it; the base
  * `orders` table refuses it.
  */
-type Row = { id: string; ref: string; store_id: string; buyer_name: string; buyer_email: string; buyer_country: string | null; buyer_state?: string | null; currency: string; subtotal_minor: number; discount_minor: number; total_minor: number; deals_applied: unknown; status: "pending" | "cod" | "paid" | "failed" | "refunded"; invoice_no: string | null; paid_at: string | null; created_at: string; payment_method?: string | null; shipping_minor?: number | null; cod_fee_minor?: number | null; ship_to?: unknown; fulfilment_status?: string | null; tracking?: unknown; shipped_at?: string | null; delivered_at?: string | null };
+type Row = { id: string; ref: string; store_id: string; buyer_name: string; buyer_email: string; buyer_country: string | null; buyer_state?: string | null; currency: string; subtotal_minor: number; discount_minor: number; total_minor: number; deals_applied: unknown; status: "pending" | "cod" | "paid" | "failed" | "refunded" | "cancelled"; cancelled_at?: string | null; cancel_reason?: string | null; invoice_no: string | null; paid_at: string | null; created_at: string; payment_method?: string | null; shipping_minor?: number | null; cod_fee_minor?: number | null; ship_to?: unknown; fulfilment_status?: string | null; tracking?: unknown; shipped_at?: string | null; delivered_at?: string | null };
 
 /** Buyers have no accounts, so a customer is identified by their email. */
 export const customerId = (email: string) => `c_${encodeURIComponent(email.toLowerCase())}`;
@@ -88,6 +88,8 @@ async function load(storeId: string): Promise<Order[]> {
       discount: Number(r.discount_minor) > 0 ? money(r.discount_minor, cur) : undefined,
       dealRuleIds: dealIds(r.deals_applied),
       payment: r.payment_method === "cod" ? "cod" : "online",
+      cancelledAt: r.cancelled_at ?? undefined,
+      cancelReason: r.cancel_reason ?? undefined,
       ...(r.fulfilment_status
         ? {
             shipping: money(Number(r.shipping_minor ?? 0), cur),

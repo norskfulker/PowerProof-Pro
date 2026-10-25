@@ -39,12 +39,12 @@ function setRail(v: boolean) {
 /** The bottom of the creator sidebar: Notifications, then Tools and Settings, then the account */
 function SidebarFooter({ tree, collapsed, onToggle, onNavigate }: { tree: ResolvedNode[]; collapsed?: boolean; onToggle?: () => void; onNavigate?: () => void }) {
   return (
-    <div className={cn("flex shrink-0 flex-col gap-1 border-t", collapsed ? "items-center px-0 py-2" : "py-3")}>
+    <div className={cn("flex shrink-0 flex-col gap-0.5 border-t", collapsed ? "items-center px-0 py-2" : "py-3")}>
       <div className={cn(!collapsed && "px-3")}>
         <Notifications variant={collapsed ? "icon" : "row"} side="right" />
       </div>
       <NavTree tree={tree} area="creator" label="Tools and settings" filter={false} grow={false} collapsed={collapsed} onNavigate={onNavigate} onExpandRail={collapsed ? onToggle : undefined} />
-      <div className={cn("mt-1", !collapsed && "px-3")}>
+      <div className={cn("mt-2", !collapsed && "px-3")}>
         <AccountMenu variant={collapsed ? "avatar" : "row"} />
       </div>
     </div>

@@ -1,5 +1,5 @@
 import {
-  AlertOctagon, Banknote, BarChart3, Bot, Box, Brush, FileText, Flag, FolderOpen, Globe, Images, Inbox, LayoutDashboard, MessagesSquare,
+  Activity, AlertOctagon, Banknote, BarChart3, Bot, Box, Brush, CreditCard, FileText, Flag, FolderOpen, Globe, Images, Inbox, LayoutDashboard, MessagesSquare,
   Newspaper, Package, Plug, Receipt, ScrollText, Search, Settings, Shield, ShoppingBag, Sparkles, Store, Tag, Ticket, Users, Wallet, Wrench, type LucideIcon,
 } from "lucide-react";
 import type { Need } from "../team";
@@ -89,15 +89,19 @@ export const STORE_NAV: NavNode[] = [
 ];
 
 export const CREATOR_NAV: NavNode[] = [
-  // Quick-control tiles at the top of the sidebar: Dashboard, Analytics, Agents and Marketplace
+  // Quick controls at the top of the sidebar: Dashboard and Analytics tiles, then one Marketplace card
   { id: "dashboard", label: "Dashboard", href: "/dashboard", icon: LayoutDashboard, match: ["/getting-started"], bento: true },
   // Sales, buyers, products and visitors in detail
   { id: "analytics", label: "Analytics", href: "/analytics", icon: BarChart3, need: "analytics", bento: true },
-  // PowerProof Agents: the workspace's agents (the Marketplace's "Subscribed agents" tab), their send queue and connections
-  { id: "agents", label: "Agents", href: "/marketplace?tab=subscribed", icon: Bot, match: ["/agents/my"], need: "agents", bento: true },
-  // One page: browse agents and every live deal, and manage this workspace's agents and this store's deals in place
-  { id: "marketplace", label: "Marketplace", href: "/marketplace", icon: ShoppingBag, bento: true },
-  // The list: Your products, then the Store and its data side by side
+  // Agents and deals in one card: browse the marketplace, or open this workspace's subscribed agents
+  // (their send queue and connections count as them)
+  {
+    id: "marketplace", label: "Marketplace", icon: ShoppingBag, bento: true, children: [
+      { id: "marketplace-browse", label: "Browse", href: "/marketplace", icon: ShoppingBag, match: ["/marketplace/agents/"] },
+      { id: "agents", label: "Subscribed agents", href: "/marketplace?tab=subscribed", icon: Bot, match: ["/agents/my"], need: "agents" },
+    ],
+  },
+  // The list: Your products, then the Store with its data nested under it
   {
     id: "catalog", label: "Your products", icon: Package, children: [
       { id: "collections", label: "Collections", href: "/catalog/collections", icon: FolderOpen, match: ["/catalog/collections/"], need: "catalog" },
@@ -107,11 +111,14 @@ export const CREATOR_NAV: NavNode[] = [
     ],
   },
   // The store asks how to build: Create with AI (AI Studio), Create custom (the editor) or Copy a store.
-  // Policies, Offers and SEO are tabs of Settings › Store.
-  { id: "store", label: "Store", href: "/store/{store}/design", icon: Store, match: STORE_MATCH, need: "design" },
+  // Policies, Offers and SEO are tabs of Settings › Store. Its orders, payments, live activity,
+  // customers, leads and payouts sit under it.
   {
-    id: "sales", label: "Store Data", icon: Receipt, children: [
+    id: "store", label: "Store", icon: Store, children: [
+      { id: "store-design", label: "Design", href: "/store/{store}/design", icon: Brush, match: STORE_MATCH, need: "design" },
       { id: "orders", label: "Orders", href: "/sales/orders", icon: Receipt, badge: "orders_disputed", match: ["/sales/orders/"], need: "orders" },
+      { id: "payments", label: "Payments", href: "/sales/payments", icon: CreditCard, need: "orders" },
+      { id: "activity", label: "Live activity", href: "/sales/activity", icon: Activity, need: "orders" },
       { id: "customers", label: "Customers", href: "/sales/customers", icon: Users, match: ["/sales/customers/"], need: "orders" },
       { id: "leads", label: "Leads", href: "/sales/leads", icon: Inbox, match: ["/sales/leads/"], need: "orders" },
       { id: "payouts", label: "Payouts", href: "/sales/payouts/balance", icon: Wallet, match: ["/sales/payouts/"], need: "owner" },

@@ -166,6 +166,20 @@ export function paymentFailedMail(o: { storeName: string; buyerName: string; ref
   };
 }
 
+/* Buyer: an unpaid order was cancelled after an hour ------------------------------------- */
+
+export function orderCancelledMail(o: { storeName: string; buyerName: string; ref: string; total: string; shopUrl: string; supportEmail?: string }): Omit<Mail, "to"> {
+  return {
+    subject: `Your ${o.storeName} order was cancelled (${o.ref})`,
+    replyTo: o.supportEmail,
+    html: shell(
+      "Your order was cancelled",
+      `<p>Hi ${esc(o.buyerName.split(" ")[0])}, we didn't receive payment for order <strong>${esc(o.ref)}</strong> (${esc(o.total)}) from ${esc(o.storeName)} within an hour, so it was cancelled.</p><p>No money was taken. If your bank shows a charge, it's a hold that's released on its own, or it's refunded.</p>${button(o.shopUrl, "Shop again")}${muted("Questions? Reply to this email.")}`
+    ),
+    text: `Your order was cancelled\n\nWe didn't receive payment for order ${o.ref} (${o.total}) from ${o.storeName} within an hour, so it was cancelled.\nNo money was taken. Any hold your bank shows is released on its own, or refunded.\n\nShop again: ${o.shopUrl}`,
+  };
+}
+
 /* Buyer: the order was refunded ---------------------------------------------------------- */
 
 export function refundMail(o: { storeName: string; buyerName: string; ref: string; amount: string; cash?: boolean; orderUrl: string; supportEmail?: string }): Omit<Mail, "to"> {

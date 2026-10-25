@@ -12,6 +12,12 @@ import { PageHeader } from "@/components/pp/page-header";
 import { ProofReceipt } from "@/components/pp/proof-receipt";
 import { StatusPill } from "@/components/pp/status-pill";
 import { OrderTimeline } from "@/components/orders/order-timeline";
+import { PaymentEventList } from "@/components/orders/payment-events";
+import { UnpaidTimer } from "@/components/orders/unpaid-timer";
+import { LiveStatusBadge } from "@/components/pp/live-status";
+import { useLiveStore } from "@/hooks/use-live-store";
+import { getPaymentEvents } from "@/lib/api/activity";
+import { formatDate } from "@/lib/format";
 import { ShippingCard } from "@/components/orders/shipping-card";
 import { useApi } from "@/hooks/use-api";
 import { useCurrentStore } from "@/hooks/use-current-store";
@@ -21,6 +27,12 @@ import { countryShort, sourceLabel } from "@/lib/format";
 export default function OrderDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const order = useApi(() => getOrder(id), [id], { live: true });
+  const payments = useApi(() => getPaymentEvents({ orderId: id, limit: 100 }), [id], { live: true });
+  // A payment, failure or cancellation shows up here as it happens
+  const live = useLiveStore(["orders", "payment_events"], () => {
+    order.reload();
+    payments.reload();
+  });
   const store = useCurrentStore();
   const [busy, setBusy] = useState<"mail" | undefined>();
   const [confirm, setConfirm] = useState(false);
@@ -43,13 +55,17 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
   }
 
   const o = order.data;
-  const canRefund = o.status === "paid" || o.status === "refund_requested";
+  // A payment that arrived after the order was cancelled, not yet given back
+  const lateEvent = payments.data?.find((e) => e.kind === "late_payment");
+  const lateRefunded = !!lateEvent && !!payments.data?.some((e) => e.paymentId === lateEvent.paymentId && (e.kind === "refund_requested" || e.kind === "refund_processing" || e.kind === "refunded"));
+  const lateOpen = o.status === "cancelled" && !!lateEvent && !lateRefunded;
+  const canRefund = o.status === "paid" || o.status === "refund_requested" || lateOpen;
 
   return (
     <>
       <PageHeader
         back={{ href: "/sales/orders", label: "Orders" }}
-        title={<span className="flex flex-wrap items-center gap-3"><span className="font-mono text-[1.75rem] tracking-tight">{o.number}</span> <StatusPill status={o.status} /></span>}
+        title={<span className="flex flex-wrap items-center gap-3"><span className="font-mono text-[1.75rem] tracking-tight">{o.number}</span> <StatusPill status={o.status} /> <UnpaidTimer order={o} /></span>}
         actions={
           <>
             {o.status === "paid" && (
@@ -82,9 +98,11 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
       <ConfirmDialog
         open={confirm}
         onOpenChange={setConfirm}
-        title={`Refund ${o.number}?`}
+        title={lateOpen ? `Refund the late payment on ${o.number}?` : `Refund ${o.number}?`}
         description={
-          o.payment === "cod"
+          lateOpen
+            ? `${o.buyerName} paid after this order was cancelled. The full amount goes back to their original payment method. The order stays cancelled.`
+            : o.payment === "cod"
             ? `${o.buyerName} paid in cash, so give the money back to them yourself. PowerProof returns its fee to your balance. This can't be undone.`
             : `The full amount goes back to ${o.buyerName}'s original payment method, their downloads stop, and your balance is reduced. This can't be undone.`
         }
@@ -101,6 +119,17 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
         }}
       />
 
+      {o.status === "cancelled" && (
+        <div className={`mb-6 rounded-card border px-5 py-4 text-sm ${lateOpen ? "border-danger/40 bg-danger-soft" : "bg-surface-sunken"}`} role="status">
+          <p className={`font-semibold ${lateOpen ? "text-danger" : ""}`}>{lateOpen ? "Payment received after cancellation: refund it" : "Cancelled automatically"}</p>
+          <p className="mt-1">
+            {o.cancelReason ?? "Payment not received within 1 hour"}
+            {o.cancelledAt ? `, ${formatDate(o.cancelledAt, { time: true })}` : ""}.
+            {lateOpen ? " The buyer was charged afterwards, so give the money back with Refund." : lateRefunded ? " A late payment on it has been refunded." : " Nothing was charged and no stock was taken."}
+          </p>
+        </div>
+      )}
+
       {o.status === "refund_requested" && (
         <div className="mb-6 rounded-card border border-warning/40 bg-warning-soft px-5 py-4 text-sm" role="status">
           <p className="font-semibold text-warning-ink">The buyer asked for a refund</p>
@@ -114,6 +143,21 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
           <section className="rounded-card border bg-surface p-5 md:p-6" aria-labelledby="tl-h">
             <h2 id="tl-h" className="font-sans text-base font-semibold tracking-normal">What happened</h2>
             <OrderTimeline order={o} />
+          </section>
+          <section className="overflow-hidden rounded-card border bg-surface" aria-labelledby="pay-h">
+            <header className="flex items-center justify-between gap-3 border-b px-5 py-4">
+              <h2 id="pay-h" className="font-sans text-base font-semibold tracking-normal">Payment activity</h2>
+              <LiveStatusBadge status={live} />
+            </header>
+            {payments.error ? (
+              <ErrorState className="m-4" message={payments.error} onRetry={payments.reload} />
+            ) : !payments.data ? (
+              <Skeleton className="m-4 h-24" />
+            ) : payments.data.length ? (
+              <PaymentEventList events={payments.data} />
+            ) : (
+              <p className="px-5 py-6 text-sm text-muted-foreground">No payment steps recorded for this order. Payment tracking covers orders placed after it was switched on.</p>
+            )}
           </section>
           <section className="grid grid-cols-1 gap-4 rounded-card border bg-surface p-5 sm:grid-cols-2 md:p-6" aria-label="Buyer and product">
             <div>

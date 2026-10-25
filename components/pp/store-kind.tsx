@@ -1,4 +1,3 @@
-import { Download, Truck } from "lucide-react";
 import { countryByCode, flagOf } from "@/lib/countries";
 import { cn } from "@/lib/utils";
 
@@ -10,22 +9,20 @@ export const STORE_KIND: Record<StoreSells, { label: string; short: string; body
 };
 
 /**
- * What kind of store this is, said the same way everywhere: a download arrow for digital, a truck
- * for physical. `compact` drops the word "store" for tight rows (menus, cards).
+ * What kind of store this is, said the same way everywhere: a text badge, tinted by kind.
+ * `compact` drops the word "store" for tight rows (menus, cards).
  */
 export function StoreKind({ sells, compact = false, className }: { sells: StoreSells; compact?: boolean; className?: string }) {
   const k = STORE_KIND[sells];
-  const Icon = sells === "physical" ? Truck : Download;
   return (
     <span
       title={k.body}
       className={cn(
-        "inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold whitespace-nowrap [overflow-wrap:normal]",
+        "inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-xs font-semibold whitespace-nowrap [overflow-wrap:normal]",
         sells === "physical" ? "bg-accent/15 text-accent-ink" : "bg-primary-soft text-primary",
         className
       )}
     >
-      <Icon className="size-3.5" aria-hidden />
       {compact ? k.short : k.label}
     </span>
   );

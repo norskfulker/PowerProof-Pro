@@ -3,6 +3,9 @@ import { NextResponse } from "next/server";
 import { sbAdmin } from "@/lib/supabase/admin";
 import { razorpayConfig, verifyWebhookSignature } from "@/lib/server/razorpay";
 import { handleEvent, type GatewayEvent } from "@/lib/server/razorpay-events";
+import { recordRazorpayEvent } from "@/lib/server/payment-events";
+import { LatePaymentError } from "@/lib/server/shop";
+import type { RazorpayWebhook } from "@/lib/payment-events";
 
 /**
  * Razorpay tells us about payments even when the buyer closed the tab. Signed over the raw body;
@@ -32,9 +35,16 @@ export async function POST(request: Request) {
   const { data: seen } = await db.from("webhook_events").select("id, processed_at").eq("gateway", "razorpay").eq("event_id", eventId).maybeSingle();
   if (seen?.processed_at) return NextResponse.json({ ok: true, duplicate: true });
   if (!seen) await db.from("webhook_events").insert({ gateway: "razorpay", event_id: eventId, event_type: ev.event, payload: ev as never });
+  // The payment's step for the order's activity feed (stored once, whatever the order of delivery)
+  await recordRazorpayEvent(ev as RazorpayWebhook).catch((e) => console.error("[webhook] payment event", e instanceof Error ? e.message : e));
   try {
     await handleEvent(ev);
   } catch (e) {
+    // Paid after the order was cancelled: recorded and flagged for a refund, nothing to retry
+    if (e instanceof LatePaymentError) {
+      await db.from("webhook_events").update({ processed_at: new Date().toISOString(), error: "late payment: order cancelled" }).eq("gateway", "razorpay").eq("event_id", eventId);
+      return NextResponse.json({ ok: true, late: true });
+    }
     console.error("[webhook]", ev.event, e instanceof Error ? e.message : e);
     // Not-found and already-handled are fine; anything else gets retried by Razorpay
     await db.from("webhook_events").update({ error: e instanceof Error ? e.message.slice(0, 300) : "failed" }).eq("gateway", "razorpay").eq("event_id", eventId);

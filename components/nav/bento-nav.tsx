@@ -8,7 +8,7 @@ import { activeTrail, type ResolvedNode } from "@/lib/nav/model";
 import { cn } from "@/lib/utils";
 
 /** Tile order and each tile's colour (soft gradients from the icon-chip tones) */
-const TILES: Record<string, GlassTone> = { dashboard: "emerald", analytics: "sky", agents: "amber", marketplace: "coral" };
+const TILES: Record<string, GlassTone> = { dashboard: "emerald", analytics: "sky", marketplace: "coral" };
 const ORDER = Object.keys(TILES);
 
 /** Where a tile goes: its own link, or the first page of its group */
@@ -27,15 +27,18 @@ function tileStyle(id: string, on: boolean): React.CSSProperties {
 const iconColor = (id: string) => ({ color: `color-mix(in oklab, ${GLASS_TONES[TILES[id] ?? "slate"][1]} 80%, var(--foreground))` });
 
 /**
- * Quick controls at the top of the sidebar: Dashboard, Analytics, Agents and Marketplace, two by
- * two on soft gradients. On the icon rail they stack as icons. The tiles come from the one nav
- * config (`bento: true`), so access rules and search treat them like any menu item.
+ * Quick controls at the top of the sidebar: Dashboard and Analytics side by side, then the
+ * Marketplace as one wide card whose links (Browse, Subscribed agents) sit inside it. On the icon
+ * rail they stack as icons. The tiles come from the one nav config (`bento: true`), so access rules
+ * and search treat them like any menu item.
  */
 export function BentoNav({ tree, collapsed, onNavigate }: { tree: ResolvedNode[]; collapsed?: boolean; onNavigate?: () => void }) {
   const pathname = usePathname();
   const search = useSearchParams();
   const tiles = tree.filter((n) => n.bento).sort((a, b) => ORDER.indexOf(a.id) - ORDER.indexOf(b.id));
-  const activeId = activeTrail(tree, pathname, search.toString())[0]?.id;
+  const trail = activeTrail(tree, pathname, search.toString());
+  const activeId = trail[0]?.id;
+  const leafId = trail.at(-1)?.id;
   if (!tiles.length) return null;
 
   if (collapsed) {
@@ -70,6 +73,38 @@ export function BentoNav({ tree, collapsed, onNavigate }: { tree: ResolvedNode[]
         const href = hrefOf(n);
         if (!href) return null;
         const on = n.id === activeId;
+        // A group: one wide card, its links inside
+        if (n.children?.length) {
+          return (
+            <li key={n.id} className="col-span-2">
+              <div style={tileStyle(n.id, on)} className="flex flex-col gap-1 rounded-card border p-2">
+                <p className="flex items-center gap-2 px-1.5 pt-0.5 pb-1 text-xs font-semibold text-foreground/70">
+                  {Icon && <Icon className="size-3.5 shrink-0" style={iconColor(n.id)} strokeWidth={2} aria-hidden />}
+                  {n.label}
+                </p>
+                <ul className="grid grid-cols-2 gap-1">
+                  {n.children.map((c) => {
+                    const CIcon = c.icon;
+                    const here = c.id === leafId;
+                    return (
+                      <li key={c.id}>
+                        <Link
+                          href={c.href ?? href}
+                          onClick={onNavigate}
+                          aria-current={here ? "page" : undefined}
+                          className={cn("flex min-h-9 items-center gap-2 rounded-control px-2 text-sm font-semibold transition-colors pointer-coarse:min-h-11", here ? "bg-surface shadow-xs" : "hover:bg-surface/70")}
+                        >
+                          {CIcon && <CIcon className="size-4 shrink-0" style={iconColor(n.id)} strokeWidth={1.75} aria-hidden />}
+                          <span className="truncate">{c.label}</span>
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            </li>
+          );
+        }
         return (
           <li key={n.id}>
             <Link

@@ -63,11 +63,12 @@ export function Notifications({ variant = "icon", side = "bottom" }: { variant?:
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         {variant === "row" ? (
-          <Button variant="ghost" className="w-full justify-start gap-2.5 px-2.5 font-medium" aria-label={unread ? `Notifications, ${unread} unread` : "Notifications"}>
-            <Bell aria-hidden />
-            <span className="flex-1 text-left">Notifications</span>
+          // Same height, padding, icon and type as the sidebar's menu rows
+          <button type="button" className="flex min-h-9 w-full items-center gap-2.5 rounded-control px-3 text-left text-sm font-semibold text-foreground/80 outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring pointer-coarse:min-h-11" aria-label={unread ? `Notifications, ${unread} unread` : "Notifications"}>
+            <Bell className="size-[18px] shrink-0" strokeWidth={1.5} aria-hidden />
+            <span className="min-w-0 flex-1 truncate">Notifications</span>
             {unread > 0 && <span aria-hidden className="grid min-w-5 place-items-center rounded-full bg-danger px-1.5 text-[0.6875rem] leading-5 font-semibold text-white">{unread > 99 ? "99+" : unread}</span>}
-          </Button>
+          </button>
         ) : (
           <Button variant="ghost" size="icon" aria-label={unread ? `Notifications, ${unread} unread` : "Notifications"} className="relative">
             <Bell />

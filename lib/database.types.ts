@@ -2593,6 +2593,8 @@ export type Database = {
           currency: string
           deals_applied: Json
           delivered_at: string | null
+          cancel_reason: string | null
+          cancelled_at: string | null
           discount_minor: number
           fulfilment_status: string | null
           gateway: string
@@ -2632,6 +2634,8 @@ export type Database = {
           currency: string
           deals_applied?: Json
           delivered_at?: string | null
+          cancel_reason?: string | null
+          cancelled_at?: string | null
           discount_minor?: number
           fulfilment_status?: string | null
           gateway?: string
@@ -2671,6 +2675,8 @@ export type Database = {
           currency?: string
           deals_applied?: Json
           delivered_at?: string | null
+          cancel_reason?: string | null
+          cancelled_at?: string | null
           discount_minor?: number
           fulfilment_status?: string | null
           gateway?: string
@@ -2856,6 +2862,63 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      payment_events: {
+        Row: {
+          id: string
+          order_id: string | null
+          store_id: string
+          provider: string
+          kind: string
+          source: string
+          payment_id: string | null
+          refund_id: string | null
+          amount_minor: number | null
+          currency: string | null
+          method: string | null
+          reason: string | null
+          error_code: string | null
+          provider_event_id: string
+          occurred_at: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          order_id?: string | null
+          store_id: string
+          provider: string
+          kind: string
+          source: string
+          payment_id?: string | null
+          refund_id?: string | null
+          amount_minor?: number | null
+          currency?: string | null
+          method?: string | null
+          reason?: string | null
+          error_code?: string | null
+          provider_event_id: string
+          occurred_at?: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          order_id?: string | null
+          store_id?: string
+          provider?: string
+          kind?: string
+          source?: string
+          payment_id?: string | null
+          refund_id?: string | null
+          amount_minor?: number | null
+          currency?: string | null
+          method?: string | null
+          reason?: string | null
+          error_code?: string | null
+          provider_event_id?: string
+          occurred_at?: string
+          created_at?: string
+        }
+        Relationships: []
       }
       plan_limits: {
         Row: {
@@ -4038,6 +4101,8 @@ export type Database = {
           currency: string | null
           deals_applied: Json | null
           delivered_at: string | null
+          cancel_reason: string | null
+          cancelled_at: string | null
           discount_minor: number | null
           fulfilment_status: string | null
           id: string | null
@@ -4066,6 +4131,8 @@ export type Database = {
           currency?: string | null
           deals_applied?: Json | null
           delivered_at?: string | null
+          cancel_reason?: string | null
+          cancelled_at?: string | null
           discount_minor?: number | null
           fulfilment_status?: string | null
           id?: string | null
@@ -4094,6 +4161,8 @@ export type Database = {
           currency?: string | null
           deals_applied?: Json | null
           delivered_at?: string | null
+          cancel_reason?: string | null
+          cancelled_at?: string | null
           discount_minor?: number | null
           fulfilment_status?: string | null
           id?: string | null
@@ -5114,7 +5183,7 @@ export type Database = {
       discount_kind: "percent" | "fixed"
       domain_status: "pending" | "verifying" | "active" | "failed"
       moderation_status: "published" | "hidden"
-      order_status: "pending" | "cod" | "paid" | "failed" | "refunded"
+      order_status: "pending" | "cod" | "paid" | "failed" | "refunded" | "cancelled"
       page_status: "draft" | "published"
       payout_status:
         | "requested"
@@ -5257,7 +5326,7 @@ export const Constants = {
       discount_kind: ["percent", "fixed"],
       domain_status: ["pending", "verifying", "active", "failed"],
       moderation_status: ["published", "hidden"],
-      order_status: ["pending", "cod", "paid", "failed", "refunded"],
+      order_status: ["pending", "cod", "paid", "failed", "refunded", "cancelled"],
       page_status: ["draft", "published"],
       payout_status: ["requested", "processing", "paid", "failed", "cancelled"],
       plan_tier: ["free", "pro"],

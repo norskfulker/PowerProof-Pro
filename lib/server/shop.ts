@@ -9,9 +9,10 @@ import type { Money, CurrencyCode } from "../types";
 import { shippingFrom, type ShipTo } from "../shipping";
 import { CheckoutError, priceOrder, type AskedLine, type CouponRow, type ProductRow } from "./checkout";
 import { emailPrefsFrom } from "../email-prefs";
-import { cartReminderMail, newOrderMail, paymentFailedMail, payoutMail, receiptMail, refundMail, sendMail, shippedMail } from "./email";
+import { cartReminderMail, newOrderMail, orderCancelledMail, paymentFailedMail, payoutMail, receiptMail, refundMail, sendMail, shippedMail } from "./email";
 import { createGatewayOrder, GatewayError, razorpayConfig, refundPayment } from "./razorpay";
 import { DIRECT_GATEWAYS, directGatewayFor, startDirect } from "./gateways";
+import { orderFor, recordPaymentEvent } from "./payment-events";
 
 /**
  * Everything that touches money or private files, on the server with the service-role key.
@@ -191,6 +192,7 @@ export async function createCheckout(input: CheckoutInput): Promise<CheckoutRepl
     }
     const id = made.data as string;
     await db.from("orders").update({ gateway: direct.provider }).eq("id", id);
+    await recordPaymentEvent({ orderId: id, storeId: store.id }, { kind: "initiated", source: "app", provider: direct.provider, providerEventId: `app:initiated:${id}`, amountMinor: priced.total, currency: priced.currency });
     if (started.keyId) return { free: false, orderId: id, ref: orderRef, keyId: started.keyId, gatewayOrderId: started.gatewayOrderId, amount: priced.total, currency: priced.currency, storeName: store.name };
     const redirect = started.redirect ?? (await started.finish?.(id));
     if (!redirect) throw new CheckoutError("We couldn't start the payment. Please try again.", 502);
@@ -216,6 +218,7 @@ export async function createCheckout(input: CheckoutInput): Promise<CheckoutRepl
     throw new CheckoutError("We couldn't save your order. Please try again.", 500);
   }
   const orderId = created.data as string;
+  if (!free) await recordPaymentEvent({ orderId, storeId: store.id }, { kind: "initiated", source: "app", provider: "razorpay", providerEventId: `app:initiated:${orderId}`, amountMinor: priced.total, currency: priced.currency });
 
   if (free) {
     const done = await completePayment(gatewayOrderId, `free_${orderId}`);
@@ -254,12 +257,43 @@ function orderArgs(input: CheckoutInput, storeId: string, ref: string, priced: R
 }
 
 /** Marks the order paid (safe to call twice), emails the receipt, and returns a link token. */
+/**
+ * A payment that arrived after its order was cancelled for not being paid within the hour.
+ * Policy: the order stays cancelled (nothing reopens silently, nothing is sold twice); the payment
+ * is recorded as "paid after cancellation" and the store is told to refund it from the order page.
+ * The webhook treats this as handled, so the gateway doesn't keep retrying.
+ */
+export class LatePaymentError extends CheckoutError {
+  constructor() {
+    super("This order was cancelled because payment didn't arrive within an hour. Your payment has been recorded and the store will refund it.", 409);
+  }
+}
+
+async function recordLatePayment(gatewayOrderId: string, paymentId: string): Promise<boolean> {
+  const db = sbAdmin();
+  const o = await orderFor({ gatewayOrderId });
+  if (!o || o.status !== "cancelled") return false;
+  await recordPaymentEvent({ orderId: o.id, storeId: o.store_id }, { kind: "late_payment", source: "provider", provider: o.gateway ?? "razorpay", providerEventId: `late:${paymentId}`, paymentId, amountMinor: Number(o.total_minor), currency: o.currency, reason: "Payment confirmed after the order was cancelled" });
+  await db.from("notifications").upsert({ store_id: o.store_id, kind: "payment_issue", title: "Payment received for a cancelled order", body: `Payment ${paymentId} arrived after the order was cancelled for not being paid in time. Refund the buyer or contact them.`, href: `/sales/orders/${o.id}`, area: "orders", dedupe: `late:${paymentId}` } as never, { onConflict: "store_id,dedupe", ignoreDuplicates: true });
+  await db.from("audit_log").insert({ actor_id: null, action: "late_payment_on_cancelled_order", target_type: "order", target_id: o.id, meta: { payment_id: paymentId, gateway_order_id: gatewayOrderId } } as never);
+  return true;
+}
+
+/** A provider's id prefix for payment events, so the checkout and the webhook name a payment the same way */
+const eventPrefix = (gateway: string | null) => (!gateway || gateway === "razorpay" || gateway === "own_razorpay" ? "rzp" : gateway);
+
 export async function completePayment(gatewayOrderId: string, paymentId: string, feeMinor?: number, direct?: boolean): Promise<{ orderId: string; ref: string; token: string }> {
   const db = sbAdmin();
   // Paid through the store's own gateway: no balance, no platform fee
   const r = direct ? await db.rpc("apply_direct_payment", { p_gateway_order_id: gatewayOrderId, p_gateway_payment_id: paymentId }) : await db.rpc("apply_payment", { p_gateway_order_id: gatewayOrderId, p_gateway_payment_id: paymentId, p_gateway_fee_minor: feeMinor as number });
+  if (r.error?.message.includes("order_not_payable") && (await recordLatePayment(gatewayOrderId, paymentId))) throw new LatePaymentError();
   if (r.error || !r.data?.[0]) throw new CheckoutError(r.error?.message.includes("order_not_found") ? "We can't find that order." : "We couldn't confirm that payment.", 400);
   const row = r.data[0] as { out_order_id: string; out_ref: string; out_token: string | null; out_already_paid: boolean };
+  // The checkout and the webhook can both report the same payment: one row either way
+  if (!paymentId.startsWith("free_") && !paymentId.startsWith("cod_")) {
+    const o = await orderFor({ orderId: row.out_order_id });
+    if (o) await recordPaymentEvent({ orderId: o.id, storeId: o.store_id }, { kind: "succeeded", source: "provider", provider: o.gateway ?? "razorpay", providerEventId: `${eventPrefix(o.gateway)}:${paymentId}:succeeded`, paymentId, amountMinor: Number(o.total_minor), currency: o.currency });
+  }
   let token = row.out_token;
   if (!token) {
     const t = await db.rpc("issue_download_token", { p_order: row.out_order_id });
@@ -347,6 +381,7 @@ export async function refundOrder(orderId: string, reason: string): Promise<void
   const { data: o } = await db.from("orders").select("status, total_minor, currency, gateway, gateway_payment_id, ref").eq("id", orderId).single();
   if (!o) throw new CheckoutError("We can't find that order.", 404);
   if (o.status === "refunded") return;
+  if (o.status === "cancelled") return refundLatePayment(orderId, o, reason);
   if (o.status !== "paid") throw new CheckoutError("Only a paid order can be refunded.");
   // The money went to the store's own gateway, so only it can send it back
   if ((DIRECT_GATEWAYS as readonly string[]).includes(o.gateway)) throw new CheckoutError("This sale was paid through your own payment gateway. Refund it from that gateway's dashboard.", 409);
@@ -361,6 +396,8 @@ export async function refundOrder(orderId: string, reason: string): Promise<void
       throw new CheckoutError(e instanceof GatewayError ? e.message : "The refund didn't go through.", 502);
     }
   }
+  const { data: orderRow } = await db.from("orders").select("store_id").eq("id", orderId).single();
+  if (orderRow && !refundId.startsWith("free_")) await recordPaymentEvent({ orderId, storeId: orderRow.store_id }, { kind: "refund_requested", source: "app", provider: o.gateway || "razorpay", providerEventId: `app:refund:${refundId}`, refundId, paymentId: o.gateway_payment_id ?? undefined, amountMinor: Number(o.total_minor), currency: o.currency, reason });
   const r = await db.rpc("apply_refund", { p_order: orderId, p_gateway_refund_id: refundId, p_reason: reason });
   if (r.error) throw new CheckoutError("The money was refunded, but we couldn't update the order. Contact support.", 500);
   await mailRefund(orderId, refundId.startsWith("free_")).catch((e) => console.error("[mail] refund email failed", e instanceof Error ? e.message : e));
@@ -413,6 +450,41 @@ export async function mailPaymentFailed(orderId: string, reason?: string) {
     reason: reason?.slice(0, 160),
     supportEmail: store?.support_email ?? undefined,
   });
+  return sendMail({ to: String(o.buyer_email), ...mail });
+}
+
+/**
+ * Gives back a payment that arrived after its order was cancelled (see LatePaymentError). The order
+ * stays cancelled and was never counted as a sale, so only the money moves: no ledger, no stock.
+ * Refunding the same payment twice does nothing.
+ */
+async function refundLatePayment(orderId: string, o: { gateway: string; currency: string; total_minor: number | string }, reason: string): Promise<void> {
+  const db = sbAdmin();
+  const { data: late } = await db.from("payment_events" as never).select("payment_id, store_id").eq("order_id", orderId).eq("kind", "late_payment").order("occurred_at", { ascending: false }).limit(1).maybeSingle();
+  const row = late as { payment_id: string | null; store_id: string } | null;
+  if (!row?.payment_id) throw new CheckoutError("Only a paid order can be refunded.");
+  const { data: done } = await db.from("payment_events" as never).select("id").eq("order_id", orderId).eq("payment_id", row.payment_id).in("kind", ["refund_requested", "refund_processing", "refunded"]).limit(1);
+  if ((done as unknown[] | null)?.length) return;
+  if ((DIRECT_GATEWAYS as readonly string[]).includes(o.gateway)) throw new CheckoutError("This payment went to your own payment gateway. Refund it from that gateway's dashboard.", 409);
+  const cfg = razorpayConfig();
+  if (!cfg) throw new CheckoutError("Payments aren't connected, so this can't be refunded here.", 503);
+  let refundId: string;
+  try {
+    refundId = (await refundPayment(cfg, row.payment_id, { amount: Number(o.total_minor), reason, receipt: `rf-late-${orderId.slice(0, 8)}` })).id;
+  } catch (e) {
+    throw new CheckoutError(e instanceof GatewayError ? e.message : "The refund didn't go through.", 502);
+  }
+  await recordPaymentEvent({ orderId, storeId: row.store_id }, { kind: "refund_requested", source: "app", provider: o.gateway || "razorpay", providerEventId: `app:refund:${refundId}`, refundId, paymentId: row.payment_id, amountMinor: Number(o.total_minor), currency: o.currency, reason });
+  await db.from("order_events").insert({ order_id: orderId, store_id: row.store_id, kind: "refund", body: `Late payment ${row.payment_id} refunded: ${reason}`.slice(0, 2000), amount_minor: Number(o.total_minor) } as never);
+}
+
+/** Tells the buyer an unpaid order was cancelled after the hour */
+export async function mailOrderCancelled(orderId: string) {
+  const db = sbAdmin();
+  const { data: o } = await db.from("orders").select("ref, buyer_name, buyer_email, currency, total_minor, store_id").eq("id", orderId).single();
+  if (!o) return;
+  const [{ data: store }, origin] = await Promise.all([db.from("stores").select("name, support_email").eq("id", o.store_id).single(), storeOrigin(o.store_id)]);
+  const mail = orderCancelledMail({ storeName: store?.name ?? "the store", buyerName: o.buyer_name, ref: o.ref, total: formatMoney(money(Number(o.total_minor), o.currency)), shopUrl: origin.home, supportEmail: store?.support_email ?? undefined });
   return sendMail({ to: String(o.buyer_email), ...mail });
 }
 

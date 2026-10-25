@@ -31,8 +31,12 @@ function stepsFor(o: Order): Step[] {
     s.push({ icon: CircleDashed, title: o.shippedAt ? "Waiting for the cash" : "Waiting to be shipped", tone: "pending" });
     return s;
   }
+  if (o.status === "cancelled") {
+    s.push({ icon: XCircle, title: "Cancelled automatically", body: o.cancelReason ?? "Payment not received within 1 hour", at: o.cancelledAt, tone: "bad" });
+    return s;
+  }
   if (o.status === "pending") {
-    s.push({ icon: CircleDashed, title: "Waiting for payment", body: "Buyer hasn't finished paying.", tone: "pending" });
+    s.push({ icon: CircleDashed, title: "Waiting for payment", body: "Buyer hasn't finished paying. Online orders not paid within an hour are cancelled automatically.", tone: "pending" });
     return s;
   }
   s.push({ icon: o.payment === "cod" ? HandCoins : CheckCircle2, title: o.payment === "cod" ? "Cash collected on delivery" : o.paymentMethod ? `Paid by ${o.paymentMethod.toUpperCase()}` : "Paid", at: o.paidAt, tone: "done" });

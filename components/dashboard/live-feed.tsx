@@ -8,13 +8,15 @@ import { EmptyState, ErrorState } from "@/components/pp/empty-state";
 import { MoneyText } from "@/components/pp/money-text";
 import { StatusPill } from "@/components/pp/status-pill";
 import { useApi } from "@/hooks/use-api";
+import { useLiveStore } from "@/hooks/use-live-store";
 import { getRecentOrders } from "@/lib/api";
 import { countryShort, timeAgo } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
-/** Orders as they land. Refreshes on any data change, including a buyer paying in another tab. */
+/** Orders as they land: pushed by live updates (Supabase Realtime), so a buyer paying anywhere shows up here */
 export function LiveFeed() {
-  const { data, loading, error, reload } = useApi(() => getRecentOrders(7), [], { live: true });
+  const { data, loading, error, reload } = useApi(() => getRecentOrders(12), [], { live: true });
+  useLiveStore(["orders"], reload);
   const seen = useRef<Set<string> | null>(null);
   const [fresh, setFresh] = useState<Set<string>>(new Set());
   const [, setNow] = useState(0);
@@ -43,7 +45,7 @@ export function LiveFeed() {
   }, []);
 
   return (
-    <section aria-labelledby="feed-h" className="flex flex-col rounded-card border bg-surface">
+    <section aria-labelledby="feed-h" className="flex min-h-0 flex-col rounded-card border bg-surface">
       <header className="flex items-center justify-between gap-3 border-b px-5 py-4">
         <h2 id="feed-h" className="flex items-center gap-2 font-display text-lg">
           Live orders
@@ -73,7 +75,7 @@ export function LiveFeed() {
       ) : data && data.length === 0 ? (
         <EmptyState icon={Radio} compact className="m-4 border-0" title="Nothing sold yet." body="Your first sale will show up here, live." />
       ) : (
-        <ul className="divide-y" aria-live="polite" aria-relevant="additions">
+        <ul className="max-h-[26rem] divide-y overflow-y-auto" aria-live="polite" aria-relevant="additions">
           {data?.map((o) => (
             <li key={o.id}>
               <Link

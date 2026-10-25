@@ -4,7 +4,7 @@ import { refreshSheet } from "./connectors/sheets";
 import { enqueueDue, loadInstance, runInstance, sendWeeklyReport, type Job, type JobResult } from "./runner";
 
 /**
- * The scheduler's worker side. The Worker's cron calls /api/cron/agents every 10 minutes: due jobs
+ * The scheduler's worker side. The Worker's cron calls /api/cron/agents every 5 minutes: due jobs
  * are added (idempotent), then a bounded batch is claimed and run inside the time budget. Anything
  * unfinished is retried with backoff; after max_attempts a job is dead and shows in Admin.
  */

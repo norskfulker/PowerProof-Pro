@@ -3,6 +3,7 @@
 import { createContext, useCallback, useContext, useState } from "react";
 import { canConvert, setActiveRates } from "@/lib/fx";
 import { CheckoutSheet, leftOf, type CartLine } from "@/components/buyer/checkout-sheet";
+import { trackCart } from "./store-analytics";
 import type { StorefrontView } from "@/lib/api";
 import type { CurrencyCode } from "@/lib/types";
 
@@ -44,9 +45,12 @@ export function StorefrontProvider({ slug, view, reload, children }: { slug: str
         const variantId = w.variantId ?? (product.variants?.length === 1 || open.length === 1 ? (open[0] ?? product.variants![0]).id : undefined);
         return [{ product, variantId, quantity: Math.max(1, w.quantity ?? 1) }];
       });
-      if (lines.length) setCart(lines);
+      if (lines.length) {
+        setCart(lines);
+        lines.forEach((l) => trackCart(view.store.slug, l.product.id));
+      }
     },
-    [view.bundles, view.products]
+    [view.bundles, view.products, view.store.slug]
   );
   const items = cart ?? [];
 
