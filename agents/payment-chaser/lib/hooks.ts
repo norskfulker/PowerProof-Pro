@@ -1,5 +1,5 @@
 import { formatMoney } from "@/lib/money";
-import { istDay, istInstant, istMonthStart } from "@/lib/agents/time";
+import { daysBetween, istDay, istInstant, istMonthStart } from "@/lib/agents/time";
 import type { AgentHooks, StoreDb } from "@/lib/server/agents/runtime/types";
 import { ingest } from "./ingest";
 import { testMessage } from "./test-message";
@@ -52,7 +52,15 @@ export const chaserHooks: AgentHooks = {
       periodStart,
       periodEnd,
     };
-    return { subject: `Your week: ${formatMoney({ amount: paid.minor, currency: "INR" })} paid after reminders`, data, empty: due.count === 0 && sent.total === 0 && paid.count === 0 };
+    const label = daysBetween(periodStart, periodEnd) === 1 ? "Yesterday" : "Your week";
+    return { subject: `${label}: ${formatMoney({ amount: paid.minor, currency: "INR" })} paid after reminders`, data, empty: due.count === 0 && sent.total === 0 && paid.count === 0 };
+  },
+
+  /** A reply: stop that customer (until the owner switches them back on), or snooze them until a date */
+  async onReply(db, reply, now) {
+    const at = now.toISOString();
+    if (reply.decision === "stop") await db.update("chaser_customers", { is_paused: true, updated_at: at }, { id: reply.contactKey });
+    else if (reply.decision === "snooze" && reply.until) await db.update("chaser_customers", { snoozed_until: reply.until, updated_at: at }, { id: reply.contactKey });
   },
 
   async onAction(db, item, outcome, now) {

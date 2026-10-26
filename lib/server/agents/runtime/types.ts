@@ -104,7 +104,14 @@ export interface StepCtx {
   actions: { enqueue(item: ActionItemInput): Promise<void> };
   credits: { charge(reason: string, key: string, units?: number): Promise<boolean>; balance(): Promise<number> };
   log(level: LogLevel, message: string, data?: Record<string, unknown>): void;
+  /**
+   * A line in the agent's terminal, in plain words the owner reads live ("Found 12 overdue
+   * invoices"). Counts only: never a customer's name, email or phone.
+   */
+  say(message: string, level?: SayLevel): void;
 }
+
+export type SayLevel = "info" | "ok" | "warn" | "error";
 
 export type Step<In = unknown, Out = unknown> = (ctx: StepCtx, input: In) => Promise<Out>;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -137,6 +144,11 @@ export interface AgentHooks {
   ingest?(db: StoreDb, rows: string[][], o: { source: "csv" | "xlsx" | "sheet" | "manual"; fileName: string; mapping?: Record<string, number>; isFull: boolean; now: Date; userId?: string | null; newId: () => string }): Promise<{ ok: boolean; message?: string; summary?: unknown }>;
   /** The owner finished or skipped an action item (e.g. a WhatsApp message sent from the queue) */
   onAction?(db: StoreDb, item: { kind: string; refType: string | null; refId: string | null; payload: Record<string, unknown> }, outcome: "done" | "skipped", now: Date): Promise<void>;
+  /**
+   * A customer replied (by email, or the owner marked it). The platform has already decided what
+   * the reply rule does; the agent applies it to its own data (stop or snooze that contact).
+   */
+  onReply?(db: StoreDb, reply: { contactKey: string; decision: "stop" | "snooze" | "keep"; until: string | null }, now: Date): Promise<void>;
   /** A real message from the store's own data, for "Send me a test email" ({ missing }: nothing to build one from yet) */
   testMessage?(db: StoreDb, o: { settings: Record<string, unknown>; businessName: string; now: Date }): Promise<{ subject: string; body: string; about: string } | { missing: string }>;
 }

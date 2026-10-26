@@ -1,4 +1,6 @@
 import type { ActionKind, AgentManifest, InstanceStatus } from "../agents/define";
+import type { ReplyIntent } from "../agents/replies";
+import type { ReplyRule, ReportFrequency } from "../agents/schedule";
 
 /** PowerProof Agents, as pages see them (rows are mapped in lib/api/live/agents.ts) */
 
@@ -27,6 +29,61 @@ export interface AgentInstance {
   lastRunAt: string | null;
   nextRunAt: string | null;
   createdAt: string;
+  /** The owner's schedule (lib/agents/schedule.ts); null: the manifest's interval */
+  schedule: unknown;
+  replyRule: ReplyRule;
+  replyPauseDays: number;
+  reportFrequency: ReportFrequency;
+}
+
+/** One line in the agent's terminal */
+export interface RunLogLine {
+  id: number;
+  runId: string | null;
+  at: string;
+  level: "info" | "ok" | "warn" | "error";
+  step: string | null;
+  message: string;
+}
+
+export interface AgentReply {
+  id: string;
+  outboxId: string | null;
+  channel: "email" | "whatsapp" | "sms";
+  source: "inbound" | "owner";
+  excerpt: string;
+  intent: ReplyIntent;
+  promisedOn: string | null;
+  applied: string;
+  receivedAt: string;
+  /** Who it came from, as the message was addressed (the owner's own customer) */
+  to: string | null;
+}
+
+/** A message the agent sent or queued, to mark a reply against */
+export interface SentMessage {
+  id: string;
+  channel: "email" | "whatsapp" | "sms";
+  to: string;
+  subject: string | null;
+  status: string;
+  createdAt: string;
+}
+
+export interface AgentReport {
+  id: string;
+  period: "day" | "week";
+  periodStart: string;
+  periodEnd: string;
+  status: "pending" | "sent" | "failed" | "skipped";
+  sentAt: string | null;
+  data: Record<string, unknown>;
+}
+
+export interface RatingSummary {
+  average: number | null;
+  count: number;
+  recent: { stars: number; comment: string; at: string }[];
 }
 
 export interface AgentRun {

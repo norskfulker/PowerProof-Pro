@@ -29,6 +29,8 @@ export interface Customer {
   isPaused: boolean;
   optedOutAt: string | null;
   languagePref: Language | null;
+  /** A reply asked for time: no reminder before this India date */
+  snoozedUntil?: string | null;
 }
 
 export interface OpenInvoice {
@@ -62,7 +64,7 @@ export interface PlanItem {
   daysOverdue: number;
 }
 
-export type Skip = { customerId: string; reason: "paused" | "opted_out" | "no_contact" | "too_soon" | "daily_cap" };
+export type Skip = { customerId: string; reason: "paused" | "snoozed" | "opted_out" | "no_contact" | "too_soon" | "daily_cap" };
 
 export interface Plan {
   items: PlanItem[];
@@ -113,6 +115,10 @@ export function planReminders(o: { today: string; now: Date; rules: Rules; custo
     }
     if (c.optedOutAt) {
       plan.skipped.push({ customerId, reason: "opted_out" });
+      continue;
+    }
+    if (c.snoozedUntil && daysBetween(o.today, c.snoozedUntil) > 0) {
+      plan.skipped.push({ customerId, reason: "snoozed" });
       continue;
     }
     if (stage > o.rules.cadence.length) {

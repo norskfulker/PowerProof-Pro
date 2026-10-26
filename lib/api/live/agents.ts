@@ -13,6 +13,11 @@ import type {
   ChaserInvoice,
   ChaserReminder,
   CreditEntry,
+  AgentReply,
+  AgentReport,
+  RatingSummary,
+  RunLogLine,
+  SentMessage,
 } from "../../types/agents";
 import { ApiError } from "../client";
 import { notifyChange } from "./local";
@@ -78,7 +83,7 @@ export const liveAgentIds = () => AGENTS.map((a) => a.id);
 
 /* Instances ------------------------------------------------------------------------------------ */
 
-const INSTANCE = "id, store_id, agent_id, status, settings, consent_at, paused_reason, last_run_at, next_run_at, created_at";
+const INSTANCE = "id, store_id, agent_id, status, settings, consent_at, paused_reason, last_run_at, next_run_at, created_at, schedule, reply_rule, reply_pause_days, report_frequency";
 const instanceFrom = (r: Row): AgentInstance => ({
   id: String(r.id),
   storeId: String(r.store_id),
@@ -90,6 +95,10 @@ const instanceFrom = (r: Row): AgentInstance => ({
   lastRunAt: (r.last_run_at as string | null) ?? null,
   nextRunAt: (r.next_run_at as string | null) ?? null,
   createdAt: String(r.created_at),
+  schedule: r.schedule ?? null,
+  replyRule: (r.reply_rule as AgentInstance["replyRule"]) ?? "auto",
+  replyPauseDays: Number(r.reply_pause_days ?? 7),
+  reportFrequency: (r.report_frequency as AgentInstance["reportFrequency"]) ?? "weekly",
 });
 
 export async function getMyAgents(): Promise<AgentInstance[]> {
@@ -131,6 +140,99 @@ export async function getRuns(instanceId: string, limit = 30): Promise<AgentRun[
     finishedAt: (r.finished_at as string | null) ?? null,
   }));
 }
+
+/* Terminal, replies, reports ------------------------------------------------------------------- */
+
+const logFrom = (r: Row): RunLogLine => ({ id: Number(r.id), runId: (r.run_id as string | null) ?? null, at: String(r.at), level: r.level as RunLogLine["level"], step: (r.step as string | null) ?? null, message: String(r.message) });
+
+/** The terminal's history: the latest lines, oldest first */
+export async function getRunLogs(instanceId: string, limit = 200): Promise<RunLogLine[]> {
+  return rows<Row>(await sb().from("agent_run_logs").select("id, run_id, at, level, step, message").eq("instance_id", instanceId).order("id", { ascending: false }).limit(limit), "the terminal").map(logFrom).reverse();
+}
+
+let logChannelSeq = 0;
+/** New terminal lines as they're written (Supabase Realtime, RLS applies). Returns the unsubscribe. */
+export function watchRunLogs(instanceId: string, onLine: (l: RunLogLine) => void, onStatus: (s: "connecting" | "live" | "offline") => void): () => void {
+  const client = sb();
+  onStatus("connecting");
+  const c = client
+    .channel(`agent-logs:${instanceId}:${++logChannelSeq}`)
+    .on("postgres_changes" as never, { event: "INSERT", schema: "public", table: "agent_run_logs", filter: `instance_id=eq.${instanceId}` } as never, (p: { new: Row }) => onLine(logFrom(p.new)))
+    .subscribe((status: string) => onStatus(status === "SUBSCRIBED" ? "live" : status === "CLOSED" || status === "CHANNEL_ERROR" || status === "TIMED_OUT" ? "offline" : "connecting"));
+  return () => void client.removeChannel(c);
+}
+
+export async function getReplies(instanceId: string): Promise<AgentReply[]> {
+  const list = rows<Row>(await sb().from("agent_replies").select("id, outbox_id, channel, source, excerpt, intent, promised_on, applied, received_at").eq("instance_id", instanceId).order("received_at", { ascending: false }).limit(200), "replies");
+  const ids = [...new Set(list.map((r) => r.outbox_id).filter(Boolean))] as string[];
+  const to = ids.length ? rows<Row>(await sb().from("agent_messages_outbox").select("id, to_address").in("id", ids), "replies") : [];
+  const addr = new Map(to.map((t) => [String(t.id), String(t.to_address)]));
+  return list.map((r) => ({
+    id: String(r.id),
+    outboxId: (r.outbox_id as string | null) ?? null,
+    channel: r.channel as AgentReply["channel"],
+    source: r.source as AgentReply["source"],
+    excerpt: String(r.excerpt ?? ""),
+    intent: r.intent as AgentReply["intent"],
+    promisedOn: (r.promised_on as string | null) ?? null,
+    applied: String(r.applied ?? ""),
+    receivedAt: String(r.received_at),
+    to: r.outbox_id ? (addr.get(String(r.outbox_id)) ?? null) : null,
+  }));
+}
+
+/** Recent messages this agent sent or queued, newest first (to mark a reply against one) */
+export async function getSentMessages(instanceId: string): Promise<SentMessage[]> {
+  return rows<Row>(await sb().from("agent_messages_outbox").select("id, channel, to_address, subject, status, created_at").eq("instance_id", instanceId).in("status", ["sent", "queued"]).order("created_at", { ascending: false }).limit(100), "messages").map((r) => ({
+    id: String(r.id),
+    channel: r.channel as SentMessage["channel"],
+    to: String(r.to_address),
+    subject: (r.subject as string | null) ?? null,
+    status: String(r.status),
+    createdAt: String(r.created_at),
+  }));
+}
+
+export const markReply = (instanceId: string, r: { outboxId: string; text: string; intent?: AgentReply["intent"]; promisedOn?: string | null }) => post<{ intent: string; applied: string }>(`/api/agents/instances/${instanceId}`, { op: "reply", ...r });
+
+export const configureAgent = (instanceId: string, config: { schedule?: unknown; replyRule?: string; replyPauseDays?: number; reportFrequency?: string }) => post<{ nextRunAt: string | null }>(`/api/agents/instances/${instanceId}`, { op: "configure", config });
+
+export async function getReports(instanceId: string): Promise<AgentReport[]> {
+  return rows<Row>(await sb().from("agent_reports").select("id, period, period_start, period_end, status, sent_at, data").eq("instance_id", instanceId).order("period_start", { ascending: false }).limit(60), "reports").map((r) => ({
+    id: String(r.id),
+    period: (r.period as AgentReport["period"]) ?? "week",
+    periodStart: String(r.period_start),
+    periodEnd: String(r.period_end),
+    status: r.status as AgentReport["status"],
+    sentAt: (r.sent_at as string | null) ?? null,
+    data: (r.data as Record<string, unknown>) ?? {},
+  }));
+}
+
+/* Ratings -------------------------------------------------------------------------------------- */
+
+/** Stars for an agent: the average, how many, and the latest comments (public) */
+export async function getRatings(agentId: string): Promise<RatingSummary> {
+  const [sum, recent] = await Promise.all([
+    sb().from("agent_rating_summary").select("average, count").eq("agent_id", agentId).maybeSingle(),
+    sb().from("agent_ratings").select("stars, comment, updated_at").eq("agent_id", agentId).order("updated_at", { ascending: false }).limit(12),
+  ]);
+  const s = (sum.data ?? null) as Row | null;
+  return {
+    average: s?.average == null ? null : Number(s.average),
+    count: Number(s?.count ?? 0),
+    recent: rows<Row>(recent, "ratings").map((r) => ({ stars: Number(r.stars), comment: String(r.comment ?? ""), at: String(r.updated_at) })),
+  };
+}
+
+/** This store's own rating, and whether it may rate (it has run the agent) */
+export async function getMyRating(agentId: string): Promise<{ canRate: boolean; stars: number | null; comment: string }> {
+  const res = await fetch(`/api/agents/ratings?agent=${encodeURIComponent(agentId)}&store=${encodeURIComponent(await activeStoreId())}`, { cache: "no-store" });
+  const j = (await res.json().catch(() => ({}))) as { ok?: boolean; canRate?: boolean; stars?: number | null; comment?: string };
+  return { canRate: !!j.ok && !!j.canRate, stars: j.stars ?? null, comment: j.comment ?? "" };
+}
+
+export const rateAgent = async (agentId: string, stars: number, comment: string) => post("/api/agents/ratings", { agentId, storeId: await activeStoreId(), stars, comment });
 
 /* Action queue --------------------------------------------------------------------------------- */
 

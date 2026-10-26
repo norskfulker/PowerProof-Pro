@@ -32,7 +32,7 @@ export default defineAgent({
   ],
   triggers: [{ type: "cron", everyMinutes: 60 }, { type: "manual" }],
   steps: ["load_overdue", "draft_messages", "route_and_send", "log_and_meter"],
-  actionQueue: ["whatsapp_send", "needs_personal_call", "approve_draft"],
+  actionQueue: ["whatsapp_send", "needs_personal_call", "approve_draft", "review_reply"],
   metrics: [
     { key: "overdue_total", label: "Overdue", kind: "money", explain: "Every open invoice whose due date has passed, minus what was already paid on it.", headline: true },
     { key: "paid_after_reminder_month", label: "Paid after a reminder this month", kind: "money", explain: "Invoices marked paid this month within 14 days after at least one reminder went out.", headline: true },
@@ -50,7 +50,7 @@ export default defineAgent({
     { step: "load_overdue", title: "Finds what's overdue", body: "Reads your invoices and picks the ones past their due date that aren't paid, paused or disputed." },
     { step: "draft_messages", title: "Writes the reminder", body: "AI writes a short, polite message per customer. Amounts, dates and invoice numbers are filled in by the app, never by AI." },
     { step: "route_and_send", title: "Sends or queues it", body: "Emails go out inside your sending hours. WhatsApp messages wait in your queue for one tap." },
-    { step: "log_and_meter", title: "Keeps score", body: "Every message is logged. Paid invoices stop reminders at once, and you get a summary every Monday." },
+    { step: "log_and_meter", title: "Keeps score", body: "Every step shows live in its terminal. Paid invoices stop reminders at once, and you get a daily or weekly report." },
   ],
   sample: {
     title: "A first reminder, friendly, English",
@@ -62,6 +62,38 @@ export default defineAgent({
     "A paid invoice stops its reminders at once.",
     "Customers can opt out with one tap, and are never contacted again.",
   ],
+  instructions: [
+    "Launch it. Payment Chaser is set up for your store straight away.",
+    "Add your invoices: upload a CSV or Excel file, connect a Google Sheet, or type them in.",
+    "Pick how to remind (email, WhatsApp), the tone, the language and which days after the due date.",
+    "Look at the free preview: every message it would send, nothing sent, nothing charged.",
+    "Switch it on. It runs every hour on its own and emails you a daily or weekly report.",
+  ],
+  creditLabels: { email_sent: "An email reminder sent", whatsapp_queued: "A WhatsApp reminder written for you to send", sms_sent: "A text message sent (coming soon)", ai_draft: "Writing a reminder" },
+  formats: {
+    input: [
+      {
+        name: "Invoice list",
+        accepts: ["CSV", "Excel (.xlsx)", "Google Sheets", "Typed in"],
+        columns: [
+          { name: "Invoice number", need: "required", example: "INV-1042" },
+          { name: "Customer name", need: "required", example: "Sharma Traders" },
+          { name: "Amount (or amount pending)", need: "required", example: "₹12,500" },
+          { name: "Due date (or invoice date)", need: "required", example: "15/10/2026" },
+          { name: "Mobile", need: "either", example: "+91 98765 43210" },
+          { name: "Email", need: "either", example: "accounts@sharma.in" },
+          { name: "Amount paid", need: "optional", example: "₹2,500" },
+        ],
+      },
+    ],
+    output: [
+      { name: "Reminder emails", detail: "Sent from your store's name, with an unsubscribe link" },
+      { name: "WhatsApp messages", detail: "Written for you; one tap opens WhatsApp to send" },
+      { name: "Call list", detail: "Customers who still owe after the last reminder" },
+      { name: "Report", detail: "Daily or weekly email: paid after reminders, still overdue, sent" },
+      { name: "Live log", detail: "Every run, step by step, in the agent's terminal" },
+    ],
+  },
   help: {
     faq: [
       { q: "Will it send anything before I say so?", a: "No. Setup ends with a dry run that shows every message it would send. Nothing goes out until you switch it on." },

@@ -1,4 +1,5 @@
 import "server-only";
+import { replyAddress } from "./reply-address";
 import { siteUrl } from "@/lib/site-url";
 import type { InstanceStatus } from "@/lib/agents/define";
 import { agentsAdmin, must, storeDb } from "./db";
@@ -25,6 +26,9 @@ export interface InstanceRow {
   run_every_minutes: number | null;
   next_run_at: string | null;
   paused_reason: string | null;
+  /** The owner's schedule (lib/agents/schedule.ts); null: the manifest's interval */
+  schedule?: unknown;
+  report_frequency?: "daily" | "weekly" | "off";
 }
 
 export interface StoreInfo {
@@ -158,6 +162,7 @@ export function productionPorts(o: { instance: InstanceRow; store: StoreInfo; ll
         );
       },
       optOutUrl: (outboxId) => `${siteUrl()}/agents/optout/${optOutToken(outboxId)}`,
+      replyAddress: (outboxId) => replyAddress(outboxId),
     },
     async enqueueAction(a) {
       must(

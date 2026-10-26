@@ -16,7 +16,7 @@ import { CREDIT_PRICE, cronEvery, type AgentManifest } from "@/lib/agents/define
 import { getCatalog, getMyAgents, type AgentInstance, type AgentListing } from "@/lib/api/agents";
 import { formatMoney } from "@/lib/money";
 
-const PER_CREDIT = formatMoney({ amount: CREDIT_PRICE.perCreditMinor, currency: CREDIT_PRICE.currency });
+export const PER_CREDIT = formatMoney({ amount: CREDIT_PRICE.perCreditMinor, currency: CREDIT_PRICE.currency });
 
 /** After the free credits: pay as you go, any number of credits at one price */
 export function priceLine(a: AgentListing): string | null {
@@ -26,13 +26,13 @@ export function priceLine(a: AgentListing): string | null {
 
 /* What an agent works with, read from its manifest ------------------------------------------- */
 
-const SOURCES = { csv: "CSV file", xlsx: "Excel", sheets: "Google Sheets", email: "Email inbox", manual: "Typed in" } as const;
+export const SOURCES = { csv: "CSV file", xlsx: "Excel", sheets: "Google Sheets", email: "Email inbox", manual: "Typed in" } as const;
 type Source = keyof typeof SOURCES;
-const CHANNELS = { email: "Email", whatsapp: "WhatsApp", sms: "SMS" } as const;
+export const CHANNELS = { email: "Email", whatsapp: "WhatsApp", sms: "SMS" } as const;
 type Channel = keyof typeof CHANNELS;
 
-const sourcesOf = (m: AgentManifest | null): Source[] => (m ? [...new Set(m.connectors.flatMap((c) => c.options))].filter((o): o is Source => o in SOURCES) : []);
-function channelsOf(m: AgentManifest | null): Channel[] {
+export const sourcesOf = (m: AgentManifest | null): Source[] => (m ? [...new Set(m.connectors.flatMap((c) => c.options))].filter((o): o is Source => o in SOURCES) : []);
+export function channelsOf(m: AgentManifest | null): Channel[] {
   if (!m) return [];
   const off = new Set(m.connectors.filter((c) => c.disabledUntil).map((c) => c.type));
   const keys = Object.keys(m.creditCosts);
@@ -51,12 +51,13 @@ function runsLine(m: AgentManifest): string {
 }
 
 const ICONS: Record<string, LucideIcon> = { finance: Wallet, payments: Wallet, sales: TrendingUp, marketing: Megaphone, support: MessageCircle, operations: Package, orders: Package, data: FileSpreadsheet };
-function CategoryIcon({ category, className }: { category: string; className?: string }) {
+export function CategoryIcon({ category, className }: { category: string; className?: string }) {
   const Icon = ICONS[category.toLowerCase()] ?? Bot;
   return <Icon className={className} strokeWidth={1.75} aria-hidden />;
 }
 const TONES = ["#0F3D33", "#3B3486", "#7A3E12", "#124C6B", "#5B2A4A", "#2F4F1F"];
-const toneFor = (category: string) => TONES[[...category].reduce((t, c) => t + c.charCodeAt(0), 0) % TONES.length];
+/** An agent's colour, from its category (cards, dashboard, its page) */
+export const toneFor = (category: string) => TONES[[...category].reduce((t, c) => t + c.charCodeAt(0), 0) % TONES.length];
 
 /* Filters, kept in the address so a view can be shared and Back works ---------------------- */
 

@@ -91,5 +91,6 @@ export async function draftMessages(ctx: StepCtx, input: LoadOutput): Promise<Dr
     );
     drafted++;
   }
+  if (drafted) ctx.say(`Wrote ${drafted} ${drafted === 1 ? "reminder" : "reminders"}; amounts and dates filled in by the app`);
   return { today: input.today, keys, skipped: input.skipped, drafted };
 }

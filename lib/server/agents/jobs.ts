@@ -1,7 +1,7 @@
 import "server-only";
 import { agentsAdmin, must } from "./db";
 import { refreshSheet } from "./connectors/sheets";
-import { enqueueDue, loadInstance, runInstance, sendWeeklyReport, type Job, type JobResult } from "./runner";
+import { enqueueDue, loadInstance, runInstance, sendReport, type Job, type JobResult } from "./runner";
 
 /**
  * The scheduler's worker side. The Worker's cron calls /api/cron/agents every 5 minutes: due jobs
@@ -23,7 +23,7 @@ export async function runJob(job: Job, deadline: number, trigger: "cron" | "manu
     if (job.kind === "report") {
       const inst = job.instance_id ? await loadInstance(job.instance_id) : null;
       if (!inst) return { ok: true, note: "agent removed" };
-      return await sendWeeklyReport(inst, String(job.payload.periodStart));
+      return await sendReport(inst, String(job.payload.periodStart), job.payload.period === "day" ? "day" : "week");
     }
     if (job.kind === "sheet_refresh") return await refreshSheet(String(job.payload.connectionId));
     return { ok: true, note: "nothing to do" };

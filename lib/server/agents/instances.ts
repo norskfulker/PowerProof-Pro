@@ -1,7 +1,9 @@
 import "server-only";
 import { AGENT_CODE } from "@/agents/server";
 import { getManifest } from "@/agents/index";
+import { z } from "zod";
 import { cronEvery, defaultSettings, settingsSchema } from "@/lib/agents/define";
+import { effectiveSchedule, nextRunAt, replyRules, reportFrequencies, scheduleSchema } from "@/lib/agents/schedule";
 import { AgentError } from "./access";
 import { agentsAdmin, must } from "./db";
 import { loadInstance, runInstance, type JobResult } from "./runner";
@@ -106,4 +108,31 @@ export async function runNow(instanceId: string, storeId: string): Promise<JobRe
   await finishJob(jobId, result);
   const { data: j } = await sb.from("agent_jobs").select("run_id").eq("id", jobId).maybeSingle();
   return { ...result, runId: (j?.run_id as string | null) ?? null };
+}
+
+const configInput = z.object({
+  schedule: scheduleSchema.nullable().optional(),
+  replyRule: z.enum(replyRules).optional(),
+  replyPauseDays: z.number().int().min(1).max(60).optional(),
+  reportFrequency: z.enum(reportFrequencies).optional(),
+});
+
+/** When it runs, what replies do and how often it reports. A new schedule takes effect from now. */
+export async function configure(instanceId: string, input: unknown) {
+  const p = configInput.safeParse(input);
+  if (!p.success) throw new AgentError(p.error.issues[0]?.message ?? "Check the schedule.");
+  const inst = await loadInstance(instanceId);
+  if (!inst) throw new AgentError("That agent wasn't found.", 404);
+  const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
+  if (p.data.schedule !== undefined) {
+    const m = getManifest(inst.agent_id);
+    const s = effectiveSchedule(p.data.schedule, m ? cronEvery(m) : null);
+    patch.schedule = p.data.schedule;
+    patch.next_run_at = s ? nextRunAt(s, new Date()).toISOString() : null;
+  }
+  if (p.data.replyRule) patch.reply_rule = p.data.replyRule;
+  if (p.data.replyPauseDays) patch.reply_pause_days = p.data.replyPauseDays;
+  if (p.data.reportFrequency) patch.report_frequency = p.data.reportFrequency;
+  must(await agentsAdmin().from("agent_instances").update(patch).eq("id", instanceId), "save schedule");
+  return { nextRunAt: (patch.next_run_at as string | null | undefined) ?? inst.next_run_at };
 }

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { CheckCircle2, Clock, MessageCircle, PhoneCall, SkipForward } from "lucide-react";
+import { CheckCircle2, Clock, MessageCircle, MessageSquareReply, PhoneCall, SkipForward } from "lucide-react";
 import { toast } from "sonner";
 import { EmptyState, ErrorState } from "@/components/pp/empty-state";
 import { PageHeader } from "@/components/pp/page-header";
@@ -10,8 +10,9 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useApi } from "@/hooks/use-api";
 import { actOn, getActionItems, type ActionItem } from "@/lib/api/agents";
+import { MarkReply } from "./agent-tabs";
 
-const ICON = { whatsapp_send: MessageCircle, needs_personal_call: PhoneCall, approve_draft: CheckCircle2 } as const;
+const ICON = { whatsapp_send: MessageCircle, needs_personal_call: PhoneCall, approve_draft: CheckCircle2, review_reply: MessageSquareReply } as const;
 
 /**
  * Things that need the owner, one at a time with a big "Do next": WhatsApp opens with the message
@@ -71,6 +72,8 @@ function NextItem({ item, opened, busy, onOpen, onAct }: { item: ActionItem; ope
   const url = typeof item.payload.url === "string" ? item.payload.url : null;
   const phone = typeof item.payload.phone === "string" ? item.payload.phone : null;
   const reminderId = typeof item.payload.reminderId === "string" ? item.payload.reminderId : null;
+  const outboxId = typeof item.payload.outboxId === "string" ? item.payload.outboxId : null;
+  const [replying, setReplying] = useState(false);
   const Icon = ICON[item.kind];
   return (
     <section className="flex flex-col gap-4 rounded-card border bg-surface p-5 shadow-card" aria-label="Do next">
@@ -91,6 +94,14 @@ function NextItem({ item, opened, busy, onOpen, onAct }: { item: ActionItem; ope
                 Open WhatsApp again
               </a>
             </Button>
+            {outboxId && (
+              <>
+                <Button size="lg" variant="ghost" onClick={() => setReplying(true)}>
+                  <MessageSquareReply aria-hidden /> They replied
+                </Button>
+                <MarkReply instanceId={item.instanceId} outboxId={outboxId} open={replying} onOpenChange={setReplying} />
+              </>
+            )}
           </>
         ) : (
           <Button size="lg" asChild>
@@ -112,6 +123,10 @@ function NextItem({ item, opened, busy, onOpen, onAct }: { item: ActionItem; ope
             I&apos;ve called them
           </Button>
         </>
+      ) : item.kind === "review_reply" ? (
+        <Button size="lg" disabled={busy} onClick={() => onAct("done")}>
+          <CheckCircle2 aria-hidden /> Got it
+        </Button>
       ) : item.kind === "approve_draft" && reminderId ? (
         <Button size="lg" asChild>
           <Link href={`/agents/my/${item.instanceId}/message/${reminderId}`}>Look it over</Link>

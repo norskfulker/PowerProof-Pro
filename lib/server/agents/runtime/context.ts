@@ -2,7 +2,7 @@ import type { AgentManifest, InstanceStatus } from "@/lib/agents/define";
 import { draftWith, type GatewayDeps } from "../llm/gateway";
 import { sendThroughPipeline, type PipelineDeps } from "../messaging/pipeline";
 import { guardCtx } from "./engine";
-import type { ActionItemInput, AgentCode, Connection, LogLevel, StepCtx, StoreDb } from "./types";
+import type { ActionItemInput, AgentCode, Connection, LogLevel, SayLevel, StepCtx, StoreDb } from "./types";
 
 /**
  * Builds a step context from platform ports. Production passes Supabase-backed ports
@@ -26,6 +26,8 @@ export interface Ports {
   enqueueAction(item: ActionItemInput): Promise<void>;
   credits: { charge(n: number, reason: string, key: string): Promise<boolean>; balance(): Promise<number> };
   log(level: LogLevel, message: string, data?: Record<string, unknown>): void;
+  /** Terminal lines for the owner (production writes agent_run_logs; tests may collect them) */
+  say?(level: SayLevel, message: string): void;
 }
 
 export interface CtxInput {
@@ -112,6 +114,7 @@ export function makeCtx(o: CtxInput): StepCtx {
       },
     },
     log: (level, message, data) => p.log(level, message, { agent: manifest.id, run: o.runId, ...data }),
+    say: (message, level = "info") => p.say?.(level, message),
   };
   return guardCtx(manifest, ctx);
 }

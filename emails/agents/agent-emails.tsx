@@ -53,6 +53,8 @@ export function WeeklyReportEmail(props: {
   storeName: string;
   agentName: string;
   week: string;
+  /** A daily report (yesterday) instead of the Monday one */
+  daily?: boolean;
   paidAfterReminder: string;
   paidAfterReminderCount: number;
   overdueNow: string;
@@ -64,9 +66,9 @@ export function WeeklyReportEmail(props: {
 }) {
   return (
     <AgentEmailLayout
-      preview={`${props.paidAfterReminder} paid after reminders this week`}
+      preview={`${props.paidAfterReminder} paid after reminders ${props.daily ? "yesterday" : "this week"}`}
       storeName={props.storeName}
-      footer={<Text style={{ ...small, margin: "0 0 6px" }}>You get this every Monday at 9:00. Turn it off in the agent&apos;s Settings.</Text>}
+      footer={<Text style={{ ...small, margin: "0 0 6px" }}>You get this {props.daily ? "every day" : "every Monday"} at 9:00. Change or turn it off in the agent&apos;s Schedule.</Text>}
     >
       <Text style={eyebrow}>
         {props.agentName} · {props.week}

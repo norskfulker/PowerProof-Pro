@@ -19,7 +19,7 @@ export const creditsCostMinor = (n: number) => Math.round(n) * CREDIT_PRICE.perC
 export const connectorTypes = ["verified_email", "invoice_source", "google_sheets", "sms_provider"] as const;
 export type ConnectorType = (typeof connectorTypes)[number];
 
-export const actionKinds = ["whatsapp_send", "needs_personal_call", "approve_draft"] as const;
+export const actionKinds = ["whatsapp_send", "needs_personal_call", "approve_draft", "review_reply"] as const;
 export type ActionKind = (typeof actionKinds)[number];
 
 export const instanceStatuses = ["setup", "trial", "active", "paused", "trial_ended", "suspended"] as const;
@@ -88,6 +88,17 @@ export const manifestSchema = z.object({
   /** Promises shown on the agent's public page ("Paid invoices stop reminders at once") */
   highlights: z.array(z.string()).default([]),
   help: z.object({ faq: z.array(z.object({ q: z.string(), a: z.string() })) }),
+  /** The agent's page: getting it running, step by step, in the owner's words */
+  instructions: z.array(z.string()).default([]),
+  /** The agent's page: what each credit reason means ("email_sent": "An email reminder sent") */
+  creditLabels: z.record(z.string(), z.string()).default({}),
+  /** The agent's page: what it reads and what it produces */
+  formats: z
+    .object({
+      input: z.array(z.object({ name: z.string(), accepts: z.array(z.string()), columns: z.array(z.object({ name: z.string(), need: z.enum(["required", "optional", "either"]), example: z.string() })) })),
+      output: z.array(z.object({ name: z.string(), detail: z.string() })),
+    })
+    .optional(),
 });
 
 export type AgentManifest = z.infer<typeof manifestSchema>;

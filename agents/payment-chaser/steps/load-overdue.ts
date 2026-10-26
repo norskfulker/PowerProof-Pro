@@ -5,6 +5,11 @@ import manifest from "../manifest";
 import { planReminders, type Customer, type OpenInvoice, type PastReminder, type PlanItem } from "../lib/plan";
 import { chaserSettings, rulesFrom } from "../lib/render";
 
+/** "1 invoice" / "3 invoices" */
+export const n = (count: number, word: string) => `${count} ${word}${count === 1 ? "" : "s"}`;
+
+const SKIP_WORDS: Record<string, string> = { paused: "paused", snoozed: "waiting after a reply", opted_out: "opted out", no_contact: "with no email or phone", too_soon: "reminded recently", daily_cap: "over today's limit", needs_personal_call: "to call yourself" };
+
 export interface LoadOutput {
   today: string;
   items: PlanItem[];
@@ -12,11 +17,11 @@ export interface LoadOutput {
 }
 
 type InvoiceRow = { id: string; customer_id: string; invoice_no: string; due_date: string; amount_total_minor: number; amount_paid_minor: number };
-type CustomerRow = { id: string; name: string; phone_e164: string | null; email: string | null; is_paused: boolean; opted_out_at: string | null; language_pref: string | null };
+type CustomerRow = { id: string; name: string; phone_e164: string | null; email: string | null; is_paused: boolean; opted_out_at: string | null; language_pref: string | null; snoozed_until?: string | null };
 type ReminderRow = { id: string; idempotency_key: string; customer_id: string; stage: number; anchor: string; status: PastReminder["status"]; sent_at: string | null; queued_at: string | null };
 
-export const customerFrom = (c: CustomerRow): Customer => ({ id: c.id, name: c.name, phone: c.phone_e164, email: c.email, isPaused: c.is_paused, optedOutAt: c.opted_out_at, languagePref: c.language_pref === "hinglish" || c.language_pref === "english" ? c.language_pref : null });
-export const CUSTOMER_COLS = "id, name, phone_e164, email, is_paused, opted_out_at, language_pref";
+export const customerFrom = (c: CustomerRow): Customer => ({ id: c.id, name: c.name, phone: c.phone_e164, email: c.email, isPaused: c.is_paused, optedOutAt: c.opted_out_at, languagePref: c.language_pref === "hinglish" || c.language_pref === "english" ? c.language_pref : null, snoozedUntil: c.snoozed_until ?? null });
+export const CUSTOMER_COLS = "id, name, phone_e164, email, is_paused, opted_out_at, language_pref, snoozed_until";
 
 /** Read: overdue open invoices, their customers and what was already sent, then plan today's reminders */
 export async function loadOverdue(ctx: StepCtx): Promise<LoadOutput> {
@@ -71,5 +76,10 @@ export async function loadOverdue(ctx: StepCtx): Promise<LoadOutput> {
   for (const sk of plan.skipped) skipped[sk.reason] = (skipped[sk.reason] ?? 0) + 1;
   if (plan.personalCalls.length) skipped.needs_personal_call = plan.personalCalls.length;
   ctx.log("info", "planned reminders", { items: plan.items.length, ...skipped });
+  const people = new Set(open.map((i) => i.customerId)).size;
+  ctx.say(open.length ? `Found ${n(open.length, "overdue invoice")} from ${n(people, "customer")}` : "No overdue invoices right now");
+  if (plan.items.length) ctx.say(`${n(plan.items.length, "reminder")} due today`);
+  const held = Object.entries(skipped).filter(([, v]) => v > 0).map(([k, v]) => `${v} ${SKIP_WORDS[k] ?? k.replace(/_/g, " ")}`);
+  if (held.length) ctx.say(`Held back: ${held.join(", ")}`);
   return { today, items: plan.items, skipped };
 }

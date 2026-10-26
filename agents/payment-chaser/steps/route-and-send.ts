@@ -1,4 +1,5 @@
 import { fillPlaceholders } from "@/lib/agents/guardrails";
+import { istDay } from "@/lib/agents/time";
 import type { SendOutcome, StepCtx } from "@/lib/server/agents/runtime/types";
 import { chaserSettings, factsFor, render } from "../lib/render";
 import type { DraftOutput } from "./draft-messages";
@@ -50,6 +51,11 @@ export async function routeAndSend(ctx: StepCtx, input: DraftOutput): Promise<Se
     if (!c || !open.length) {
       if (!ctx.dryRun) await ctx.db.update("chaser_reminders", { status: "skipped", error: "Paid or closed before sending.", updated_at: nowIso }, { id: r.id });
       bump("paid_before_send");
+      continue;
+    }
+    // A reply asked for time: the reminder waits (drafted) and goes on a later run
+    if (c.snoozedUntil && c.snoozedUntil > istDay(ctx.now)) {
+      bump("snoozed");
       continue;
     }
     if (c.isPaused || c.optedOutAt) {
@@ -130,5 +136,16 @@ export async function routeAndSend(ctx: StepCtx, input: DraftOutput): Promise<Se
     }
     bump(out.status === "skipped" ? out.reason : out.status);
   }
+  const said = [
+    counts.sent ? `${counts.sent} emailed` : "",
+    counts.queued ? `${counts.queued} WhatsApp ready in your queue` : "",
+    counts.would_send ? `${counts.would_send} would go out` : "",
+    counts.outside_window ? `${counts.outside_window} waiting for sending hours` : "",
+    counts.no_credits ? `${counts.no_credits} waiting for credits` : "",
+    counts.snoozed ? `${counts.snoozed} waiting after a reply` : "",
+    counts.paid_before_send ? `${counts.paid_before_send} paid before sending` : "",
+    counts.failed ? `${counts.failed} didn't send` : "",
+  ].filter(Boolean);
+  if (said.length) ctx.say(said.join(" · "), counts.failed || counts.no_credits ? "warn" : "ok");
   return { counts, preview, skipped: input.skipped };
 }

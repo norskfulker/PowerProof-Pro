@@ -71,6 +71,20 @@ export function AgentsGate({ children }: { children: React.ReactNode }) {
   );
 }
 
+/** "Next run 14:00" / "Next run tomorrow 09:00" / "Not scheduled" (India time) */
+export function nextRunLabel(i: { status: InstanceStatus; nextRunAt: string | null }, now = new Date()): string {
+  if (i.status !== "trial" && i.status !== "active") return i.status === "paused" ? "Paused" : "Not running";
+  if (!i.nextRunAt) return "Not scheduled";
+  const at = new Date(i.nextRunAt);
+  if (at.getTime() <= now.getTime()) return "Running soon";
+  const fmt = (d: Date, o: Intl.DateTimeFormatOptions) => d.toLocaleString("en-IN", { timeZone: "Asia/Kolkata", ...o });
+  const t = fmt(at, { hour: "2-digit", minute: "2-digit", hour12: false });
+  const sameDay = (a: Date, b: Date) => fmt(a, { dateStyle: "short" }) === fmt(b, { dateStyle: "short" });
+  if (sameDay(at, now)) return `Next run ${t}`;
+  if (sameDay(at, new Date(now.getTime() + 86_400_000))) return `Next run tomorrow ${t}`;
+  return `Next run ${fmt(at, { day: "2-digit", month: "short" })} ${t}`;
+}
+
 /** Days since an India date ("2026-10-01"), for "12 days overdue" */
 export function daysSince(day: string, now = new Date()): number {
   const [y, m, d] = day.split("-").map(Number);

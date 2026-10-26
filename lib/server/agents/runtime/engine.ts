@@ -9,6 +9,8 @@ import { RetryableError, type StepCtx, type StepMap, type StoreDb } from "./type
 
 export interface Checkpoints {
   load(): Promise<Record<string, unknown>>;
+  /** A step is about to run (the terminal shows it) */
+  started?(step: string): Promise<void>;
   done(step: string, output: unknown): Promise<void>;
   failed(step: string, error: string): Promise<void>;
 }
@@ -29,6 +31,7 @@ export async function runSteps(manifest: AgentManifest, steps: StepMap, ctx: Ste
     // Out of time: stop between steps and let the next tick resume from here
     if (opts.deadline && Date.now() > opts.deadline) return { ok: false, step: name, error: "Out of time; resuming on the next run.", retryable: true, retryInSeconds: 0, ranSteps };
     try {
+      await checkpoints.started?.(name);
       const output = await steps[name](ctx, input);
       // Checkpoints are JSON; undefined becomes null so the step counts as done
       const stored = output === undefined ? null : output;
