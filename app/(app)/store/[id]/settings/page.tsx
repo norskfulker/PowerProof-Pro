@@ -72,7 +72,7 @@ function StoreForm({ store, onSaved }: { store: Store; onSaved: (s: Store) => vo
         }}
         className="flex flex-col gap-6"
       >
-        <SettingsSection title="Branding" description="What buyers see at the top of your store and on receipts." saveBar={<SaveBar state={bar} />}>
+        <SettingsSection title="Branding" saveBar={<SaveBar state={bar} />}>
           <div className="mb-6 flex items-center gap-4 rounded-card border bg-background p-4" aria-label="Preview">
             {logo?.src ? (
               <span className="relative size-12 shrink-0 overflow-hidden rounded-[12px]"><MediaImg src={logo.src} alt={logo.alt || "Logo"} className="absolute inset-0" /></span>
@@ -112,7 +112,7 @@ function StoreForm({ store, onSaved }: { store: Store; onSaved: (s: Store) => vo
           </div>
         </SettingsSection>
 
-        <SettingsSection title="Help and refunds" description="Shown on every buyer page, receipt and download page.">
+        <SettingsSection title="Help and refunds">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <FormField control={form.control} name="supportEmail" render={({ field }) => (
               <FormItem><FormLabel>Support email</FormLabel><FormControl><Input type="email" {...field} /></FormControl><FormMessage /></FormItem>
@@ -135,7 +135,7 @@ function StoreForm({ store, onSaved }: { store: Store; onSaved: (s: Store) => vo
       <SellModeSection store={store} onSaved={onSaved} />
       {/* Shipping rates and cash on delivery only exist once physical shipping is on */}
       {store.sells === "physical" && <ShippingSettingsSection store={store} onSaved={onSaved} />}
-      <SettingsSection title="Address and domain" description="Your free powerproof.app address, and your own domain on Pro.">
+      <SettingsSection title="Address and domain">
         <Button asChild variant="secondary" className="self-start">
           <Link href={`/store/${store.id}/domain`}>
             <Globe aria-hidden /> Manage domain

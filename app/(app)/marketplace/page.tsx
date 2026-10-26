@@ -115,8 +115,8 @@ function Marketplace() {
   return (
     <>
       <title>Marketplace · PowerProof</title>
-      <PageHeader title={view === "subscribed" ? "Subscribed agents" : view === "mine" ? "My deals" : "Marketplace"} />
-      <div className="mb-6 flex flex-wrap items-end justify-between gap-x-4 gap-y-3 border-b">
+      <PageHeader title={view === "subscribed" ? "Subscribed agents" : view === "mine" ? "My deals" : "Marketplace"} actions={actions} />
+      <div className="mb-6 border-b">
         <StatusTabs
           label="Marketplace"
           className="mb-0 border-b-0"
@@ -127,7 +127,6 @@ function Marketplace() {
             { value: "deals", label: "Deals" },
           ]}
         />
-        {actions && <div className="ml-auto flex flex-wrap items-center justify-end gap-2 pb-2">{actions}</div>}
       </div>
       {view === "mine" ? (
         <MyDeals deals={mine} products={products.data} store={store.data} onNew={() => go("tab=mine&new=1")} onEdit={(id) => go(`tab=mine&deal=${id}`)} />

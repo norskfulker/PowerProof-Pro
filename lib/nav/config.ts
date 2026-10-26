@@ -1,5 +1,5 @@
 import {
-  Activity, AlertOctagon, Banknote, BarChart3, Bot, Box, Brush, CreditCard, FileText, Flag, FolderOpen, Globe, Images, Inbox, LayoutDashboard, MessagesSquare,
+  Activity, AlertOctagon, Banknote, BarChart3, Bot, Box, Cable, Brush, CreditCard, FileText, Flag, FolderOpen, Globe, Images, Inbox, LayoutDashboard, MessagesSquare,
   Newspaper, Package, Plug, Receipt, ScrollText, Search, Settings, Shield, ShoppingBag, Sparkles, Store, Tag, Ticket, Users, Wallet, Wrench, type LucideIcon,
 } from "lucide-react";
 import type { Need } from "../team";
@@ -129,6 +129,8 @@ export const CREATOR_NAV: NavNode[] = [
     id: "tools", label: "Tools", icon: Wrench, need: "design", footer: true, children: [
       { id: "ai-images", label: "AI image maker", href: "/tools/ai-images", icon: Sparkles },
       { id: "integrations", label: "Integrations", href: "/tools/integrations", icon: Plug },
+      // The accounts agents use (Google Sheets and the like), shared by every agent
+      { id: "connectors", label: "Connectors", href: "/agents/my/connections", icon: Cable, need: "agents" },
     ],
   },
   {

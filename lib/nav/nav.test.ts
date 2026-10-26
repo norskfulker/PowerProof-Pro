@@ -105,7 +105,7 @@ describe("resolveNav", () => {
       expect(n.children, id).toBeUndefined();
     }
     expect(tree.find((g) => g.id === "catalog")!.children!.map((c) => c.label)).toEqual(["Collections", "Products", "Bundles", "Media library"]);
-    // Marketplace is one card: browse it, or open the subscribed agents
+    // Marketplace is one card in the sidebar; its pages stay in the tree for search
     expect(tree.find((g) => g.id === "marketplace")!.children!.map((c) => c.href)).toEqual(["/marketplace", "/marketplace?tab=subscribed"]);
     expect(tree.find((g) => g.id === "analytics")).toMatchObject({ href: "/analytics", children: undefined });
   });
@@ -121,6 +121,8 @@ describe("activeTrail", () => {
     expect(activeTrail(tree, "/agents/my/inst_1").map((n) => n.label)).toEqual(["Marketplace", "Subscribed agents"]);
     expect(activeTrail(tree, "/marketplace", "tab=subscribed").map((n) => n.id)).toEqual(["marketplace", "agents"]);
     expect(activeTrail(tree, "/marketplace").map((n) => n.id)).toEqual(["marketplace", "marketplace-browse"]);
+    // Connectors live under Tools, though their address is in the agents area
+    expect(activeTrail(tree, "/agents/my/connections").map((n) => n.id)).toEqual(["tools", "connectors"]);
     expect(activeTrail(storeTree, "/store/store_fx/pages/policies/refund").map((n) => n.label)).toEqual(["Policies", "Refund"]);
   });
   it("returns nothing for pages outside the menu", () => {

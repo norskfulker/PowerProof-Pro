@@ -50,7 +50,7 @@ export function StoreTabs() {
   const sub = group?.children?.filter((c) => c.href && !c.inEditor);
   return (
     <div data-slot="store-tabs">
-      <Row nodes={storeTabs} active={group?.id} label="Store settings" />
+      <Row nodes={storeTabs} active={group?.id} label="Store settings" small />
       {sub && sub.length > 1 && <Row nodes={sub} active={trail[1]?.id} label={`${group.label} sections`} small />}
     </div>
   );

@@ -5,7 +5,6 @@ import Link from "next/link";
 import { ArrowDown, ArrowUp, ExternalLink, Plus, RotateCcw, Trash2 } from "lucide-react";
 import { MediaUploader } from "@/components/media/media-uploader";
 import { ErrorState } from "@/components/pp/empty-state";
-import { PageHeader } from "@/components/pp/page-header";
 import { SaveBar } from "@/components/save/save-bar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -153,11 +152,6 @@ export function StoreInfoEditor({ storeId, page }: { storeId: string; page: "ref
   const { data, error, reload, setData } = useApi(() => getStoreInfo(storeId), [storeId]);
   return (
     <>
-      <PageHeader title="Policies" />
-      <p className="-mt-2 mb-6 text-sm text-muted-foreground">
-        Your About page and FAQ are edited in the{" "}
-        <Link href={pageHref(storeId, "about")} className="font-medium text-primary underline underline-offset-4">store editor</Link>, beside the page that shows them.
-      </p>
       {error ? (
         <ErrorState message={error} onRetry={reload} />
       ) : !data ? (

@@ -1,36 +1,55 @@
 "use client";
 
-import { usePathname, useRouter } from "next/navigation";
-import { useCurrentStore } from "@/hooks/use-current-store";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CREATOR_NAV } from "@/lib/nav/config";
-import { can } from "@/lib/team";
-
-// The Settings section of the one nav config (Part 7C)
-// Store settings and Domain live on store pages; "current" is turned into the real store id there
-const SETTINGS = CREATOR_NAV.find((n) => n.id === "settings")!.children!.map((n) => ({ href: n.href!.replace("{store}", "current"), label: n.label, need: n.need ?? "any", physical: !!n.physical }));
+import { Suspense } from "react";
+import Link from "next/link";
+import { usePathname, useSearchParams } from "next/navigation";
+import { useNav } from "@/components/nav/use-nav";
+import { PageHeader } from "@/components/pp/page-header";
+import { activeTrail } from "@/lib/nav/model";
+import { InSettings } from "./in-settings";
+import { cn } from "@/lib/utils";
 
 /**
- * Settings as one row of tabs across the top. Every section is its own page, so nothing is nested
- * inside a page — this tab bar is the only level of navigation.
+ * Settings as one row of tabs across the top, from the Settings section of the one nav config
+ * (Part 7C). The same bar sits on every settings page, including Store and Domain, which live
+ * under /store/[id]. Team members only see the tabs for the parts they work on.
  */
 export function SettingsNav() {
-  const pathname = usePathname();
-  const router = useRouter();
-  // Team members see the settings for the parts of the store they work on
-  const store = useCurrentStore().data;
-  const access = store?.access;
-  // SKUs come with physical shipping
-  const items = SETTINGS.filter((i) => can(access, i.need) && (!i.physical || store?.sells === "physical"));
+  const pathname = usePathname() ?? "";
+  const search = useSearchParams().toString();
+  const { tree } = useNav("creator");
+  const items = tree.find((n) => n.id === "settings")?.linkChildren ?? [];
+  const active = activeTrail(items, pathname, search)[0]?.id;
   return (
-    <Tabs value={items.some((i) => i.href === pathname) ? pathname : items[0].href} onValueChange={(href) => router.push(href)}>
-      <TabsList aria-label="Settings sections" className="max-w-full justify-start overflow-x-auto">
-        {items.map((i) => (
-          <TabsTrigger key={i.href} value={i.href}>
+    <nav aria-label="Settings sections" className="mb-6 flex gap-1 overflow-x-auto border-b">
+      {items.map((i) =>
+        i.href ? (
+          <Link
+            key={i.id}
+            href={i.href}
+            aria-current={i.id === active ? "page" : undefined}
+            className={cn(
+              "-mb-px inline-flex min-h-11 shrink-0 items-center border-b-2 px-4 text-sm font-semibold whitespace-nowrap hover:text-foreground",
+              i.id === active ? "border-primary text-foreground" : "border-transparent text-muted-foreground"
+            )}
+          >
             {i.label}
-          </TabsTrigger>
-        ))}
-      </TabsList>
-    </Tabs>
+          </Link>
+        ) : null
+      )}
+    </nav>
+  );
+}
+
+/** The Settings title and its tabs, around any settings page */
+export function SettingsFrame({ children }: { children: React.ReactNode }) {
+  return (
+    <InSettings.Provider value>
+      <PageHeader title="Settings" className="mb-4 md:mb-5" top />
+      <Suspense fallback={<div className="mb-6 h-11 border-b" />}>
+        <SettingsNav />
+      </Suspense>
+      {children}
+    </InSettings.Provider>
   );
 }

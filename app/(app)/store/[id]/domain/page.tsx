@@ -5,7 +5,6 @@ import { Check, Copy, Globe, Loader2, RefreshCw, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/pp/confirm-dialog";
 import { EmptyState } from "@/components/pp/empty-state";
-import { PageHeader } from "@/components/pp/page-header";
 import { usePlan } from "@/components/plan/plan-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -132,14 +131,12 @@ export default function StoreDomainPage() {
     }
   }
 
-  const header = <PageHeader title="Domain" />;
-  if (load.state === "loading" || !storeId) return <>{header}<Skeleton className="h-64 rounded-card" /></>;
+  if (load.state === "loading" || !storeId) return <Skeleton className="h-64 rounded-card" />;
 
   if (load.state === "blocked") {
     return (
       <>
         <title>Domain · PowerProof</title>
-        {header}
         {load.code === 402 ? (
           <EmptyState icon={Globe} title="Your own domain is part of Pro." body="Your store already has its free address. Upgrade to Pro to use a domain you own, with a free SSL certificate." action={<Button onClick={() => plan.upgrade("customDomain")}>See Pro</Button>} />
         ) : load.code === 503 ? (
@@ -157,7 +154,6 @@ export default function StoreDomainPage() {
   return (
     <>
       <title>Domain · PowerProof</title>
-      {header}
       {!d ? (
         <form noValidate onSubmit={add} className="flex max-w-xl flex-col gap-3 rounded-card border bg-surface p-5 md:p-6">
           <h2 className="font-sans text-base font-semibold tracking-normal">Connect a domain you own</h2>

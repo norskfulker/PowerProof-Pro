@@ -30,7 +30,7 @@ export default function SkusPage() {
   if (!store.data) return <SettingsLoading error={store.error} onRetry={store.reload} />;
   if (store.data.sells !== "physical") {
     return (
-      <SettingsSection title="SKUs" description="Stock-keeping codes for the things you ship.">
+      <SettingsSection title="SKUs">
         <PhysicalShippingOff storeId={store.data.id} what="SKUs" />
       </SettingsSection>
     );
@@ -96,7 +96,7 @@ function SkuManager() {
   });
 
   return (
-    <SettingsSection title="SKUs" description="Short codes for your own tracking and your accountant. A SKU belongs to a product: setting it here sets it on the product.">
+    <SettingsSection title="SKUs">
       <DataTable
         label="SKUs"
         columns={columns}

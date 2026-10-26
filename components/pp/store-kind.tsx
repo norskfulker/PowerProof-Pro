@@ -1,4 +1,3 @@
-import { countryByCode, flagOf } from "@/lib/countries";
 import { cn } from "@/lib/utils";
 
 export type StoreSells = "digital" | "physical";
@@ -24,17 +23,6 @@ export function StoreKind({ sells, compact = false, className }: { sells: StoreS
       )}
     >
       {compact ? k.short : k.label}
-    </span>
-  );
-}
-
-/** Where a store is based: its flag and country name */
-export function StorePlace({ country, className }: { country: string; className?: string }) {
-  if (!country) return null;
-  const c = countryByCode(country);
-  return (
-    <span className={cn("inline-flex shrink-0 items-center gap-1 whitespace-nowrap text-muted-foreground [overflow-wrap:normal]", className)}>
-      <span aria-hidden>{flagOf(country)}</span> {c.name}
     </span>
   );
 }

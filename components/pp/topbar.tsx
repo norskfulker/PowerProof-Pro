@@ -34,7 +34,7 @@ import { formatNumber, initials } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { GlobalSearch } from "@/components/search/global-search";
 import { Notifications } from "./notifications";
-import { STORE_KIND, StoreKind, StorePlace } from "./store-kind";
+import { STORE_KIND, StoreKind } from "./store-kind";
 import { BuyCredits, CREDIT_RULE } from "@/components/agents/buy-credits";
 import { CREDIT_PRICE } from "@/lib/agents/define";
 import { formatMoney } from "@/lib/money";
@@ -144,7 +144,7 @@ function IconAction({ label, icon: Icon, href, onClick, onDone, size = "icon-sm"
   );
 }
 
-/** Workspace › store: switch either; icons add a store, view it, and start or rename a workspace */
+/** Workspace › store: switch either; icons add a store, and start or rename a workspace */
 function WorkspaceSwitcher() {
   const router = useRouter();
   const pathname = usePathname();
@@ -193,21 +193,15 @@ function WorkspaceSwitcher() {
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" className="w-72">
           <DropdownMenuLabel className="flex items-center gap-1">
-            <span className="eyebrow min-w-0 flex-1 truncate">Stores in {active?.name ?? "this workspace"}</span>
-            {store && <IconAction label="View live store" href={`/s/${store.slug}`} icon={ExternalLink} onDone={() => setMenu(false)} />}
+            <span className="eyebrow min-w-0 flex-1 truncate">{active?.name ?? "this workspace"}</span>
             {owner && <IconAction label={plan.state?.tier === "free" ? "Add a store (Pro)" : "Add a store"} icon={Plus} onClick={() => ask({ kind: "store" })} />}
           </DropdownMenuLabel>
           {here.map((s) => (
-            <DropdownMenuItem key={s.id} onSelect={() => !s.active && open(s.id, s.name)} className="items-start">
-              {s.active ? <Check className="mt-0.5" aria-hidden /> : <span className="size-4" aria-hidden />}
-              <span className="flex min-w-0 flex-1 flex-col gap-1">
-                <span className="truncate">{s.name}</span>
-                <span className="flex flex-wrap items-center gap-1.5 text-[0.6875rem]">
-                  <StoreKind sells={s.sells} compact />
-                  <StorePlace country={s.country} />
-                </span>
-              </span>
-              <span className="font-mono text-[0.625rem] text-muted-foreground" title={`${s.products} in all`}>{s.liveProducts} live</span>
+            <DropdownMenuItem key={s.id} onSelect={() => !s.active && open(s.id, s.name)}>
+              {s.active ? <Check aria-hidden /> : <span className="size-4" aria-hidden />}
+              <span className="min-w-0 flex-1 truncate">{s.name}</span>
+              <StoreKind sells={s.sells} compact />
+              <span className="shrink-0 text-xs text-muted-foreground tabular">{s.liveProducts} live</span>
             </DropdownMenuItem>
           ))}
           <DropdownMenuSeparator />

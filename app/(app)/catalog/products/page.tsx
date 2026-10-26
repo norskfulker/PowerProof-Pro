@@ -23,7 +23,6 @@ import { DataTable } from "@/components/pp/data-table";
 import { EmptyState } from "@/components/pp/empty-state";
 import { MoneyText } from "@/components/pp/money-text";
 import { PageHeader } from "@/components/pp/page-header";
-import { StoreBadge } from "@/components/store-admin/store-badge";
 import { kindLabel } from "@/components/pp/product-card";
 import { ProductImageView } from "@/components/pp/product-cover";
 import { StatusPill } from "@/components/pp/status-pill";
@@ -222,7 +221,6 @@ function ProductsPageInner() {
 
   return (
     <>
-      <StoreBadge />
       <PageHeader
         title="Your products"
         actions={

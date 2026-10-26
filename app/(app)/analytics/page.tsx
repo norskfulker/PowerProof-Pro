@@ -120,7 +120,7 @@ export default function AnalyticsPage() {
         </div>
 
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
-          <ChartCard title="Products" description="What sold in this period" height={220} loading={loading} error={detail.error} onRetry={detail.reload} empty={!d?.products.length} emptyText="No sales in this period">
+          <ChartCard title="Products" height={220} loading={loading} error={detail.error} onRetry={detail.reload} empty={!d?.products.length} emptyText="No sales in this period">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="text-left text-xs text-muted-foreground">
@@ -177,7 +177,7 @@ export default function AnalyticsPage() {
           <ChartCard title="Where buyers come from" height={180} loading={summary.loading && !summary.data} empty={!summary.data?.sources.length} emptyText="No visits recorded yet" emptyChart={<ShareBars rows={SOURCES.map((label) => ({ label, value: 0, share: 0 }))} />}>
             <ShareBars rows={(summary.data?.sources ?? []).map((s) => ({ label: sourceLabel(s.source), value: s.visitors, share: s.share }))} />
           </ChartCard>
-          <ChartCard title="Store funnel" description="Visit to payment" height={180} loading={summary.loading && !summary.data} empty={!summary.data?.funnel[0]?.value} emptyText="No visits recorded yet" emptyChart={<ShareBars rows={FUNNEL.map((label) => ({ label, value: 0, share: 0 }))} />}>
+          <ChartCard title="Store funnel" height={180} loading={summary.loading && !summary.data} empty={!summary.data?.funnel[0]?.value} emptyText="No visits recorded yet" emptyChart={<ShareBars rows={FUNNEL.map((label) => ({ label, value: 0, share: 0 }))} />}>
             <ShareBars rows={(summary.data?.funnel ?? []).map((f) => ({ label: f.label, value: f.value, share: pct(f.value, summary.data!.funnel[0].value) }))} />
           </ChartCard>
           <ChartCard title="Visitors" height={180} loading={summary.loading && !summary.data} empty={!summary.data?.visitors} emptyText="No visits recorded yet" emptyChart={<TrendChart name="visitors" tone="visitors" height={180} data={(summary.data?.series ?? []).map((p) => ({ label: p.label, value: 0 }))} />}>

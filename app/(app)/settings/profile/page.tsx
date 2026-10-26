@@ -4,8 +4,9 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { SaveBar } from "@/components/save/save-bar";
 import { SettingsLoading, SettingsSection } from "@/components/settings/settings-section";
@@ -20,7 +21,6 @@ import type { Store } from "@/lib/types";
 
 const schema = z.object({
   ownerName: z.string().trim().min(2, "Enter your name."),
-  ownerEmail: z.string().email("That email looks off. Check for typos."),
 });
 
 const pwSchema = z
@@ -38,7 +38,7 @@ async function googleOnly(): Promise<boolean> {
 }
 
 function ProfileForm({ store, onSaved }: { store: Store; onSaved: (s: Store) => void }) {
-  const form = useForm<z.infer<typeof schema>>({ resolver: zodResolver(schema), defaultValues: { ownerName: store.ownerName, ownerEmail: store.ownerEmail }, mode: "onTouched" });
+  const form = useForm<z.infer<typeof schema>>({ resolver: zodResolver(schema), defaultValues: { ownerName: store.ownerName }, mode: "onTouched" });
   const bar = useFormSaveBar(form, async (v) => onSaved(await updateStore(v)), "Profile saved");
   return (
     <Form {...form}>
@@ -50,14 +50,16 @@ function ProfileForm({ store, onSaved }: { store: Store; onSaved: (s: Store) => 
           bar.save();
         }}
       >
-        <SettingsSection title="Profile" description="How we address you and where we send account emails." saveBar={<SaveBar state={bar} />}>
+        <SettingsSection title="Profile" saveBar={<SaveBar state={bar} />}>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <FormField control={form.control} name="ownerName" render={({ field }) => (
               <FormItem><FormLabel>Your name</FormLabel><FormControl><Input autoComplete="name" {...field} /></FormControl><FormMessage /></FormItem>
             )} />
-            <FormField control={form.control} name="ownerEmail" render={({ field }) => (
-              <FormItem><FormLabel>Login email</FormLabel><FormControl><Input type="email" autoComplete="email" {...field} /></FormControl><FormDescription>We&apos;ll confirm a new address before switching.</FormDescription><FormMessage /></FormItem>
-            )} />
+            {/* The account's identity: fixed, so it isn't a form field */}
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="login-email">Login email</Label>
+              <Input id="login-email" type="email" value={store.ownerEmail} readOnly disabled />
+            </div>
           </div>
         </SettingsSection>
       </form>
@@ -146,7 +148,7 @@ function NotificationSettings({ store, onSaved }: { store: Store; onSaved: (s: S
     }
   };
   return (
-    <SettingsSection title="Notifications" description="The bell at the top always shows new orders, refunds, disputes, reviews, questions, sign-ups, payouts and low stock. Choose which of them also come by email.">
+    <SettingsSection title="Notifications">
       <div id="notifications" className="scroll-mt-24" />
       {prefs.error ? (
         <ErrorState message={prefs.error} onRetry={prefs.reload} />

@@ -3,13 +3,13 @@
 import { useEffect, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { ErrorState } from "@/components/pp/empty-state";
-import { StoreBadge } from "@/components/store-admin/store-badge";
 import { StoreTabs } from "@/components/store-admin/store-tabs";
+import { SettingsFrame } from "@/components/settings/settings-nav";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getActiveStoreId, getOwnedStores, switchStore } from "@/lib/api";
 
 /** Store-scoped pages render once the store in the URL is the active one. */
-export function StoreScopeGuard({ storeId, children, badge = false }: { storeId: string; children: React.ReactNode; badge?: boolean }) {
+export function StoreScopeGuard({ storeId, children }: { storeId: string; children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const search = useSearchParams();
@@ -40,9 +40,6 @@ export function StoreScopeGuard({ storeId, children, badge = false }: { storeId:
     };
   }, [storeId, pathname, search, router]);
 
-  // The store editor fills the screen under the tabs
-  const editing = /\/design\/pages\/[^/]+\/edit$/.test(pathname);
-
   if (error) return <ErrorState message={error} onRetry={() => router.replace(pathname.replace(`/store/${storeId}`, "/store/current"))} />;
   if (!ready) {
     return (
@@ -53,12 +50,16 @@ export function StoreScopeGuard({ storeId, children, badge = false }: { storeId:
       </div>
     );
   }
-  return (
-    <>
-      {badge && !editing && <StoreBadge />}
-      {/* Settings › Store (General, Policies, Offers, SEO) has tabs; the designer and Domain don't */}
-      {/\/store\/[^/]+\/(settings|pages|offers|seo|analytics-tags)(\/|$)/.test(pathname) && <StoreTabs />}
-      {children}
-    </>
-  );
+  // Settings › Store (General, Policies, Offers, SEO) and Domain are Settings pages: the same
+  // Settings title and tabs as /settings, then the Store's own tabs. The designer is not.
+  const storeSettings = /\/store\/[^/]+\/(settings|pages|offers|seo|analytics-tags)(\/|$)/.test(pathname);
+  if (storeSettings || /\/store\/[^/]+\/domain(\/|$)/.test(pathname)) {
+    return (
+      <SettingsFrame>
+        {storeSettings && <StoreTabs />}
+        {children}
+      </SettingsFrame>
+    );
+  }
+  return children;
 }

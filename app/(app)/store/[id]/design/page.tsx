@@ -84,8 +84,7 @@ export default function MyStorePage() {
       <Suspense>
         <FirstRun />
       </Suspense>
-      <PageHeader title="My Store" className="mb-2 md:mb-3" />
-      <p className="mb-6 max-w-2xl text-sm text-muted-foreground md:mb-8">How would you like to build it? You can switch any time: everything ends up in the same editor.</p>
+      <PageHeader title="My Store" />
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         {CHOICES.map(({ href, icon: Icon, title, body, points, cta, badge, primary }) => (
           <Link

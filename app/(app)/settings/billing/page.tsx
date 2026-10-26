@@ -8,12 +8,16 @@ import { EmptyState } from "@/components/pp/empty-state";
 import { MoneyText } from "@/components/pp/money-text";
 import { StatusPill } from "@/components/pp/status-pill";
 import { usePlan } from "@/components/plan/plan-context";
-import { PlanComparisonTable, PlanUsage } from "@/components/plan/plan-usage";
+import { UsageLimits } from "@/components/plan/usage-limits";
 import { SettingsLoading, SettingsSection } from "@/components/settings/settings-section";
 import { useApi } from "@/hooks/use-api";
 import { getPlan } from "@/lib/api";
 import { formatDate } from "@/lib/format";
 import { formatMoney, money } from "@/lib/money";
+import { PRO_PRICE_LABEL, PRO_TRIAL_DAYS, trialRunning } from "@/lib/plans";
+
+/** Razorpay subscription states, as people say them */
+const SUB_STATUS: Record<string, string> = { created: "waiting for card", authenticated: "set up", active: "active", paused: "paused", cancelled: "cancelled", completed: "ended", expired: "expired" };
 
 export default function BillingPage() {
   const { data, error, reload } = useApi(getPlan, [], { live: true });
@@ -53,31 +57,18 @@ export default function BillingPage() {
           {trial && plan.trialEndsAt ? (
             <div className="rounded-card border border-accent/40 bg-accent-soft p-4 md:w-72">
               <p className="flex items-center gap-2 font-semibold text-accent-ink"><Sparkles className="size-4" aria-hidden /> Free month</p>
-              <p className="mt-1 text-sm">Until {formatDate(plan.trialEndsAt)}. Add a card before then so your store doesn&apos;t pause.</p>
+              <p className="mt-1 text-sm">Until {formatDate(plan.trialEndsAt)}. Then {PRO_PRICE_LABEL}/month on the card you added. Cancel before then and nothing is charged.</p>
             </div>
+          ) : plan.tier === "pro" ? (
+            <p className="text-sm text-muted-foreground md:w-72">{billing?.subscription?.currentEnd ? `Renews on ${formatDate(billing.subscription.currentEnd)}.` : "Renews every month."}</p>
           ) : (
-            <p className="text-sm text-muted-foreground md:w-72">Renews on the 1st. Fees for the month are billed with it.</p>
+            <p className="text-sm text-muted-foreground md:w-72">No monthly charge.</p>
           )}
         </div>
       </SettingsSection>
 
-      <SettingsSection
-        title="Usage and limits"
-        description={planCtx.state?.tier === "free" ? "Free includes one store, up to 10 products and 3 pages. You'll be asked before anything stops." : "Pro has no limits on stores or products."}
-      >
-        <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
-          <PlanUsage tone="card" className="lg:w-72" />
-          <div className="min-w-0 flex-1">
-            <div className="overflow-x-auto rounded-card border">
-              <PlanComparisonTable current={planCtx.state?.tier} />
-            </div>
-            {planCtx.state?.tier === "free" && (
-              <Button className="mt-4" onClick={() => planCtx.upgrade()}>
-                <Sparkles aria-hidden /> Upgrade to Pro, first month free
-              </Button>
-            )}
-          </div>
-        </div>
+      <SettingsSection title="Usage and limits">
+        <UsageLimits />
       </SettingsSection>
 
       <SettingsSection title="Payment method" description="Cards are handled by Razorpay's secure page. PowerProof never sees the number.">
@@ -85,11 +76,11 @@ export default function BillingPage() {
           <span className="grid size-11 place-items-center rounded-control bg-primary-soft text-primary"><CreditCard className="size-5" aria-hidden /></span>
           <span className="flex-1">
             {billing?.subscription ? (
-              <><span className="block font-medium">Pro subscription {billing.subscription.status}</span><span className="block text-sm text-muted-foreground">{billing.subscription.trialEndsAt ? `Free trial until ${formatDate(billing.subscription.trialEndsAt)}. ` : ""}₹1,999/month after that. Cancel any time.</span></>
+              <><span className="block font-medium">Pro subscription {SUB_STATUS[billing.subscription.status] ?? billing.subscription.status}</span><span className="block text-sm text-muted-foreground">{trialRunning(billing.subscription.status, billing.subscription.trialEndsAt) ? `Free until ${formatDate(billing.subscription.trialEndsAt!)}, then ${PRO_PRICE_LABEL}/month.` : `${PRO_PRICE_LABEL}/month.`} Cancel any time.</span></>
             ) : planCtx.state?.tier === "pro" ? (
               <><span className="block font-medium">Pro</span><span className="block text-sm text-muted-foreground">Subscription details are loading.</span></>
             ) : (
-              <><span className="block font-medium">No subscription yet</span><span className="block text-sm text-muted-foreground">Your card is authorised when you upgrade; the first 30 days are free.</span></>
+              <><span className="block font-medium">No subscription yet</span><span className="block text-sm text-muted-foreground">Your card is authorised when you upgrade; the first {PRO_TRIAL_DAYS} days are free.</span></>
             )}
           </span>
           {planCtx.state?.tier === "free" ? (
@@ -117,9 +108,9 @@ export default function BillingPage() {
         </div>
       </SettingsSection>
 
-      <SettingsSection title="Receipts" description="One receipt per monthly charge. Simple receipts, no GST invoice.">
+      <SettingsSection title="Receipts">
         {!billing?.receipts.length ? (
-          <EmptyState compact icon={Receipt} title="No receipts yet." body="Your first receipt appears here after the free trial, when the first ₹1,999 charge goes through." />
+          <EmptyState compact icon={Receipt} title="No receipts yet." body={`Your first receipt appears here after the free month, when the first ${PRO_PRICE_LABEL} charge goes through.`} />
         ) : (
           <ul className="divide-y rounded-card border">
             {billing.receipts.map((r) => (

@@ -1,6 +1,8 @@
+"use client";
+
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { PageCrumbs } from "@/components/nav/page-crumbs";
+import { useInSettings } from "@/components/settings/in-settings";
 import { cn } from "@/lib/utils";
 
 export function PageHeader({
@@ -8,27 +10,31 @@ export function PageHeader({
   actions,
   back,
   className,
+  top,
 }: {
   title: React.ReactNode;
   actions?: React.ReactNode;
   back?: { href: string; label: string };
   className?: string;
+  /** The page's own title even inside Settings (the "Settings" title itself) */
+  top?: boolean;
 }) {
+  // Inside Settings, a page's title is a section heading under "Settings"
+  const section = useInSettings() && !top;
+  const Title = section ? "h2" : "h1";
   return (
-    <header className={cn("mb-6 flex flex-wrap items-end justify-between gap-x-4 gap-y-3 md:mb-8", className)}>
-      <div className="min-w-0">
-        {back && (
-          <Link href={back.href} className="-ml-1 mb-2 inline-flex min-h-11 items-center gap-1.5 rounded-control px-1 text-sm font-medium text-muted-foreground hover:text-foreground pointer-fine:min-h-8">
-            <ArrowLeft className="size-4" aria-hidden />
-            {back.label}
-          </Link>
-        )}
-        {/* Where the page sits (a detail page has its Back link instead) */}
-        {!back && <PageCrumbs title={title} />}
-        <h1 className="text-[1.75rem] leading-[1.1] md:text-[2.125rem]">{title}</h1>
+    <header className={cn(section ? "mb-4" : "mb-6 md:mb-8", className)}>
+      {back && (
+        <Link href={back.href} className="-ml-1 mb-2 inline-flex min-h-11 items-center gap-1.5 rounded-control px-1 text-sm font-medium text-muted-foreground hover:text-foreground pointer-fine:min-h-8">
+          <ArrowLeft className="size-4" aria-hidden />
+          {back.label}
+        </Link>
+      )}
+      {/* The title and its buttons share one row */}
+      <div className="flex items-center justify-between gap-4">
+        <Title className={cn("min-w-0", section ? "font-display text-xl" : "text-[1.75rem] leading-[1.1] md:text-[2.125rem]")}>{title}</Title>
+        {actions && <div className="flex shrink-0 items-center gap-2">{actions}</div>}
       </div>
-      {/* Buttons sit on the title's row, at its end */}
-      {actions && <div className="ml-auto flex flex-wrap items-center justify-end gap-2">{actions}</div>}
     </header>
   );
 }

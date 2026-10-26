@@ -18,6 +18,7 @@ import { useApi } from "@/hooks/use-api";
 import { useCurrentStore } from "@/hooks/use-current-store";
 import { getBalance, getPlan, getProducts } from "@/lib/api";
 import { formatDate, formatNumber } from "@/lib/format";
+import { PRO_PRICE_LABEL } from "@/lib/plans";
 import type { Product } from "@/lib/types";
 
 /** The most recently changed products, scrolling inside the card when there are many */
@@ -86,7 +87,7 @@ export default function DashboardPage() {
         <div className="mb-6 flex flex-col gap-3 rounded-card border border-accent/40 bg-accent-soft px-5 py-4 sm:flex-row sm:items-center">
           <Sparkles className="size-5 shrink-0 text-accent-ink" aria-hidden />
           <p className="flex-1 text-sm">
-            <strong>Free month</strong> until {formatDate(plan.data.plan.trialEndsAt)}. Then ₹1,999/month. You only pay 3% per sale until then.
+            <strong>Free month</strong> until {formatDate(plan.data.plan.trialEndsAt)}. Then {PRO_PRICE_LABEL}/month. You only pay 3% per sale until then.
           </p>
           <Link href="/settings/billing" className="text-sm font-semibold text-accent-ink underline underline-offset-4">
             See plan

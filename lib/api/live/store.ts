@@ -3,7 +3,7 @@ import { countryByCode } from "../../countries";
 import { cleanStoreName, slugify, storeNameError } from "../../slug";
 import { normalizeHex } from "../../color";
 import { writeProgress } from "./flags";
-import { PRO_PRICE_MINOR } from "../../plans";
+import { PRO_PRICE_MINOR, trialRunning } from "../../plans";
 import { money as moneyOf } from "../../money";
 import { type PlanLimits, type PlanTier } from "../../plans";
 import { limitsFromRows } from "../../plan-limits";
@@ -417,10 +417,14 @@ export async function getPlanState(): Promise<PlanState> {
   const row = limits?.find((l) => l.plan === tier);
   const lim: PlanLimits = limitsFromRows(limits)[tier];
   const ids = (stores ?? []).map((s) => s.id);
-  const [{ count }, { count: pageCount }] = ids.length
-    ? await Promise.all([sb().from("products").select("id", { count: "exact", head: true }).in("store_id", ids), sb().from("custom_pages").select("id", { count: "exact", head: true }).in("store_id", ids).neq("slug", "home")])
-    : [{ count: 0 }, { count: 0 }];
-  const plan: Plan = { tier, name: tier === "pro" ? "Pro" : "Free", monthly: moneyOf(tier === "pro" ? PRO_PRICE_MINOR : 0, "INR"), platformFeePct: (row?.platform_fee_bps ?? 300) / 100, gatewayFeePct: 2, status: "active" };
+  const [{ count }, { count: pageCount }, { data: sub }] = await Promise.all([
+    ids.length ? sb().from("products").select("id", { count: "exact", head: true }).in("store_id", ids) : { count: 0 },
+    ids.length ? sb().from("custom_pages").select("id", { count: "exact", head: true }).in("store_id", ids).neq("slug", "home") : { count: 0 },
+    // Your own Pro subscription: its free month (someone else's workspace follows their plan)
+    tier === "pro" && !joined ? sb().from("billing_subscriptions").select("status, trial_ends_at").eq("user_id", who.id).maybeSingle() : { data: null },
+  ]);
+  const trialEndsAt = sub && trialRunning(sub.status, sub.trial_ends_at) ? sub.trial_ends_at! : undefined;
+  const plan: Plan = { tier, name: tier === "pro" ? "Pro" : "Free", monthly: moneyOf(tier === "pro" ? PRO_PRICE_MINOR : 0, "INR"), platformFeePct: (row?.platform_fee_bps ?? 300) / 100, gatewayFeePct: 2, status: trialEndsAt ? "trial" : "active", ...(trialEndsAt ? { trialEndsAt } : {}) };
   return { plan, tier, limits: lim, usage: { stores: ids.length, products: count ?? 0, pages: pageCount ?? 0 }, joined: !!joined };
 }
 
