@@ -21,7 +21,7 @@
   "dependencies": {
     "@google/genai": "2.24.0",
     "@hookform/resolvers": "^5.9.1",
-    "@opennextjs/cloudflare": "^1.20.9",
+    "@opennextjs/cloudflare": "1.20.13",
     "@phosphor-icons/react": "2.1.10",
     "@react-email/components": "^1.0.12",
     "@react-email/render": "^2.1.0",
