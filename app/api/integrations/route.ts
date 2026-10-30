@@ -92,6 +92,14 @@ export async function DELETE(request: Request) {
   }
 }
 
+/** The error message a provider sent back, as " It said: …", or "" */
+async function providerMessage(res: Response): Promise<string> {
+  const body = (await res.json().catch(() => null)) as { error?: { message?: string; description?: string } | string; message?: string } | null;
+  const e = body?.error;
+  const text = (typeof e === "string" ? e : e?.message ?? e?.description) ?? body?.message;
+  return text ? ` It said: ${String(text).slice(0, 200)}` : "";
+}
+
 /** Tries the saved connection with a harmless request */
 export async function POST(request: Request) {
   const p = z.object({ storeId: z.string().uuid(), kind }).safeParse(await request.json().catch(() => null));
@@ -99,7 +107,7 @@ export async function POST(request: Request) {
   try {
     const { pro } = await assertOwner(p.data.storeId);
     if (!pro) throw new IntegrationError("Your own payment gateway and AI provider are part of the Pro plan.", 402);
-    const i = await loadIntegration(p.data.storeId, p.data.kind);
+    const i = await loadIntegration(p.data.storeId, p.data.kind, { includeOff: true });
     if (!i) throw new IntegrationError("Save the connection first.", 404);
     const signal = AbortSignal.timeout(15000);
     let res: Response | null = null;
@@ -114,12 +122,17 @@ export async function POST(request: Request) {
       const headers: Record<string, string> = { "content-type": "application/json", ...c.headers };
       if (provider === "anthropic") res = await fetch(`${base}${c.route || "/messages"}`, { method: "POST", headers: { ...headers, "x-api-key": i.secrets.apiKey ?? "", "anthropic-version": "2023-06-01" }, body: JSON.stringify({ model: c.model, max_tokens: 8, messages: [{ role: "user", content: "Reply with OK." }] }), signal }).catch(() => null);
       else if (provider === "gemini") res = await fetch(`${base}/models/${encodeURIComponent(c.model)}:generateContent`, { method: "POST", headers: { ...headers, "x-goog-api-key": i.secrets.apiKey ?? "" }, body: JSON.stringify({ contents: [{ parts: [{ text: "Reply with OK." }] }] }), signal }).catch(() => null);
-      else res = await fetch(`${base}${c.route || "/chat/completions"}`, { method: "POST", headers: { ...headers, authorization: `Bearer ${i.secrets.apiKey ?? ""}` }, body: JSON.stringify({ model: c.model, max_tokens: 8, messages: [{ role: "user", content: "Reply with OK." }] }), signal }).catch(() => null);
+      // No token limit: newer OpenAI models refuse max_tokens, and other servers name it differently
+      else res = await fetch(`${base}${c.route || "/chat/completions"}`, { method: "POST", headers: { ...headers, authorization: `Bearer ${i.secrets.apiKey ?? ""}` }, body: JSON.stringify({ model: c.model, messages: [{ role: "user", content: "Reply with OK." }] }), signal }).catch(() => null);
     }
     if (!res) throw new IntegrationError("We couldn't reach it. Check the address and try again.", 502);
-    if (res.status === 401 || res.status === 403) throw new IntegrationError("The key was refused. Check it and save again.", 400);
-    if (res.status === 404) throw new IntegrationError("The address, route or model wasn't found.", 400);
-    if (!res.ok) throw new IntegrationError(`It answered with an error (${res.status}).`, 400);
+    if (!res.ok) {
+      // The provider's own words help most ("model not found", "insufficient credit"…)
+      const said = await providerMessage(res);
+      if (res.status === 401 || res.status === 403) throw new IntegrationError(`The key was refused. Check it and save again.${said}`, 400);
+      if (res.status === 404) throw new IntegrationError(`The address, route or model wasn't found.${said}`, 400);
+      throw new IntegrationError(`It answered with an error (${res.status}).${said}`, 400);
+    }
     return ok({ message: "Connected. It works." });
   } catch (e) {
     return reply(e);

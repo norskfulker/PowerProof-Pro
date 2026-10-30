@@ -6,7 +6,7 @@ import { tick } from "@/lib/server/agents/jobs";
 /**
  * The agents' scheduler tick: adds due jobs (hourly runs, Monday reports, daily sheet refreshes),
  * then runs a small batch inside the time budget and returns. Called by the Worker's cron with
- * `Authorization: Bearer $CRON_SECRET` (same as /api/cron/domains and /api/cron/abandoned); without
+ * `Authorization: Bearer $CRON_SECRET` (same as /api/cron/abandoned); without
  * CRON_SECRET set, the route does nothing.
  */
 export const dynamic = "force-dynamic";

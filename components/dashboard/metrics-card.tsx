@@ -3,6 +3,7 @@
 import { useId, useState } from "react";
 import { ArrowDownRight, ArrowUpRight } from "lucide-react";
 import { Bar, CartesianGrid, ComposedChart, Area, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { BalancePanel } from "@/components/dashboard/bento";
 import { ErrorState } from "@/components/pp/empty-state";
 import { LiveStatusBadge } from "@/components/pp/live-status";
 import { StatusTabs } from "@/components/pp/status-tabs";
@@ -11,6 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useApi } from "@/hooks/use-api";
 import { useLiveStore } from "@/hooks/use-live-store";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
+import { getBalance } from "@/lib/api";
 import { getDashboardMetrics } from "@/lib/api/activity";
 import { METRIC_RANGES, type MetricRange, type MetricSummary } from "@/lib/dashboard-metrics";
 import { formatNumber } from "@/lib/format";
@@ -18,16 +20,18 @@ import { formatMoney, money } from "@/lib/money";
 import type { CurrencyCode } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-type Tab = "sales" | "visitors" | "payments";
+type Metric = "sales" | "visitors" | "payments";
+type Tab = Metric | "balance";
 
 const TABS: { value: Tab; label: string }[] = [
   { value: "sales", label: "Sales" },
   { value: "visitors", label: "Visitors" },
   { value: "payments", label: "Payments" },
+  { value: "balance", label: "Balance" },
 ];
 
 /** What each tab's numbers and two chart series mean */
-const COPY: Record<Tab, { main: string; second: (s: MetricSummary) => string; series: string; extra: string; empty: string; money: boolean }> = {
+const COPY: Record<Metric, { main: string; second: (s: MetricSummary) => string; series: string; extra: string; empty: string; money: boolean }> = {
   sales: { main: "Revenue", second: (s) => `${formatNumber(s.secondary)} ${s.secondary === 1 ? "order" : "orders"} paid`, series: "Revenue", extra: "Orders", empty: "No paid orders in this period.", money: true },
   visitors: { main: "Visitors", second: (s) => `${formatNumber(s.secondary)} page ${s.secondary === 1 ? "view" : "views"}`, series: "Visitors", extra: "Page views", empty: "No visits recorded in this period.", money: false },
   payments: { main: "Collected", second: (s) => `${s.secondary}% of payment attempts succeeded`, series: "Collected", extra: "Failed or abandoned", empty: "No payment attempts in this period.", money: true },
@@ -46,20 +50,26 @@ function Change({ v }: { v: number | null }) {
 }
 
 /**
- * Sales, Visitors and Payments in one card: a tab for each, one period picker (1D, 7D, 30D) for
- * all three, the main number with its change against the period before, and the chart. Numbers come
- * from paid orders, storefront visits and payment events; nothing is estimated. Stays current
+ * Sales, Visitors, Payments and Balance in one card: a tab for each. The first three share one
+ * period picker (1D, 7D, 30D) and show the main number with its change against the period before,
+ * and the chart; Balance shows what can be withdrawn, with Withdraw. Numbers come from paid orders,
+ * storefront visits, payment events and the payout ledger; nothing is estimated. Stays current
  * through live updates.
  */
 export function MetricsCard({ className }: { className?: string }) {
   const [tab, setTab] = useState<Tab>("sales");
   const [range, setRange] = useState<MetricRange>("7d");
   const { data, loading, error, reload } = useApi(() => getDashboardMetrics(range), [range]);
-  const live = useLiveStore(["orders", "payment_events", "store_events"], reload);
+  const balance = useApi(getBalance, [], { live: true });
+  const live = useLiveStore(["orders", "payment_events", "store_events"], () => {
+    reload();
+    balance.reload();
+  });
   const reduced = useReducedMotion();
   const gid = useId().replace(/:/g, "");
-  const c = COPY[tab];
-  const s = data?.[tab];
+  const isBalance = tab === "balance";
+  const c = COPY[isBalance ? "sales" : tab];
+  const s = isBalance ? undefined : data?.[tab];
   const cur = (data?.currency ?? "INR") as CurrencyCode;
   const fmt = (minor: number) => formatMoney(money(minor, cur));
   const show = (v: number) => (c.money ? fmt(v) : formatNumber(v));
@@ -73,23 +83,27 @@ export function MetricsCard({ className }: { className?: string }) {
         <StatusTabs label="Metric" value={tab} onChange={setTab} tabs={TABS} className="mb-0 border-b-0" />
         <div className="flex items-center gap-2 pb-2">
           <LiveStatusBadge status={live} className="max-sm:hidden" />
-          <Select value={range} onValueChange={(v) => setRange(v as MetricRange)}>
-            <SelectTrigger size="sm" className="w-20" aria-label="Period">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent align="end">
-              {METRIC_RANGES.map((r) => (
-                <SelectItem key={r.value} value={r.value}>
-                  {r.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          {!isBalance && (
+            <Select value={range} onValueChange={(v) => setRange(v as MetricRange)}>
+              <SelectTrigger size="sm" className="w-20" aria-label="Period">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent align="end">
+                {METRIC_RANGES.map((r) => (
+                  <SelectItem key={r.value} value={r.value}>
+                    {r.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
         </div>
       </div>
 
-      <div className="flex flex-1 flex-col gap-4 p-5" role="tabpanel" aria-label={`${c.main}, ${rangeLong}`}>
-        {error ? (
+      <div className="flex flex-1 flex-col gap-4 p-5" role="tabpanel" aria-label={isBalance ? "Balance" : `${c.main}, ${rangeLong}`}>
+        {isBalance ? (
+          balance.error ? <ErrorState message={balance.error} onRetry={balance.reload} className="flex-1 py-6" /> : <BalancePanel balance={balance.data} />
+        ) : error ? (
           <ErrorState message={error} onRetry={reload} className="flex-1 py-6" />
         ) : !s || (loading && !data) ? (
           <>

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { GuardedLink } from "@/components/plan/plan-context";
-import { ListChecks, Package, Plus, Sparkles } from "lucide-react";
+import { ExternalLink, ListChecks, Package, Plus, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/pp/empty-state";
 import { MoneyText } from "@/components/pp/money-text";
@@ -10,13 +10,13 @@ import { StatusPill } from "@/components/pp/status-pill";
 import { PageHeader } from "@/components/pp/page-header";
 import { useGettingStarted } from "@/components/getting-started/getting-started-provider";
 import { Skeleton } from "@/components/ui/skeleton";
-import { BalanceCell, QuickActions } from "@/components/dashboard/bento";
+import { QuickCreate } from "@/components/dashboard/bento";
 import { NeedsAttention, stockOf } from "@/components/dashboard/attention";
 import { LiveFeed } from "@/components/dashboard/live-feed";
 import { MetricsCard } from "@/components/dashboard/metrics-card";
 import { useApi } from "@/hooks/use-api";
 import { useCurrentStore } from "@/hooks/use-current-store";
-import { getBalance, getPlan, getProducts } from "@/lib/api";
+import { getPlan, getProducts, markLinkShared } from "@/lib/api";
 import { formatDate, formatNumber } from "@/lib/format";
 import { PRO_PRICE_LABEL } from "@/lib/plans";
 import type { Product } from "@/lib/types";
@@ -60,14 +60,13 @@ function greeting() {
 }
 
 /**
- * The dashboard, top to bottom: the two quick actions, one card for Sales, Visitors and Payments
- * (1D, 7D, 30D) beside the balance, what needs attention, then live orders and the latest products
+ * The dashboard, top to bottom: quick creations, one card for Sales, Visitors, Payments (1D, 7D,
+ * 30D) and Balance with Withdraw, what needs attention, then live orders and the latest products
  * side by side. Detail lives on the Analytics, Orders and Live activity pages.
  */
 export default function DashboardPage() {
   const store = useCurrentStore();
   const { openDrawer } = useGettingStarted();
-  const balance = useApi(getBalance, [], { live: true });
   const products = useApi(() => getProducts(), [], { live: true });
   const plan = useApi(getPlan, []);
   const firstName = store.data?.ownerName.split(" ")[0];
@@ -77,9 +76,18 @@ export default function DashboardPage() {
       <PageHeader
         title={firstName ? `${greeting()}, ${firstName}` : greeting()}
         actions={
-          <Button type="button" variant="secondary" onClick={openDrawer}>
-            <ListChecks aria-hidden /> Getting started
-          </Button>
+          <>
+            <Button type="button" variant="secondary" onClick={openDrawer}>
+              <ListChecks aria-hidden /> Getting started
+            </Button>
+            {store.data && (
+              <Button asChild variant="secondary">
+                <a href={`/s/${store.data.slug}`} target="_blank" rel="noreferrer" data-coach="share-link" onClick={() => markLinkShared()}>
+                  <ExternalLink aria-hidden /> View store
+                </a>
+              </Button>
+            )}
+          </>
         }
       />
 
@@ -96,12 +104,9 @@ export default function DashboardPage() {
       )}
 
       <div className="flex flex-col gap-8">
-        <QuickActions store={store.data} />
+        <QuickCreate store={store.data} />
 
-        <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
-          <MetricsCard />
-          <BalanceCell balance={balance.data} className="xl:self-start" />
-        </div>
+        <MetricsCard />
 
         <NeedsAttention products={products.data} storeId={store.data?.id ?? "current"} />
 

@@ -20,7 +20,6 @@ export * from "./media";
 export * from "./blog";
 export * from "./getting-started";
 export * from "./preferences";
-export * from "./domains";
 export * from "./nav";
 export * from "./gst";
 export * from "./leads";

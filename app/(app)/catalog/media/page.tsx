@@ -143,7 +143,6 @@ export default function MediaPage() {
         title="Media"
         actions={
           <>
-            <Button asChild variant="secondary"><Link href="/tools/ai-images"><Sparkles aria-hidden /> Create with AI</Link></Button>
             <Button onClick={() => setUploadOpen(true)}><Upload aria-hidden /> Upload</Button>
           </>
         }

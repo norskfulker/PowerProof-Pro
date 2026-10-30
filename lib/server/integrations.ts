@@ -70,10 +70,13 @@ export interface Integration {
   enabled: boolean;
 }
 
-/** A store's connection with its secrets opened. Pro only: on Free it's as if none was set. */
-export async function loadIntegration(storeId: string, kind: IntegrationKind): Promise<Integration | null> {
+/**
+ * A store's connection with its secrets opened. Pro only: on Free it's as if none was set. One
+ * that's switched off counts as none, unless `includeOff` (Test connection works either way).
+ */
+export async function loadIntegration(storeId: string, kind: IntegrationKind, { includeOff = false } = {}): Promise<Integration | null> {
   const { data } = await sbAdmin().from("store_integrations").select("provider, config, secret_enc, enabled").eq("store_id", storeId).eq("kind", kind).maybeSingle();
-  if (!data || !data.enabled || !(await storeIsPro(storeId))) return null;
+  if (!data || (!data.enabled && !includeOff) || !(await storeIsPro(storeId))) return null;
   return { provider: data.provider, config: (data.config ?? {}) as Record<string, unknown>, secrets: openSecrets(data.secret_enc), enabled: data.enabled };
 }
 

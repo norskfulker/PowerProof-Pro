@@ -59,9 +59,9 @@ describe("resolveNav", () => {
     expect(flat.find((n) => n.id === "products")?.count).toBe(17);
     expect(flat.find((n) => n.id === "reviews")?.count).toBe(3);
     expect(flat.find((n) => n.id === "orders")?.count).toBeUndefined();
-    // Domain is its own setting, with its own Pro lock
-    expect(flat.find((n) => n.id === "settings-domain")?.locked).toBe("customDomain");
-    expect(flat.find((n) => n.id === "settings-domain")?.href).toBe("/store/store_fx/domain");
+    // Custom domains and the AI image maker are gone
+    expect(flat.find((n) => n.id === "settings-domain")).toBeUndefined();
+    expect(flat.find((n) => n.id === "ai-images")).toBeUndefined();
   });
   it("makes the Store a group (its design and its data under it), and Settings one link whose pages are its tabs", () => {
     const store = tree.find((g) => g.id === "store")!;

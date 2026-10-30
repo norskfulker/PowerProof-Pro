@@ -1,8 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -44,8 +42,6 @@ export default function StoreSeoPage() {
     <>
       <PageHeader
         title="Search and social"
-        actions={
-<Button asChild variant="ghost"><Link href="/store/current/domain">Custom domain</Link></Button>}
       />
       <SaveBar state={bar} className="mb-4 md:ml-auto md:w-fit" />
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">

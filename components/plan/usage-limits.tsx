@@ -82,7 +82,6 @@ export function UsageLimits() {
     free
       ? { name: "AI page builds", counts: "Messages to the AI page builder", period: "Lifetime", max: AI_FREE_MESSAGES }
       : { name: "AI page builds", counts: "Pages the AI builds; a failed build doesn't count", period: "Per day", max: lim.aiPagesDaily },
-    { name: "Your own domain", counts: "A domain you own in place of powerproof.app/yourname", period: "Per store", max: lim.customDomain ? null : false, used: undefined },
   ];
   const reached = rows.filter((r) => typeof r.max === "number" && r.used !== undefined && r.used >= r.max);
 

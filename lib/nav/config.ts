@@ -1,6 +1,6 @@
 import {
   Activity, AlertOctagon, Banknote, BarChart3, Bot, Box, Cable, Brush, CreditCard, FileText, Flag, FolderOpen, Globe, Images, Inbox, LayoutDashboard, MessagesSquare,
-  Newspaper, Package, Plug, Receipt, ScrollText, Search, Settings, Shield, ShoppingBag, Sparkles, Store, Tag, Ticket, Users, Wallet, Wrench, type LucideIcon,
+  Newspaper, Package, Plug, Receipt, ScrollText, Search, Settings, Shield, ShoppingBag, Store, Tag, Ticket, Users, Wallet, Wrench, type LucideIcon,
 } from "lucide-react";
 import type { Need } from "../team";
 
@@ -127,7 +127,6 @@ export const CREATOR_NAV: NavNode[] = [
   // Tools and Settings sit together at the bottom of the sidebar, under Notifications
   {
     id: "tools", label: "Tools", icon: Wrench, need: "design", footer: true, children: [
-      { id: "ai-images", label: "AI image maker", href: "/tools/ai-images", icon: Sparkles },
       { id: "integrations", label: "Integrations", href: "/tools/integrations", icon: Plug },
       // The accounts agents use (Google Sheets and the like), shared by every agent
       { id: "connectors", label: "Connectors", href: "/agents/my/connections", icon: Cable, need: "agents" },
@@ -138,7 +137,6 @@ export const CREATOR_NAV: NavNode[] = [
     // the pages are tabs of Settings
     id: "settings", label: "Settings", icon: Settings, footer: true, asLink: true, children: [
       { id: "settings-store", label: "Store", href: "/store/{store}/settings", match: STORE_SETTINGS_MATCH, need: "business" },
-      { id: "settings-domain", label: "Domain", href: "/store/{store}/domain", pro: "customDomain", match: ["/store/{store}/domain"], need: "design" },
       { id: "settings-profile", label: "Profile", href: "/settings/profile" },
       { id: "settings-company", label: "Company and invoices", href: "/settings/company", need: "business" },
       // HSN/SAC codes appear here once physical shipping is on; invoice numbering is always here

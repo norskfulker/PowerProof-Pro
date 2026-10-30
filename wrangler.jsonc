@@ -25,9 +25,9 @@
   "assets": { "directory": ".open-next/assets", "binding": "ASSETS" },
   "services": [{ "binding": "WORKER_SELF_REFERENCE", "service": "powerproof-pro" }],
   "observability": { "enabled": true },
-  // Every 5 minutes: re-check custom domains waiting for DNS (app/api/cron/domains), remind buyers
-  // who left checkout (app/api/cron/abandoned), run agents (app/api/cron/agents) and cancel online
-  // orders not paid within an hour (app/api/cron/unpaid: so at most 5 minutes past the hour)
+  // Every 5 minutes: remind buyers who left checkout (app/api/cron/abandoned), run agents
+  // (app/api/cron/agents) and cancel online orders not paid within an hour (app/api/cron/unpaid:
+  // so at most 5 minutes past the hour)
   "triggers": { "crons": ["*/5 * * * *"] },
   // Plain settings (see the top of this file). The anon key is public by design: RLS guards the data
   "vars": {

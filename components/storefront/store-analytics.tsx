@@ -70,7 +70,8 @@ export function StoreAnalytics({ store, tags, products }: { store: Store; tags?:
     if (!shouldCount({ doNotTrack: navigator.doNotTrack, webdriver: navigator.webdriver })) return;
     const source = classifySource(document.referrer, window.location.search, window.location.hostname);
     const sid = session();
-    void sb().rpc("track_event", { p_store_slug: store.slug, p_kind: "view", p_path: pathname, p_product: undefined as unknown as string, p_source: source, p_session: sid });
+    // p_product is sent as null: a missing argument doesn't match the function, and the visit is lost
+    void sb().rpc("track_event", { p_store_slug: store.slug, p_kind: "view", p_path: pathname, p_product: null as unknown as string, p_source: source, p_session: sid });
     if (product) void sb().rpc("track_event", { p_store_slug: store.slug, p_kind: "product", p_path: pathname, p_product: product.id, p_source: source, p_session: sid });
   }, [pathname, store.slug, products, consent]);
 
